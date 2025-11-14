@@ -3,13 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AtSign, KeyRound, Dices } from "lucide-react";
+import { AtSign, KeyRound, Dices, Music } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import SButtonIcon from "@/components/icons/SButtonIcon";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,16 +33,22 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-transparent to-accent/10 -z-1"></div>
+      <div className="absolute inset-0 -z-10">
+        <Music className="music-note absolute text-primary/10" style={{ left: '10%', animationDuration: '10s' }} />
+        <Music className="music-note absolute text-primary/10" style={{ left: '20%', animationDuration: '12s', animationDelay: '5s' }} />
+        <Music className="music-note absolute text-primary/10" style={{ left: '50%', animationDuration: '15s', animationDelay: '2s' }} />
+        <Music className="music-note absolute text-primary/10" style={{ left: '70%', animationDuration: '11s', animationDelay: '7s' }} />
+        <Music className="music-note absolute text-primary/10" style={{ left: '90%', animationDuration: '13s', animationDelay: '1s' }} />
+      </div>
       
       <main className="w-full max-w-md z-10">
         <Card className="bg-card/80 backdrop-blur-sm border-border/50 shadow-2xl shadow-primary/5">
           <CardHeader className="text-center">
             <h1 className="font-headline text-5xl font-bold text-primary tracking-tighter">
-              Socio
+              PIANO_AI
             </h1>
             <CardDescription className="font-body text-muted-foreground pt-2">
-              Your AI Music Teacher
+              Login to continue
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -63,7 +68,6 @@ export default function LoginPage() {
                 </div>
               </div>
               <Button type="submit" className="w-full h-12 font-bold text-lg bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading}>
-                <SButtonIcon className="w-8 h-8 mr-2" />
                 {isLoading ? "Signing In..." : "Sign In"}
               </Button>
             </form>
