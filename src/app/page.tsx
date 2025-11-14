@@ -67,7 +67,7 @@ export default function LoginPage() {
                   <Input id="password" type="password" placeholder="••••••••" className="pl-10" required />
                 </div>
               </div>
-              <Button type="submit" className="w-full h-12 font-bold text-lg bg-primary text-primary-foreground hover:bg-primary/90 rounded-full" disabled={isLoading}>
+              <Button type="submit" className="w-full h-12 font-bold text-lg bg-primary text-primary-foreground hover:bg-primary/90 rounded-tl-2xl rounded-br-2xl" disabled={isLoading}>
                 {isLoading ? "Signing In..." : "Sign In"}
               </Button>
             </form>
