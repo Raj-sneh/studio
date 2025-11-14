@@ -57,14 +57,14 @@ export default function LoginPage() {
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="email" type="email" placeholder="you@example.com" className="pl-10" required />
+                  <Input id="email" type="email" placeholder="you@example.com" className="pl-10 rounded-tl-2xl rounded-br-2xl" required />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="password" type="password" placeholder="••••••••" className="pl-10" required />
+                  <Input id="password" type="password" placeholder="••••••••" className="pl-10 rounded-tl-2xl rounded-br-2xl" required />
                 </div>
               </div>
               <Button type="submit" className="w-full h-12 font-bold text-lg bg-primary text-primary-foreground hover:bg-primary/90 rounded-tl-2xl rounded-br-2xl" disabled={isLoading}>
