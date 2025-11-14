@@ -33,7 +33,12 @@ export default function Piano({
 
     useEffect(() => {
         const initializeSynth = async () => {
-            await Tone.start();
+            if (Tone.context.state !== 'running') {
+              await Tone.start();
+            }
+            // Lower latency and update interval for faster response
+            await Tone.context.set({ latencyHint: 'interactive', lookAhead: 0.01 });
+
             synth.current = new Tone.PolySynth(Tone.Synth, {
                 oscillator: {
                     type: 'fmtriangle',
@@ -49,7 +54,6 @@ export default function Piano({
                 },
             }).toDestination();
             
-            Tone.context.lookAhead = 0;
             setIsLoaded(true);
         }
         
@@ -61,31 +65,31 @@ export default function Piano({
     }, []);
 
     const playNote = useCallback((note: string, octave: number) => {
-        if (!synth.current || disabled) return;
+        if (!synth.current || disabled || !isLoaded) return;
         const fullNote = `${note}${octave}`;
         synth.current.triggerAttack(fullNote, Tone.now());
         onNotePlay?.(fullNote);
         setPressedKeys(prev => new Set(prev).add(fullNote));
-    }, [disabled, onNotePlay]);
+    }, [disabled, onNotePlay, isLoaded]);
 
     const stopNote = useCallback((note: string, octave: number) => {
-        if (!synth.current || disabled) return;
+        if (!synth.current || disabled || !isLoaded) return;
         const fullNote = `${note}${octave}`;
-        synth.current.triggerRelease([fullNote], Tone.now());
+        synth.current.triggerRelease([fullNote], Tone.now() + 0.05);
         setPressedKeys(prev => {
             const newSet = new Set(prev);
             newSet.delete(fullNote);
             return newSet;
         });
-    }, [disabled]);
+    }, [disabled, isLoaded]);
     
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (disabled) return;
-            const note = keyMap[event.key];
+            if (disabled || event.repeat) return;
+            const note = keyMap[event.key.toLowerCase()];
             if (note) {
                 let octave = currentOctave;
-                if (['k', 'o', 'l', 'p'].includes(event.key)) {
+                if (['k', 'o', 'l', 'p'].includes(event.key.toLowerCase())) {
                     octave++;
                 }
                 const fullNote = `${note}${octave}`;
@@ -99,10 +103,10 @@ export default function Piano({
 
         const handleKeyUp = (event: KeyboardEvent) => {
             if (disabled) return;
-            const note = keyMap[event.key];
+            const note = keyMap[event.key.toLowerCase()];
             if (note) {
                 let octave = currentOctave;
-                if (['k', 'o', 'l', 'p'].includes(event.key)) {
+                if (['k', 'o', 'l', 'p'].includes(event.key.toLowerCase())) {
                     octave++;
                 }
                 stopNote(note, octave);
@@ -143,6 +147,8 @@ export default function Piano({
                                 onMouseDown={() => playNote(note, octave)}
                                 onMouseUp={() => stopNote(note, octave)}
                                 onMouseLeave={() => stopNote(note, octave)}
+                                onTouchStart={(e) => { e.preventDefault(); playNote(note, octave); }}
+                                onTouchEnd={(e) => { e.preventDefault(); stopNote(note, octave); }}
                                 className={cn(
                                     "relative cursor-pointer transition-colors duration-100 flex items-end justify-center pb-2 font-medium",
                                     isBlack
