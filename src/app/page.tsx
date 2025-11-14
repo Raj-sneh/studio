@@ -37,7 +37,6 @@ export default function LoginPage() {
       <div className="absolute inset-0 -z-10">
         <Music className="music-note absolute text-primary/10" style={{ left: '10%', animationDuration: '10s' }} />
         <Music className="music-note absolute text-primary/10" style={{ left: '20%', animationDuration: '12s', animationDelay: '5s' }} />
-        <Music className="music-note absolute text-primary/10" style={{ left: '50%', animationDuration: '15s', animationDelay: '2s' }} />
         <Music className="music-note absolute text-primary/10" style={{ left: '70%', animationDuration: '11s', animationDelay: '7s' }} />
         <Music className="music-note absolute text-primary/10" style={{ left: '90%', animationDuration: '13s', animationDelay: '1s' }} />
       </div>
