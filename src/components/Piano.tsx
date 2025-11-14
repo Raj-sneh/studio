@@ -29,25 +29,31 @@ export default function Piano({
     const synth = useRef<Tone.PolySynth | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const [currentOctave, setCurrentOctave] = useState(startOctave);
+    const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
 
     useEffect(() => {
-        synth.current = new Tone.PolySynth(Tone.Synth, {
-            oscillator: {
-                type: 'fmtriangle',
-                modulationType: 'sine',
-                modulationIndex: 3,
-                harmonicity: 3.4
-            },
-            envelope: {
-                attack: 0.01,
-                decay: 0.1,
-                sustain: 0.5,
-                release: 1,
-            },
-        }).toDestination();
+        const initializeSynth = async () => {
+            await Tone.start();
+            synth.current = new Tone.PolySynth(Tone.Synth, {
+                oscillator: {
+                    type: 'fmtriangle',
+                    modulationType: 'sine',
+                    modulationIndex: 3,
+                    harmonicity: 3.4
+                },
+                envelope: {
+                    attack: 0.01,
+                    decay: 0.1,
+                    sustain: 0.5,
+                    release: 1,
+                },
+            }).toDestination();
+            
+            Tone.context.lookAhead = 0;
+            setIsLoaded(true);
+        }
         
-        Tone.context.lookAhead = 0;
-        setIsLoaded(true);
+        initializeSynth();
 
         return () => {
             synth.current?.dispose();
@@ -55,12 +61,23 @@ export default function Piano({
     }, []);
 
     const playNote = useCallback((note: string, octave: number) => {
-        if (synth.current && !disabled) {
-            const fullNote = `${note}${octave}`;
-            synth.current.triggerAttackRelease(fullNote, "8n");
-            onNotePlay?.(fullNote);
-        }
+        if (!synth.current || disabled) return;
+        const fullNote = `${note}${octave}`;
+        synth.current.triggerAttack(fullNote, Tone.now());
+        onNotePlay?.(fullNote);
+        setPressedKeys(prev => new Set(prev).add(fullNote));
     }, [disabled, onNotePlay]);
+
+    const stopNote = useCallback((note: string, octave: number) => {
+        if (!synth.current || disabled) return;
+        const fullNote = `${note}${octave}`;
+        synth.current.triggerRelease([fullNote], Tone.now());
+        setPressedKeys(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(fullNote);
+            return newSet;
+        });
+    }, [disabled]);
     
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -71,17 +88,35 @@ export default function Piano({
                 if (['k', 'o', 'l', 'p'].includes(event.key)) {
                     octave++;
                 }
-                playNote(note, octave);
+                const fullNote = `${note}${octave}`;
+                if (!pressedKeys.has(fullNote)) {
+                    playNote(note, octave);
+                }
             }
             if (event.key === 'z') changeOctave(-1);
             if (event.key === 'x') changeOctave(1);
         };
 
+        const handleKeyUp = (event: KeyboardEvent) => {
+            if (disabled) return;
+            const note = keyMap[event.key];
+            if (note) {
+                let octave = currentOctave;
+                if (['k', 'o', 'l', 'p'].includes(event.key)) {
+                    octave++;
+                }
+                stopNote(note, octave);
+            }
+        };
+
         window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [playNote, currentOctave, disabled]);
+    }, [playNote, stopNote, currentOctave, disabled, pressedKeys]);
 
     const changeOctave = (direction: number) => {
         setCurrentOctave(prev => Math.max(1, Math.min(6, prev + direction)));
@@ -98,7 +133,7 @@ export default function Piano({
         <div className="w-full space-y-4">
             <div className="flex justify-center p-4 bg-card rounded-lg shadow-inner">
                 <div className="flex relative select-none">
-                    {pianoKeys.map(({ note, octave }, index) => {
+                    {pianoKeys.map(({ note, octave }) => {
                         const isBlack = note.includes("#");
                         const fullNote = `${note}${octave}`;
 
@@ -106,12 +141,15 @@ export default function Piano({
                             <div
                                 key={`${note}${octave}`}
                                 onMouseDown={() => playNote(note, octave)}
+                                onMouseUp={() => stopNote(note, octave)}
+                                onMouseLeave={() => stopNote(note, octave)}
                                 className={cn(
                                     "relative cursor-pointer transition-colors duration-100 flex items-end justify-center pb-2 font-medium",
                                     isBlack
-                                        ? "bg-gray-800 text-white w-6 h-24 border-2 border-gray-900 rounded-b-md z-10 -ml-3 -mr-3 hover:bg-primary"
-                                        : "bg-white text-gray-800 w-10 h-36 border-2 border-gray-300 rounded-b-lg hover:bg-primary/20",
-                                    highlightedKeys.includes(fullNote) && (isBlack ? "bg-primary" : "bg-primary/50"),
+                                        ? "bg-gray-800 text-white w-6 h-24 border-2 border-gray-900 rounded-b-md z-10 -ml-3 -mr-3"
+                                        : "bg-white text-gray-800 w-10 h-36 border-2 border-gray-300 rounded-b-lg",
+                                    (highlightedKeys.includes(fullNote) || pressedKeys.has(fullNote)) && (isBlack ? "bg-primary" : "bg-primary/50"),
+                                    !pressedKeys.has(fullNote) && (isBlack ? "hover:bg-primary" : "hover:bg-primary/20"),
                                     disabled && "opacity-60 cursor-not-allowed"
                                 )}
                             >
