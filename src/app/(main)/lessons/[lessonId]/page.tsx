@@ -7,6 +7,7 @@ import { lessons } from "@/lib/lessons";
 import type { Lesson, Note as NoteType, Instrument } from "@/types";
 import { analyzeUserPerformance } from "@/ai/flows/analyze-user-performance";
 import { flagContentForReview } from "@/ai/flows/flag-content-for-review";
+import { transcribeAudio, Note as TranscribedNote } from "@/ai/flows/transcribe-audio-flow";
 
 import Piano from "@/components/Piano";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Play, Square, Mic, Send, Flag, Bot, Loader2, Star, Trophy, Target, Sparkles, ChevronLeft } from "lucide-react";
+import { Play, Square, Mic, Send, Flag, Bot, Loader2, Star, Trophy, Target, Sparkles, ChevronLeft, Ear } from "lucide-react";
 
 type RecordedNote = { note: string; time: number };
 type AnalysisResult = {
@@ -48,20 +49,24 @@ type AnalysisResult = {
   strengths: string;
   weaknesses: string;
 } | null;
+type Mode = "idle" | "demo" | "recording" | "analyzing" | "result" | "listening" | "transcribing" | "playback";
 
 export default function LessonPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
   const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [mode, setMode] = useState<"idle" | "demo" | "recording" | "analyzing" | "result">("idle");
+  const [mode, setMode] = useState<Mode>("idle");
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
   const [userRecording, setUserRecording] = useState<RecordedNote[]>([]);
   const [recordingStartTime, setRecordingStartTime] = useState(0);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult>(null);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [transcribedNotes, setTranscribedNotes] = useState<TranscribedNote[]>([]);
   const reportReasonRef = useRef<HTMLTextAreaElement>(null);
   const synth = useRef<Tone.Synth | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     const lessonId = params.lessonId as string;
@@ -76,12 +81,12 @@ export default function LessonPage() {
     return () => synth.current?.dispose();
   }, [params.lessonId, router]);
 
-  const playDemo = useCallback(() => {
-    if (!lesson || !synth.current) return;
-    setMode("demo");
+  const playNotes = useCallback((notesToPlay: NoteType[]) => {
+    if (!synth.current || notesToPlay.length === 0) return;
+    
     const now = Tone.now();
     
-    lesson.notes.forEach((note) => {
+    notesToPlay.forEach((note) => {
       synth.current?.triggerAttackRelease(note.key, note.duration, now + note.time);
       
       Tone.Transport.scheduleOnce(() => {
@@ -93,18 +98,24 @@ export default function LessonPage() {
       }, now + note.time + 0.2);
     });
 
-    const totalDuration = (lesson.notes[lesson.notes.length - 1]?.time || 0) + 1;
+    const totalDuration = (notesToPlay[notesToPlay.length - 1]?.time || 0) + 1;
     Tone.Transport.scheduleOnce(() => {
         setMode("idle");
     }, now + totalDuration);
 
     Tone.Transport.start();
-
+    
     return () => {
       Tone.Transport.stop();
       Tone.Transport.cancel();
     }
-  }, [lesson, synth]);
+  }, [synth]);
+
+  const playDemo = useCallback(() => {
+    if (!lesson) return;
+    setMode("demo");
+    playNotes(lesson.notes);
+  }, [lesson, playNotes]);
 
   const startRecording = () => {
     setUserRecording([]);
@@ -164,22 +175,81 @@ export default function LessonPage() {
     }
   };
 
+  const startListening = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = event => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorderRef.current.onstop = async () => {
+        setMode("transcribing");
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+          const base64Audio = reader.result as string;
+          try {
+            if (!lesson) return;
+            const result = await transcribeAudio({
+              audioDataUri: base64Audio,
+              instrument: lesson.instrument,
+            });
+            setTranscribedNotes(result.notes);
+            setMode("playback");
+            playNotes(result.notes);
+          } catch (e) {
+            console.error("Transcription failed", e);
+            toast({ title: "Transcription Failed", description: "Could not understand the audio. Please try again.", variant: "destructive" });
+            setMode("idle");
+          }
+        };
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorderRef.current.start();
+      setMode("listening");
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+      toast({
+        title: "Microphone Access Denied",
+        description: "Please allow microphone access in your browser settings to use this feature.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopListening = () => {
+    mediaRecorderRef.current?.stop();
+  };
+
+  const playTranscribedNotes = () => {
+    if (transcribedNotes.length > 0) {
+      setMode("playback");
+      playNotes(transcribedNotes);
+    }
+  };
+
   if (!lesson) {
     return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
-
-  const progress = mode === 'demo' || mode === 'recording' ? 50 : mode === 'analyzing' ? 75 : mode === 'result' ? 100 : 0;
   
   const renderStatus = () => {
     switch (mode) {
-      case 'idle': return "Ready when you are. Start with a demo or your turn.";
+      case 'idle': return "Ready when you are. Start with a demo, your turn or listen & learn.";
       case 'demo': return "Listen and watch the demo.";
       case 'recording': return "Your turn! Play the notes on the piano.";
       case 'analyzing': return "AI Teacher is analyzing your performance...";
       case 'result': return "Here's your feedback!";
+      case 'listening': return "Listening to your music... Press stop when you're done.";
+      case 'transcribing': return "AI is transcribing your music...";
+      case 'playback': return "Playing back the transcribed music.";
       default: return "";
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -224,13 +294,13 @@ export default function LessonPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Progress value={progress} />
+            <Progress value={mode === 'idle' ? 0 : 100} />
             <p className="text-center text-sm text-muted-foreground">{renderStatus()}</p>
           </div>
 
           <Piano onNotePlay={handleNotePlay} highlightedKeys={highlightedKeys} disabled={mode !== 'recording'} />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Button onClick={playDemo} disabled={mode !== 'idle'} size="lg">
               <Play className="mr-2 h-5 w-5"/> Demo
             </Button>
@@ -243,18 +313,30 @@ export default function LessonPage() {
                 <Square className="mr-2 h-5 w-5"/> Finish & Analyze
               </Button>
             )}
+             {mode !== 'listening' ? (
+              <Button onClick={startListening} disabled={mode !== 'idle'} size="lg">
+                <Ear className="mr-2 h-5 w-5"/> Listen & Learn
+              </Button>
+            ) : (
+              <Button onClick={stopListening} size="lg" variant="destructive">
+                <Square className="mr-2 h-5 w-5"/> Stop Listening
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
       
-      <AlertDialog open={mode === 'analyzing'}>
+      <AlertDialog open={mode === 'analyzing' || mode === 'transcribing'}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center justify-center font-headline text-2xl gap-3">
-              <Bot className="h-8 w-8 animate-pulse text-primary"/> Analyzing...
+              <Bot className="h-8 w-8 animate-pulse text-primary"/> {mode === 'analyzing' ? 'Analyzing...' : 'Transcribing...'}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center pt-4">
-              The AI Teacher is listening to your performance. <br/> Please wait a moment for your feedback.
+              {mode === 'analyzing' 
+                ? "The AI Teacher is listening to your performance. Please wait a moment for your feedback."
+                : "The AI Teacher is transcribing your music. This may take a few moments."
+              }
             </AlertDialogDescription>
           </AlertDialogHeader>
         </AlertDialogContent>
@@ -296,6 +378,23 @@ export default function LessonPage() {
           </div>
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setMode("idle")}>Try Again</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+       <AlertDialog open={mode === 'playback' && transcribedNotes.length > 0} onOpenChange={(open) => !open && setMode('idle')}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-headline text-3xl text-center flex items-center justify-center gap-2">
+              <Ear className="h-6 w-6 text-primary" /> Music Playback
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              The AI has transcribed your music. Watch the piano to learn how to play it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => playTranscribedNotes()}>Play Again</AlertDialogAction>
+            <AlertDialogCancel onClick={() => setMode('idle')}>Done</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
