@@ -101,7 +101,7 @@ export default function Piano({
                                 key={`${note}${octave}`}
                                 onMouseDown={() => playNote(note, octave)}
                                 className={cn(
-                                    "cursor-pointer transition-colors duration-100",
+                                    "relative cursor-pointer transition-colors duration-100 flex items-end justify-center pb-2 font-medium",
                                     isBlack
                                         ? "bg-gray-800 text-white w-6 h-24 border-2 border-gray-900 rounded-b-md z-10 -ml-3 -mr-3 hover:bg-primary"
                                         : "bg-white text-gray-800 w-10 h-36 border-2 border-gray-300 rounded-b-lg hover:bg-primary/20",
@@ -109,6 +109,7 @@ export default function Piano({
                                     disabled && "opacity-60 cursor-not-allowed"
                                 )}
                             >
+                                <span className={cn("text-xs", isBlack && "text-gray-300")}>{note}</span>
                             </div>
                         );
                     })}
