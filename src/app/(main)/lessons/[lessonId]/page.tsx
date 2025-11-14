@@ -7,7 +7,7 @@ import { lessons } from "@/lib/lessons";
 import type { Lesson, Note as NoteType, Instrument } from "@/types";
 import { analyzeUserPerformance } from "@/ai/flows/analyze-user-performance";
 import { flagContentForReview } from "@/ai/flows/flag-content-for-review";
-import { transcribeAudio, Note as TranscribedNote } from "@/ai/flows/transcribe-audio-flow";
+import { transcribeAudio, type TranscribeAudioOutput } from "@/ai/flows/transcribe-audio-flow";
 
 import Piano from "@/components/Piano";
 import { Button } from "@/components/ui/button";
@@ -62,7 +62,7 @@ export default function LessonPage() {
   const [recordingStartTime, setRecordingStartTime] = useState(0);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult>(null);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
-  const [transcribedNotes, setTranscribedNotes] = useState<TranscribedNote[]>([]);
+  const [transcribedNotes, setTranscribedNotes] = useState<TranscribeAudioOutput['notes']>([]);
   const reportReasonRef = useRef<HTMLTextAreaElement>(null);
   const synth = useRef<Tone.Synth | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -81,12 +81,13 @@ export default function LessonPage() {
     return () => synth.current?.dispose();
   }, [params.lessonId, router]);
 
-  const playNotes = useCallback((notesToPlay: NoteType[]) => {
+  const playNotes = useCallback((notesToPlay: NoteType[] | TranscribeAudioOutput['notes']) => {
     if (!synth.current || notesToPlay.length === 0) return;
     
     const now = Tone.now();
     
     notesToPlay.forEach((note) => {
+      if(!note.key || !note.duration || !note.time) return;
       synth.current?.triggerAttackRelease(note.key, note.duration, now + note.time);
       
       Tone.Transport.scheduleOnce(() => {

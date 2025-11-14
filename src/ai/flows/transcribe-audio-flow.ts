@@ -8,14 +8,8 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
-
-export const NoteSchema = z.object({
-  key: z.string().describe("The musical note name (e.g., 'C4', 'F#5')."),
-  duration: z.string().describe("The duration of the note (e.g., '4n', '8n')."),
-  time: z.number().describe('The start time of the note in seconds.'),
-});
-export type Note = z.infer<typeof NoteSchema>;
+import { z } from 'zod';
+import type { Note } from '@/types';
 
 const TranscribeAudioInputSchema = z.object({
   audioDataUri: z
@@ -29,7 +23,11 @@ export type TranscribeAudioInput = z.infer<typeof TranscribeAudioInputSchema>;
 
 
 const TranscribeAudioOutputSchema = z.object({
-  notes: z.array(NoteSchema).describe('An array of transcribed notes.'),
+  notes: z.array(z.object({
+    key: z.string().describe("The musical note name (e.g., 'C4', 'F#5')."),
+    duration: z.string().describe("The duration of the note (e.g., '4n', '8n')."),
+    time: z.number().describe('The start time of the note in seconds.'),
+  })).describe('An array of transcribed notes.'),
 });
 export type TranscribeAudioOutput = z.infer<typeof TranscribeAudioOutputSchema>;
 
