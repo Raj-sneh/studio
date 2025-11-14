@@ -26,20 +26,26 @@ export default function Piano({
     highlightedKeys = [],
     disabled = false,
 }: PianoProps) {
-    const synth = useRef<Tone.Synth | null>(null);
+    const synth = useRef<Tone.PolySynth | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const [currentOctave, setCurrentOctave] = useState(startOctave);
 
     useEffect(() => {
-        synth.current = new Tone.Synth({
-            oscillator: { type: "triangle8" },
+        synth.current = new Tone.PolySynth(Tone.Synth, {
+            oscillator: {
+                type: 'fmtriangle',
+                modulationType: 'sine',
+                modulationIndex: 3,
+                harmonicity: 3.4
+            },
             envelope: {
-                attack: 0.005,
+                attack: 0.01,
                 decay: 0.1,
-                sustain: 0.3,
+                sustain: 0.5,
                 release: 1,
             },
         }).toDestination();
+        
         Tone.context.lookAhead = 0;
         setIsLoaded(true);
 
