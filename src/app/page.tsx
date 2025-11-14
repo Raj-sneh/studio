@@ -41,7 +41,7 @@ export default function LoginPage() {
         <Music className="music-note absolute text-primary/10" style={{ left: '90%', animationDuration: '13s', animationDelay: '1s' }} />
       </div>
       
-      <main className="w-full max-w-md z-10">
+      <main className="w-full max-w-sm z-10">
         <Card className="bg-card/80 backdrop-blur-sm border-border/50 shadow-2xl shadow-primary/5">
           <CardHeader className="text-center">
             <h1 className="font-headline text-5xl font-bold text-primary tracking-tighter">
