@@ -84,20 +84,21 @@ export default function LessonPage() {
   const playNotes = useCallback((notesToPlay: NoteType[] | TranscribeAudioOutput['notes']) => {
     if (!synth.current || notesToPlay.length === 0) return;
     
+    Tone.Transport.cancel();
+    setHighlightedKeys([]);
+
     const now = Tone.now();
     
-    notesToPlay.forEach((note) => {
-      if(!note.key || !note.duration || !note.time) return;
-      synth.current?.triggerAttackRelease(note.key, note.duration, now + note.time);
-      
-      Tone.Transport.scheduleOnce(() => {
-        setHighlightedKeys([note.key]);
-      }, now + note.time);
-
-      Tone.Transport.scheduleOnce(() => {
-        setHighlightedKeys([]);
-      }, now + note.time + 0.2);
-    });
+    const part = new Tone.Part((time, note) => {
+        synth.current?.triggerAttackRelease(note.key, note.duration, time);
+        Tone.Draw.schedule(() => {
+            setHighlightedKeys([note.key]);
+        }, time);
+        Tone.Draw.schedule(() => {
+            setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
+        }, time + Tone.Time(note.duration).toSeconds() * 0.9);
+    }, notesToPlay.filter(n => n.key && n.duration && n.time)).start(now);
+    
 
     const totalDuration = (notesToPlay[notesToPlay.length - 1]?.time || 0) + 1;
     Tone.Transport.scheduleOnce(() => {
@@ -107,6 +108,7 @@ export default function LessonPage() {
     Tone.Transport.start();
     
     return () => {
+      part.dispose();
       Tone.Transport.stop();
       Tone.Transport.cancel();
     }
