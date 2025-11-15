@@ -36,8 +36,8 @@ export default function Piano({
             if (Tone.context.state !== 'running') {
               await Tone.start();
             }
-            // Lower latency and update interval for faster response
-            await Tone.context.set({ latencyHint: 'interactive', lookAhead: 0.01 });
+            
+            await Tone.context.set({ latencyHint: 'interactive', lookAhead: 0 });
 
             synth.current = new Tone.PolySynth(Tone.Synth, {
                 oscillator: {
@@ -50,7 +50,7 @@ export default function Piano({
                     attack: 0.01,
                     decay: 0.1,
                     sustain: 0.5,
-                    release: 1,
+                    release: 0.5,
                 },
             }).toDestination();
             
@@ -75,7 +75,7 @@ export default function Piano({
     const stopNote = useCallback((note: string, octave: number) => {
         if (!synth.current || disabled || !isLoaded) return;
         const fullNote = `${note}${octave}`;
-        synth.current.triggerRelease([fullNote], Tone.now() + 0.05);
+        synth.current.triggerRelease([fullNote], Tone.now());
         setPressedKeys(prev => {
             const newSet = new Set(prev);
             newSet.delete(fullNote);
