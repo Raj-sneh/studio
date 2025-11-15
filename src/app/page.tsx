@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AtSign, KeyRound, Dices, Music } from "lucide-react";
+import { AtSign, KeyRound, Dices, Music, UserPlus } from "lucide-react";
+import { useAuth, useUser, initiateEmailSignIn, initiateEmailSignUp, initiateAnonymousSignIn } from "@/firebase";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,26 +11,61 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import SButtonIcon from "@/components/icons/SButtonIcon";
 
+type AuthMode = 'login' | 'signup';
+
 export default function LoginPage() {
   const router = useRouter();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
   const [isLoading, setIsLoading] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push("/dashboard");
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleAuthAction = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
+    setError(null);
+    if (authMode === 'login') {
+      initiateEmailSignIn(auth, email, password);
+    } else {
+      initiateEmailSignUp(auth, email, password);
+    }
+    // The useEffect will handle the redirect on successful login/signup
+    // For now, we will just simulate a delay for loading state
     setTimeout(() => {
-      router.push("/dashboard");
-    }, 1000);
+        setIsLoading(false);
+    }, 2000);
   };
   
   const handleGuestLogin = () => {
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      router.push("/dashboard");
+    initiateAnonymousSignIn(auth);
+     setTimeout(() => {
+        setIsLoading(false);
     }, 500);
   };
+
+  const toggleAuthMode = () => {
+    setAuthMode(current => current === 'login' ? 'signup' : 'login');
+    setError(null);
+  }
+
+  if (isUserLoading || user) {
+     return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
+        <SButtonIcon className="animate-spin h-12 w-12 text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background relative overflow-hidden">
@@ -48,27 +83,28 @@ export default function LoginPage() {
               PIANO_AI
             </h1>
             <CardDescription className="font-body text-muted-foreground pt-2">
-              Login to continue
+              {authMode === 'login' ? 'Login to continue' : 'Create an account'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-6">
+            <form onSubmit={handleAuthAction} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="email" type="email" placeholder="you@example.com" className="pl-10 rounded-tl-2xl rounded-br-2xl" required />
+                  <Input id="email" type="email" placeholder="you@example.com" className="pl-10 rounded-tl-2xl rounded-br-2xl" required value={email} onChange={e => setEmail(e.target.value)} />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="password" type="password" placeholder="••••••••" className="pl-10 rounded-tl-2xl rounded-br-2xl" required />
+                  <Input id="password" type="password" placeholder="••••••••" className="pl-10 rounded-tl-2xl rounded-br-2xl" required value={password} onChange={e => setPassword(e.target.value)} />
                 </div>
               </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full h-12 font-bold text-lg bg-primary text-primary-foreground hover:bg-primary/90 rounded-tl-2xl rounded-br-2xl" disabled={isLoading}>
-                {isLoading ? <SButtonIcon className="animate-spin" /> : "Sign In"}
+                {isLoading ? <SButtonIcon className="animate-spin" /> : (authMode === 'login' ? 'Sign In' : 'Sign Up')}
               </Button>
             </form>
             <div className="relative my-6">
@@ -90,10 +126,10 @@ export default function LoginPage() {
               </Button>
             </div>
             <p className="mt-6 text-center text-xs text-muted-foreground">
-              Don't have an account?{" "}
-              <Link href="#" className="text-primary hover:underline">
-                Sign up
-              </Link>
+              {authMode === 'login' ? "Don't have an account?" : "Already have an account?"}{" "}
+              <button onClick={toggleAuthMode} className="text-primary hover:underline font-semibold">
+                {authMode === 'login' ? 'Sign up' : 'Sign in'}
+              </button>
             </p>
           </CardContent>
         </Card>
