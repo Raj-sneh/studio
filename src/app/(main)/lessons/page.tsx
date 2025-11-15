@@ -15,7 +15,7 @@ export default function LessonsPage() {
         <p className="mt-2 text-lg text-muted-foreground">Choose a lesson to start learning with AI feedback.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {lessons.map((lesson) => {
           const image = PlaceHolderImages.find(img => img.id === lesson.imageId);
           const isPianoLesson = lesson.instrument === 'piano';

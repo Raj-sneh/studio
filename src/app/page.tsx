@@ -205,7 +205,7 @@ export default function LoginPage() {
         <Card className="bg-card/80 backdrop-blur-sm border-border/50 shadow-2xl shadow-primary/5">
           <CardHeader className="text-center">
             <h1 className="font-headline text-5xl font-bold text-primary tracking-tighter">
-              PIANO_AI
+              Socio
             </h1>
             <CardDescription className="font-body text-muted-foreground pt-2">
               {authMode === 'login' && 'Login to continue'}

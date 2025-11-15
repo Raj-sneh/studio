@@ -16,7 +16,7 @@ export default function DashboardPage() {
         <p className="mt-2 text-lg text-muted-foreground">What would you like to do today?</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="overflow-hidden group hover:border-primary transition-all duration-300 transform hover:-translate-y-1">
           <CardHeader className="p-0">
             {practiceImage && (
