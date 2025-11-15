@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AtSign, KeyRound, Dices, Music, UserPlus, Phone, MessageSquare } from "lucide-react";
 import { useAuth, useUser, setDocumentNonBlocking } from "@/firebase";
-import { RecaptchaVerifier, signInWithPhoneNumber, createUserWithEmailAndPassword, signInWithEmailAndPassword, ConfirmationResult, UserCredential, updateProfile, linkWithPhoneNumber, PhoneAuthCredential, PhoneAuthProvider } from "firebase/auth";
+import { RecaptchaVerifier, signInWithPhoneNumber, createUserWithEmailAndPassword, signInWithEmailAndPassword, ConfirmationResult, UserCredential, updateProfile, linkWithPhoneNumber, PhoneAuthCredential, PhoneAuthProvider, signInAnonymously } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 
@@ -182,7 +182,7 @@ export default function LoginPage() {
     setPhoneNumber('');
   }
 
-  if (isUserLoading) {
+  if (isUserLoading || user) {
      return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
         <SButtonIcon className="animate-spin h-12 w-12 text-primary" />
@@ -191,16 +191,6 @@ export default function LoginPage() {
     );
   }
   
-  if (!isUserLoading && user) {
-     router.push("/dashboard");
-     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
-        <SButtonIcon className="animate-spin h-12 w-12 text-primary" />
-        <p className="mt-4 text-muted-foreground">Redirecting...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background relative overflow-hidden">
       <div id="recaptcha-container"></div>
@@ -310,5 +300,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
