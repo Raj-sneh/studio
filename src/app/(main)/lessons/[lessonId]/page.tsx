@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -86,33 +87,43 @@ export default function LessonPage() {
     
     Tone.Transport.cancel();
     setHighlightedKeys([]);
-
-    const now = Tone.now();
-    
-    const part = new Tone.Part((time, note) => {
-        synth.current?.triggerAttackRelease(note.key, note.duration, time);
-        Tone.Draw.schedule(() => {
-            setHighlightedKeys([note.key]);
-        }, time);
-        Tone.Draw.schedule(() => {
+  
+    const now = Tone.now() + 0.1; // Add a small buffer
+  
+    notesToPlay.forEach(note => {
+      if (note.key && note.duration && typeof note.time === 'number') {
+        const playTime = now + note.time;
+        synth.current?.triggerAttackRelease(note.key, note.duration, playTime);
+        
+        Tone.Transport.scheduleOnce(() => {
+          Tone.Draw.schedule(() => {
+            setHighlightedKeys(current => [...current, note.key]);
+          }, Tone.now());
+        }, playTime);
+  
+        Tone.Transport.scheduleOnce(() => {
+          Tone.Draw.schedule(() => {
             setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
-        }, time + Tone.Time(note.duration).toSeconds() * 0.9);
-    }, notesToPlay.filter(n => n.key && n.duration && n.time)).start(now);
-    
-
-    const totalDuration = (notesToPlay[notesToPlay.length - 1]?.time || 0) + 1;
-    Tone.Transport.scheduleOnce(() => {
+          }, Tone.now());
+        }, playTime + Tone.Time(note.duration).toSeconds());
+      }
+    });
+  
+    const lastNote = notesToPlay[notesToPlay.length - 1];
+    if (lastNote) {
+      const totalDuration = lastNote.time + Tone.Time(lastNote.duration).toSeconds();
+      Tone.Transport.scheduleOnce(() => {
         setMode("idle");
-    }, now + totalDuration);
-
-    Tone.Transport.start();
-    
-    return () => {
-      part.dispose();
-      Tone.Transport.stop();
-      Tone.Transport.cancel();
+      }, now + totalDuration + 0.5);
     }
-  }, [synth]);
+  
+    Tone.Transport.start(now);
+      
+    return () => {
+        Tone.Transport.stop();
+        Tone.Transport.cancel();
+    }
+  }, []);
 
   const playDemo = useCallback(() => {
     if (!lesson) return;
@@ -255,15 +266,15 @@ export default function LessonPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <Button variant="ghost" onClick={() => router.push('/lessons')} className="mb-4">
+    <div className="flex flex-col h-[calc(100vh-8rem)]">
+      <Button variant="ghost" onClick={() => router.push('/lessons')} className="mb-4 self-start">
         <ChevronLeft className="mr-2 h-4 w-4" /> Back to Lessons
       </Button>
-      <Card>
+      <Card className="flex-1 flex flex-col">
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="font-headline text-3xl">{lesson.title}</CardTitle>
+              <CardTitle className="font-headline text-2xl">{lesson.title}</CardTitle>
               <CardDescription className="flex items-center gap-4 mt-2">
                 <Badge variant="secondary" className="capitalize">{lesson.instrument}</Badge>
                 <Badge variant="outline">{lesson.difficulty}</Badge>
@@ -272,7 +283,7 @@ export default function LessonPage() {
             </div>
              <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="sm"><Flag className="mr-2 h-4 w-4"/> Report Lesson</Button>
+                <Button variant="ghost" size="sm"><Flag className="mr-2 h-4 w-4"/> Report</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
@@ -295,15 +306,18 @@ export default function LessonPage() {
             </Dialog>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="flex-1 flex flex-col justify-between space-y-4">
           <div className="space-y-2">
             <Progress value={mode === 'idle' ? 0 : 100} />
             <p className="text-center text-sm text-muted-foreground">{renderStatus()}</p>
           </div>
 
-          <Piano onNotePlay={handleNotePlay} highlightedKeys={highlightedKeys} disabled={mode !== 'recording'} />
+          <div className="flex-1 min-h-[200px]">
+            <Piano onNotePlay={handleNotePlay} highlightedKeys={highlightedKeys} disabled={mode !== 'recording'} />
+          </div>
+          
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-2">
             <Button onClick={playDemo} disabled={mode !== 'idle'} size="lg">
               <Play className="mr-2 h-5 w-5"/> Demo
             </Button>
@@ -404,3 +418,5 @@ export default function LessonPage() {
     </div>
   );
 }
+
+    
