@@ -37,8 +37,6 @@ export default function Piano({
               await Tone.start();
             }
             
-            await Tone.context.set({ latencyHint: 'interactive', lookAhead: 0 });
-
             synth.current = new Tone.PolySynth(Tone.Synth, {
                 oscillator: {
                     type: 'fmtriangle',
