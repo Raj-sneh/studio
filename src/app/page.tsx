@@ -1,10 +1,11 @@
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AtSign, KeyRound, Dices, Music, UserPlus, Phone, MessageSquare } from "lucide-react";
-import { useAuth, useUser, initiateEmailSignIn, initiateEmailSignUp, initiateAnonymousSignIn, setDocumentNonBlocking } from "@/firebase";
-import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult, UserCredential } from "firebase/auth";
+import { useAuth, useUser, setDocumentNonBlocking } from "@/firebase";
+import { RecaptchaVerifier, signInWithPhoneNumber, createUserWithEmailAndPassword, signInWithEmailAndPassword, ConfirmationResult, UserCredential, updateProfile, linkWithPhoneNumber, PhoneAuthCredential, PhoneAuthProvider } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 
@@ -16,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import SButtonIcon from "@/components/icons/SButtonIcon";
 
 type AuthMode = 'login' | 'signup' | 'otp';
+type OtpContext = 'signup' | 'login';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,12 +26,14 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>('login');
+  const [otpContext, setOtpContext] = useState<OtpContext>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [createdUser, setCreatedUser] = useState<UserCredential | null>(null);
   
   useEffect(() => {
     if (!isUserLoading && user) {
@@ -37,37 +41,42 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const setupRecaptcha = () => {
+  const setupRecaptcha = useCallback(() => {
     if (!auth) return;
     if (!(window as any).recaptchaVerifier) {
       (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
         'callback': (response: any) => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
+          // reCAPTCHA solved.
         }
       });
     }
-  };
+  }, [auth]);
+
+  useEffect(() => {
+    setupRecaptcha();
+  }, [setupRecaptcha]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
+    if (!auth || !firestore) {
+      setError("Firebase not initialized.");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const userCredential: UserCredential = await initiateEmailSignUp(auth, email, password);
-      const user = userCredential.user;
-      if (user && firestore) {
-          const userDocRef = doc(firestore, "users", user.uid);
-          await setDocumentNonBlocking(userDocRef, {
-            id: user.uid,
-            displayName: user.email?.split('@')[0] || 'Anonymous',
-            email: user.email,
-            phoneNumber: phoneNumber,
-            createdAt: new Date().toISOString(),
-          }, {});
-      }
-      setAuthMode('login');
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      setCreatedUser(userCredential);
+
+      const appVerifier = (window as any).recaptchaVerifier;
+      const confirmation = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+      setConfirmationResult(confirmation);
+      setOtpContext('signup');
+      setAuthMode('otp');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -79,28 +88,33 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    setupRecaptcha();
+    if (!auth || !firestore) {
+        setError("Firebase not initialized.");
+        setIsLoading(false);
+        return;
+    }
 
     try {
-      const userCredential = await initiateEmailSignIn(auth, email, password);
-      if (userCredential.user && firestore) {
-        const userDocRef = doc(firestore, "users", userCredential.user.uid);
-        const userDoc = await getDoc(userDocRef);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      const userDocRef = doc(firestore, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
 
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            const phone = userData.phoneNumber;
-            if (phone) {
-                const appVerifier = (window as any).recaptchaVerifier;
-                const confirmation = await signInWithPhoneNumber(auth, phone, appVerifier);
-                setConfirmationResult(confirmation);
-                setAuthMode('otp');
-            } else {
-                setError("No phone number found for this account.");
-            }
-        } else {
-             setError("User data not found.");
-        }
+      if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const phone = userData.phoneNumber;
+          if (phone) {
+              const appVerifier = (window as any).recaptchaVerifier;
+              const confirmation = await signInWithPhoneNumber(auth, phone, appVerifier);
+              setConfirmationResult(confirmation);
+              setOtpContext('login');
+              setAuthMode('otp');
+          } else {
+              setError("No phone number found for this account. Please sign up again.");
+          }
+      } else {
+           setError("User data not found. Please sign up.");
       }
     } catch (err: any) {
       setError(err.message);
@@ -112,28 +126,52 @@ export default function LoginPage() {
   const handleOtpVerification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!confirmationResult) {
-        setError("Something went wrong. Please try signing in again.");
+        setError("Something went wrong. Please try again.");
         return;
     }
     setIsLoading(true);
     setError(null);
 
     try {
+      if (otpContext === 'login') {
         await confirmationResult.confirm(otp);
-        // User is now signed in. The useEffect will redirect to dashboard.
+        // User is signed in. useEffect will redirect.
+      } else if (otpContext === 'signup' && createdUser?.user) {
+        const credential = PhoneAuthProvider.credential(confirmationResult.verificationId, otp);
+        await linkWithPhoneNumber(createdUser.user, credential);
+        
+        if (firestore) {
+            const userDocRef = doc(firestore, "users", createdUser.user.uid);
+            await setDocumentNonBlocking(userDocRef, {
+              id: createdUser.user.uid,
+              displayName: createdUser.user.email?.split('@')[0] || 'Anonymous',
+              email: createdUser.user.email,
+              phoneNumber: phoneNumber,
+              createdAt: new Date().toISOString(),
+            }, {});
+        }
+        await auth.signOut(); // Force sign out to make them log in.
+        setAuthMode('login');
+        setCreatedUser(null);
+        alert("Sign up successful! Please log in to continue.");
+      }
     } catch (err: any) {
-        setError("Invalid OTP. Please try again.");
+        setError(`Invalid OTP or verification failed. Please try again. Error: ${err.message}`);
     } finally {
         setIsLoading(false);
     }
   };
   
-  const handleGuestLogin = () => {
+  const handleGuestLogin = async () => {
+    if (!auth) return;
     setIsLoading(true);
-    initiateAnonymousSignIn(auth);
-     setTimeout(() => {
+    try {
+        await signInAnonymously(auth);
+    } catch (error) {
+        setError("Guest login failed. Please try again.");
+    } finally {
         setIsLoading(false);
-    }, 500);
+    }
   };
 
   const toggleAuthMode = () => {
@@ -144,11 +182,21 @@ export default function LoginPage() {
     setPhoneNumber('');
   }
 
-  if (isUserLoading || user) {
+  if (isUserLoading) {
      return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
         <SButtonIcon className="animate-spin h-12 w-12 text-primary" />
         <p className="mt-4 text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+  
+  if (!isUserLoading && user) {
+     router.push("/dashboard");
+     return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
+        <SButtonIcon className="animate-spin h-12 w-12 text-primary" />
+        <p className="mt-4 text-muted-foreground">Redirecting...</p>
       </div>
     );
   }
@@ -172,7 +220,7 @@ export default function LoginPage() {
             <CardDescription className="font-body text-muted-foreground pt-2">
               {authMode === 'login' && 'Login to continue'}
               {authMode === 'signup' && 'Create an account'}
-              {authMode === 'otp' && 'Enter OTP to continue'}
+              {authMode === 'otp' && `Enter OTP sent to ${phoneNumber || 'your phone'}`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -190,7 +238,7 @@ export default function LoginPage() {
                         {isLoading ? <SButtonIcon className="animate-spin" /> : 'Verify OTP'}
                     </Button>
                     <p className="text-center text-xs">
-                        <button type="button" onClick={() => setAuthMode('login')} className="text-primary hover:underline font-semibold">Back to login</button>
+                        <button type="button" onClick={() => setAuthMode(otpContext)} className="text-primary hover:underline font-semibold">Back</button>
                     </p>
                  </form>
             ) : (
@@ -262,3 +310,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
