@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -20,15 +21,15 @@ interface PianoProps {
 }
 
 export default function Piano({
-    octaves = 2,
-    startOctave = 3,
+    octaves = 7,
+    startOctave = 1,
     onNotePlay,
     highlightedKeys = [],
     disabled = false,
 }: PianoProps) {
     const synth = useRef<Tone.PolySynth | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
-    const [currentOctave, setCurrentOctave] = useState(startOctave);
+    const [currentOctave, setCurrentOctave] = useState(3);
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
 
     useEffect(() => {
@@ -124,7 +125,7 @@ export default function Piano({
         setCurrentOctave(prev => Math.max(1, Math.min(6, prev + direction)));
     };
 
-    const pianoKeys = Array.from({ length: octaves }, (_, i) => i + currentOctave)
+    const pianoKeys = Array.from({ length: octaves }, (_, i) => i + startOctave)
         .flatMap(octave => notes.map(note => ({ note, octave })));
 
     if (!isLoaded) {
@@ -133,7 +134,7 @@ export default function Piano({
 
     return (
         <div className="w-full space-y-4">
-            <div className="flex justify-center p-4 bg-card rounded-lg shadow-inner">
+            <div className="flex p-4 bg-card rounded-lg shadow-inner overflow-x-auto">
                 <div className="flex relative select-none">
                     {pianoKeys.map(({ note, octave }) => {
                         const isBlack = note.includes("#");
@@ -166,7 +167,7 @@ export default function Piano({
              <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
                 <p>Use keyboard keys [A-L] to play. [Z] and [X] to change octave.</p>
                 <div className="flex items-center gap-2">
-                    <span>Octave: {currentOctave}</span>
+                    <span>Keyboard Octave: {currentOctave}</span>
                     <button onClick={() => changeOctave(-1)} className="px-2 py-1 bg-muted rounded">&lt;</button>
                     <button onClick={() => changeOctave(1)} className="px-2 py-1 bg-muted rounded">&gt;</button>
                 </div>
