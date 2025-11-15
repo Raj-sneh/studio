@@ -1,0 +1,133 @@
+/**
+ * @fileoverview Firestore Security Rules for Socio App
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for user-related data
+ * and allows public read access to lesson data. Write access to lessons and reports
+ * is not granted through these rules, implying that these operations should be
+ * handled via backend logic (e.g., Cloud Functions) with appropriate authorization.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles. Only the user can read/write their own profile.
+ * - /lessons/{lessonId}: Stores lesson details. Public read access is allowed.
+ * - /users/{userId}/teacher_sessions/{sessionId}: Stores teacher session data. Only the user can read/write their own sessions.
+ * - /reports/{reportId}: Stores reports submitted by users. Write access is not granted through these rules, implying backend management.
+ * - /users/{userId}/blocks/{blockedId}: Stores block relationships between users. Only the user can create/delete blocks they initiated.
+ *
+ * Key Security Decisions:
+ * - Users can only access their own data under /users/{userId}.
+ * - Lessons are publicly readable.
+ * - Reports are not directly writable via client-side rules.
+ * - List operations are generally restricted to the owner of the data, preventing unauthorized enumeration.
+ *
+ * Denormalization for Authorization:
+ *  - The current data model leverages path-based ownership, avoiding the need for denormalization.
+ *  - If collaborative features are added in the future, denormalization of membership data onto shared documents will be necessary to avoid `get()` calls in rules.
+ *
+ * Structural Segregation:
+ *  - User-specific data (teacher_sessions, blocks) is stored in user subcollections, providing clear segregation and ownership.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows users to manage their own profile data.
+     * @path /users/{userId}
+     * @allow (create) - User with ID 'user_abc' can create their profile if request.auth.uid == 'user_abc'.
+     * @allow (get, update, delete) - User with ID 'user_abc' can get, update, or delete their profile if request.auth.uid == 'user_abc'.
+     * @deny (create) - User with ID 'user_xyz' cannot create a profile with ID 'user_abc'.
+     * @deny (get, update, delete) - User with ID 'user_xyz' cannot get, update, or delete profile with ID 'user_abc'.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data.
+     */
+    match /users/{userId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false; // Prevent listing all users
+
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isSignedIn() && isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows anyone to read lesson details, but restricts writes.
+     * @path /lessons/{lessonId}
+     * @allow (get, list) - Any user (signed in or not) can read lesson data.
+     * @deny (create, update, delete) - No direct client-side writes allowed.
+     * @principle Allows public read access while maintaining control over data modification.
+     */
+    match /lessons/{lessonId} {
+      allow get: if true;
+      allow list: if true;
+
+      allow create: if false; // Write operations are not allowed directly.
+      allow update: if false; // Write operations are not allowed directly.
+      allow delete: if false; // Write operations are not allowed directly.
+    }
+
+    /**
+     * @description Allows users to manage their own teacher session data.
+     * @path /users/{userId}/teacher_sessions/{sessionId}
+     * @allow (create) - User with ID 'user_abc' can create a session under their profile.
+     * @allow (get, update, delete) - User with ID 'user_abc' can get, update, or delete their sessions.
+     * @deny (create) - User with ID 'user_xyz' cannot create a session under user 'user_abc'.
+     * @deny (get, update, delete) - User with ID 'user_xyz' cannot get, update, or delete sessions under user 'user_abc'.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data.
+     */
+    match /users/{userId}/teacher_sessions/{sessionId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows creation of reports, but restricts modifications or deletion.
+     * @path /reports/{reportId}
+     * @allow (create) - Any signed-in user can create a report.
+     * @deny (get, list, update, delete) - No direct client-side read or write operations allowed after creation.
+     * @principle Restricts access to reports after creation, likely managed by backend processes.
+     */
+    match /reports/{reportId} {
+      allow get: if false;
+      allow list: if false;
+
+      allow create: if isSignedIn();
+      allow update: if false; // Write operations are not allowed directly.
+      allow delete: if false; // Write operations are not allowed directly.
+    }
+
+    /**
+     * @description Allows users to manage their own block relationships.
+     * @path /users/{userId}/blocks/{blockedId}
+     * @allow (create) - User with ID 'user_abc' can create a block relationship.
+     * @allow (get, update, delete) - User with ID 'user_abc' can manage their own block relationships.
+     * @deny (create) - User with ID 'user_xyz' cannot create a block relationship for user 'user_abc'.
+     * @deny (get, update, delete) - User with ID 'user_xyz' cannot manage block relationships for user 'user_abc'.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data.
+     */
+    match /users/{userId}/blocks/{blockedId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+  }
+
+  // Helper functions
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return request.auth.uid == userId;
+  }
+
+  function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+  }
+}

@@ -1,0 +1,305 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the Socio app.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "URL of the user's avatar image.",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user was created.",
+          "format": "date-time"
+        },
+        "fcmToken": {
+          "type": "string",
+          "description": "Firebase Cloud Messaging token for sending push notifications to the user."
+        }
+      },
+      "required": [
+        "id",
+        "displayName",
+        "email",
+        "createdAt"
+      ]
+    },
+    "Lesson": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lesson",
+      "type": "object",
+      "description": "Represents a music lesson in the Socio app.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Lesson entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the lesson."
+        },
+        "instrument": {
+          "type": "string",
+          "description": "The instrument for which the lesson is designed (e.g., Piano, Guitar)."
+        },
+        "tempo": {
+          "type": "number",
+          "description": "The tempo of the lesson in beats per minute."
+        },
+        "difficulty": {
+          "type": "string",
+          "description": "The difficulty level of the lesson (e.g., Beginner, Intermediate, Advanced)."
+        },
+        "mapUrl": {
+          "type": "string",
+          "description": "URL pointing to a JSON file containing the lesson's note map.",
+          "format": "uri"
+        },
+        "backingUrl": {
+          "type": "string",
+          "description": "URL pointing to the backing track audio file for the lesson.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "instrument",
+        "tempo",
+        "difficulty",
+        "mapUrl",
+        "backingUrl"
+      ]
+    },
+    "TeacherSession": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TeacherSession",
+      "type": "object",
+      "description": "Represents a teacher session where a user practices a lesson.",
+      "properties": {
+        "sessionId": {
+          "type": "string",
+          "description": "Unique identifier for the TeacherSession entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N TeacherSession)"
+        },
+        "lessonId": {
+          "type": "string",
+          "description": "Reference to Lesson. (Relationship: Lesson 1:N TeacherSession)"
+        },
+        "detectedNotes": {
+          "type": "array",
+          "description": "Array of notes detected during the session.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "score": {
+          "type": "number",
+          "description": "The user's score for the session."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the session was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "sessionId",
+        "userId",
+        "lessonId",
+        "score",
+        "createdAt"
+      ]
+    },
+    "Report": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Report",
+      "type": "object",
+      "description": "Represents a report submitted by a user regarding inappropriate content.",
+      "properties": {
+        "reportId": {
+          "type": "string",
+          "description": "Unique identifier for the Report entity."
+        },
+        "reporterId": {
+          "type": "string",
+          "description": "Reference to User who submitted the report. (Relationship: User 1:N Report)"
+        },
+        "targetType": {
+          "type": "string",
+          "description": "The type of content being reported (e.g., 'lesson', 'user')."
+        },
+        "targetRef": {
+          "type": "string",
+          "description": "Reference to the specific content being reported (e.g., lessonId, userId)."
+        },
+        "reason": {
+          "type": "string",
+          "description": "The reason for the report (e.g., 'inappropriate content', 'spam')."
+        },
+        "details": {
+          "type": "string",
+          "description": "Additional details provided by the user regarding the report."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the report was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "reportId",
+        "reporterId",
+        "targetType",
+        "targetRef",
+        "reason",
+        "createdAt"
+      ]
+    },
+    "Block": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Block",
+      "type": "object",
+      "description": "Represents a block relationship between two users.",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Reference to the user who initiated the block. (Relationship: User 1:N Block - Initiator)"
+        },
+        "blockedId": {
+          "type": "string",
+          "description": "Reference to the user who is being blocked. (Relationship: User 1:N Block - Target)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the block was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "blockedId",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Path-based ownership is used for easy security rule definition.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/lessons/{lessonId}",
+        "definition": {
+          "entityName": "Lesson",
+          "schema": {
+            "$ref": "#/backend/entities/Lesson"
+          },
+          "description": "Stores lesson details.",
+          "params": [
+            {
+              "name": "lessonId",
+              "description": "The unique identifier of the lesson."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/teacher_sessions/{sessionId}",
+        "definition": {
+          "entityName": "TeacherSession",
+          "schema": {
+            "$ref": "#/backend/entities/TeacherSession"
+          },
+          "description": "Stores teacher session data for each user. Uses path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "sessionId",
+              "description": "The unique identifier of the teacher session."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/reports/{reportId}",
+        "definition": {
+          "entityName": "Report",
+          "schema": {
+            "$ref": "#/backend/entities/Report"
+          },
+          "description": "Stores reports submitted by users.",
+          "params": [
+            {
+              "name": "reportId",
+              "description": "The unique identifier of the report."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/blocks/{blockedId}",
+        "definition": {
+          "entityName": "Block",
+          "schema": {
+            "$ref": "#/backend/entities/Block"
+          },
+          "description": "Stores block relationships between users. Uses path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user initiating the block."
+            },
+            {
+              "name": "blockedId",
+              "description": "The unique identifier of the user being blocked."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the Socio app's features, focusing on music lessons, practice sessions, and user interactions. Authorization Independence is achieved by using path-based ownership for user-related data and denormalizing membership for collaborative data (although collaborative data is not explicitly present in the provided entity definitions, the structure is prepared for such extensions). Structural Segregation is applied by separating different types of data into distinct collections with homogeneous security needs.\n\n*   **Users:** User data is stored under `/users/{userId}`, enabling straightforward path-based ownership rules.\n*   **Lessons:** Lesson data is stored in `/lessons/{lessonId}`. Since lessons are global (not user-owned), access control can be managed at the document level, if necessary (e.g., adding an `admin` field or similar).\n*   **Teacher Sessions:** Teacher session data are stored under `/users/{userId}/teacher_sessions/{sessionId}`, associating sessions directly with users and enabling easy querying of sessions for a specific user.\n*   **Reports:** Reports are stored under `/reports/{reportId}`.  Moderation is handled by Cloud Functions triggered on report creation.\n*   **Blocks:** Blocks are stored under `/users/{userId}/blocks/{blockedId}`, ensuring that block relationships are directly tied to the user initiating the block.\n\nThis structure supports the QAPs by:\n\n*   **Secure List Operations:** Path-based ownership (`/users/{userId}/*`) enables secure listing of user-owned data.\n*   **Atomic Operations:** Denormalization (if collaborative features are added later) prevents the need for `get()` calls in security rules, ensuring atomic operations and preventing race conditions."
+  }
+}
