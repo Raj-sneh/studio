@@ -68,6 +68,7 @@ export default function LessonPage() {
   const synth = useRef<Tone.Synth | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const noteTimeoutIds = useRef<NodeJS.Timeout[]>([]);
 
   useEffect(() => {
     const lessonId = params.lessonId as string;
@@ -79,49 +80,55 @@ export default function LessonPage() {
     }
 
     synth.current = new Tone.Synth().toDestination();
-    return () => synth.current?.dispose();
+    
+    return () => {
+        synth.current?.dispose();
+        noteTimeoutIds.current.forEach(clearTimeout);
+        Tone.Transport.stop();
+        Tone.Transport.cancel();
+    }
   }, [params.lessonId, router]);
-
+  
   const playNotes = useCallback((notesToPlay: NoteType[] | TranscribeAudioOutput['notes']) => {
     if (!synth.current || notesToPlay.length === 0) return;
-    
-    Tone.Transport.cancel();
-    setHighlightedKeys([]);
   
-    const now = Tone.now() + 0.1; // Add a small buffer
+    // Clear any previous timeouts and highlights
+    noteTimeoutIds.current.forEach(clearTimeout);
+    noteTimeoutIds.current = [];
+    setHighlightedKeys([]);
+    Tone.Transport.stop();
+    Tone.Transport.cancel();
+  
+    const now = Tone.now() + 0.2;
   
     notesToPlay.forEach(note => {
       if (note.key && note.duration && typeof note.time === 'number') {
-        const playTime = now + note.time;
-        synth.current?.triggerAttackRelease(note.key, note.duration, playTime);
-        
-        Tone.Transport.scheduleOnce(() => {
-          Tone.Draw.schedule(() => {
-            setHighlightedKeys(current => [...current, note.key]);
-          }, Tone.now());
-        }, playTime);
+        const noteTimeMs = note.time * 1000;
+        const durationMs = Tone.Time(note.duration).toMilliseconds();
   
-        Tone.Transport.scheduleOnce(() => {
-          Tone.Draw.schedule(() => {
-            setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
-          }, Tone.now());
-        }, playTime + Tone.Time(note.duration).toSeconds());
+        // Play audio with Tone.js Transport for precision
+        synth.current?.triggerAttackRelease(note.key, note.duration, now + note.time);
+  
+        // Schedule visual highlighting with setTimeout relative to the start time
+        const attackTimeout = setTimeout(() => {
+          setHighlightedKeys(current => [...current, note.key]);
+        }, noteTimeMs);
+  
+        const releaseTimeout = setTimeout(() => {
+          setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
+        }, noteTimeMs + durationMs);
+  
+        noteTimeoutIds.current.push(attackTimeout, releaseTimeout);
       }
     });
   
     const lastNote = notesToPlay[notesToPlay.length - 1];
-    if (lastNote) {
-      const totalDuration = lastNote.time + Tone.Time(lastNote.duration).toSeconds();
-      Tone.Transport.scheduleOnce(() => {
+    if (lastNote && typeof lastNote.time === 'number' && lastNote.duration) {
+      const totalDuration = (lastNote.time + Tone.Time(lastNote.duration).toSeconds()) * 1000 + 500;
+      const modeTimeout = setTimeout(() => {
         setMode("idle");
-      }, now + totalDuration + 0.5);
-    }
-  
-    Tone.Transport.start(now);
-      
-    return () => {
-        Tone.Transport.stop();
-        Tone.Transport.cancel();
+      }, totalDuration);
+      noteTimeoutIds.current.push(modeTimeout);
     }
   }, []);
 
@@ -418,5 +425,3 @@ export default function LessonPage() {
     </div>
   );
 }
-
-    
