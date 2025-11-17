@@ -183,7 +183,7 @@ export default function LoginPage() {
     setPhoneNumber('');
   }
 
-  if (isUserLoading && !user) {
+  if (isUserLoading) {
      return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
         <SButtonIcon className="animate-spin h-12 w-12 text-primary" />
