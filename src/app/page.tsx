@@ -54,8 +54,11 @@ export default function LoginPage() {
   }, [auth]);
 
   useEffect(() => {
-    setupRecaptcha();
-  }, [setupRecaptcha]);
+    // Ensure auth is initialized before setting up recaptcha
+    if (auth) {
+      setupRecaptcha();
+    }
+  }, [auth, setupRecaptcha]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,7 +186,7 @@ export default function LoginPage() {
     setPhoneNumber('');
   }
 
-  if (isUserLoading) {
+  if (isUserLoading && !user) {
      return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
         <SButtonIcon className="animate-spin h-12 w-12 text-primary" />
@@ -300,4 +303,5 @@ export default function LoginPage() {
       </footer>
     </div>
   );
-}
+
+    
