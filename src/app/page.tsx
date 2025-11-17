@@ -116,7 +116,8 @@ export default function LoginPage() {
       } else {
            setError("User data not found. Please sign up.");
       }
-    } catch (err: any) {
+    } catch (err: any)
+{
       setError(err.message);
     } finally {
       setIsLoading(false);
@@ -182,7 +183,7 @@ export default function LoginPage() {
     setPhoneNumber('');
   }
 
-  if (isUserLoading) {
+  if (isUserLoading && !user) {
      return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
         <SButtonIcon className="animate-spin h-12 w-12 text-primary" />
