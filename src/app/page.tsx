@@ -44,12 +44,12 @@ export default function LoginPage() {
   const setupRecaptcha = useCallback(() => {
     if (!auth) return;
     if (!(window as any).recaptchaVerifier) {
-      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+      (window as any).recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
         'size': 'invisible',
         'callback': (response: any) => {
           // reCAPTCHA solved.
         }
-      });
+      }, auth);
     }
   }, [auth]);
 
