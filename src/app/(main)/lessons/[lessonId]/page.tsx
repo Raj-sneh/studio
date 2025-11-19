@@ -14,6 +14,8 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 import Piano from "@/components/Piano";
 import Guitar from "@/components/Guitar";
+import DrumPad from "@/components/DrumPad";
+import Violin from "@/components/Violin";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -284,11 +286,22 @@ export default function LessonPage() {
   const renderInstrument = () => {
     if (!lesson) return null;
 
+    const props = {
+      onNotePlay: handleNotePlay,
+      highlightedKeys: highlightedKeys,
+      disabled: mode !== 'recording',
+    };
+
     switch(lesson.instrument) {
       case 'piano':
-        return <Piano onNotePlay={handleNotePlay} highlightedKeys={highlightedKeys} disabled={mode !== 'recording'} />;
+        return <Piano {...props} />;
       case 'guitar':
-        return <Guitar onNotePlay={handleNotePlay} highlightedNotes={highlightedKeys} disabled={mode !== 'recording'} />;
+        // The Guitar component expects highlightedNotes, not highlightedKeys
+        return <Guitar onNotePlay={props.onNotePlay} highlightedNotes={props.highlightedKeys} disabled={props.disabled} />;
+      case 'drums':
+        return <DrumPad {...props} />;
+      case 'violin':
+        return <Violin {...props} />;
       default:
         return (
           <div className="flex flex-col items-center justify-center h-full bg-muted rounded-lg p-8 text-center">
