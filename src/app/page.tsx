@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AtSign, KeyRound, Dices, Music, UserPlus, Phone, MessageSquare } from "lucide-react";
 import { useAuth, useUser, setDocumentNonBlocking } from "@/firebase";
-import { RecaptchaVerifier, signInWithPhoneNumber, createUserWithEmailAndPassword, signInWithEmailAndPassword, ConfirmationResult, UserCredential, updateProfile, linkWithPhoneNumber, PhoneAuthCredential, PhoneAuthProvider, signInAnonymously } from "firebase/auth";
+import { RecaptchaVerifier, signInWithPhoneNumber, createUserWithEmailAndPassword, signInWithEmailAndPassword, ConfirmationResult, UserCredential, linkWithPhoneNumber, PhoneAuthProvider, signInAnonymously } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 
@@ -303,11 +303,6 @@ export default function LoginPage() {
       </footer>
     </div>
   );
-
-    
-
-    
-
-    
+}
 
     
