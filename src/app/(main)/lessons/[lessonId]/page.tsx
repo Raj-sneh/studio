@@ -3,12 +3,14 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import * as Tone from "tone";
 import { lessons } from "@/lib/lessons";
 import type { Lesson, Note as NoteType, Instrument } from "@/types";
 import { analyzeUserPerformance } from "@/ai/flows/analyze-user-performance";
 import { flagContentForReview } from "@/ai/flows/flag-content-for-review";
 import { transcribeAudio, type TranscribeAudioOutput } from "@/ai/flows/transcribe-audio-flow";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 import Piano from "@/components/Piano";
 import { Button } from "@/components/ui/button";
@@ -42,7 +44,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Play, Square, Mic, Send, Flag, Bot, Loader2, Star, Trophy, Target, Sparkles, ChevronLeft, Ear } from "lucide-react";
+import { Play, Square, Mic, Send, Flag, Bot, Loader2, Star, Trophy, Target, Sparkles, ChevronLeft, Ear, Music } from "lucide-react";
 
 type RecordedNote = { note: string; time: number };
 type AnalysisResult = {
@@ -51,6 +53,32 @@ type AnalysisResult = {
   weaknesses: string;
 } | null;
 type Mode = "idle" | "demo" | "recording" | "analyzing" | "result" | "listening" | "transcribing" | "playback";
+
+// Simple mapping of instrument to a Tone.js synth
+const getSynthForInstrument = (instrument: Instrument): Tone.Synth<Tone.SynthOptions> | Tone.MembraneSynth | Tone.PolySynth => {
+  switch (instrument) {
+    case 'guitar':
+      return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'fat' },
+        envelope: { attack: 0.005, decay: 0.3, sustain: 0.1, release: 1.2 },
+      }).toDestination();
+    case 'drums':
+      // Using MembraneSynth for a basic kick/snare sound
+      return new Tone.MembraneSynth().toDestination();
+    case 'violin':
+      return new Tone.PolySynth(Tone.AMSynth, {
+        harmonicity: 1.01,
+        envelope: { attack: 0.05, decay: 0.2, sustain: 0.3, release: 1.5 },
+        modulationEnvelope: { attack: 0.5, decay: 0.01, sustain: 1, release: 0.5 }
+      }).toDestination();
+    case 'piano':
+    default:
+      return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: "fmtriangle", modulationType: 'sine', modulationIndex: 3, harmonicity: 3.4 },
+        envelope: { attack: 0.01, decay: 0.1, sustain: 0.5, release: 0.5, },
+      }).toDestination();
+  }
+};
 
 export default function LessonPage() {
   const router = useRouter();
@@ -65,21 +93,21 @@ export default function LessonPage() {
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [transcribedNotes, setTranscribedNotes] = useState<TranscribeAudioOutput['notes']>([]);
   const reportReasonRef = useRef<HTMLTextAreaElement>(null);
-  const synth = useRef<Tone.Synth | null>(null);
+  const synth = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const noteTimeoutIds = useRef<NodeJS.Timeout[]>([]);
+  const image = lesson ? PlaceHolderImages.find(img => img.id === lesson.imageId) : null;
 
   useEffect(() => {
     const lessonId = params.lessonId as string;
     const foundLesson = lessons.find((l) => l.id === lessonId);
     if (foundLesson) {
       setLesson(foundLesson);
+      synth.current = getSynthForInstrument(foundLesson.instrument);
     } else {
       router.push("/lessons");
     }
-
-    synth.current = new Tone.Synth().toDestination();
     
     return () => {
         synth.current?.dispose();
@@ -92,7 +120,6 @@ export default function LessonPage() {
   const playNotes = useCallback((notesToPlay: NoteType[] | TranscribeAudioOutput['notes']) => {
     if (!synth.current || notesToPlay.length === 0) return;
   
-    // Clear any previous timeouts and highlights
     noteTimeoutIds.current.forEach(clearTimeout);
     noteTimeoutIds.current = [];
     setHighlightedKeys([]);
@@ -106,10 +133,8 @@ export default function LessonPage() {
         const noteTimeMs = note.time * 1000;
         const durationMs = Tone.Time(note.duration).toMilliseconds();
   
-        // Play audio with Tone.js Transport for precision
         synth.current?.triggerAttackRelease(note.key, note.duration, now + note.time);
   
-        // Schedule visual highlighting with setTimeout relative to the start time
         const attackTimeout = setTimeout(() => {
           setHighlightedKeys(current => [...current, note.key]);
         }, noteTimeMs);
@@ -255,6 +280,34 @@ export default function LessonPage() {
     }
   };
 
+  const renderInstrument = () => {
+    if (!lesson) return null;
+
+    switch(lesson.instrument) {
+      case 'piano':
+        return <Piano onNotePlay={handleNotePlay} highlightedKeys={highlightedKeys} disabled={mode !== 'recording'} />;
+      default:
+        return (
+          <div className="flex flex-col items-center justify-center h-full bg-muted rounded-lg p-8 text-center">
+            {image && (
+              <Image
+                src={image.imageUrl}
+                alt={image.description}
+                width={300}
+                height={200}
+                data-ai-hint={image.imageHint}
+                className="object-cover rounded-md mb-4"
+              />
+            )}
+            <h3 className="text-xl font-semibold capitalize">{lesson.instrument} Lesson</h3>
+            <p className="text-muted-foreground mt-2">
+              {mode === 'recording' ? `Recording your performance. Use an external app or a real instrument.` : `Get ready to play your ${lesson.instrument}. Recording is enabled for analysis.`}
+            </p>
+          </div>
+        );
+    }
+  }
+
   if (!lesson) {
     return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
@@ -263,7 +316,7 @@ export default function LessonPage() {
     switch (mode) {
       case 'idle': return "Ready when you are. Start with a demo, your turn or listen & learn.";
       case 'demo': return "Listen and watch the demo.";
-      case 'recording': return "Your turn! Play the notes on the piano.";
+      case 'recording': return `Your turn! ${lesson.instrument === 'piano' ? 'Play the notes on the piano.' : 'Play on your instrument.'}`;
       case 'analyzing': return "AI Teacher is analyzing your performance...";
       case 'result': return "Here's your feedback!";
       case 'listening': return "Listening to your music... Press stop when you're done.";
@@ -322,12 +375,12 @@ export default function LessonPage() {
         </CardHeader>
         <CardContent className="flex-1 flex flex-col justify-between space-y-4">
           <div className="space-y-2">
-            <Progress value={mode === 'idle' ? 0 : 100} />
+            <Progress value={mode === 'demo' || mode === 'playback' ? 100 : 0} />
             <p className="text-center text-sm text-muted-foreground">{renderStatus()}</p>
           </div>
 
-          <div className="flex-1 min-h-[200px]">
-            <Piano onNotePlay={handleNotePlay} highlightedKeys={highlightedKeys} disabled={mode !== 'recording'} />
+          <div className="flex-1 min-h-[300px]">
+            {renderInstrument()}
           </div>
           
 
@@ -432,5 +485,3 @@ export default function LessonPage() {
     </div>
   );
 }
-
-    
