@@ -18,7 +18,6 @@ export default function LessonsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {lessons.map((lesson) => {
           const image = PlaceHolderImages.find(img => img.id === lesson.imageId);
-          const isPianoLesson = lesson.instrument === 'piano';
           return (
             <Card key={lesson.id} className="flex flex-col overflow-hidden group hover:border-primary transition-all duration-300 transform hover:-translate-y-1">
               <CardHeader className="p-0">
@@ -32,25 +31,20 @@ export default function LessonsPage() {
                       data-ai-hint={image.imageHint}
                       className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
                     />
-                     {!isPianoLesson && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <p className="text-white font-semibold">Coming Soon</p>
-                        </div>
-                    )}
                   </div>
                 )}
               </CardHeader>
               <CardContent className="p-6 flex-1 flex flex-col">
                 <div className="flex-1">
-                  <Badge variant={isPianoLesson ? "default" : "secondary"} className="capitalize bg-accent text-accent-foreground">{lesson.instrument}</Badge>
+                  <Badge variant="default" className="capitalize bg-accent text-accent-foreground">{lesson.instrument}</Badge>
                   <CardTitle className="font-headline text-xl mt-4">{lesson.title}</CardTitle>
                   <CardDescription className="text-sm mt-1">{lesson.difficulty}</CardDescription>
                 </div>
                 <div className="mt-6">
-                  <Link href={isPianoLesson ? `/lessons/${lesson.id}` : '#'} passHref>
-                    <Button className="w-full" disabled={!isPianoLesson}>
-                      {isPianoLesson ? 'Start Lesson' : 'Coming Soon'}
-                      {isPianoLesson && <ArrowRight className="ml-2 h-4 w-4" />}
+                  <Link href={`/lessons/${lesson.id}`} passHref>
+                    <Button className="w-full">
+                      Start Lesson
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
                 </div>

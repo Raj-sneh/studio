@@ -51,13 +51,45 @@ export const lessons: Lesson[] = [
     ],
   },
   {
+    id: 'jana-gana-mana',
+    title: 'Jana Gana Mana',
+    instrument: 'piano',
+    difficulty: 'Intermediate',
+    tempo: 104,
+    imageId: 'piano-lesson',
+    notes: [
+      { key: 'C4', duration: '8n', time: 0 },
+      { key: 'D4', duration: '8n', time: 0.5 },
+      { key: 'E4', duration: '4n', time: 1 },
+      { key: 'E4', duration: '4n', time: 1.5 },
+      { key: 'E4', duration: '4n', time: 2 },
+      { key: 'E4', duration: '8n', time: 2.5 },
+      { key: 'D4', duration: '8n', time: 3 },
+      { key: 'C#4', duration: '4n', time: 3.5 },
+      { key: 'D4', duration: '4n', time: 4 },
+      { key: 'E4', duration: '2n', time: 4.5 },
+      { key: 'D4', duration: '4n', time: 5.5 },
+      { key: 'D4', duration: '2n', time: 6 },
+      { key: 'G4', duration: '4n', time: 7 },
+      { key: 'F#4', duration: '4n', time: 7.5 },
+      { key: 'E4', duration: '4n', time: 8 },
+      { key: 'D4', duration: '4n', time: 8.5 },
+      { key: 'C4', duration: '2n', time: 9 },
+    ],
+  },
+  {
     id: 'basic-rock-beat',
     title: 'Basic Rock Beat',
     instrument: 'drums',
     difficulty: 'Beginner',
     tempo: 90,
     imageId: 'drums-lesson',
-    notes: [], // Placeholder
+    notes: [
+      { key: 'C4', duration: '4n', time: 0 }, // Kick
+      { key: 'E4', duration: '4n', time: 0.5 }, // Snare
+      { key: 'C4', duration: '4n', time: 1 }, // Kick
+      { key: 'E4', duration: '4n', time: 1.5 }, // Snare
+    ],
   },
   {
     id: 'smoke-on-the-water-riff',
@@ -66,7 +98,15 @@ export const lessons: Lesson[] = [
     difficulty: 'Intermediate',
     tempo: 115,
     imageId: 'guitar-lesson',
-    notes: [], // Placeholder
+    notes: [
+        { key: 'D4', duration: '4n', time: 0 },
+        { key: 'F4', duration: '4n', time: 0.5 },
+        { key: 'G4', duration: '2n', time: 1 },
+        { key: 'D4', duration: '4n', time: 2 },
+        { key: 'F4', duration: '4n', time: 2.5 },
+        { key: 'G#4', duration: '4n', time: 3 },
+        { key: 'G4', duration: '2n', time: 3.5 },
+    ],
   },
   {
     id: 'violin-scales',
@@ -75,6 +115,15 @@ export const lessons: Lesson[] = [
     difficulty: 'Beginner',
     tempo: 80,
     imageId: 'violin-lesson',
-    notes: [], // Placeholder
+    notes: [
+        { key: 'G3', duration: '4n', time: 0 },
+        { key: 'A3', duration: '4n', time: 0.5 },
+        { key: 'B3', duration: '4n', time: 1 },
+        { key: 'C4', duration: '4n', time: 1.5 },
+        { key: 'D4', duration: '4n', time: 2 },
+        { key: 'E4', duration: '4n', time: 2.5 },
+        { key: 'F#4', duration: '4n', time: 3 },
+        { key: 'G4', duration: '2n', time: 3.5 },
+    ],
   },
 ];
