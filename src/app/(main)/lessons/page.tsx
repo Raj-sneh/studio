@@ -7,7 +7,7 @@ import { lessons } from "@/lib/lessons";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Guitar, Drum, Violin, Piano as PianoIcon } from "lucide-react";
+import { ArrowRight, Guitar, Drum, Music2 as Violin, Piano as PianoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Instrument } from "@/types";
 
