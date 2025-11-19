@@ -59,7 +59,7 @@ const getSynthForInstrument = (instrument: Instrument): Tone.Synth<Tone.SynthOpt
   switch (instrument) {
     case 'guitar':
       return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fat' },
+        oscillator: { type: 'fatsawtooth' },
         envelope: { attack: 0.005, decay: 0.3, sustain: 0.1, release: 1.2 },
       }).toDestination();
     case 'drums':
@@ -67,7 +67,7 @@ const getSynthForInstrument = (instrument: Instrument): Tone.Synth<Tone.SynthOpt
       return new Tone.MembraneSynth().toDestination();
     case 'violin':
       return new Tone.PolySynth(Tone.AMSynth, {
-        harmonicity: 1.01,
+        harmonicity: 3/2,
         envelope: { attack: 0.05, decay: 0.2, sustain: 0.3, release: 1.5 },
         modulationEnvelope: { attack: 0.5, decay: 0.01, sustain: 1, release: 0.5 }
       }).toDestination();
@@ -485,3 +485,5 @@ export default function LessonPage() {
     </div>
   );
 }
+
+    
