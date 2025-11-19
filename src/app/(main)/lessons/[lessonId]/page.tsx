@@ -16,6 +16,9 @@ import Piano from "@/components/Piano";
 import Guitar from "@/components/Guitar";
 import DrumPad from "@/components/DrumPad";
 import Violin from "@/components/Violin";
+import Xylophone from "@/components/Xylophone";
+import Flute from "@/components/Flute";
+import Saxophone from "@/components/Saxophone";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -58,7 +61,7 @@ type AnalysisResult = {
 type Mode = "idle" | "demo" | "recording" | "analyzing" | "result" | "listening" | "transcribing" | "playback";
 
 // Simple mapping of instrument to a Tone.js synth
-const getSynthForInstrument = (instrument: Instrument): Tone.Synth<Tone.SynthOptions> | Tone.MembraneSynth | Tone.PolySynth => {
+const getSynthForInstrument = (instrument: Instrument): any => {
   switch (instrument) {
     case 'guitar':
       return new Tone.PolySynth(Tone.Synth, {
@@ -74,6 +77,27 @@ const getSynthForInstrument = (instrument: Instrument): Tone.Synth<Tone.SynthOpt
         envelope: { attack: 0.05, decay: 0.2, sustain: 0.3, release: 1.5 },
         modulationEnvelope: { attack: 0.5, decay: 0.01, sustain: 1, release: 0.5 }
       }).toDestination();
+    case 'xylophone':
+      return new Tone.PolySynth(Tone.MetalSynth, {
+        frequency: 200,
+        envelope: { attack: 0.001, decay: 0.4, release: 0.2 },
+        harmonicity: 5.1,
+        modulationIndex: 32,
+        resonance: 4000,
+        octaves: 1.5,
+      }).toDestination();
+    case 'flute':
+      return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.05, decay: 0.2, sustain: 0.8, release: 0.5 },
+      }).toDestination();
+    case 'saxophone':
+        return new Tone.PolySynth(Tone.AMSynth, {
+            harmonicity: 1.5,
+            envelope: { attack: 0.1, decay: 0.3, sustain: 0.2, release: 1 },
+            modulation: { type: "square" },
+            modulationEnvelope: { attack: 0.05, decay: 0.2, sustain: 0.1, release: 0.5 }
+        }).toDestination();
     case 'piano':
     default:
       return new Tone.PolySynth(Tone.Synth, {
@@ -189,7 +213,7 @@ export default function LessonPage() {
       const result = await analyzeUserPerformance({
         recordedNotes: recordedNoteNames,
         expectedNotes: expectedNoteNames,
-        instrument: lesson.instrument as Instrument,
+        instrument: lesson.instrument,
       });
       setAnalysisResult(result);
       setMode("result");
@@ -302,6 +326,12 @@ export default function LessonPage() {
         return <DrumPad {...props} />;
       case 'violin':
         return <Violin {...props} />;
+      case 'xylophone':
+        return <Xylophone {...props} />;
+      case 'flute':
+        return <Flute {...props} />;
+      case 'saxophone':
+        return <Saxophone {...props} />;
       default:
         return (
           <div className="flex flex-col items-center justify-center h-full bg-muted rounded-lg p-8 text-center">

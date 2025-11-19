@@ -4,7 +4,7 @@ export type Note = {
   time: number; // time in seconds from the start of the sequence
 };
 
-export type Instrument = 'piano' | 'guitar' | 'drums' | 'violin';
+export type Instrument = 'piano' | 'guitar' | 'drums' | 'violin' | 'xylophone' | 'flute' | 'saxophone';
 
 export type Lesson = {
   id: string;

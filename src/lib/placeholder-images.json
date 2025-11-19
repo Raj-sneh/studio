@@ -35,6 +35,24 @@
       "description": "A teacher with a student",
       "imageUrl": "https://images.unsplash.com/photo-1636581563713-5ead3fb53a80?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtdXNpYyUyMHRlYWNoZXJ8ZW58MHx8fHwxNzYzMTE3NDIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "music teacher"
+    },
+    {
+      "id": "xylophone-lesson",
+      "description": "A colorful xylophone",
+      "imageUrl": "https://images.unsplash.com/photo-1669439609311-043969dc5b06?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx4eWxvcGhvbmUlMjBjb2xvcmZ1bHxlbnwwfHx8fDE3NjM1NjUxNjd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "xylophone colorful"
+    },
+    {
+      "id": "flute-lesson",
+      "description": "A person playing a flute",
+      "imageUrl": "https://images.unsplash.com/photo-1699383443324-44d963a775eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxmbHV0ZSUyMG11c2ljfGVufDB8fHx8MTc2MzU2NTE2N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "flute music"
+    },
+    {
+      "id": "saxophone-lesson",
+      "description": "A person playing a saxophone",
+      "imageUrl": "https://images.unsplash.com/photo-1725830071503-d705ef4a0975?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzYXhvcGhvbmUlMjBqYXp6fGVufDB8fHx8MTc2MzU2NTE2OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "saxophone jazz"
     }
   ]
 }
