@@ -197,6 +197,7 @@ export default function LessonPage() {
   };
 
   const startListening = async () => {
+    if (mode !== 'idle') return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
@@ -288,29 +289,35 @@ export default function LessonPage() {
                 <span className="text-sm">{lesson.tempo} BPM</span>
               </CardDescription>
             </div>
-             <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm"><Flag className="mr-2 h-4 w-4"/> Report</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Report Lesson: {lesson.title}</DialogTitle>
-                  <DialogDescription>
-                    Please provide a reason for reporting this lesson. Your feedback helps us maintain a high-quality learning environment.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="reason" className="text-right">Reason</Label>
-                    <Textarea id="reason" ref={reportReasonRef} className="col-span-3" placeholder="e.g., Incorrect notes, inappropriate content..." />
-                  </div>
-                </div>
-                <AlertDialogFooter>
-                    <Button type="button" variant="ghost" onClick={() => setIsReportDialogOpen(false)}>Cancel</Button>
-                    <Button type="submit" onClick={handleReportSubmit}><Send className="mr-2 h-4 w-4"/> Submit Report</Button>
-                </AlertDialogFooter>
-              </DialogContent>
-            </Dialog>
+             <div className="flex items-center gap-2">
+               <Button variant="outline" size="icon" onClick={startListening} disabled={mode !== 'idle'}>
+                  <Ear className="h-5 w-5"/>
+                  <span className="sr-only">Listen & Learn</span>
+                </Button>
+                <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm"><Flag className="mr-2 h-4 w-4"/> Report</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Report Lesson: {lesson.title}</DialogTitle>
+                      <DialogDescription>
+                        Please provide a reason for reporting this lesson. Your feedback helps us maintain a high-quality learning environment.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="reason" className="text-right">Reason</Label>
+                        <Textarea id="reason" ref={reportReasonRef} className="col-span-3" placeholder="e.g., Incorrect notes, inappropriate content..." />
+                      </div>
+                    </div>
+                    <AlertDialogFooter>
+                        <Button type="button" variant="ghost" onClick={() => setIsReportDialogOpen(false)}>Cancel</Button>
+                        <Button type="submit" onClick={handleReportSubmit}><Send className="mr-2 h-4 w-4"/> Submit Report</Button>
+                    </AlertDialogFooter>
+                  </DialogContent>
+                </Dialog>
+             </div>
           </div>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col justify-between space-y-4">
@@ -425,3 +432,5 @@ export default function LessonPage() {
     </div>
   );
 }
+
+    
