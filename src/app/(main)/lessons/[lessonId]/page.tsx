@@ -13,6 +13,7 @@ import { transcribeAudio, type TranscribeAudioOutput } from "@/ai/flows/transcri
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 import Piano from "@/components/Piano";
+import Guitar from "@/components/Guitar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -286,6 +287,8 @@ export default function LessonPage() {
     switch(lesson.instrument) {
       case 'piano':
         return <Piano onNotePlay={handleNotePlay} highlightedKeys={highlightedKeys} disabled={mode !== 'recording'} />;
+      case 'guitar':
+        return <Guitar onNotePlay={handleNotePlay} highlightedNotes={highlightedKeys} disabled={mode !== 'recording'} />;
       default:
         return (
           <div className="flex flex-col items-center justify-center h-full bg-muted rounded-lg p-8 text-center">
@@ -485,5 +488,3 @@ export default function LessonPage() {
     </div>
   );
 }
-
-    
