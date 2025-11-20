@@ -15,3 +15,12 @@ export type Lesson = {
   notes: Note[];
   imageId: string;
 };
+
+export type UserProfile = {
+  id: string;
+  displayName: string;
+  email: string;
+  createdAt: string;
+  subscriptionTier?: 'free' | 'premium';
+  subscriptionUntil?: string;
+};

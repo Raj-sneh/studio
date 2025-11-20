@@ -56,7 +56,8 @@ export default function LoginPage() {
         displayName: user.email?.split('@')[0] || 'Anonymous',
         email: user.email,
         createdAt: new Date().toISOString(),
-      }, {});
+        subscriptionTier: 'free',
+      }, { merge: true });
 
       // Don't sign in the user automatically, make them log in after signup.
       await auth.signOut();
@@ -92,10 +93,20 @@ export default function LoginPage() {
   };
   
   const handleGuestLogin = async () => {
-    if (!auth) return;
+    if (!auth || !firestore) return;
     setIsLoading(true);
     try {
-        await signInAnonymously(auth);
+        const userCredential = await signInAnonymously(auth);
+        const user = userCredential.user;
+        const userDocRef = doc(firestore, "users", user.uid);
+        await setDocumentNonBlocking(userDocRef, {
+            id: user.uid,
+            displayName: 'Guest User',
+            email: `guest_${user.uid}@example.com`,
+            createdAt: new Date().toISOString(),
+            subscriptionTier: 'free',
+        }, { merge: true });
+
     } catch (error) {
         setError("Guest login failed. Please try again.");
     } finally {

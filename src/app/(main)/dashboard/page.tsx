@@ -1,13 +1,54 @@
+
+'use client';
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Music, BrainCircuit } from "lucide-react";
+import { ArrowRight, Music, BrainCircuit, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
+import type { UserProfile } from '@/types';
+import { doc } from "firebase/firestore";
+import { useState } from "react";
+
+const AdPlaceholder = () => {
+  const [isOpen, setIsOpen] = useState(true);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="relative bg-muted/50 p-4 rounded-lg border border-dashed border-border text-center">
+      <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => setIsOpen(false)}>
+        <X className="h-4 w-4" />
+      </Button>
+      <p className="text-sm text-muted-foreground">Ad Placeholder</p>
+      <p className="font-semibold">Upgrade to Premium to remove ads!</p>
+       <Link href="/pricing">
+          <Button size="sm" className="mt-2">Upgrade</Button>
+       </Link>
+    </div>
+  )
+}
 
 export default function DashboardPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user?.uid]);
+
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+
   const practiceImage = PlaceHolderImages.find(img => img.id === 'dashboard-practice');
   const teacherImage = PlaceHolderImages.find(img => img.id === 'dashboard-teacher');
+
+  const isPremium = userProfile?.subscriptionTier === 'premium';
+
 
   return (
     <div className="space-y-8">
@@ -15,6 +56,8 @@ export default function DashboardPage() {
         <h1 className="font-headline text-4xl font-bold tracking-tight text-foreground">Welcome to Socio</h1>
         <p className="mt-2 text-lg text-muted-foreground">What would you like to do today?</p>
       </div>
+
+      {!isPremium && <AdPlaceholder />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="overflow-hidden group hover:border-primary transition-all duration-300 transform hover:-translate-y-1">

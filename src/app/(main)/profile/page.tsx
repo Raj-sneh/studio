@@ -1,0 +1,98 @@
+
+'use client';
+
+import { useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Gem, User as UserIcon } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
+
+function ProfileSkeleton() {
+  return (
+    <Card className="max-w-2xl mx-auto">
+      <CardHeader className="flex flex-row items-center gap-4">
+        <Skeleton className="h-20 w-20 rounded-full" />
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-8 w-1/3" />
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function ProfilePage() {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user?.uid]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+  if (isUserLoading || isProfileLoading || !userProfile) {
+    return <ProfileSkeleton />;
+  }
+  
+  const isPremium = userProfile.subscriptionTier === 'premium';
+  const subscriptionEndDate = userProfile.subscriptionUntil ? format(new Date(userProfile.subscriptionUntil), 'PPP') : null;
+
+  return (
+    <div className="space-y-8">
+       <div className="text-center">
+        <h1 className="font-headline text-4xl font-bold tracking-tight">My Profile</h1>
+        <p className="mt-2 text-lg text-muted-foreground">View your account details and subscription status.</p>
+      </div>
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+          <Avatar className="h-24 w-24 border-4 border-primary">
+            <AvatarImage src={user?.photoURL || ''} alt={userProfile.displayName} />
+            <AvatarFallback className="text-3xl"><UserIcon /></AvatarFallback>
+          </Avatar>
+          <div className="space-y-1">
+            <CardTitle className="font-headline text-3xl">{userProfile.displayName}</CardTitle>
+            <CardDescription>{userProfile.email}</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            <div>
+                <h3 className="font-semibold mb-2">Subscription Status</h3>
+                <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
+                    {isPremium ? (
+                        <Gem className="h-8 w-8 text-primary" />
+                    ) : (
+                        <div className="h-8 w-8 flex items-center justify-center rounded-full bg-muted-foreground/20">
+                            <Gem className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                    )}
+                    <div>
+                        <p className="font-bold text-lg capitalize">{userProfile.subscriptionTier} Plan</p>
+                        {isPremium && subscriptionEndDate ? (
+                             <p className="text-sm text-muted-foreground">Renews on {subscriptionEndDate}</p>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">Upgrade to unlock all features.</p>
+                        )}
+                    </div>
+                </div>
+            </div>
+             <div>
+                <h3 className="font-semibold mb-2">Member Since</h3>
+                <p className="text-muted-foreground">{format(new Date(userProfile.createdAt), 'PPP')}</p>
+             </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
