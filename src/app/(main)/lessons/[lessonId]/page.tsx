@@ -119,6 +119,7 @@ export default function LessonPage() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult>(null);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [transcribedNotes, setTranscribedNotes] = useState<TranscribeAudioOutput['notes']>([]);
+  const [playbackInstrument, setPlaybackInstrument] = useState<Instrument>('piano');
   const reportReasonRef = useRef<HTMLTextAreaElement>(null);
   const synth = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -144,9 +145,13 @@ export default function LessonPage() {
     }
   }, [params.lessonId, router]);
   
-  const playNotes = useCallback((notesToPlay: NoteType[] | TranscribeAudioOutput['notes']) => {
-    if (!synth.current || notesToPlay.length === 0) return;
+  const playNotes = useCallback((notesToPlay: NoteType[] | TranscribeAudioOutput['notes'], instrumentOverride?: Instrument) => {
+    
+    const currentInstrument = instrumentOverride || lesson?.instrument;
+    if (!currentInstrument || notesToPlay.length === 0) return;
   
+    const notePlayer = getSynthForInstrument(currentInstrument);
+    
     noteTimeoutIds.current.forEach(clearTimeout);
     noteTimeoutIds.current = [];
     setHighlightedKeys([]);
@@ -160,7 +165,7 @@ export default function LessonPage() {
         const noteTimeMs = note.time * 1000;
         const durationMs = Tone.Time(note.duration).toMilliseconds();
   
-        synth.current?.triggerAttackRelease(note.key, note.duration, now + note.time);
+        notePlayer?.triggerAttackRelease(note.key, note.duration, now + note.time);
   
         const attackTimeout = setTimeout(() => {
           setHighlightedKeys(current => [...current, note.key]);
@@ -179,15 +184,18 @@ export default function LessonPage() {
       const totalDuration = (lastNote.time + Tone.Time(lastNote.duration).toSeconds()) * 1000 + 500;
       const modeTimeout = setTimeout(() => {
         setMode("idle");
+        notePlayer.dispose();
       }, totalDuration);
       noteTimeoutIds.current.push(modeTimeout);
+    } else {
+       notePlayer.dispose();
     }
-  }, []);
+  }, [lesson?.instrument]);
 
   const playDemo = useCallback(() => {
     if (!lesson) return;
     setMode("demo");
-    playNotes(lesson.notes);
+    playNotes(lesson.notes, lesson.instrument);
   }, [lesson, playNotes]);
 
   const startRecording = () => {
@@ -273,8 +281,9 @@ export default function LessonPage() {
               instrument: lesson.instrument,
             });
             setTranscribedNotes(result.notes);
+            setPlaybackInstrument(result.instrument);
             setMode("playback");
-            playNotes(result.notes);
+            playNotes(result.notes, result.instrument);
           } catch (e) {
             console.error("Transcription failed", e);
             toast({ title: "Transcription Failed", description: "Could not understand the audio. Please try again.", variant: "destructive" });
@@ -303,7 +312,7 @@ export default function LessonPage() {
   const playTranscribedNotes = () => {
     if (transcribedNotes.length > 0) {
       setMode("playback");
-      playNotes(transcribedNotes);
+      playNotes(transcribedNotes, playbackInstrument);
     }
   };
 
@@ -517,7 +526,7 @@ export default function LessonPage() {
               <Ear className="h-6 w-6 text-primary" /> Music Playback
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              The AI has transcribed your music. Watch the piano to learn how to play it.
+              The AI has transcribed your music, played on a <span className="font-bold capitalize">{playbackInstrument}</span>. Watch the piano to learn how to play it.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
