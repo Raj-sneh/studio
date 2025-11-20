@@ -389,10 +389,17 @@ export default function LessonPage() {
               </CardDescription>
             </div>
              <div className="flex items-center gap-2">
-               <Button variant="outline" size="icon" onClick={startListening} disabled={mode !== 'idle'}>
-                  <Ear className="h-5 w-5"/>
-                  <span className="sr-only">Listen & Learn</span>
-                </Button>
+                {mode !== 'listening' ? (
+                  <Button variant="outline" size="icon" onClick={startListening} disabled={mode !== 'idle'}>
+                      <Ear className="h-5 w-5"/>
+                      <span className="sr-only">Listen &amp; Learn</span>
+                  </Button>
+                ) : (
+                  <Button variant="destructive" size="icon" onClick={stopListening}>
+                      <Square className="h-5 w-5"/>
+                      <span className="sr-only">Stop Listening</span>
+                  </Button>
+                )}
                 <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="ghost" size="sm"><Flag className="mr-2 h-4 w-4"/> Report</Button>
@@ -430,7 +437,7 @@ export default function LessonPage() {
           </div>
           
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <Button onClick={playDemo} disabled={mode !== 'idle'} size="lg">
               <Play className="mr-2 h-5 w-5"/> Demo
             </Button>
@@ -440,16 +447,7 @@ export default function LessonPage() {
               </Button>
             ) : (
               <Button onClick={stopRecordingAndAnalyze} size="lg" variant="destructive">
-                <Square className="mr-2 h-5 w-5"/> Finish & Analyze
-              </Button>
-            )}
-             {mode !== 'listening' ? (
-              <Button onClick={startListening} disabled={mode !== 'idle'} size="lg">
-                <Ear className="mr-2 h-5 w-5"/> Listen & Learn
-              </Button>
-            ) : (
-              <Button onClick={stopListening} size="lg" variant="destructive">
-                <Square className="mr-2 h-5 w-5"/> Stop Listening
+                <Square className="mr-2 h-5 w-5"/> Finish &amp; Analyze
               </Button>
             )}
           </div>
@@ -531,5 +529,3 @@ export default function LessonPage() {
     </div>
   );
 }
-
-    
