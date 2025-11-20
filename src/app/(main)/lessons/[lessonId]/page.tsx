@@ -6,11 +6,15 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import * as Tone from "tone";
 import { lessons } from "@/lib/lessons";
-import type { Lesson, Note as NoteType, Instrument } from "@/types";
+import type { Lesson, Note as NoteType, Instrument, UserProfile } from "@/types";
 import { analyzeUserPerformance } from "@/ai/flows/analyze-user-performance";
 import { flagContentForReview } from "@/ai/flows/flag-content-for-review";
 import { transcribeAudio, type TranscribeAudioOutput } from "@/ai/flows/transcribe-audio-flow";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
+import { doc } from 'firebase/firestore';
+
 
 import Piano from "@/components/Piano";
 import Guitar from "@/components/Guitar";
@@ -50,7 +54,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Play, Square, Mic, Send, Flag, Bot, Loader2, Star, Trophy, Target, Sparkles, ChevronLeft, Ear, Music } from "lucide-react";
+import { Play, Square, Mic, Send, Flag, Bot, Loader2, Star, Trophy, Target, Sparkles, ChevronLeft, Ear, Music, Gem } from "lucide-react";
 
 type RecordedNote = { note: string; time: number };
 type AnalysisResult = {
@@ -78,13 +82,13 @@ const getSynthForInstrument = (instrument: Instrument): any => {
         modulationEnvelope: { attack: 0.5, decay: 0.01, sustain: 1, release: 0.5 }
       }).toDestination();
     case 'xylophone':
-      return new Tone.PolySynth(Tone.MetalSynth, {
-        frequency: 200,
-        envelope: { attack: 0.001, decay: 0.4, release: 0.2 },
-        harmonicity: 5.1,
-        modulationIndex: 32,
-        resonance: 4000,
-        octaves: 1.5,
+       return new Tone.PolySynth(Tone.MetalSynth, {
+         frequency: 200,
+         envelope: { attack: 0.001, decay: 0.4, release: 0.2 },
+         harmonicity: 5.1,
+         modulationIndex: 32,
+         resonance: 4000,
+         octaves: 1.5,
       }).toDestination();
     case 'flute':
       return new Tone.PolySynth(Tone.Synth, {
@@ -111,6 +115,9 @@ export default function LessonPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
+
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [mode, setMode] = useState<Mode>("idle");
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
@@ -121,12 +128,21 @@ export default function LessonPage() {
   const [transcribedNotes, setTranscribedNotes] = useState<TranscribeAudioOutput['notes']>([]);
   const [playbackInstrument, setPlaybackInstrument] = useState<Instrument>('piano');
   const [showPlaybackDialog, setShowPlaybackDialog] = useState(false);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const reportReasonRef = useRef<HTMLTextAreaElement>(null);
   const synth = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const noteTimeoutIds = useRef<NodeJS.Timeout[]>([]);
   const image = lesson ? PlaceHolderImages.find(img => img.id === lesson.imageId) : null;
+  
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user?.uid]);
+
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+  const isPremium = userProfile?.subscriptionTier === 'premium';
 
   useEffect(() => {
     const lessonId = params.lessonId as string;
@@ -204,6 +220,10 @@ export default function LessonPage() {
   }, [lesson, playNotes]);
 
   const startRecording = () => {
+    if (!isPremium) {
+      setShowUpgradeDialog(true);
+      return;
+    }
     setUserRecording([]);
     setRecordingStartTime(Date.now());
     setMode("recording");
@@ -263,6 +283,10 @@ export default function LessonPage() {
 
   const startListening = async () => {
     if (mode !== 'idle') return;
+    if (!isPremium) {
+      setShowUpgradeDialog(true);
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
@@ -561,6 +585,24 @@ export default function LessonPage() {
           <AlertDialogFooter>
             <AlertDialogAction onClick={handlePlayAgain}>Play Again</AlertDialogAction>
             <AlertDialogCancel onClick={() => { setMode('idle'); setShowPlaybackDialog(false); }}>Done</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-headline text-2xl flex items-center gap-2">
+              <Gem className="text-primary" />
+              Upgrade to Premium
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              To access this AI-powered feature, you need to upgrade to a Premium account. Unlock all features and accelerate your learning!
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Maybe Later</AlertDialogCancel>
+            <AlertDialogAction onClick={() => router.push('/pricing')}>Upgrade Now</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
