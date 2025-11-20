@@ -1,3 +1,4 @@
+
 import type { Lesson } from '@/types';
 
 export const lessons: Lesson[] = [
@@ -9,23 +10,20 @@ export const lessons: Lesson[] = [
     tempo: 104,
     imageId: 'piano-lesson',
     notes: [
-      { key: 'C4', duration: '8n', time: 0 },
-      { key: 'D4', duration: '8n', time: 0.5 },
-      { key: 'E4', duration: '4n', time: 1 },
-      { key: 'E4', duration: '4n', time: 1.5 },
-      { key: 'E4', duration: '4n', time: 2 },
-      { key: 'E4', duration: '8n', time: 2.5 },
-      { key: 'D4', duration: '8n', time: 3 },
-      { key: 'C#4', duration: '4n', time: 3.5 },
-      { key: 'D4', duration: '4n', time: 4 },
-      { key: 'E4', duration: '2n', time: 4.5 },
-      { key: 'D4', duration: '4n', time: 5.5 },
-      { key: 'D4', duration: '2n', time: 6 },
-      { key: 'G4', duration: '4n', time: 7 },
-      { key: 'F#4', duration: '4n', time: 7.5 },
-      { key: 'E4', duration: '4n', time: 8 },
-      { key: 'D4', duration: '4n', time: 8.5 },
-      { key: 'C4', duration: '2n', time: 9 },
+      { key: 'C4', duration: '8n', time: 0 }, { key: 'D4', duration: '8n', time: 0.25 }, { key: 'E4', duration: '4n', time: 0.5 }, 
+      { key: 'E4', duration: '4n', time: 1 }, { key: 'E4', duration: '8n', time: 1.5 }, 
+      { key: 'E4', duration: '8n', time: 1.75 }, { key: 'D4', duration: '4n', time: 2 }, 
+      { key: 'E4', duration: '4n', time: 2.5 }, { key: 'F4', duration: '2n', time: 3 }, 
+      { key: 'E4', duration: '4n', time: 4 }, { key: 'D4', duration: '4n', time: 4.5 }, 
+      { key: 'D4', duration: '4n', time: 5 }, { key: 'D4', duration: '8n', time: 5.5 }, 
+      { key: 'C4', duration: '8n', time: 5.75 }, { key: 'D4', duration: '4n', time: 6 }, 
+      { key: 'E4', duration: '2n', time: 6.5 }, 
+      { key: 'E4', duration: '4n', time: 7.5 }, { key: 'G4', duration: '4n', time: 8 }, 
+      { key: 'G4', duration: '4n', time: 8.5 }, { key: 'F#4', duration: '4n', time: 9 }, 
+      { key: 'E4', duration: '4n', time: 9.5 }, { key: 'F4', duration: '4n', time: 10 }, 
+      { key: 'G4', duration: '2n', time: 10.5 }, 
+      { key: 'E4', duration: '4n', time: 11.5 }, { key: 'D4', duration: '4n', time: 12 }, 
+      { key: 'C4', duration: '4n', time: 12.5 }, { key: 'C4', duration: '2n', time: 13 }
     ],
   },
   {
