@@ -56,7 +56,19 @@ const transcribeAudioFlow = ai.defineFlow(
     outputSchema: TranscribeAudioOutputSchema,
   },
   async (input) => {
-    const { output } = await transcribeAudioPrompt(input);
-    return output!;
+    const llmResponse = await ai.generate({
+      model: 'googleai/gemini-1.5-flash',
+      prompt: `You are an expert music transcriber with perfect pitch.
+    Your task is to listen to an audio recording of a ${input.instrument} and transcribe it into a sequence of musical notes.
+    The output should be an array of note objects, where each object includes the note's key, duration, and start time.
+
+    Analyze the following audio:`,
+      input: [
+        { media: { url: input.audioDataUri } }
+      ],
+      output: { schema: TranscribeAudioOutputSchema },
+    });
+
+    return llmResponse.output() || { notes: [] };
   }
 );
