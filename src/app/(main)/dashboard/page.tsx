@@ -12,23 +12,40 @@ import type { UserProfile } from '@/types';
 import { doc } from "firebase/firestore";
 import { useState } from "react";
 
-const AdPlaceholder = () => {
-  const [isOpen, setIsOpen] = useState(true);
+const AdComponent = () => {
+  const [isAdVisible, setIsAdVisible] = useState(true);
 
-  if (!isOpen) {
+  if (!isAdVisible) {
     return null;
   }
 
+  // This is where you would paste your Google AdSense code.
+  // For now, it's a placeholder.
+  const adSenseCode = (
+    <div className="bg-gray-200 dark:bg-gray-700 h-full w-full flex items-center justify-center">
+      <div className="text-center">
+        <p className="font-semibold text-lg text-gray-500 dark:text-gray-400">Advertisement</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500">Your AdSense ad unit would be displayed here.</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="relative bg-muted/50 p-4 rounded-lg border border-dashed border-border text-center">
-      <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => setIsOpen(false)}>
+      <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6 z-10" onClick={() => setIsAdVisible(false)}>
         <X className="h-4 w-4" />
+        <span className="sr-only">Close Ad</span>
       </Button>
-      <p className="text-sm text-muted-foreground">Ad Placeholder</p>
-      <p className="font-semibold">Upgrade to Premium to remove ads!</p>
-       <Link href="/pricing">
-          <Button size="sm" className="mt-2">Upgrade</Button>
-       </Link>
+      <div className="aspect-video w-full">
+        {/* In a real scenario, you'd replace this div with the script from AdSense */}
+        {adSenseCode}
+      </div>
+      <div className="mt-2 text-center">
+        <p className="font-semibold">Upgrade to Premium to remove ads!</p>
+        <Link href="/pricing">
+            <Button size="sm" className="mt-2">Upgrade</Button>
+        </Link>
+      </div>
     </div>
   )
 }
@@ -57,7 +74,7 @@ export default function DashboardPage() {
         <p className="mt-2 text-lg text-muted-foreground">What would you like to do today?</p>
       </div>
 
-      {!isPremium && <AdPlaceholder />}
+      {!isPremium && <AdComponent />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="overflow-hidden group hover:border-primary transition-all duration-300 transform hover:-translate-y-1">
