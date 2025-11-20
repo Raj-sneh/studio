@@ -17,7 +17,7 @@ const TranscribeAudioInputSchema = z.object({
     .describe(
       "A recording of music, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
-  instrument: z.enum(['piano', 'guitar', 'drums', 'violin']).describe('The instrument being played.'),
+  instrument: z.enum(['piano', 'guitar', 'drums', 'violin', 'xylophone', 'flute', 'saxophone']).describe('The instrument being played.'),
 });
 export type TranscribeAudioInput = z.infer<typeof TranscribeAudioInputSchema>;
 
@@ -56,19 +56,7 @@ const transcribeAudioFlow = ai.defineFlow(
     outputSchema: TranscribeAudioOutputSchema,
   },
   async (input) => {
-    const llmResponse = await ai.generate({
-      model: 'googleai/gemini-1.5-flash',
-      prompt: `You are an expert music transcriber with perfect pitch.
-    Your task is to listen to an audio recording of a ${input.instrument} and transcribe it into a sequence of musical notes.
-    The output should be an array of note objects, where each object includes the note's key, duration, and start time.
-
-    Analyze the following audio:`,
-      input: [
-        { media: { url: input.audioDataUri } }
-      ],
-      output: { schema: TranscribeAudioOutputSchema },
-    });
-
-    return llmResponse.output() || { notes: [] };
+    const { output } = await transcribeAudioPrompt(input);
+    return output || { notes: [] };
   }
 );
