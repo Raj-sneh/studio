@@ -2,6 +2,7 @@
 'use client';
 import Link from "next/link";
 import Image from "next/image";
+import Script from "next/script";
 import { ArrowRight, Music, BrainCircuit, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,16 +20,32 @@ const AdComponent = () => {
     return null;
   }
 
-  // This is where you would paste your Google AdSense code.
-  // For now, it's a placeholder.
-  const adSenseCode = (
-    <div className="bg-gray-200 dark:bg-gray-700 h-full w-full flex items-center justify-center">
-      <div className="text-center">
-        <p className="font-semibold text-lg text-gray-500 dark:text-gray-400">Advertisement</p>
-        <p className="text-xs text-gray-400 dark:text-gray-500">Your AdSense ad unit would be displayed here.</p>
-      </div>
-    </div>
-  );
+  // This is where you paste your Google AdSense ad unit code.
+  const AdSenseUnit = () => {
+    return (
+      <>
+        {/* 
+          1. Go to your AdSense account -> Ads -> Ad units.
+          2. Create a new Display ad unit.
+          3. Copy the code snippet provided by AdSense.
+          4. PASTE THE CODE SNIPPET HERE, replacing this comment block.
+             It will look like an <ins> tag followed by a <script> tag.
+        */}
+        <div className="bg-gray-200 dark:bg-gray-700 h-full w-full flex items-center justify-center">
+            <div className="text-center">
+                <p className="font-semibold text-lg text-gray-500 dark:text-gray-400">Ad Placeholder</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Your ad unit will be displayed here.</p>
+            </div>
+        </div>
+
+        {/* This script pushes the ad request. It's part of the ad unit code. */}
+        <Script id="adsense-push" strategy="lazyOnload">
+          {`(adsbygoogle = window.adsbygoogle || []).push({});`}
+        </Script>
+      </>
+    );
+  };
+
 
   return (
     <div className="relative bg-muted/50 p-4 rounded-lg border border-dashed border-border text-center">
@@ -37,8 +54,7 @@ const AdComponent = () => {
         <span className="sr-only">Close Ad</span>
       </Button>
       <div className="aspect-video w-full">
-        {/* In a real scenario, you'd replace this div with the script from AdSense */}
-        {adSenseCode}
+        <AdSenseUnit />
       </div>
       <div className="mt-2 text-center">
         <p className="font-semibold">Upgrade to Premium to remove ads!</p>
