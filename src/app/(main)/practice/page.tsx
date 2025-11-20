@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -52,7 +53,7 @@ export default function PracticePage() {
             }, noteEvent.time);
         });
 
-        const totalTime = recordedNotes[recordedNotes.length - 1].time;
+        const totalTime = recordedNotes.length > 0 ? recordedNotes[recordedNotes.length - 1].time : 0;
         setTimeout(() => {
             setIsPlaying(false);
         }, totalTime + 500);
@@ -98,3 +99,5 @@ export default function PracticePage() {
         </div>
     );
 }
+
+    
