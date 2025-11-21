@@ -35,7 +35,7 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
@@ -46,32 +46,32 @@ export default function LoginPage() {
       return;
     }
 
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      const userDocRef = doc(firestore, "users", user.uid);
-      await setDocumentNonBlocking(userDocRef, {
-        id: user.uid,
-        displayName: user.email?.split('@')[0] || 'Anonymous',
-        email: user.email,
-        createdAt: new Date().toISOString(),
-      }, { merge: true });
+    createUserWithEmailAndPassword(auth, email, password)
+      .then(userCredential => {
+        const user = userCredential.user;
+        const userDocRef = doc(firestore, "users", user.uid);
+        setDocumentNonBlocking(userDocRef, {
+          id: user.uid,
+          displayName: user.email?.split('@')[0] || 'Anonymous',
+          email: user.email,
+          createdAt: new Date().toISOString(),
+        }, { merge: true });
 
-      // Don't sign in the user automatically, make them log in after signup.
-      await auth.signOut();
-      
-      setAuthMode('login');
-      alert("Sign up successful! Please log in to continue.");
-
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
+        // Don't sign in the user automatically, make them log in after signup.
+        auth.signOut();
+        
+        setAuthMode('login');
+        alert("Sign up successful! Please log in to continue.");
+      })
+      .catch(err => {
+        setError(err.message);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
@@ -81,35 +81,42 @@ export default function LoginPage() {
         return;
     }
 
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // On successful sign-in, the useEffect will redirect to the dashboard.
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
+    signInWithEmailAndPassword(auth, email, password)
+      .catch(err => {
+        setError(err.message);
+      })
+      .finally(() => {
+         // On successful sign-in, the useEffect will redirect.
+         // On failure, we stop loading.
+        if (!user) {
+          setIsLoading(false);
+        }
+      });
   };
   
-  const handleGuestLogin = async () => {
+  const handleGuestLogin = () => {
     if (!auth || !firestore) return;
     setIsLoading(true);
-    try {
-        const userCredential = await signInAnonymously(auth);
-        const user = userCredential.user;
-        const userDocRef = doc(firestore, "users", user.uid);
-        await setDocumentNonBlocking(userDocRef, {
-            id: user.uid,
-            displayName: 'Guest User',
-            email: `guest_${user.uid}@example.com`,
-            createdAt: new Date().toISOString(),
-        }, { merge: true });
-
-    } catch (error) {
-        setError("Guest login failed. Please try again.");
-    } finally {
-        setIsLoading(false);
-    }
+    
+    signInAnonymously(auth)
+      .then(userCredential => {
+          const user = userCredential.user;
+          const userDocRef = doc(firestore, "users", user.uid);
+          setDocumentNonBlocking(userDocRef, {
+              id: user.uid,
+              displayName: 'Guest User',
+              email: `guest_${user.uid}@example.com`,
+              createdAt: new Date().toISOString(),
+          }, { merge: true });
+      })
+      .catch(error => {
+          setError("Guest login failed. Please try again.");
+      })
+      .finally(() => {
+        if (!user) {
+          setIsLoading(false);
+        }
+      });
   };
 
   const toggleAuthMode = () => {
