@@ -11,10 +11,22 @@ import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
 import type { UserProfile } from '@/types';
 import { doc } from "firebase/firestore";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const AdComponent = () => {
   const [isAdVisible, setIsAdVisible] = useState(true);
+
+  useEffect(() => {
+    // This effect ensures the ad is only pushed once, even if the component re-renders.
+    try {
+      if (isAdVisible) {
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      }
+    } catch (e) {
+      console.error("AdSense error:", e);
+    }
+  }, [isAdVisible]);
+
 
   if (!isAdVisible) {
     return null;
@@ -27,21 +39,15 @@ const AdComponent = () => {
         {/* 
           1. Go to your AdSense account -> Ads -> Ad units.
           2. Create a new Display ad unit.
-          3. Copy the code snippet provided by AdSense.
-          4. PASTE THE CODE SNIPPET HERE, replacing this comment block.
-             It will look like an <ins> tag followed by a <script> tag.
+          3. PASTE THE <ins> TAG FROM YOUR AD CODE HERE, replacing the div below.
+             The <script> part that calls .push() is now handled in the useEffect hook and is no longer needed here.
         */}
-        <div className="bg-gray-200 dark:bg-gray-700 h-full w-full flex items-center justify-center">
-            <div className="text-center">
-                <p className="font-semibold text-lg text-gray-500 dark:text-gray-400">Ad Placeholder</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">Your ad unit will be displayed here.</p>
-            </div>
-        </div>
-
-        {/* This script pushes the ad request. It's part of the ad unit code. */}
-        <Script id="adsense-push" strategy="lazyOnload">
-          {`(adsbygoogle = window.adsbygoogle || []).push({});`}
-        </Script>
+        <ins className="adsbygoogle"
+             style={{ display: "block", backgroundColor: "#f3f4f6" }}
+             data-ad-client="ca-pub-xxxxxxxxxxxxxxxx" // Replace with your client ID
+             data-ad-slot="yyyyyyyyyy" // Replace with your ad slot ID
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
       </>
     );
   };
