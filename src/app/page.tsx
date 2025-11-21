@@ -1,11 +1,10 @@
 
-"use client";
+'use client';
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AtSign, KeyRound, Dices, Music, UserPlus } from "lucide-react";
-import { useAuth, useUser, setDocumentNonBlocking } from "@/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInAnonymously } from "firebase/auth";
+import { useAuth, useUser, setDocumentNonBlocking, initiateAnonymousSignIn, initiateSignInWithEmailAndPassword, initiateCreateUserWithEmailAndPassword } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 
@@ -46,7 +45,7 @@ export default function LoginPage() {
       return;
     }
 
-    createUserWithEmailAndPassword(auth, email, password)
+    initiateCreateUserWithEmailAndPassword(auth, email, password)
       .then(userCredential => {
         const user = userCredential.user;
         const userDocRef = doc(firestore, "users", user.uid);
@@ -81,7 +80,7 @@ export default function LoginPage() {
         return;
     }
 
-    signInWithEmailAndPassword(auth, email, password)
+    initiateSignInWithEmailAndPassword(auth, email, password)
       .catch(err => {
         setError(err.message);
       })
@@ -98,7 +97,7 @@ export default function LoginPage() {
     if (!auth || !firestore) return;
     setIsLoading(true);
     
-    signInAnonymously(auth)
+    initiateAnonymousSignIn(auth)
       .then(userCredential => {
           const user = userCredential.user;
           const userDocRef = doc(firestore, "users", user.uid);
@@ -173,7 +172,11 @@ export default function LoginPage() {
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full h-12 font-bold text-lg bg-primary text-primary-foreground hover:bg-primary/90 rounded-tl-2xl rounded-br-2xl" disabled={isLoading}>
-                {isLoading ? <SButtonIcon className="animate-spin" /> : (authMode === 'login' ? 'Sign In' : 'Sign Up')}
+                {isLoading ? (
+                  <SButtonIcon className="animate-spin" />
+                ) : (
+                  <span>{authMode === 'login' ? 'Sign In' : 'Sign Up'}</span>
+                )}
               </Button>
             </form>
             <div className="relative my-6">
@@ -190,7 +193,7 @@ export default function LoginPage() {
                 Google
               </Button>
               <Button variant="outline" className="h-12" onClick={handleGuestLogin} disabled={isLoading}>
-                <Dices className="mr-2 h-4 w-4" />
+                {isLoading && authMode === 'login' ? <SButtonIcon className="animate-spin" /> : <Dices className="mr-2 h-4 w-4" />}
                 Guest Login
               </Button>
             </div>
@@ -212,3 +215,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
