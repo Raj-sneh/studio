@@ -34,7 +34,7 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleAuthAction = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
@@ -45,14 +45,18 @@ export default function LoginPage() {
       return;
     }
 
-    initiateCreateUserWithEmailAndPassword(auth, email, password)
-      .then(userCredential => {
-        const user = userCredential.user;
-        const userDocRef = doc(firestore, "users", user.uid);
+    const promise = authMode === 'signup' 
+      ? initiateCreateUserWithEmailAndPassword(auth, email, password)
+      : initiateSignInWithEmailAndPassword(auth, email, password);
+
+    promise.then(userCredential => {
+      if (authMode === 'signup') {
+        const newUser = userCredential.user;
+        const userDocRef = doc(firestore, "users", newUser.uid);
         setDocumentNonBlocking(userDocRef, {
-          id: user.uid,
-          displayName: user.email?.split('@')[0] || 'Anonymous',
-          email: user.email,
+          id: newUser.uid,
+          displayName: newUser.email?.split('@')[0] || 'Anonymous',
+          email: newUser.email,
           createdAt: new Date().toISOString(),
         }, { merge: true });
 
@@ -61,41 +65,22 @@ export default function LoginPage() {
         
         setAuthMode('login');
         alert("Sign up successful! Please log in to continue.");
-      })
-      .catch(err => {
-        setError(err.message);
-      })
-      .finally(() => {
         setIsLoading(false);
-      });
+      }
+      // On successful sign-in, the useEffect will handle the redirect.
+      // No need to setIsLoading(false) here as the page will navigate away.
+    })
+    .catch(err => {
+      setError(err.message);
+      setIsLoading(false);
+    });
   };
 
-  const handleSignIn = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    if (!auth) {
-        setError("Firebase not initialized.");
-        setIsLoading(false);
-        return;
-    }
-
-    initiateSignInWithEmailAndPassword(auth, email, password)
-      .catch(err => {
-        setError(err.message);
-      })
-      .finally(() => {
-         // On successful sign-in, the useEffect will redirect.
-         // On failure, we stop loading.
-        if (!user) {
-          setIsLoading(false);
-        }
-      });
-  };
   
   const handleGuestLogin = () => {
     if (!auth || !firestore) return;
     setIsLoading(true);
+    setError(null);
     
     initiateAnonymousSignIn(auth)
       .then(userCredential => {
@@ -107,14 +92,11 @@ export default function LoginPage() {
               email: `guest_${user.uid}@example.com`,
               createdAt: new Date().toISOString(),
           }, { merge: true });
+          // On successful sign-in, the useEffect will handle redirect.
       })
       .catch(error => {
           setError("Guest login failed. Please try again.");
-      })
-      .finally(() => {
-        if (!user) {
           setIsLoading(false);
-        }
       });
   };
 
@@ -155,7 +137,7 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={authMode === 'login' ? handleSignIn : handleSignUp} className="space-y-6">
+            <form onSubmit={handleAuthAction} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
@@ -193,7 +175,7 @@ export default function LoginPage() {
                 Google
               </Button>
               <Button variant="outline" className="h-12" onClick={handleGuestLogin} disabled={isLoading}>
-                {isLoading && authMode === 'login' ? <SButtonIcon className="animate-spin" /> : <Dices className="mr-2 h-4 w-4" />}
+                 <Dices className="mr-2 h-4 w-4" />
                 Guest Login
               </Button>
             </div>
@@ -215,5 +197,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
