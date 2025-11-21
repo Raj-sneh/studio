@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -36,16 +37,6 @@
         "fcmToken": {
           "type": "string",
           "description": "Firebase Cloud Messaging token for sending push notifications to the user."
-        },
-        "subscriptionTier": {
-          "type": "string",
-          "description": "The user's subscription tier.",
-          "enum": ["free", "premium"]
-        },
-        "subscriptionUntil": {
-          "type": "string",
-          "description": "Timestamp indicating when the user's subscription expires.",
-          "format": "date-time"
         }
       },
       "required": [

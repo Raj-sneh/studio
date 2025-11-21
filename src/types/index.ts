@@ -1,3 +1,4 @@
+
 export type Note = {
   key: string; // e.g., 'C4'
   duration: string; // Tone.js duration, e.g., '8n', '4n'
@@ -21,6 +22,4 @@ export type UserProfile = {
   displayName: string;
   email: string;
   createdAt: string;
-  subscriptionTier?: 'free' | 'premium';
-  subscriptionUntil?: string;
 };

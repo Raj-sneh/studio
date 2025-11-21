@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import MonogramLogo from "@/components/icons/MonogramLogo";
 import { cn } from "@/lib/utils";
-import { Music, LayoutDashboard, LogOut, User as UserIcon, Gem } from "lucide-react";
+import { Music, LayoutDashboard, LogOut, User as UserIcon } from "lucide-react";
 
 const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -75,10 +76,6 @@ export default function Header() {
             <DropdownMenuItem onClick={() => router.push('/profile')}>
               <UserIcon className="mr-2 h-4 w-4" />
               <span>Profile</span>
-            </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => router.push('/pricing')}>
-              <Gem className="mr-2 h-4 w-4" />
-              <span>Upgrade</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>

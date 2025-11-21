@@ -7,8 +7,7 @@ import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Gem, User as UserIcon } from 'lucide-react';
+import { User as UserIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 
@@ -45,14 +44,11 @@ export default function ProfilePage() {
     return <ProfileSkeleton />;
   }
   
-  const isPremium = userProfile.subscriptionTier === 'premium';
-  const subscriptionEndDate = userProfile.subscriptionUntil ? format(new Date(userProfile.subscriptionUntil), 'PPP') : null;
-
   return (
     <div className="space-y-8">
        <div className="text-center">
         <h1 className="font-headline text-4xl font-bold tracking-tight">My Profile</h1>
-        <p className="mt-2 text-lg text-muted-foreground">View your account details and subscription status.</p>
+        <p className="mt-2 text-lg text-muted-foreground">View your account details.</p>
       </div>
       <Card className="max-w-2xl mx-auto">
         <CardHeader className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
@@ -66,26 +62,6 @@ export default function ProfilePage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-            <div>
-                <h3 className="font-semibold mb-2">Subscription Status</h3>
-                <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
-                    {isPremium ? (
-                        <Gem className="h-8 w-8 text-primary" />
-                    ) : (
-                        <div className="h-8 w-8 flex items-center justify-center rounded-full bg-muted-foreground/20">
-                            <Gem className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                    )}
-                    <div>
-                        <p className="font-bold text-lg capitalize">{userProfile.subscriptionTier} Plan</p>
-                        {isPremium && subscriptionEndDate ? (
-                             <p className="text-sm text-muted-foreground">Renews on {subscriptionEndDate}</p>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">Upgrade to unlock all features.</p>
-                        )}
-                    </div>
-                </div>
-            </div>
              <div>
                 <h3 className="font-semibold mb-2">Member Since</h3>
                 <p className="text-muted-foreground">{format(new Date(userProfile.createdAt), 'PPP')}</p>
@@ -95,4 +71,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

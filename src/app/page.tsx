@@ -56,7 +56,6 @@ export default function LoginPage() {
         displayName: user.email?.split('@')[0] || 'Anonymous',
         email: user.email,
         createdAt: new Date().toISOString(),
-        subscriptionTier: 'free',
       }, { merge: true });
 
       // Don't sign in the user automatically, make them log in after signup.
@@ -104,7 +103,6 @@ export default function LoginPage() {
             displayName: 'Guest User',
             email: `guest_${user.uid}@example.com`,
             createdAt: new Date().toISOString(),
-            subscriptionTier: 'free',
         }, { merge: true });
 
     } catch (error) {

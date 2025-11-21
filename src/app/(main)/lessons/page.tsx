@@ -1,31 +1,15 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { lessons } from "@/lib/lessons";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Guitar, Drum, Music2 as Violin, Piano as PianoIcon, Wind, Lollipop, Gem } from "lucide-react";
+import { ArrowRight, Guitar, Drum, Music2 as Violin, Piano as PianoIcon, Wind, Lollipop } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Instrument, UserProfile } from "@/types";
-import { useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { useFirestore } from '@/firebase/provider';
-import { doc } from 'firebase/firestore';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-
+import type { Instrument } from "@/types";
 
 const instrumentIcons: Record<Instrument, React.ElementType> = {
   piano: PianoIcon,
@@ -40,29 +24,6 @@ const instrumentIcons: Record<Instrument, React.ElementType> = {
 const instrumentOrder: Instrument[] = ['piano', 'guitar', 'drums', 'violin', 'xylophone', 'flute', 'saxophone'];
 
 export default function LessonsPage() {
-  const router = useRouter();
-  const { user } = useUser();
-  const firestore = useFirestore();
-
-  const userDocRef = useMemoFirebase(() => {
-    if (!firestore || !user?.uid) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user?.uid]);
-
-  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
-  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
-
-  const isPremium = userProfile?.subscriptionTier === 'premium';
-
-  const handleLessonClick = (e: React.MouseEvent, lessonId: string) => {
-    if (!isPremium) {
-      e.preventDefault();
-      setShowUpgradeDialog(true);
-    } else {
-      router.push(`/lessons/${lessonId}`);
-    }
-  };
-
   const groupedLessons = lessons.reduce((acc, lesson) => {
     (acc[lesson.instrument] = acc[lesson.instrument] || []).push(lesson);
     return acc;
@@ -111,7 +72,7 @@ export default function LessonsPage() {
                         <CardTitle className="font-headline text-xl mt-4">{lesson.title}</CardTitle>
                       </div>
                       <div className="mt-6">
-                        <Link href={`/lessons/${lesson.id}`} passHref onClick={(e) => handleLessonClick(e, lesson.id)}>
+                        <Link href={`/lessons/${lesson.id}`} passHref>
                           <Button className="w-full">
                             Start Lesson
                             <ArrowRight className="ml-2 h-4 w-4" />
@@ -126,25 +87,6 @@ export default function LessonsPage() {
           </div>
         )
       })}
-
-      <AlertDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-headline text-2xl flex items-center gap-2">
-              <Gem className="text-primary" />
-              Upgrade to Premium
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              To access AI-powered lessons, you need to upgrade to a Premium account. Unlock all features and accelerate your learning!
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Maybe Later</AlertDialogCancel>
-            <AlertDialogAction onClick={() => router.push('/pricing')}>Upgrade Now</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
     </div>
   );
 }
