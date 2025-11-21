@@ -497,7 +497,7 @@ export default function LessonPage() {
           </div>
           
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <Button onClick={playDemo} disabled={mode !== 'idle'} size="lg">
               <Play className="mr-2 h-5 w-5"/> Demo
             </Button>
