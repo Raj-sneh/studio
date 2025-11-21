@@ -27,9 +27,6 @@ export default function DrumPad({
 
   useEffect(() => {
     const initializeSynth = async () => {
-      if (Tone.context.state !== 'running') {
-        await Tone.start();
-      }
       synth.current = new Tone.MembraneSynth().toDestination();
       setIsLoaded(true);
     };
@@ -39,7 +36,10 @@ export default function DrumPad({
     };
   }, []);
 
-  const playNote = useCallback((noteKey: string) => {
+  const playNote = useCallback(async (noteKey: string) => {
+    if (Tone.context.state !== 'running') {
+        await Tone.start();
+    }
     if (!synth.current || disabled || !isLoaded) return;
     const drumSound = drumMap[noteKey];
     if (drumSound) {

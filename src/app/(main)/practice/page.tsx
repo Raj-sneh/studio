@@ -1,8 +1,9 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Play, Pause, Square, History, Music4 } from "lucide-react";
+import * as Tone from "tone";
 import Piano from "@/components/Piano";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +26,28 @@ export default function PracticePage() {
     const [recordedNotes, setRecordedNotes] = useState<RecordedNote[]>([]);
     const [startTime, setStartTime] = useState(0);
 
+    // Ensure audio context is started on first user interaction
+    useEffect(() => {
+        const startAudio = async () => {
+            await Tone.start();
+            console.log("Audio context started for practice mode");
+        };
+
+        // Add a one-time event listener for the first user interaction
+        const eventTypes: ('click' | 'keydown')[] = ['click', 'keydown'];
+        const options = { once: true };
+        
+        eventTypes.forEach(type => {
+            window.addEventListener(type, startAudio, options);
+        });
+
+        return () => {
+            eventTypes.forEach(type => {
+                window.removeEventListener(type, startAudio, options);
+            });
+        };
+    }, []);
+
     const handleNotePlay = (note: string) => {
         if (isRecording) {
             setRecordedNotes(prev => [...prev, { note, time: Date.now() - startTime }]);
@@ -42,14 +65,20 @@ export default function PracticePage() {
     };
 
     const playRecording = () => {
-        if (recordedNotes.length === 0) return;
+        if (recordedNotes.length === 0 || isPlaying) return;
 
         setIsPlaying(true);
+        
+        // This is a placeholder for visual/audio playback
+        // Since the Piano component itself produces sound, we don't need a separate synth here.
+        // We just need to simulate the visual highlighting if desired.
+        // For simplicity, we'll just log to console as before.
+
         recordedNotes.forEach(noteEvent => {
             setTimeout(() => {
-                // This is a placeholder for triggering note play visually/audibly.
-                // The actual Piano component handles audio, this could be for visual feedback.
-                console.log(`Playing: ${noteEvent.note}`);
+                console.log(`Playing back: ${noteEvent.note}`);
+                // To add visual feedback, you would need to pass highlighted notes to the Piano component
+                // and manage their state here, similar to the lesson page.
             }, noteEvent.time);
         });
 
@@ -99,5 +128,3 @@ export default function PracticePage() {
         </div>
     );
 }
-
-    

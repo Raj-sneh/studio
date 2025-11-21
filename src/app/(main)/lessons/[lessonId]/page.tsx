@@ -138,7 +138,7 @@ export default function LessonPage() {
     const foundLesson = lessons.find((l) => l.id === lessonId);
     if (foundLesson) {
       setLesson(foundLesson);
-      synth.current = getSynthForInstrument(foundLesson.instrument);
+      // Synth is now initialized on first play action
     } else {
       router.push("/lessons");
     }
@@ -146,12 +146,25 @@ export default function LessonPage() {
     return () => {
         synth.current?.dispose();
         noteTimeoutIds.current.forEach(clearTimeout);
-        Tone.Transport.stop();
+        if (Tone.Transport.state === "started") {
+          Tone.Transport.stop();
+        }
         Tone.Transport.cancel();
     }
   }, [params.lessonId, router]);
   
-  const playNotes = useCallback((notesToPlay: NoteType[] | TranscribeAudioOutput['notes'], instrumentOverride?: Instrument, onEndCallback?: () => void) => {
+  const ensureAudioContext = async () => {
+    if (Tone.context.state !== 'running') {
+        await Tone.start();
+        console.log('Audio context started');
+    }
+    if (lesson && !synth.current) {
+      synth.current = getSynthForInstrument(lesson.instrument);
+    }
+  };
+
+  const playNotes = useCallback(async (notesToPlay: NoteType[] | TranscribeAudioOutput['notes'], instrumentOverride?: Instrument, onEndCallback?: () => void) => {
+    await ensureAudioContext();
     const currentInstrument = instrumentOverride || lesson?.instrument;
     if (!currentInstrument || notesToPlay.length === 0) {
       onEndCallback?.();
@@ -163,7 +176,9 @@ export default function LessonPage() {
     noteTimeoutIds.current.forEach(clearTimeout);
     noteTimeoutIds.current = [];
     setHighlightedKeys([]);
-    Tone.Transport.stop();
+    if (Tone.Transport.state === "started") {
+      Tone.Transport.stop();
+    }
     Tone.Transport.cancel();
   
     const now = Tone.now() + 0.2;
@@ -208,7 +223,8 @@ export default function LessonPage() {
     playNotes(lesson.notes, lesson.instrument);
   }, [lesson, playNotes]);
 
-  const startRecording = () => {
+  const startRecording = async () => {
+    await ensureAudioContext();
     setUserRecording([]);
     setRecordingStartTime(Date.now());
     setMode("recording");
@@ -268,6 +284,7 @@ export default function LessonPage() {
 
   const startListening = async () => {
     if (mode !== 'idle') return;
+    await ensureAudioContext();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);

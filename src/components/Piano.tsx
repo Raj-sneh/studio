@@ -34,9 +34,7 @@ export default function Piano({
 
     useEffect(() => {
         const initializeSynth = async () => {
-            if (Tone.context.state !== 'running') {
-              await Tone.start();
-            }
+            // Audio context is started by user gesture on the page, not here.
             
             synth.current = new Tone.PolySynth(Tone.Synth, {
                 oscillator: {
@@ -63,7 +61,10 @@ export default function Piano({
         };
     }, []);
 
-    const playNote = useCallback((note: string, octave: number) => {
+    const playNote = useCallback(async (note: string, octave: number) => {
+        if (Tone.context.state !== 'running') {
+            await Tone.start();
+        }
         if (!synth.current || disabled || !isLoaded) return;
         const fullNote = `${note}${octave}`;
         synth.current.triggerAttack(fullNote, Tone.now());

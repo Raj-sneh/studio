@@ -57,9 +57,6 @@ export default function Guitar({
 
     useEffect(() => {
         const initializeSynth = async () => {
-            if (Tone.context.state !== 'running') {
-                await Tone.start();
-            }
             synth.current = new Tone.PolySynth(Tone.Synth, {
                 oscillator: { type: 'fatsawtooth' },
                 envelope: { attack: 0.005, decay: 0.3, sustain: 0.1, release: 1.2 },
@@ -72,7 +69,10 @@ export default function Guitar({
         };
     }, []);
 
-    const playNote = useCallback((note: string) => {
+    const playNote = useCallback(async (note: string) => {
+        if (Tone.context.state !== 'running') {
+            await Tone.start();
+        }
         if (!synth.current || disabled || !isLoaded) return;
         synth.current.triggerAttack(note, Tone.now());
         onNotePlay?.(note);

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -36,10 +37,6 @@ export default function Xylophone({
 
     useEffect(() => {
         const initializeSynth = async () => {
-            if (Tone.context.state !== 'running') {
-              await Tone.start();
-            }
-            
             synth.current = new Tone.PolySynth(Tone.MetalSynth, {
               frequency: 200,
               envelope: { attack: 0.001, decay: 0.4, release: 0.2 },
@@ -59,7 +56,10 @@ export default function Xylophone({
         };
     }, []);
 
-    const playNote = useCallback((note: string, octave: number) => {
+    const playNote = useCallback(async (note: string, octave: number) => {
+        if (Tone.context.state !== 'running') {
+            await Tone.start();
+        }
         if (!synth.current || disabled || !isLoaded) return;
         const fullNote = `${note}${octave}`;
         synth.current.triggerAttackRelease(fullNote, "8n", Tone.now());
