@@ -16,8 +16,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 
 
 type RecordedNote = {
@@ -30,7 +28,6 @@ export default function PracticePage() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [recordedNotes, setRecordedNotes] = useState<RecordedNote[]>([]);
     const [startTime, setStartTime] = useState(0);
-    const [customPianoSound, setCustomPianoSound] = useState<string | null>(null);
 
     // Ensure audio context is started on first user interaction
     useEffect(() => {
@@ -70,33 +67,12 @@ export default function PracticePage() {
         }
     };
 
-    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const result = e.target?.result;
-          if (typeof result === 'string') {
-            setCustomPianoSound(result);
-          }
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-
     const playRecording = () => {
         if (recordedNotes.length === 0 || isPlaying) return;
 
         setIsPlaying(true);
         
-        const playbackSynth = customPianoSound 
-            ? new Tone.Sampler({
-                urls: { C4: customPianoSound },
-                onload: () => {
-                    playNotes();
-                }
-            }).toDestination()
-            : new Tone.PolySynth(Tone.Synth).toDestination();
+        const playbackSynth = new Tone.PolySynth(Tone.Synth).toDestination();
 
         const playNotes = () => {
             recordedNotes.forEach(noteEvent => {
@@ -117,9 +93,7 @@ export default function PracticePage() {
             }, totalTime + 1000);
         }
         
-        if (!customPianoSound) {
-            playNotes();
-        }
+        playNotes();
     };
 
     return (
@@ -137,26 +111,11 @@ export default function PracticePage() {
                 <TabsContent value="piano">
                     <Card>
                         <CardHeader>
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <CardTitle>Virtual Piano</CardTitle>
-                                    <CardDescription>Use your mouse or keyboard to play notes.</CardDescription>
-                                </div>
-                                <div>
-                                    <Label htmlFor="piano-sound-upload" className="cursor-pointer">
-                                        <Button asChild variant="outline">
-                                            <div>
-                                                <Upload className="mr-2 h-4 w-4" />
-                                                Change Sound
-                                            </div>
-                                        </Button>
-                                    </Label>
-                                    <Input id="piano-sound-upload" type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
-                                </div>
-                            </div>
+                            <CardTitle>Virtual Piano</CardTitle>
+                            <CardDescription>Use your mouse or keyboard to play notes.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <Piano onNotePlay={handleNotePlay} customSoundUrl={customPianoSound} />
+                            <Piano onNotePlay={handleNotePlay} />
                         </CardContent>
                     </Card>
                 </TabsContent>
