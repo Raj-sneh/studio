@@ -14,10 +14,10 @@ const allNotes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B
 const getNoteAt = (stringIndex: number, fret: number): string => {
     if (fret === 0) return openStrings[stringIndex];
     const openNote = openStrings[stringIndex];
-    const openNoteName = openNote.slice(0, -1);
+    const openNoteName = openNote.slice(0, -1).replace('#', '♯');
     const openOctave = parseInt(openNote.slice(-1));
 
-    const openNoteIndex = allNotes.indexOf(openNoteName.replace('#', ''));
+    const openNoteIndex = allNotes.indexOf(openNoteName);
     const newNoteIndex = (openNoteIndex + fret) % 12;
     const octaveOffset = Math.floor((openNoteIndex + fret) / 12);
     
@@ -59,8 +59,8 @@ export default function Guitar({
     useEffect(() => {
         const initializeSynth = async () => {
             synth.current = new Tone.PolySynth(Tone.Synth, {
-                oscillator: { type: 'fatsawtooth', count: 3, spread: 20 },
-                envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.8 },
+                oscillator: { type: 'fatsawtooth' },
+                envelope: { attack: 0.005, decay: 0.3, sustain: 0.1, release: 1.2 },
             }).toDestination();
             await Tone.loaded();
             setIsLoaded(true);

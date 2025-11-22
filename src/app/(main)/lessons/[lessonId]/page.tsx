@@ -400,7 +400,7 @@ export default function LessonPage() {
                 className="object-cover rounded-md mb-4"
               />
             )}
-            <h3 className="text-xl font-semibold capitalize">{lesson.instrument} Lesson</h3>
+            <h3 className="text-xl font-semibold capitalize">{lesson.instrument}</h3>
             <p className="text-muted-foreground mt-2">
               {mode === 'recording' ? `Recording your performance. Use an external app or a real instrument.` : `Get ready to play your ${lesson.instrument}. Recording is enabled for analysis.`}
             </p>
