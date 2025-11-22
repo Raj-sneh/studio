@@ -5,15 +5,16 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
 
-const notes = ["C", "D", "E", "F", "G", "A", "B"];
+const notes = ["C", "D", "E", "F", "G", "A", "B", "C"];
 const colors = [
-  "bg-red-400",
-  "bg-orange-400",
+  "bg-red-500",
+  "bg-orange-500",
   "bg-yellow-400",
-  "bg-green-400",
-  "bg-blue-400",
-  "bg-indigo-400",
-  "bg-purple-400",
+  "bg-green-500",
+  "bg-sky-500",
+  "bg-blue-600",
+  "bg-purple-600",
+  "bg-red-600",
 ];
 
 interface XylophoneProps {
@@ -25,7 +26,7 @@ interface XylophoneProps {
 }
 
 export default function Xylophone({
-    octaves = 2,
+    octaves = 1,
     startOctave = 4,
     onNotePlay,
     highlightedKeys = [],
@@ -38,14 +39,14 @@ export default function Xylophone({
     useEffect(() => {
         const initializeSynth = async () => {
             synth.current = new Tone.PolySynth(Tone.MetalSynth, {
-              frequency: 200,
-              envelope: { attack: 0.001, decay: 0.4, release: 0.2 },
-              harmonicity: 5.1,
-              modulationIndex: 32,
+              frequency: 250,
+              envelope: { attack: 0.001, decay: 0.2, release: 0.1 },
+              harmonicity: 8.5,
+              modulationIndex: 20,
               resonance: 4000,
               octaves: 1.5,
             }).toDestination();
-            
+            await Tone.loaded();
             setIsLoaded(true);
         }
         
@@ -75,31 +76,34 @@ export default function Xylophone({
     }, [disabled, onNotePlay, isLoaded]);
     
     const xylophoneKeys = Array.from({ length: octaves }, (_, i) => i + startOctave)
-        .flatMap(octave => notes.map((note, index) => ({ note, octave, color: colors[index % colors.length] })));
+        .flatMap(octave => notes.map((note, index) => {
+            const finalOctave = note === "C" && index > 0 ? octave + 1 : octave;
+            return { note, octave: finalOctave, color: colors[index % colors.length] }
+        }));
 
     if (!isLoaded) {
-        return <div className="flex items-center justify-center h-40 bg-muted rounded-lg"><p>Loading Xylophone...</p></div>;
+        return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Xylophone...</p></div>;
     }
 
     return (
-        <div className="w-full h-full flex items-center justify-center p-4">
-            <div className="flex flex-col space-y-1 select-none">
+        <div className="w-full h-full flex items-center justify-center p-4 bg-yellow-900/80 rounded-lg">
+            <div className="flex flex-col space-y-1 select-none w-full max-w-lg">
                 {xylophoneKeys.map(({ note, octave, color }, index) => {
                     const fullNote = `${note}${octave}`;
                     const isHighlighted = highlightedKeys.includes(fullNote) || pressedKeys.has(fullNote);
-                    const barLength = 100 - index * 2;
+                    const barLength = 95 - index * 6;
 
                     return (
                         <div
                             key={`${note}${octave}`}
                             onClick={() => playNote(note, octave)}
                             className={cn(
-                                "relative cursor-pointer transition-all duration-100 flex items-center justify-center h-10 rounded-md border-2 border-gray-800 text-white font-bold",
+                                "relative cursor-pointer transition-all duration-100 flex items-center justify-center h-12 rounded-md border-2 border-black/50 text-white font-bold shadow-md",
                                 color,
-                                isHighlighted ? "scale-105 border-white shadow-lg" : "hover:scale-102",
+                                isHighlighted ? "scale-105 border-white shadow-lg shadow-white/50" : "hover:scale-[1.02]",
                                 disabled && "opacity-60 cursor-not-allowed"
                             )}
-                            style={{ width: `${barLength}%`, marginLeft: `${index}%` }}
+                            style={{ width: `${barLength}%`, marginLeft: `${(100 - barLength) / 2}%` }}
                         >
                             <span>{note}</span>
                         </div>

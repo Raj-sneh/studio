@@ -12,11 +12,12 @@ const openStrings = ['E4', 'B3', 'G3', 'D3', 'A2', 'E2'];
 const allNotes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 const getNoteAt = (stringIndex: number, fret: number): string => {
+    if (fret === 0) return openStrings[stringIndex];
     const openNote = openStrings[stringIndex];
     const openNoteName = openNote.slice(0, -1);
     const openOctave = parseInt(openNote.slice(-1));
 
-    const openNoteIndex = allNotes.indexOf(openNoteName);
+    const openNoteIndex = allNotes.indexOf(openNoteName.replace('#', ''));
     const newNoteIndex = (openNoteIndex + fret) % 12;
     const octaveOffset = Math.floor((openNoteIndex + fret) / 12);
     
@@ -58,9 +59,10 @@ export default function Guitar({
     useEffect(() => {
         const initializeSynth = async () => {
             synth.current = new Tone.PolySynth(Tone.Synth, {
-                oscillator: { type: 'fatsawtooth' },
-                envelope: { attack: 0.005, decay: 0.3, sustain: 0.1, release: 1.2 },
+                oscillator: { type: 'fatsawtooth', count: 3, spread: 20 },
+                envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.8 },
             }).toDestination();
+            await Tone.loaded();
             setIsLoaded(true);
         };
         initializeSynth();
@@ -93,8 +95,10 @@ export default function Guitar({
         const positions = new Set<string>();
         highlightedNotes.forEach(note => {
             const pos = notePositions[note];
-            if (pos && pos[0]) { // Just take the first position found
-                positions.add(`${pos[0].string}-${pos[0].fret}`);
+            // Prefer lower frets for highlighting
+            const sortedPos = pos?.sort((a,b) => a.fret - b.fret);
+            if (sortedPos && sortedPos[0]) { 
+                positions.add(`${sortedPos[0].string}-${sortedPos[0].fret}`);
             }
         });
         return positions;
@@ -115,22 +119,24 @@ export default function Guitar({
                         style={{
                             left: `${(fretIndex / frets) * 100}%`,
                             width: fretIndex === 0 ? '6px' : '2px', // Nut is thicker
+                            zIndex: 1,
                         }}
                     />
                 ))}
 
                 {/* Fret Markers */}
-                {[3, 5, 7, 9, 12].map(fret => (
-                    <div key={fret} className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-4 w-4 bg-yellow-200/50 rounded-full" style={{ left: `calc(${( (fret - 0.5) / frets) * 100}%)`}} />
+                {[3, 5, 7, 9].map(fret => (
+                    <div key={fret} className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-3 w-3 bg-yellow-200/50 rounded-full z-0" style={{ left: `calc(${((fret - 0.5) / frets) * 100}%)`}} />
                 ))}
-                 <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-4 w-4 bg-yellow-200/50 rounded-full" style={{ left: `calc(${( (12 - 0.5) / frets) * 100}%)`, top: '25%'}} />
-                 <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-4 w-4 bg-yellow-200/50 rounded-full" style={{ left: `calc(${( (12 - 0.5) / frets) * 100}%)`, top: '75%'}} />
+                 <div className="absolute left-0 right-0 top-1/4 -translate-y-1/2 h-3 w-3 bg-yellow-200/50 rounded-full z-0" style={{ left: `calc(${((12 - 0.5) / frets) * 100}%)` }} />
+                 <div className="absolute left-0 right-0 bottom-1/4 translate-y-1/2 h-3 w-3 bg-yellow-200/50 rounded-full z-0" style={{ left: `calc(${((12 - 0.5) / frets) * 100}%)` }} />
 
 
                 {/* Strings */}
-                <div className="relative flex flex-col justify-between h-48 py-2">
+                <div className="relative flex flex-col justify-between h-36 py-1">
                     {openStrings.map((openNote, stringIndex) => (
-                        <div key={stringIndex} className="relative w-full h-0.5 bg-gray-400 group">
+                        <div key={stringIndex} className="relative w-full flex items-center group" style={{ height: `${2 + stringIndex * 0.5}px` }}>
+                             <div className="w-full bg-gray-400 h-full"/>
                              {/* Fretted notes */}
                             {Array.from({ length: frets }).map((_, fretIndex) => {
                                 const note = getNoteAt(stringIndex, fretIndex + 1);
@@ -141,9 +147,8 @@ export default function Guitar({
                                     <div
                                         key={fretIndex}
                                         className={cn(
-                                            "absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all",
-                                            isHighlighted ? 'bg-primary scale-110' : 'bg-transparent',
-                                            !disabled && 'group-hover:bg-primary/20'
+                                            "absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all z-20",
+                                            !disabled && 'hover:bg-primary/20'
                                         )}
                                         style={{
                                             left: `calc(${((fretIndex + 0.5) / frets) * 100}%)`,
@@ -155,8 +160,8 @@ export default function Guitar({
                                         onTouchEnd={(e) => { e.preventDefault(); stopNote(note); }}
                                     >
                                         <div className={cn(
-                                            "w-5 h-5 rounded-full",
-                                            isHighlighted && 'bg-primary-foreground/50'
+                                            "w-5 h-5 rounded-full transition-all",
+                                             isHighlighted ? 'bg-primary scale-110' : 'bg-transparent'
                                         )}></div>
                                     </div>
                                 );
