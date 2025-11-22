@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -50,12 +51,12 @@ export default function Saxophone({
   
   return (
     <div className="flex flex-col items-center justify-center h-full bg-muted rounded-lg p-8 text-center">
-      <Wind className="h-24 w-24 text-primary" />
+      <Wind className={cn("h-24 w-24 text-primary transition-transform duration-100", highlightedKeys.length > 0 && "scale-110")} />
       <h3 className="text-xl font-semibold mt-4">Saxophone</h3>
       <p className="text-muted-foreground mt-2">
         A soulful reed instrument. Use an external app or a real instrument for practice.
       </p>
-      <div className="mt-4 text-2xl font-bold text-primary">
+      <div className="mt-4 text-2xl font-bold text-primary h-8">
         {highlightedKeys.length > 0 ? highlightedKeys[highlightedKeys.length - 1] : '...'}
       </div>
     </div>
