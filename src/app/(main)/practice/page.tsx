@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Play, Pause, Square, History, Music4 } from "lucide-react";
 import * as Tone from "tone";
 import Piano from "@/components/Piano";
+import Guitar from "@/components/Guitar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,6 +15,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 type RecordedNote = {
     note: string;
@@ -70,22 +73,27 @@ export default function PracticePage() {
         setIsPlaying(true);
         
         // This is a placeholder for visual/audio playback
-        // Since the Piano component itself produces sound, we don't need a separate synth here.
+        // Since the instrument components themselves produce sound, we don't need a separate synth here.
         // We just need to simulate the visual highlighting if desired.
-        // For simplicity, we'll just log to console as before.
+
+        const playbackSynth = new Tone.PolySynth(Tone.Synth).toDestination();
 
         recordedNotes.forEach(noteEvent => {
             setTimeout(() => {
-                console.log(`Playing back: ${noteEvent.note}`);
-                // To add visual feedback, you would need to pass highlighted notes to the Piano component
-                // and manage their state here, similar to the lesson page.
+                // If it's a chord, it's an array of notes
+                if (Array.isArray(noteEvent.note)) {
+                    playbackSynth.triggerAttackRelease(noteEvent.note, "1n");
+                } else { // Single note
+                    playbackSynth.triggerAttackRelease(noteEvent.note, "8n");
+                }
             }, noteEvent.time);
         });
 
         const totalTime = recordedNotes.length > 0 ? recordedNotes[recordedNotes.length - 1].time : 0;
         setTimeout(() => {
             setIsPlaying(false);
-        }, totalTime + 500);
+            playbackSynth.dispose();
+        }, totalTime + 1000);
     };
 
     return (
@@ -95,14 +103,38 @@ export default function PracticePage() {
                 <p className="mt-2 text-lg text-muted-foreground">Select an instrument and play freely.</p>
             </div>
 
+            <Tabs defaultValue="piano" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="piano">Piano</TabsTrigger>
+                    <TabsTrigger value="guitar">Guitar</TabsTrigger>
+                </TabsList>
+                <TabsContent value="piano">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Virtual Piano</CardTitle>
+                            <CardDescription>Use your mouse or keyboard to play notes.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Piano onNotePlay={handleNotePlay} />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                 <TabsContent value="guitar">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Virtual Guitar</CardTitle>
+                            <CardDescription>Click the chords to play, or pick individual notes on the fretboard.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Guitar onNotePlay={handleNotePlay} />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+            
             <Card>
-                <CardHeader>
-                    <CardTitle>Virtual Piano</CardTitle>
-                    <CardDescription>Use your mouse or keyboard to play notes.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <Piano onNotePlay={handleNotePlay} />
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-lg bg-card">
+                <CardContent className="p-4">
+                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-lg bg-card">
                         <div className="flex items-center gap-2">
                              <Music4 className="h-5 w-5 text-primary" />
                             <span className="font-semibold">Recording Controls</span>
@@ -125,6 +157,9 @@ export default function PracticePage() {
                     </div>
                 </CardContent>
             </Card>
+
         </div>
     );
 }
+
+    
