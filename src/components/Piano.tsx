@@ -18,6 +18,7 @@ interface PianoProps {
     onNotePlay?: (note: string) => void;
     highlightedKeys?: string[];
     disabled?: boolean;
+    customSoundUrl?: string | null;
 }
 
 export default function Piano({
@@ -26,40 +27,50 @@ export default function Piano({
     onNotePlay,
     highlightedKeys = [],
     disabled = false,
+    customSoundUrl = null
 }: PianoProps) {
-    const synth = useRef<Tone.PolySynth | null>(null);
+    const synth = useRef<Tone.PolySynth | Tone.Sampler | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const [currentOctave, setCurrentOctave] = useState(3);
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         const initializeSynth = async () => {
-            // Audio context is started by user gesture on the page, not here.
+            if (synth.current) {
+                synth.current.dispose();
+            }
             
-            synth.current = new Tone.PolySynth(Tone.Synth, {
-                oscillator: {
-                    type: 'fmtriangle',
-                    modulationType: 'sine',
-                    modulationIndex: 3,
-                    harmonicity: 3.4
-                },
-                envelope: {
-                    attack: 0.01,
-                    decay: 0.1,
-                    sustain: 0.5,
-                    release: 0.5,
-                },
-            }).toDestination();
-            
-            setIsLoaded(true);
+            if (customSoundUrl) {
+                synth.current = new Tone.Sampler({
+                    urls: { C4: customSoundUrl },
+                    onload: () => setIsLoaded(true)
+                }).toDestination();
+            } else {
+                synth.current = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: {
+                        type: 'fmtriangle',
+                        modulationType: 'sine',
+                        modulationIndex: 3,
+                        harmonicity: 3.4
+                    },
+                    envelope: {
+                        attack: 0.01,
+                        decay: 0.1,
+                        sustain: 0.5,
+                        release: 0.5,
+                    },
+                }).toDestination();
+                setIsLoaded(true);
+            }
         }
         
+        setIsLoaded(false);
         initializeSynth();
 
         return () => {
             synth.current?.dispose();
         };
-    }, []);
+    }, [customSoundUrl]);
 
     const playNote = useCallback(async (note: string, octave: number) => {
         if (Tone.context.state !== 'running') {
@@ -67,7 +78,13 @@ export default function Piano({
         }
         if (!synth.current || disabled || !isLoaded) return;
         const fullNote = `${note}${octave}`;
-        synth.current.triggerAttack(fullNote, Tone.now());
+        
+        if (synth.current instanceof Tone.Sampler) {
+            synth.current.triggerAttack(fullNote);
+        } else {
+            synth.current.triggerAttack(fullNote, Tone.now());
+        }
+
         onNotePlay?.(fullNote);
         setPressedKeys(prev => new Set(prev).add(fullNote));
     }, [disabled, onNotePlay, isLoaded]);
