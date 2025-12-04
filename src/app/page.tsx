@@ -16,12 +16,8 @@ export default function AppRootPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // If user is logged in, redirect to dashboard.
-    if (!isUserLoading && user) {
-      router.push("/dashboard");
-    } 
     // If auth is ready and there's no user, sign them in anonymously.
-    else if (!isUserLoading && !user && auth && firestore) {
+    if (!isUserLoading && !user && auth && firestore) {
       initiateAnonymousSignIn(auth)
         .then(userCredential => {
             const newUser = userCredential.user;
@@ -32,27 +28,27 @@ export default function AppRootPage() {
                 email: `guest_${newUser.uid}@example.com`,
                 createdAt: new Date().toISOString(),
             }, { merge: true });
-            // The redirect will be handled by the above `if` condition on the next render.
+            router.push('/dashboard');
         })
         .catch(error => {
             console.error("Anonymous sign-in failed", error);
             setError("Could not sign in automatically. Please refresh the page.");
         });
+    } else if (!isUserLoading && user) {
+        router.push('/dashboard');
     }
   }, [user, isUserLoading, router, auth, firestore]);
 
-  if (error) {
-     return (
+    return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
-        <p className="text-destructive">{error}</p>
+        {error ? (
+          <p className="text-destructive">{error}</p>
+        ) : (
+          <>
+            <SButtonIcon className="animate-spin h-12 w-12 text-primary" />
+            <p className="mt-4 text-muted-foreground">Loading Socio...</p>
+          </>
+        )}
       </div>
     );
-  }
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
-      <SButtonIcon className="animate-spin h-12 w-12 text-primary" />
-      <p className="mt-4 text-muted-foreground">Loading Socio...</p>
-    </div>
-  );
 }
