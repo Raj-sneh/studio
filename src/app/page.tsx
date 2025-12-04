@@ -28,14 +28,14 @@ export default function AppRootPage() {
                 email: `guest_${newUser.uid}@example.com`,
                 createdAt: new Date().toISOString(),
             }, { merge: true });
-            router.push('/dashboard');
+            router.push('/');
         })
         .catch(error => {
             console.error("Anonymous sign-in failed", error);
             setError("Could not sign in automatically. Please refresh the page.");
         });
     } else if (!isUserLoading && user) {
-        router.push('/dashboard');
+        router.push('/');
     }
   }, [user, isUserLoading, router, auth, firestore]);
 
