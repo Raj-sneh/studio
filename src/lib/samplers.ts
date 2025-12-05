@@ -6,6 +6,7 @@ const samplers: Partial<Record<Instrument, Tone.Sampler>> = {};
 
 const baseUrl = "https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/";
 
+// Note: The file paths are URL-encoded (e.g., '/' becomes '%2F'). This is required for Firebase Storage URLs.
 const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, release?: number }> = {
     piano: {
         urls: {
@@ -80,7 +81,14 @@ if (typeof window !== 'undefined') {
 export const getSampler = (instrument: Instrument): Tone.Sampler => {
     const sampler = samplers[instrument];
     if (!sampler) {
-        throw new Error(`Sampler for instrument "${instrument}" not found.`);
+        // This is a fallback for development/HMR, should not happen in production if initialized correctly.
+        console.warn(`Sampler for instrument "${instrument}" not found on first call, initializing now.`);
+        initializeSamplers();
+        const newSampler = samplers[instrument];
+        if(!newSampler) {
+             throw new Error(`Sampler for instrument "${instrument}" could not be initialized.`);
+        }
+        return newSampler;
     }
     return sampler;
 };
