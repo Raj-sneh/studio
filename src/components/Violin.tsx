@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -16,35 +17,47 @@ export default function Violin({
   highlightedKeys = [],
   disabled = false,
 }: ViolinProps) {
-  const synth = useRef<Tone.PolySynth | null>(null);
+  const sampler = useRef<Tone.Sampler | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const initializeSynth = async () => {
-      if (Tone.context.state !== "running") {
-        await Tone.start();
-      }
-      synth.current = new Tone.PolySynth(Tone.AMSynth, {
-        harmonicity: 3/2,
-        envelope: { attack: 0.05, decay: 0.2, sustain: 0.3, release: 1.5 },
-        modulationEnvelope: { attack: 0.5, decay: 0.01, sustain: 1, release: 0.5 }
+    const initializeSampler = async () => {
+      sampler.current = new Tone.Sampler({
+        urls: {
+            'A3': 'A3.mp3',
+            'C4': 'C4.mp3',
+            'E4': 'E4.mp3',
+            'G4': 'G4.mp3'
+        },
+        baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fviolin%2F?alt=media',
+        release: 1,
       }).toDestination();
+       await Tone.loaded();
       setIsLoaded(true);
     };
-    initializeSynth();
+    initializeSampler();
     return () => {
-      synth.current?.dispose();
+      sampler.current?.dispose();
     };
   }, []);
 
   const playNote = useCallback((note: string) => {
-    if (!synth.current || disabled || !isLoaded) return;
-    synth.current.triggerAttackRelease(note, "8n", Tone.now());
+    if (!sampler.current || disabled || !isLoaded) return;
+    sampler.current.triggerAttackRelease(note, "1n", Tone.now());
     onNotePlay?.(note);
   }, [disabled, onNotePlay, isLoaded]);
 
+   // Placeholder effect to trigger sounds for highlighted keys
+  useEffect(() => {
+    if (highlightedKeys.length > 0 && !disabled) {
+      const lastNote = highlightedKeys[highlightedKeys.length - 1];
+      playNote(lastNote);
+    }
+  }, [highlightedKeys, disabled, playNote]);
+
+
   if (!isLoaded) {
-    return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Violin...</p></div>;
+    return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Violin Samples...</p></div>;
   }
   
   return (
@@ -54,9 +67,11 @@ export default function Violin({
       <p className="text-muted-foreground mt-2">
         A fretless wonder! Use an external app or a real instrument for practice.
       </p>
-      <div className="mt-4 text-2xl font-bold text-primary">
+      <div className="mt-4 text-2xl font-bold text-primary h-8">
         {highlightedKeys.length > 0 ? highlightedKeys[highlightedKeys.length - 1] : '...'}
       </div>
     </div>
   );
 }
+
+    

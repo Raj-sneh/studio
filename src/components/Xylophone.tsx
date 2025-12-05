@@ -32,28 +32,25 @@ export default function Xylophone({
     highlightedKeys = [],
     disabled = false,
 }: XylophoneProps) {
-    const synth = useRef<Tone.PolySynth | null>(null);
+    const sampler = useRef<Tone.Sampler | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
 
     useEffect(() => {
-        const initializeSynth = async () => {
-            synth.current = new Tone.PolySynth(Tone.MetalSynth, {
-              frequency: 250,
-              envelope: { attack: 0.001, decay: 0.2, release: 0.1 },
-              harmonicity: 8.5,
-              modulationIndex: 20,
-              resonance: 4000,
-              octaves: 1.5,
+        const initializeSampler = async () => {
+            sampler.current = new Tone.Sampler({
+                urls: { 'C5': 'C5.mp3' },
+                baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fxylophone%2F?alt=media',
+                release: 1,
             }).toDestination();
             await Tone.loaded();
             setIsLoaded(true);
         }
         
-        initializeSynth();
+        initializeSampler();
 
         return () => {
-            synth.current?.dispose();
+            sampler.current?.dispose();
         };
     }, []);
 
@@ -61,9 +58,9 @@ export default function Xylophone({
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!synth.current || disabled || !isLoaded) return;
+        if (!sampler.current || disabled || !isLoaded) return;
         const fullNote = `${note}${octave}`;
-        synth.current.triggerAttackRelease(fullNote, "8n", Tone.now());
+        sampler.current.triggerAttackRelease(fullNote, "8n", Tone.now());
         onNotePlay?.(fullNote);
         setPressedKeys(prev => new Set(prev).add(fullNote));
         setTimeout(() => {
@@ -82,7 +79,7 @@ export default function Xylophone({
         }));
 
     if (!isLoaded) {
-        return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Xylophone...</p></div>;
+        return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Xylophone Samples...</p></div>;
     }
 
     return (
@@ -113,3 +110,5 @@ export default function Xylophone({
         </div>
     );
 }
+
+    

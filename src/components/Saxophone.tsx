@@ -17,36 +17,41 @@ export default function Saxophone({
   highlightedKeys = [],
   disabled = false,
 }: SaxophoneProps) {
-  const synth = useRef<any>(null);
+  const sampler = useRef<Tone.Sampler | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const initializeSynth = async () => {
-      if (Tone.context.state !== "running") {
-        await Tone.start();
-      }
-        synth.current = new Tone.PolySynth(Tone.AMSynth, {
-            harmonicity: 1.5,
-            envelope: { attack: 0.1, decay: 0.3, sustain: 0.2, release: 1 },
-            modulation: { type: "square" },
-            modulationEnvelope: { attack: 0.05, decay: 0.2, sustain: 0.1, release: 0.5 }
-        }).toDestination();
+    const initializeSampler = async () => {
+      sampler.current = new Tone.Sampler({
+        urls: { 'C5': 'C5.mp3' },
+        baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fsaxophone%2F?alt=media',
+        release: 1,
+      }).toDestination();
+      await Tone.loaded();
       setIsLoaded(true);
     };
-    initializeSynth();
+    initializeSampler();
     return () => {
-      synth.current?.dispose();
+      sampler.current?.dispose();
     };
   }, []);
 
   const playNote = useCallback((note: string) => {
-    if (!synth.current || disabled || !isLoaded) return;
-    synth.current.triggerAttackRelease(note, "8n", Tone.now());
+    if (!sampler.current || disabled || !isLoaded) return;
+    sampler.current.triggerAttackRelease(note, "8n", Tone.now());
     onNotePlay?.(note);
   }, [disabled, onNotePlay, isLoaded]);
 
+   // Placeholder effect to trigger sounds for highlighted keys
+  useEffect(() => {
+    if (highlightedKeys.length > 0 && !disabled) {
+      const lastNote = highlightedKeys[highlightedKeys.length - 1];
+      playNote(lastNote);
+    }
+  }, [highlightedKeys, disabled, playNote]);
+
   if (!isLoaded) {
-    return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Saxophone...</p></div>;
+    return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Saxophone Samples...</p></div>;
   }
   
   return (
@@ -62,3 +67,5 @@ export default function Saxophone({
     </div>
   );
 }
+
+    

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -6,9 +7,9 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
 const drumMap: { [key: string]: { name: string; note: string; imageUrl: string; hint: string } } = {
-  'C4': { name: 'Kick', note: 'C1', imageUrl: 'https://picsum.photos/seed/kick-drum/200/200', hint: 'kick drum' },
-  'D4': { name: 'Snare', note: 'D1', imageUrl: 'https://picsum.photos/seed/snare-drum/200/200', hint: 'snare drum' },
-  'E4': { name: 'Hi-Hat', note: 'F#1', imageUrl: 'https://picsum.photos/seed/hi-hat/200/200', hint: 'hi-hat' },
+  'C4': { name: 'Kick', note: 'C4', imageUrl: 'https://picsum.photos/seed/kick-drum/200/200', hint: 'kick drum' },
+  'D4': { name: 'Snare', note: 'D4', imageUrl: 'https://picsum.photos/seed/snare-drum/200/200', hint: 'snare drum' },
+  'E4': { name: 'Hi-Hat', note: 'E4', imageUrl: 'https://picsum.photos/seed/hi-hat/200/200', hint: 'hi-hat' },
 };
 
 interface DrumPadProps {
@@ -22,17 +23,25 @@ export default function DrumPad({
   highlightedKeys = [],
   disabled = false,
 }: DrumPadProps) {
-  const synth = useRef<Tone.MembraneSynth | null>(null);
+  const sampler = useRef<Tone.Sampler | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const initializeSynth = async () => {
-      synth.current = new Tone.MembraneSynth().toDestination();
+    const initializeSampler = async () => {
+      sampler.current = new Tone.Sampler({
+        urls: {
+            'C4': 'kick.mp3',
+            'D4': 'snare.mp3',
+            'E4': 'hihat.mp3',
+        },
+        baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fdrums%2F?alt=media',
+      }).toDestination();
+      await Tone.loaded();
       setIsLoaded(true);
     };
-    initializeSynth();
+    initializeSampler();
     return () => {
-      synth.current?.dispose();
+      sampler.current?.dispose();
     };
   }, []);
 
@@ -40,16 +49,16 @@ export default function DrumPad({
     if (Tone.context.state !== 'running') {
         await Tone.start();
     }
-    if (!synth.current || disabled || !isLoaded) return;
+    if (!sampler.current || disabled || !isLoaded) return;
     const drumSound = drumMap[noteKey];
     if (drumSound) {
-      synth.current.triggerAttackRelease(drumSound.note, '8n', Tone.now());
+      sampler.current.triggerAttackRelease(drumSound.note, '1n', Tone.now());
       onNotePlay?.(noteKey);
     }
   }, [disabled, onNotePlay, isLoaded]);
 
   if (!isLoaded) {
-    return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Drum Pad...</p></div>;
+    return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Drum Samples...</p></div>;
   }
 
   return (
@@ -86,3 +95,5 @@ export default function DrumPad({
     </div>
   );
 }
+
+    

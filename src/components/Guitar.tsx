@@ -64,24 +64,27 @@ export default function Guitar({
     highlightedNotes = [],
     disabled = false,
 }: GuitarProps) {
-    const synth = useRef<Tone.PolySynth | null>(null);
+    const sampler = useRef<Tone.Sampler | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const [pressedNotes, setPressedNotes] = useState<Set<string>>(new Set());
     const [activeChord, setActiveChord] = useState<string | null>(null);
 
 
     useEffect(() => {
-        const initializeSynth = async () => {
-            synth.current = new Tone.PolySynth(Tone.Synth, {
-                oscillator: { type: 'fatsawtooth' },
-                envelope: { attack: 0.005, decay: 0.3, sustain: 0.1, release: 1.2 },
+        const initializeSampler = async () => {
+            sampler.current = new Tone.Sampler({
+                 urls: {
+                    'E2': 'E2.mp3', 'A2': 'A2.mp3', 'D3': 'D3.mp3', 'G3': 'G3.mp3', 'B3': 'B3.mp3', 'E4': 'E4.mp3'
+                },
+                baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fguitar-acoustic%2F?alt=media',
+                release: 1,
             }).toDestination();
             await Tone.loaded();
             setIsLoaded(true);
         };
-        initializeSynth();
+        initializeSampler();
         return () => {
-            synth.current?.dispose();
+            sampler.current?.dispose();
         };
     }, []);
 
@@ -89,15 +92,15 @@ export default function Guitar({
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!synth.current || disabled || !isLoaded) return;
-        synth.current.triggerAttack(note, Tone.now());
+        if (!sampler.current || disabled || !isLoaded) return;
+        sampler.current.triggerAttack(note, Tone.now());
         onNotePlay?.(note);
         setPressedNotes(prev => new Set(prev).add(note));
     }, [disabled, onNotePlay, isLoaded]);
 
     const stopNote = useCallback((note: string) => {
-        if (!synth.current || disabled || !isLoaded) return;
-        synth.current.triggerRelease([note], Tone.now());
+        if (!sampler.current || disabled || !isLoaded) return;
+        sampler.current.triggerRelease([note], Tone.now());
         setPressedNotes(prev => {
             const newSet = new Set(prev);
             newSet.delete(note);
@@ -109,9 +112,9 @@ export default function Guitar({
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!synth.current || disabled || !isLoaded) return;
+        if (!sampler.current || disabled || !isLoaded) return;
         const chordNotes = chords[chordName].filter(n => n !== null) as string[];
-        synth.current.triggerAttackRelease(chordNotes, '1n');
+        sampler.current.triggerAttackRelease(chordNotes, '1n');
         setActiveChord(chordName);
         onNotePlay?.(chordName);
         setTimeout(() => setActiveChord(null), 500);
@@ -132,7 +135,7 @@ export default function Guitar({
     }, [highlightedNotes]);
 
     if (!isLoaded) {
-        return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Guitar...</p></div>;
+        return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Guitar Samples...</p></div>;
     }
 
     return (

@@ -62,51 +62,53 @@ type AnalysisResult = {
 } | null;
 type Mode = "idle" | "demo" | "recording" | "analyzing" | "result" | "listening" | "transcribing" | "playback";
 
-// Simple mapping of instrument to a Tone.js synth
-const getSynthForInstrument = (instrument: Instrument): any => {
-  switch (instrument) {
-    case 'guitar':
-      return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'fatsawtooth' },
-        envelope: { attack: 0.005, decay: 0.3, sustain: 0.1, release: 1.2 },
-      }).toDestination();
-    case 'drums':
-      // Using MembraneSynth for a basic kick/snare sound
-      return new Tone.MembraneSynth().toDestination();
-    case 'violin':
-      return new Tone.PolySynth(Tone.AMSynth, {
-        harmonicity: 3/2,
-        envelope: { attack: 0.05, decay: 0.2, sustain: 0.3, release: 1.5 },
-        modulationEnvelope: { attack: 0.5, decay: 0.01, sustain: 1, release: 0.5 }
-      }).toDestination();
-    case 'xylophone':
-       return new Tone.PolySynth(Tone.MetalSynth, {
-         frequency: 200,
-         envelope: { attack: 0.001, decay: 0.4, release: 0.2 },
-         harmonicity: 5.1,
-         modulationIndex: 32,
-         resonance: 4000,
-         octaves: 1.5,
-      }).toDestination();
-    case 'flute':
-      return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'sine' },
-        envelope: { attack: 0.05, decay: 0.2, sustain: 0.8, release: 0.5 },
-      }).toDestination();
-    case 'saxophone':
-        return new Tone.PolySynth(Tone.AMSynth, {
-            harmonicity: 1.5,
-            envelope: { attack: 0.1, decay: 0.3, sustain: 0.2, release: 1 },
-            modulation: { type: "square" },
-            modulationEnvelope: { attack: 0.05, decay: 0.2, sustain: 0.1, release: 0.5 }
-        }).toDestination();
-    case 'piano':
-    default:
-      return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: "fmtriangle", modulationType: 'sine', modulationIndex: 3, harmonicity: 3.4 },
-        envelope: { attack: 0.01, decay: 0.1, sustain: 0.5, release: 0.5, },
-      }).toDestination();
-  }
+const getSamplerForInstrument = (instrument: Instrument): Tone.Sampler => {
+    const baseUrl = "https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2F";
+    const apiKey = "alt=media"; // Firebase Storage requires this for direct downloads
+
+    let urls: { [note: string]: string } = {};
+    switch (instrument) {
+        case 'piano':
+            urls = {
+                'A0': `A0.mp3`, 'C1': `C1.mp3`, 'D#1': `Ds1.mp3`, 'F#1': `Fs1.mp3`, 'A1': `A1.mp3`,
+                'C2': `C2.mp3`, 'D#2': `Ds2.mp3`, 'F#2': `Fs2.mp3`, 'A2': `A2.mp3`, 'C3': `C3.mp3`,
+                'D#3': `Ds3.mp3`, 'F#3': `Fs3.mp3`, 'A3': `A3.mp3`, 'C4': `C4.mp3`, 'D#4': `Ds4.mp3`,
+                'F#4': `Fs4.mp3`, 'A4': `A4.mp3`, 'C5': `C5.mp3`, 'D#5': `Ds5.mp3`, 'F#5': `Fs5.mp3`,
+                'A5': `A5.mp3`, 'C6': `C6.mp3`, 'D#6': `Ds6.mp3`, 'F#6': `Fs6.mp3`, 'A6': `A6.mp3`,
+                'C7': `C7.mp3`, 'D#7': `Ds7.mp3`, 'F#7': `Fs7.mp3`, 'A7': `A7.mp3`, 'C8': `C8.mp3`
+            };
+            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}${instrument}%2F?${apiKey}`, release: 1 }).toDestination();
+        case 'guitar':
+             urls = {
+                'E2': 'E2.mp3', 'A2': 'A2.mp3', 'D3': 'D3.mp3', 'G3': 'G3.mp3', 'B3': 'B3.mp3', 'E4': 'E4.mp3'
+            };
+            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}guitar-acoustic%2F?${apiKey}`, release: 1 }).toDestination();
+        case 'drums':
+            // Drums use specific files per sound, not notes
+            return new Tone.Sampler({
+                urls: {
+                    'C4': 'kick.mp3',
+                    'D4': 'snare.mp3',
+                    'E4': 'hihat.mp3',
+                },
+                baseUrl: `${baseUrl}drums%2F?${apiKey}`
+            }).toDestination();
+        case 'violin':
+            urls = { 'A3': 'A3.mp3', 'C4': 'C4.mp3', 'E4': 'E4.mp3', 'G4': 'G4.mp3' };
+            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}violin%2F?${apiKey}`, release: 1 }).toDestination();
+        case 'xylophone':
+            urls = { 'C5': 'C5.mp3' };
+             return new Tone.Sampler({ urls, baseUrl: `${baseUrl}xylophone%2F?${apiKey}`, release: 1 }).toDestination();
+        case 'flute':
+            urls = { 'C5': 'C5.mp3' };
+            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}flute%2F?${apiKey}`, release: 1 }).toDestination();
+        case 'saxophone':
+            urls = { 'C5': 'C5.mp3' };
+            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}saxophone%2F?${apiKey}`, release: 1 }).toDestination();
+        default:
+             urls = { 'C4': 'C4.mp3' };
+            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}piano%2F?${apiKey}`, release: 1 }).toDestination();
+    }
 };
 
 export default function LessonPage() {
@@ -126,11 +128,12 @@ export default function LessonPage() {
   const [playbackInstrument, setPlaybackInstrument] = useState<Instrument>('piano');
   const [showPlaybackDialog, setShowPlaybackDialog] = useState(false);
   const reportReasonRef = useRef<HTMLTextAreaElement>(null);
-  const synth = useRef<any>(null);
+  const notePlayer = useRef<Tone.Sampler | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const noteTimeoutIds = useRef<NodeJS.Timeout[]>([]);
   const image = lesson ? PlaceHolderImages.find(img => img.id === lesson.imageId) : null;
+  const [isLoading, setIsLoading] = useState(true);
   
 
   useEffect(() => {
@@ -138,13 +141,12 @@ export default function LessonPage() {
     const foundLesson = lessons.find((l) => l.id === lessonId);
     if (foundLesson) {
       setLesson(foundLesson);
-      // Synth is now initialized on first play action
     } else {
       router.push("/lessons");
     }
     
     return () => {
-        synth.current?.dispose();
+        notePlayer.current?.dispose();
         noteTimeoutIds.current.forEach(clearTimeout);
         if (Tone.Transport.state === "started") {
           Tone.Transport.stop();
@@ -158,9 +160,6 @@ export default function LessonPage() {
         await Tone.start();
         console.log('Audio context started');
     }
-    if (lesson && !synth.current) {
-      synth.current = getSynthForInstrument(lesson.instrument);
-    }
   };
 
   const playNotes = useCallback(async (notesToPlay: NoteType[] | TranscribeAudioOutput['notes'], instrumentOverride?: Instrument, onEndCallback?: () => void) => {
@@ -171,7 +170,13 @@ export default function LessonPage() {
       return;
     }
   
-    const notePlayer = getSynthForInstrument(currentInstrument);
+    if(notePlayer.current) {
+        notePlayer.current.dispose();
+    }
+    notePlayer.current = getSamplerForInstrument(currentInstrument);
+    setIsLoading(true);
+    await Tone.loaded();
+    setIsLoading(false);
     
     noteTimeoutIds.current.forEach(clearTimeout);
     noteTimeoutIds.current = [];
@@ -186,9 +191,9 @@ export default function LessonPage() {
     notesToPlay.forEach(note => {
       if (note.key && note.duration && typeof note.time === 'number') {
         const noteTimeMs = note.time * 1000;
-        const durationMs = Tone.Time(note.duration).toMilliseconds();
+        const durationSeconds = Tone.Time(note.duration).toSeconds();
   
-        notePlayer?.triggerAttackRelease(note.key, note.duration, now + note.time);
+        notePlayer.current?.triggerAttackRelease(note.key, durationSeconds, now + note.time);
   
         const attackTimeout = setTimeout(() => {
           setHighlightedKeys(current => [...current, note.key]);
@@ -196,7 +201,7 @@ export default function LessonPage() {
   
         const releaseTimeout = setTimeout(() => {
           setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
-        }, noteTimeMs + durationMs);
+        }, noteTimeMs + (durationSeconds * 1000));
   
         noteTimeoutIds.current.push(attackTimeout, releaseTimeout);
       }
@@ -208,11 +213,9 @@ export default function LessonPage() {
       const modeTimeout = setTimeout(() => {
         setMode("idle");
         onEndCallback?.();
-        notePlayer.dispose();
       }, totalDuration);
       noteTimeoutIds.current.push(modeTimeout);
     } else {
-       notePlayer.dispose();
        onEndCallback?.();
     }
   }, [lesson?.instrument]);
@@ -351,8 +354,12 @@ export default function LessonPage() {
     playTranscribedNotes(transcribedNotes, playbackInstrument);
   };
 
+  useEffect(() => {
+    if (lesson) setIsLoading(false);
+  }, [lesson]);
+
   const renderInstrument = () => {
-    if (!lesson) return null;
+    if (isLoading || !lesson) return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
     let instrumentComponent;
 
@@ -416,7 +423,7 @@ export default function LessonPage() {
     return instrumentComponent;
   }
 
-  if (!lesson) {
+  if (isLoading || !lesson) {
     return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
   
@@ -514,16 +521,20 @@ export default function LessonPage() {
         </CardContent>
       </Card>
       
-      <AlertDialog open={mode === 'analyzing' || mode === 'transcribing'}>
+      <AlertDialog open={mode === 'analyzing' || mode === 'transcribing' || (isLoading && (mode === 'demo' || mode === 'playback'))}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center justify-center font-headline text-2xl gap-3">
-              <Bot className="h-8 w-8 animate-pulse text-primary"/> {mode === 'analyzing' ? 'Analyzing...' : 'Transcribing...'}
+              <Bot className="h-8 w-8 animate-pulse text-primary"/> 
+              {mode === 'analyzing' ? 'Analyzing...' : 
+               mode === 'transcribing' ? 'Transcribing...' : 'Loading Samples...'}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center pt-4">
               {mode === 'analyzing' 
                 ? "The AI Teacher is listening to your performance. Please wait a moment for your feedback."
-                : "The AI Teacher is transcribing your music. This may take a few moments."
+                : mode === 'transcribing' 
+                ? "The AI Teacher is transcribing your music. This may take a few moments."
+                : "Getting the instrument ready. Please wait."
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -590,3 +601,5 @@ export default function LessonPage() {
     </div>
   );
 }
+
+    
