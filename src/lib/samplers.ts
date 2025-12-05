@@ -3,66 +3,61 @@ import * as Tone from 'tone';
 import type { Instrument } from '@/types';
 
 const samplers: Partial<Record<Instrument, Tone.Sampler>> = {};
-const baseUrl = "https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2F";
 
-const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, path: string, release?: number }> = {
+const baseUrl = "https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/";
+
+const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, release?: number }> = {
     piano: {
         urls: {
-            'A0': 'A0.mp3', 'C1': 'C1.mp3', 'D#1': 'Ds1.mp3', 'F#1': 'Fs1.mp3', 'A1': 'A1.mp3',
-            'C2': 'C2.mp3', 'D#2': 'Ds2.mp3', 'F#2': 'Fs2.mp3', 'A2': 'A2.mp3', 'C3': 'C3.mp3',
-            'D#3': 'Ds3.mp3', 'F#3': 'Fs3.mp3', 'A3': 'A3.mp3', 'C4': 'C4.mp3', 'D#4': 'Ds4.mp3',
-            'F#4': 'Fs4.mp3', 'A4': 'A4.mp3', 'C5': 'C5.mp3', 'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3',
-            'A5': 'A5.mp3', 'C6': 'C6.mp3', 'D#6': 'Ds6.mp3', 'F#6': 'Fs6.mp3', 'A6': 'A6.mp3',
-            'C7': 'C7.mp3', 'D#7': 'Ds7.mp3', 'F#7': 'Fs7.mp3', 'A7': 'A7.mp3', 'C8': 'C8.mp3'
+            'A0': 'samples%2Fpiano%2FA0.mp3', 'C1': 'samples%2Fpiano%2FC1.mp3', 'D#1': 'samples%2Fpiano%2FDs1.mp3', 'F#1': 'samples%2Fpiano%2FFs1.mp3', 'A1': 'samples%2Fpiano%2FA1.mp3',
+            'C2': 'samples%2Fpiano%2FC2.mp3', 'D#2': 'samples%2Fpiano%2FDs2.mp3', 'F#2': 'samples%2Fpiano%2FFs2.mp3', 'A2': 'samples%2Fpiano%2FA2.mp3', 'C3': 'samples%2Fpiano%2FC3.mp3',
+            'D#3': 'samples%2Fpiano%2FDs3.mp3', 'F#3': 'samples%2Fpiano%2FFs3.mp3', 'A3': 'samples%2Fpiano%2FA3.mp3', 'C4': 'samples%2Fpiano%2FC4.mp3', 'D#4': 'samples%2Fpiano%2FDs4.mp3',
+            'F#4': 'samples%2Fpiano%2FFs4.mp3', 'A4': 'samples%2Fpiano%2FA4.mp3', 'C5': 'samples%2Fpiano%2FC5.mp3', 'D#5': 'samples%2Fpiano%2FDs5.mp3', 'F#5': 'samples%2Fpiano%2FFs5.mp3',
+            'A5': 'samples%2Fpiano%2FA5.mp3', 'C6': 'samples%2Fpiano%2FC6.mp3', 'D#6': 'samples%2Fpiano%2FDs6.mp3', 'F#6': 'samples%2Fpiano%2FFs6.mp3', 'A6': 'samples%2Fpiano%2FA6.mp3',
+            'C7': 'samples%2Fpiano%2FC7.mp3', 'D#7': 'samples%2Fpiano%2FDs7.mp3', 'F#7': 'samples%2Fpiano%2FFs7.mp3', 'A7': 'samples%2Fpiano%2FA7.mp3', 'C8': 'samples%2Fpiano%2FC8.mp3'
         },
-        path: 'piano',
         release: 1
     },
     guitar: {
         urls: {
-            'E2': 'E2.mp3', 'A2': 'A2.mp3', 'D3': 'D3.mp3', 'G3': 'G3.mp3', 'B3': 'B3.mp3', 'E4': 'E4.mp3'
+            'E2': 'samples%2Fguitar-acoustic%2FE2.mp3', 'A2': 'samples%2Fguitar-acoustic%2FA2.mp3', 'D3': 'samples%2Fguitar-acoustic%2FD3.mp3', 'G3': 'samples%2Fguitar-acoustic%2FG3.mp3', 'B3': 'samples%2Fguitar-acoustic%2FB3.mp3', 'E4': 'samples%2Fguitar-acoustic%2FE4.mp3'
         },
-        path: 'guitar-acoustic',
         release: 1
     },
     drums: {
         urls: {
-            'C4': 'kick.mp3',
-            'D4': 'snare.mp3',
-            'E4': 'hihat.mp3',
+            'C4': 'samples%2Fdrums%2Fkick.mp3',
+            'D4': 'samples%2Fdrums%2Fsnare.mp3',
+            'E4': 'samples%2Fdrums%2Fhihat.mp3',
         },
-        path: 'drums'
     },
     violin: {
-        urls: { 'A3': 'A3.mp3', 'C4': 'C4.mp3', 'E4': 'E4.mp3', 'G4': 'G4.mp3' },
-        path: 'violin',
+        urls: { 
+            'A3': 'samples%2Fviolin%2FA3.mp3', 'C4': 'samples%2Fviolin%2FC4.mp3', 'E4': 'samples%2Fviolin%2FE4.mp3', 'G4': 'samples%2Fviolin%2FG4.mp3' 
+        },
         release: 1
     },
     xylophone: {
-        urls: { 'C5': 'C5.mp3' },
-        path: 'xylophone',
+        urls: { 'C5': 'samples%2Fxylophone%2FC5.mp3' },
         release: 1
     },
     flute: {
-        urls: { 'C5': 'C5.mp3' },
-        path: 'flute',
+        urls: { 'C5': 'samples%2Fflute%2FC5.mp3' },
         release: 1
     },
     saxophone: {
-        urls: { 'C5': 'C5.mp3' },
-        path: 'saxophone',
+        urls: { 'C5': 'samples%2Fsaxophone%2FC5.mp3' },
         release: 1
     }
 };
 
 const initializeSamplers = () => {
     Object.entries(instrumentConfigs).forEach(([instrument, config]) => {
-        const instrumentPath = `${baseUrl}${config.path}%2F`;
         const processedUrls: { [note: string]: string } = {};
 
         for (const note in config.urls) {
-            const fileName = config.urls[note];
-            processedUrls[note] = `${instrumentPath}${fileName}?alt=media`;
+            const path = config.urls[note];
+            processedUrls[note] = `${baseUrl}${path}?alt=media`;
         }
         
         const sampler = new Tone.Sampler({
