@@ -28,7 +28,8 @@ export default function AppRootPage() {
                 email: `guest_${newUser.uid}@example.com`,
                 createdAt: new Date().toISOString(),
             }, { merge: true });
-            router.push('/');
+            // After sign in, the onAuthStateChanged in the provider will trigger
+            // the second condition below.
         })
         .catch(error => {
             console.error("Anonymous sign-in failed", error);
@@ -36,7 +37,7 @@ export default function AppRootPage() {
         });
     } else if (!isUserLoading && user) {
         // Once the user is signed in, redirect to the main app content.
-        router.push('/');
+        router.push('/dashboard');
     }
   }, [user, isUserLoading, router, auth, firestore]);
 
