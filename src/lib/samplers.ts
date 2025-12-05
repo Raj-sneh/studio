@@ -57,10 +57,20 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
 
 const initializeSamplers = () => {
     Object.entries(instrumentConfigs).forEach(([instrument, config]) => {
+        const fullBaseUrl = `${baseUrl}${config.path}%2F`;
+        
+        // Transform urls to add the query string to each file
+        const urlsWithToken = Object.fromEntries(
+            Object.entries(config.urls).map(([note, file]) => [
+                note,
+                `${file}?alt=media`
+            ])
+        );
+
         const sampler = new Tone.Sampler({
-            urls: config.urls,
+            urls: urlsWithToken,
             release: config.release,
-            baseUrl: `${baseUrl}${config.path}%2F?alt=media&`,
+            baseUrl: fullBaseUrl,
         }).toDestination();
         samplers[instrument as Instrument] = sampler;
     });
@@ -82,5 +92,3 @@ export const getSampler = (instrument: Instrument): Tone.Sampler => {
 export const allSamplersLoaded = async () => {
     await Tone.loaded();
 }
-
-    
