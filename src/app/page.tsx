@@ -35,10 +35,12 @@ export default function AppRootPage() {
             setError("Could not sign in automatically. Please refresh the page.");
         });
     } else if (!isUserLoading && user) {
+        // Once the user is signed in, redirect to the main app content.
         router.push('/');
     }
   }, [user, isUserLoading, router, auth, firestore]);
 
+    // Show a loading indicator while the auth state is being determined.
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
         {error ? (
