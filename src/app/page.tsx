@@ -1,47 +1,42 @@
 
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useUser, setDocumentNonBlocking, initiateAnonymousSignIn } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import SButtonIcon from "@/components/icons/SButtonIcon";
+import MainLayout from "./(main)/layout";
+import DashboardPage from "./(main)/page";
 
-export default function AppRootPage() {
-  const router = useRouter();
+function AppRootPage({ children }: { children: ReactNode }) {
+  const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
   const [error, setError] = useState<string | null>(null);
-
+  
   useEffect(() => {
-    // If auth is ready and there's no user, sign them in anonymously.
     if (!isUserLoading && !user && auth && firestore) {
       initiateAnonymousSignIn(auth)
         .then(userCredential => {
-            const newUser = userCredential.user;
-            const userDocRef = doc(firestore, "users", newUser.uid);
-            setDocumentNonBlocking(userDocRef, {
-                id: newUser.uid,
-                displayName: 'Guest User',
-                email: `guest_${newUser.uid}@example.com`,
-                createdAt: new Date().toISOString(),
-            }, { merge: true });
-            // After sign in, the onAuthStateChanged in the provider will trigger
-            // the second condition below.
+          const newUser = userCredential.user;
+          const userDocRef = doc(firestore, "users", newUser.uid);
+          setDocumentNonBlocking(userDocRef, {
+            id: newUser.uid,
+            displayName: 'Guest User',
+            email: `guest_${newUser.uid}@example.com`,
+            createdAt: new Date().toISOString(),
+          }, { merge: true });
         })
         .catch(error => {
-            console.error("Anonymous sign-in failed", error);
-            setError("Could not sign in automatically. Please refresh the page.");
+          console.error("Anonymous sign-in failed", error);
+          setError("Could not sign in automatically. Please refresh the page.");
         });
-    } else if (!isUserLoading && user) {
-        // Once the user is signed in, redirect to the main app content.
-        router.push('/dashboard');
     }
-  }, [user, isUserLoading, router, auth, firestore]);
-
-    // Show a loading indicator while the auth state is being determined.
+  }, [user, isUserLoading, auth, firestore]);
+  
+  if (isUserLoading || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background">
         {error ? (
@@ -54,4 +49,17 @@ export default function AppRootPage() {
         )}
       </div>
     );
+  }
+  
+  return children;
+}
+
+export default function Home() {
+    return (
+        <AppRootPage>
+            <MainLayout>
+                <DashboardPage />
+            </MainLayout>
+        </AppRootPage>
+    )
 }
