@@ -40,11 +40,12 @@ export default function Xylophone({
         const initializeSampler = async () => {
             sampler.current = new Tone.Sampler({
                 urls: { 'C5': 'C5.mp3' },
-                baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fxylophone%2F?alt=media',
+                baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fxylophone%2F',
                 release: 1,
+                onload: () => {
+                    setIsLoaded(true);
+                }
             }).toDestination();
-            await Tone.loaded();
-            setIsLoaded(true);
         }
         
         initializeSampler();
@@ -110,5 +111,3 @@ export default function Xylophone({
         </div>
     );
 }
-
-    

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Play, Pause, Square, History, Music4 } from "lucide-react";
 import * as Tone from "tone";
 import Piano from "@/components/Piano";
@@ -31,53 +31,58 @@ type RecordedNote = {
 
 const instruments: Instrument[] = ['piano', 'guitar', 'drums', 'violin', 'xylophone', 'flute', 'saxophone'];
 
-const getSamplerForInstrument = (instrument: Instrument): Tone.Sampler => {
+const getSamplerForInstrument = (instrument: Instrument, apiKey: string = "alt=media"): Tone.Sampler => {
     const baseUrl = "https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2F";
-    const apiKey = "alt=media"; // Firebase Storage requires this for direct downloads
 
     let urls: { [note: string]: string } = {};
+    let instrumentPath: string;
     switch (instrument) {
         case 'piano':
             urls = {
-                'A0': `A0.mp3`, 'C1': `C1.mp3`, 'D#1': `Ds1.mp3`, 'F#1': `Fs1.mp3`, 'A1': `A1.mp3`,
-                'C2': `C2.mp3`, 'D#2': `Ds2.mp3`, 'F#2': `Fs2.mp3`, 'A2': `A2.mp3`, 'C3': `C3.mp3`,
-                'D#3': `Ds3.mp3`, 'F#3': `Fs3.mp3`, 'A3': `A3.mp3`, 'C4': `C4.mp3`, 'D#4': `Ds4.mp3`,
-                'F#4': `Fs4.mp3`, 'A4': `A4.mp3`, 'C5': `C5.mp3`, 'D#5': `Ds5.mp3`, 'F#5': `Fs5.mp3`,
-                'A5': `A5.mp3`, 'C6': `C6.mp3`, 'D#6': `Ds6.mp3`, 'F#6': `Fs6.mp3`, 'A6': `A6.mp3`,
-                'C7': `C7.mp3`, 'D#7': `Ds7.mp3`, 'F#7': `Fs7.mp3`, 'A7': `A7.mp3`, 'C8': `C8.mp3`
+                'A0': `A0.mp3?${apiKey}`, 'C1': `C1.mp3?${apiKey}`, 'D#1': `Ds1.mp3?${apiKey}`, 'F#1': `Fs1.mp3?${apiKey}`, 'A1': `A1.mp3?${apiKey}`,
+                'C2': `C2.mp3?${apiKey}`, 'D#2': `Ds2.mp3?${apiKey}`, 'F#2': `Fs2.mp3?${apiKey}`, 'A2': `A2.mp3?${apiKey}`, 'C3': `C3.mp3?${apiKey}`,
+                'D#3': `Ds3.mp3?${apiKey}`, 'F#3': `Fs3.mp3?${apiKey}`, 'A3': `A3.mp3?${apiKey}`, 'C4': `C4.mp3?${apiKey}`, 'D#4': `Ds4.mp3?${apiKey}`,
+                'F#4': `Fs4.mp3?${apiKey}`, 'A4': `A4.mp3?${apiKey}`, 'C5': `C5.mp3?${apiKey}`, 'D#5': `Ds5.mp3?${apiKey}`, 'F#5': `Fs5.mp3?${apiKey}`,
+                'A5': `A5.mp3?${apiKey}`, 'C6': `C6.mp3?${apiKey}`, 'D#6': `Ds6.mp3?${apiKey}`, 'F#6': `Fs6.mp3?${apiKey}`, 'A6': `A6.mp3?${apiKey}`,
+                'C7': `C7.mp3?${apiKey}`, 'D#7': `Ds7.mp3?${apiKey}`, 'F#7': `Fs7.mp3?${apiKey}`, 'A7': `A7.mp3?${apiKey}`, 'C8': `C8.mp3?${apiKey}`
             };
-            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}${instrument}%2F?${apiKey}` }).toDestination();
+            instrumentPath = 'piano';
+            break;
         case 'guitar':
              urls = {
-                'E2': 'E2.mp3', 'A2': 'A2.mp3', 'D3': 'D3.mp3', 'G3': 'G3.mp3', 'B3': 'B3.mp3', 'E4': 'E4.mp3'
+                'E2': `E2.mp3?${apiKey}`, 'A2': `A2.mp3?${apiKey}`, 'D3': `D3.mp3?${apiKey}`, 'G3': `G3.mp3?${apiKey}`, 'B3': `B3.mp3?${apiKey}`, 'E4': `E4.mp3?${apiKey}`
             };
-            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}${instrument}-acoustic%2F?${apiKey}` }).toDestination();
+            instrumentPath = 'guitar-acoustic';
+            break;
         case 'drums':
-            // Drums use specific files per sound, not notes
-            return new Tone.Sampler({
-                urls: {
-                    'C4': 'kick.mp3',
-                    'D4': 'snare.mp3',
-                    'E4': 'hihat.mp3',
-                },
-                baseUrl: `${baseUrl}drums%2F?${apiKey}`
-            }).toDestination();
+            urls = {
+                'C4': `kick.mp3?${apiKey}`,
+                'D4': `snare.mp3?${apiKey}`,
+                'E4': `hihat.mp3?${apiKey}`,
+            };
+            instrumentPath = 'drums';
+            break;
         case 'violin':
-            urls = { 'A3': 'A3.mp3', 'C4': 'C4.mp3', 'E4': 'E4.mp3', 'G4': 'G4.mp3' };
-            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}violin%2F?${apiKey}` }).toDestination();
+            urls = { 'A3': `A3.mp3?${apiKey}`, 'C4': `C4.mp3?${apiKey}`, 'E4': `E4.mp3?${apiKey}`, 'G4': `G4.mp3?${apiKey}` };
+            instrumentPath = 'violin';
+            break;
         case 'xylophone':
-            urls = { 'C5': 'C5.mp3' };
-             return new Tone.Sampler({ urls, baseUrl: `${baseUrl}xylophone%2F?${apiKey}` }).toDestination();
+            urls = { 'C5': `C5.mp3?${apiKey}` };
+            instrumentPath = 'xylophone';
+             break;
         case 'flute':
-            urls = { 'C5': 'C5.mp3' };
-            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}flute%2F?${apiKey}` }).toDestination();
+            urls = { 'C5': `C5.mp3?${apiKey}` };
+            instrumentPath = 'flute';
+            break;
         case 'saxophone':
-            urls = { 'C5': 'C5.mp3' };
-            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}saxophone%2F?${apiKey}` }).toDestination();
+            urls = { 'C5': `C5.mp3?${apiKey}` };
+            instrumentPath = 'saxophone';
+            break;
         default:
-             urls = { 'C4': 'C4.mp3' };
-            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}piano%2F?${apiKey}` }).toDestination();
+             urls = { 'C4': `C4.mp3?${apiKey}` };
+             instrumentPath = 'piano';
     }
+    return new Tone.Sampler({ urls, baseUrl: `${baseUrl}${instrumentPath}%2F` });
 };
 
 export default function PracticePage() {
@@ -130,37 +135,39 @@ export default function PracticePage() {
         const samplers: Partial<Record<Instrument, Tone.Sampler>> = {};
 
         const loadAndPlay = async () => {
-            // Pre-load all necessary samplers
-            const instrumentsInRecording = new Set(recordedNotes.map(n => n.instrument));
-            const loadingPromises: Promise<void>[] = [];
+            try {
+                // Pre-load all necessary samplers
+                const instrumentsInRecording = new Set(recordedNotes.map(n => n.instrument));
+                const loadingPromises: Promise<void>[] = [];
 
-            instrumentsInRecording.forEach(instrument => {
-                const sampler = getSamplerForInstrument(instrument);
-                samplers[instrument] = sampler;
-                loadingPromises.push(Tone.loaded());
-            });
+                instrumentsInRecording.forEach(instrument => {
+                    const sampler = getSamplerForInstrument(instrument).toDestination();
+                    samplers[instrument] = sampler;
+                    loadingPromises.push(Tone.loaded());
+                });
 
-            await Promise.all(loadingPromises);
+                await Promise.all(loadingPromises);
 
-            // Play notes
-            recordedNotes.forEach(noteEvent => {
-                setTimeout(() => {
+                // Play notes
+                const now = Tone.now();
+                recordedNotes.forEach(noteEvent => {
                     const sampler = samplers[noteEvent.instrument];
                     if (sampler) {
-                        if (Array.isArray(noteEvent.note)) { // Chord
-                            sampler.triggerAttackRelease(noteEvent.note, "1n");
-                        } else { // Single note
-                            sampler.triggerAttackRelease(noteEvent.note, "8n");
-                        }
+                        const duration = Array.isArray(noteEvent.note) ? "1n" : "8n";
+                        sampler.triggerAttackRelease(noteEvent.note, duration, now + noteEvent.time / 1000);
                     }
-                }, noteEvent.time);
-            });
+                });
 
-            const totalTime = recordedNotes.length > 0 ? recordedNotes[recordedNotes.length - 1].time : 0;
-            setTimeout(() => {
+                const totalTime = recordedNotes.length > 0 ? recordedNotes[recordedNotes.length - 1].time : 0;
+                setTimeout(() => {
+                    setIsPlaying(false);
+                    Object.values(samplers).forEach(sampler => sampler?.dispose());
+                }, totalTime + 1000);
+
+            } catch (error) {
+                console.error("Error playing recording:", error);
                 setIsPlaying(false);
-                Object.values(samplers).forEach(sampler => sampler?.dispose());
-            }, totalTime + 1000);
+            }
         };
         
         loadAndPlay();
@@ -287,5 +294,3 @@ export default function PracticePage() {
         </div>
     );
 }
-
-    

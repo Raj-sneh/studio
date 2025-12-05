@@ -34,10 +34,11 @@ export default function DrumPad({
             'D4': 'snare.mp3',
             'E4': 'hihat.mp3',
         },
-        baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fdrums%2F?alt=media',
+        baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fdrums%2F',
+        onload: () => {
+            setIsLoaded(true);
+        }
       }).toDestination();
-      await Tone.loaded();
-      setIsLoaded(true);
     };
     initializeSampler();
     return () => {
@@ -95,5 +96,3 @@ export default function DrumPad({
     </div>
   );
 }
-
-    

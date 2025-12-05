@@ -76,11 +76,12 @@ export default function Guitar({
                  urls: {
                     'E2': 'E2.mp3', 'A2': 'A2.mp3', 'D3': 'D3.mp3', 'G3': 'G3.mp3', 'B3': 'B3.mp3', 'E4': 'E4.mp3'
                 },
-                baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fguitar-acoustic%2F?alt=media',
+                baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fguitar-acoustic%2F',
                 release: 1,
+                onload: () => {
+                    setIsLoaded(true);
+                }
             }).toDestination();
-            await Tone.loaded();
-            setIsLoaded(true);
         };
         initializeSampler();
         return () => {
@@ -231,5 +232,3 @@ export default function Guitar({
         </div>
     );
 }
-
-    

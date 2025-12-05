@@ -43,11 +43,12 @@ export default function Piano({
                     'A5': 'A5.mp3', 'C6': 'C6.mp3', 'D#6': 'Ds6.mp3', 'F#6': 'Fs6.mp3', 'A6': 'A6.mp3',
                     'C7': 'C7.mp3', 'D#7': 'Ds7.mp3', 'F#7': 'Fs7.mp3', 'A7': 'A7.mp3', 'C8': 'C8.mp3'
                 },
-                baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fpiano%2F?alt=media',
+                baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fpiano%2F',
                 release: 1,
+                onload: () => {
+                    setIsLoaded(true);
+                }
             }).toDestination();
-            await Tone.loaded();
-            setIsLoaded(true);
         }
         
         initializeSampler();
@@ -174,5 +175,3 @@ export default function Piano({
         </div>
     );
 }
-
-    

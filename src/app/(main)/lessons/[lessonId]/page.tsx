@@ -67,48 +67,55 @@ const getSamplerForInstrument = (instrument: Instrument): Tone.Sampler => {
     const apiKey = "alt=media"; // Firebase Storage requires this for direct downloads
 
     let urls: { [note: string]: string } = {};
+    let instrumentPath: string;
+
     switch (instrument) {
         case 'piano':
             urls = {
-                'A0': `A0.mp3`, 'C1': `C1.mp3`, 'D#1': `Ds1.mp3`, 'F#1': `Fs1.mp3`, 'A1': `A1.mp3`,
-                'C2': `C2.mp3`, 'D#2': `Ds2.mp3`, 'F#2': `Fs2.mp3`, 'A2': `A2.mp3`, 'C3': `C3.mp3`,
-                'D#3': `Ds3.mp3`, 'F#3': `Fs3.mp3`, 'A3': `A3.mp3`, 'C4': `C4.mp3`, 'D#4': `Ds4.mp3`,
-                'F#4': `Fs4.mp3`, 'A4': `A4.mp3`, 'C5': `C5.mp3`, 'D#5': `Ds5.mp3`, 'F#5': `Fs5.mp3`,
-                'A5': `A5.mp3`, 'C6': `C6.mp3`, 'D#6': `Ds6.mp3`, 'F#6': `Fs6.mp3`, 'A6': `A6.mp3`,
-                'C7': `C7.mp3`, 'D#7': `Ds7.mp3`, 'F#7': `Fs7.mp3`, 'A7': `A7.mp3`, 'C8': `C8.mp3`
+                'A0': `A0.mp3?${apiKey}`, 'C1': `C1.mp3?${apiKey}`, 'D#1': `Ds1.mp3?${apiKey}`, 'F#1': `Fs1.mp3?${apiKey}`, 'A1': `A1.mp3?${apiKey}`,
+                'C2': `C2.mp3?${apiKey}`, 'D#2': `Ds2.mp3?${apiKey}`, 'F#2': `Fs2.mp3?${apiKey}`, 'A2': `A2.mp3?${apiKey}`, 'C3': `C3.mp3?${apiKey}`,
+                'D#3': `Ds3.mp3?${apiKey}`, 'F#3': `Fs3.mp3?${apiKey}`, 'A3': `A3.mp3?${apiKey}`, 'C4': `C4.mp3?${apiKey}`, 'D#4': `Ds4.mp3?${apiKey}`,
+                'F#4': `Fs4.mp3?${apiKey}`, 'A4': `A4.mp3?${apiKey}`, 'C5': `C5.mp3?${apiKey}`, 'D#5': `Ds5.mp3?${apiKey}`, 'F#5': `Fs5.mp3?${apiKey}`,
+                'A5': `A5.mp3?${apiKey}`, 'C6': `C6.mp3?${apiKey}`, 'D#6': `Ds6.mp3?${apiKey}`, 'F#6': `Fs6.mp3?${apiKey}`, 'A6': `A6.mp3?${apiKey}`,
+                'C7': `C7.mp3?${apiKey}`, 'D#7': `Ds7.mp3?${apiKey}`, 'F#7': `Fs7.mp3?${apiKey}`, 'A7': `A7.mp3?${apiKey}`, 'C8': `C8.mp3?${apiKey}`
             };
-            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}${instrument}%2F?${apiKey}`, release: 1 }).toDestination();
+            instrumentPath = 'piano';
+            break;
         case 'guitar':
              urls = {
-                'E2': 'E2.mp3', 'A2': 'A2.mp3', 'D3': 'D3.mp3', 'G3': 'G3.mp3', 'B3': 'B3.mp3', 'E4': 'E4.mp3'
+                'E2': `E2.mp3?${apiKey}`, 'A2': `A2.mp3?${apiKey}`, 'D3': `D3.mp3?${apiKey}`, 'G3': `G3.mp3?${apiKey}`, 'B3': `B3.mp3?${apiKey}`, 'E4': `E4.mp3?${apiKey}`
             };
-            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}guitar-acoustic%2F?${apiKey}`, release: 1 }).toDestination();
+            instrumentPath = 'guitar-acoustic';
+            break;
         case 'drums':
-            // Drums use specific files per sound, not notes
-            return new Tone.Sampler({
-                urls: {
-                    'C4': 'kick.mp3',
-                    'D4': 'snare.mp3',
-                    'E4': 'hihat.mp3',
-                },
-                baseUrl: `${baseUrl}drums%2F?${apiKey}`
-            }).toDestination();
+            urls = {
+                'C4': `kick.mp3?${apiKey}`,
+                'D4': `snare.mp3?${apiKey}`,
+                'E4': `hihat.mp3?${apiKey}`,
+            };
+            instrumentPath = 'drums';
+            break;
         case 'violin':
-            urls = { 'A3': 'A3.mp3', 'C4': 'C4.mp3', 'E4': 'E4.mp3', 'G4': 'G4.mp3' };
-            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}violin%2F?${apiKey}`, release: 1 }).toDestination();
+            urls = { 'A3': `A3.mp3?${apiKey}`, 'C4': `C4.mp3?${apiKey}`, 'E4': `E4.mp3?${apiKey}`, 'G4': `G4.mp3?${apiKey}` };
+            instrumentPath = 'violin';
+            break;
         case 'xylophone':
-            urls = { 'C5': 'C5.mp3' };
-             return new Tone.Sampler({ urls, baseUrl: `${baseUrl}xylophone%2F?${apiKey}`, release: 1 }).toDestination();
+            urls = { 'C5': `C5.mp3?${apiKey}` };
+            instrumentPath = 'xylophone';
+             break;
         case 'flute':
-            urls = { 'C5': 'C5.mp3' };
-            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}flute%2F?${apiKey}`, release: 1 }).toDestination();
+            urls = { 'C5': `C5.mp3?${apiKey}` };
+            instrumentPath = 'flute';
+            break;
         case 'saxophone':
-            urls = { 'C5': 'C5.mp3' };
-            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}saxophone%2F?${apiKey}`, release: 1 }).toDestination();
+            urls = { 'C5': `C5.mp3?${apiKey}` };
+            instrumentPath = 'saxophone';
+            break;
         default:
-             urls = { 'C4': 'C4.mp3' };
-            return new Tone.Sampler({ urls, baseUrl: `${baseUrl}piano%2F?${apiKey}`, release: 1 }).toDestination();
+             urls = { 'C4': `C4.mp3?${apiKey}` };
+            instrumentPath = 'piano';
     }
+    return new Tone.Sampler({ urls, baseUrl: `${baseUrl}${instrumentPath}%2F`, release: 1 }).toDestination();
 };
 
 export default function LessonPage() {
@@ -173,51 +180,53 @@ export default function LessonPage() {
     if(notePlayer.current) {
         notePlayer.current.dispose();
     }
-    notePlayer.current = getSamplerForInstrument(currentInstrument);
-    setIsLoading(true);
-    await Tone.loaded();
-    setIsLoading(false);
     
-    noteTimeoutIds.current.forEach(clearTimeout);
-    noteTimeoutIds.current = [];
-    setHighlightedKeys([]);
-    if (Tone.Transport.state === "started") {
-      Tone.Transport.stop();
-    }
-    Tone.Transport.cancel();
-  
-    const now = Tone.now() + 0.2;
-  
-    notesToPlay.forEach(note => {
-      if (note.key && note.duration && typeof note.time === 'number') {
-        const noteTimeMs = note.time * 1000;
-        const durationSeconds = Tone.Time(note.duration).toSeconds();
-  
-        notePlayer.current?.triggerAttackRelease(note.key, durationSeconds, now + note.time);
-  
-        const attackTimeout = setTimeout(() => {
-          setHighlightedKeys(current => [...current, note.key]);
-        }, noteTimeMs);
-  
-        const releaseTimeout = setTimeout(() => {
-          setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
-        }, noteTimeMs + (durationSeconds * 1000));
-  
-        noteTimeoutIds.current.push(attackTimeout, releaseTimeout);
+    setIsLoading(true);
+    notePlayer.current = getSamplerForInstrument(currentInstrument);
+    notePlayer.current.onload = () => {
+      setIsLoading(false);
+      
+      noteTimeoutIds.current.forEach(clearTimeout);
+      noteTimeoutIds.current = [];
+      setHighlightedKeys([]);
+      if (Tone.Transport.state === "started") {
+        Tone.Transport.stop();
       }
-    });
-  
-    const lastNote = notesToPlay[notesToPlay.length - 1];
-    if (lastNote && typeof lastNote.time === 'number' && lastNote.duration) {
-      const totalDuration = (lastNote.time + Tone.Time(lastNote.duration).toSeconds()) * 1000 + 500;
-      const modeTimeout = setTimeout(() => {
-        setMode("idle");
-        onEndCallback?.();
-      }, totalDuration);
-      noteTimeoutIds.current.push(modeTimeout);
-    } else {
-       onEndCallback?.();
-    }
+      Tone.Transport.cancel();
+    
+      const now = Tone.now() + 0.2;
+    
+      notesToPlay.forEach(note => {
+        if (note.key && note.duration && typeof note.time === 'number') {
+          const noteTimeMs = note.time * 1000;
+          const durationSeconds = Tone.Time(note.duration).toSeconds();
+    
+          notePlayer.current?.triggerAttackRelease(note.key, durationSeconds, now + note.time);
+    
+          const attackTimeout = setTimeout(() => {
+            setHighlightedKeys(current => [...current, note.key]);
+          }, noteTimeMs);
+    
+          const releaseTimeout = setTimeout(() => {
+            setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
+          }, noteTimeMs + (durationSeconds * 1000));
+    
+          noteTimeoutIds.current.push(attackTimeout, releaseTimeout);
+        }
+      });
+    
+      const lastNote = notesToPlay[notesToPlay.length - 1];
+      if (lastNote && typeof lastNote.time === 'number' && lastNote.duration) {
+        const totalDuration = (lastNote.time + Tone.Time(lastNote.duration).toSeconds()) * 1000 + 500;
+        const modeTimeout = setTimeout(() => {
+          setMode("idle");
+          onEndCallback?.();
+        }, totalDuration);
+        noteTimeoutIds.current.push(modeTimeout);
+      } else {
+         onEndCallback?.();
+      }
+    };
   }, [lesson?.instrument]);
 
   const playDemo = useCallback(() => {
@@ -601,5 +610,3 @@ export default function LessonPage() {
     </div>
   );
 }
-
-    
