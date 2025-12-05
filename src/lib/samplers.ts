@@ -59,19 +59,22 @@ const initializeSamplers = () => {
     Object.entries(instrumentConfigs).forEach(([instrument, config]) => {
         const fullBaseUrl = `${baseUrl}${config.path}%2F`;
         
-        // Transform urls to add the query string to each file
-        const urlsWithToken = Object.fromEntries(
-            Object.entries(config.urls).map(([note, file]) => [
-                note,
-                `${file}?alt=media`
-            ])
-        );
-
         const sampler = new Tone.Sampler({
-            urls: urlsWithToken,
+            urls: config.urls,
             release: config.release,
             baseUrl: fullBaseUrl,
+            onload: () => {
+                console.log(`${instrument} samples loaded.`);
+            }
         }).toDestination();
+        
+        // This is the crucial part: Tone.js Sampler has a `_buffers` map after being created.
+        // We can iterate over them and modify the internal URL before they are loaded.
+        sampler.buffers.forEach((buffer) => {
+            if (buffer.url.includes('?')) return; // Avoid double-querying if already fixed
+            buffer.url = buffer.url + '?alt=media';
+        });
+
         samplers[instrument as Instrument] = sampler;
     });
 };
