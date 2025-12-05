@@ -57,24 +57,22 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
 
 const initializeSamplers = () => {
     Object.entries(instrumentConfigs).forEach(([instrument, config]) => {
-        const fullBaseUrl = `${baseUrl}${config.path}%2F`;
+        const instrumentPath = `${baseUrl}${config.path}%2F`;
+        const processedUrls: { [note: string]: string } = {};
+
+        for (const note in config.urls) {
+            const fileName = config.urls[note];
+            processedUrls[note] = `${instrumentPath}${fileName}?alt=media`;
+        }
         
         const sampler = new Tone.Sampler({
-            urls: config.urls,
+            urls: processedUrls,
             release: config.release,
-            baseUrl: fullBaseUrl,
             onload: () => {
                 console.log(`${instrument} samples loaded.`);
             }
         }).toDestination();
         
-        // This is the crucial part: Tone.js Sampler has a `_buffers` map after being created.
-        // We can iterate over them and modify the internal URL before they are loaded.
-        sampler.buffers.forEach((buffer) => {
-            if (buffer.url.includes('?')) return; // Avoid double-querying if already fixed
-            buffer.url = buffer.url + '?alt=media';
-        });
-
         samplers[instrument as Instrument] = sampler;
     });
 };
