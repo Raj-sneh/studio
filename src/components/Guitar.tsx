@@ -1,11 +1,12 @@
 
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
 import { Settings } from "lucide-react";
 import { Button } from "./ui/button";
+import { getSampler } from "@/lib/samplers";
 
 // Standard tuning for a 6-string guitar
 const openStrings = ['E4', 'B3', 'G3', 'D3', 'A2', 'E2'];
@@ -64,62 +65,41 @@ export default function Guitar({
     highlightedNotes = [],
     disabled = false,
 }: GuitarProps) {
-    const sampler = useRef<Tone.Sampler | null>(null);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const sampler = getSampler('guitar');
     const [pressedNotes, setPressedNotes] = useState<Set<string>>(new Set());
     const [activeChord, setActiveChord] = useState<string | null>(null);
-
-
-    useEffect(() => {
-        const initializeSampler = async () => {
-            sampler.current = new Tone.Sampler({
-                 urls: {
-                    'E2': 'E2.mp3', 'A2': 'A2.mp3', 'D3': 'D3.mp3', 'G3': 'G3.mp3', 'B3': 'B3.mp3', 'E4': 'E4.mp3'
-                },
-                baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fguitar-acoustic%2F',
-                release: 1,
-                onload: () => {
-                    setIsLoaded(true);
-                }
-            }).toDestination();
-        };
-        initializeSampler();
-        return () => {
-            sampler.current?.dispose();
-        };
-    }, []);
 
     const playNote = useCallback(async (note: string) => {
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!sampler.current || disabled || !isLoaded) return;
-        sampler.current.triggerAttack(note, Tone.now());
+        if (!sampler || disabled || !sampler.loaded) return;
+        sampler.triggerAttack(note, Tone.now());
         onNotePlay?.(note);
         setPressedNotes(prev => new Set(prev).add(note));
-    }, [disabled, onNotePlay, isLoaded]);
+    }, [disabled, onNotePlay, sampler]);
 
     const stopNote = useCallback((note: string) => {
-        if (!sampler.current || disabled || !isLoaded) return;
-        sampler.current.triggerRelease([note], Tone.now());
+        if (!sampler || disabled || !sampler.loaded) return;
+        sampler.triggerRelease([note], Tone.now());
         setPressedNotes(prev => {
             const newSet = new Set(prev);
             newSet.delete(note);
             return newSet;
         });
-    }, [disabled, isLoaded]);
+    }, [disabled, sampler]);
 
     const playChord = useCallback(async (chordName: string) => {
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!sampler.current || disabled || !isLoaded) return;
+        if (!sampler || disabled || !sampler.loaded) return;
         const chordNotes = chords[chordName].filter(n => n !== null) as string[];
-        sampler.current.triggerAttackRelease(chordNotes, '1n');
+        sampler.triggerAttackRelease(chordNotes, '1n');
         setActiveChord(chordName);
         onNotePlay?.(chordName);
         setTimeout(() => setActiveChord(null), 500);
-    }, [disabled, onNotePlay, isLoaded]);
+    }, [disabled, onNotePlay, sampler]);
 
 
     const highlightedPositions = useMemo(() => {
@@ -135,7 +115,7 @@ export default function Guitar({
         return positions;
     }, [highlightedNotes]);
 
-    if (!isLoaded) {
+    if (!sampler.loaded) {
         return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Guitar Samples...</p></div>;
     }
 
@@ -232,3 +212,5 @@ export default function Guitar({
         </div>
     );
 }
+
+    

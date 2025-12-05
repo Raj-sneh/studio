@@ -1,9 +1,10 @@
 
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
+import { getSampler } from "@/lib/samplers";
 
 const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const keyMap: { [key: string]: string } = {
@@ -27,60 +28,33 @@ export default function Piano({
     highlightedKeys = [],
     disabled = false,
 }: PianoProps) {
-    const sampler = useRef<Tone.Sampler | null>(null);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const sampler = getSampler('piano');
     const [currentOctave, setCurrentOctave] = useState(3);
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
-
-    useEffect(() => {
-        const initializeSampler = async () => {
-            sampler.current = new Tone.Sampler({
-                urls: {
-                    'A0': 'A0.mp3', 'C1': 'C1.mp3', 'D#1': 'Ds1.mp3', 'F#1': 'Fs1.mp3', 'A1': 'A1.mp3',
-                    'C2': 'C2.mp3', 'D#2': 'Ds2.mp3', 'F#2': 'Fs2.mp3', 'A2': 'A2.mp3', 'C3': 'C3.mp3',
-                    'D#3': 'Ds3.mp3', 'F#3': 'Fs3.mp3', 'A3': 'A3.mp3', 'C4': 'C4.mp3', 'D#4': 'Ds4.mp3',
-                    'F#4': 'Fs4.mp3', 'A4': 'A4.mp3', 'C5': 'C5.mp3', 'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3',
-                    'A5': 'A5.mp3', 'C6': 'C6.mp3', 'D#6': 'Ds6.mp3', 'F#6': 'Fs6.mp3', 'A6': 'A6.mp3',
-                    'C7': 'C7.mp3', 'D#7': 'Ds7.mp3', 'F#7': 'Fs7.mp3', 'A7': 'A7.mp3', 'C8': 'C8.mp3'
-                },
-                baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fpiano%2F',
-                release: 1,
-                onload: () => {
-                    setIsLoaded(true);
-                }
-            }).toDestination();
-        }
-        
-        initializeSampler();
-
-        return () => {
-            sampler.current?.dispose();
-        };
-    }, []);
 
     const playNote = useCallback(async (note: string, octave: number) => {
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!sampler.current || disabled || !isLoaded) return;
+        if (!sampler || disabled || !sampler.loaded) return;
         const fullNote = `${note}${octave}`;
         
-        sampler.current.triggerAttack(fullNote, Tone.now());
+        sampler.triggerAttack(fullNote, Tone.now());
 
         onNotePlay?.(fullNote);
         setPressedKeys(prev => new Set(prev).add(fullNote));
-    }, [disabled, onNotePlay, isLoaded]);
+    }, [disabled, onNotePlay, sampler]);
 
     const stopNote = useCallback((note: string, octave: number) => {
-        if (!sampler.current || disabled || !isLoaded) return;
+        if (!sampler || disabled || !sampler.loaded) return;
         const fullNote = `${note}${octave}`;
-        sampler.current.triggerRelease([fullNote], Tone.now() + 0.1);
+        sampler.triggerRelease([fullNote], Tone.now() + 0.1);
         setPressedKeys(prev => {
             const newSet = new Set(prev);
             newSet.delete(fullNote);
             return newSet;
         });
-    }, [disabled, isLoaded]);
+    }, [disabled, sampler]);
     
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -128,7 +102,7 @@ export default function Piano({
     const pianoKeys = Array.from({ length: octaves }, (_, i) => i + startOctave)
         .flatMap(octave => notes.map(note => ({ note, octave })));
 
-    if (!isLoaded) {
+    if (!sampler.loaded) {
         return <div className="flex items-center justify-center h-40 bg-muted rounded-lg"><p>Loading Piano Samples...</p></div>;
     }
 
@@ -175,3 +149,5 @@ export default function Piano({
         </div>
     );
 }
+
+    

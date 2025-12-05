@@ -1,10 +1,11 @@
 
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import * as Tone from 'tone';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { getSampler } from '@/lib/samplers';
 
 const drumMap: { [key: string]: { name: string; note: string; imageUrl: string; hint: string } } = {
   'C4': { name: 'Kick', note: 'C4', imageUrl: 'https://picsum.photos/seed/kick-drum/200/200', hint: 'kick drum' },
@@ -23,42 +24,21 @@ export default function DrumPad({
   highlightedKeys = [],
   disabled = false,
 }: DrumPadProps) {
-  const sampler = useRef<Tone.Sampler | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    const initializeSampler = async () => {
-      sampler.current = new Tone.Sampler({
-        urls: {
-            'C4': 'kick.mp3',
-            'D4': 'snare.mp3',
-            'E4': 'hihat.mp3',
-        },
-        baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fdrums%2F',
-        onload: () => {
-            setIsLoaded(true);
-        }
-      }).toDestination();
-    };
-    initializeSampler();
-    return () => {
-      sampler.current?.dispose();
-    };
-  }, []);
+  const sampler = getSampler('drums');
 
   const playNote = useCallback(async (noteKey: string) => {
     if (Tone.context.state !== 'running') {
         await Tone.start();
     }
-    if (!sampler.current || disabled || !isLoaded) return;
+    if (!sampler || disabled || !sampler.loaded) return;
     const drumSound = drumMap[noteKey];
     if (drumSound) {
-      sampler.current.triggerAttackRelease(drumSound.note, '1n', Tone.now());
+      sampler.triggerAttackRelease(drumSound.note, '1n', Tone.now());
       onNotePlay?.(noteKey);
     }
-  }, [disabled, onNotePlay, isLoaded]);
+  }, [disabled, onNotePlay, sampler]);
 
-  if (!isLoaded) {
+  if (!sampler.loaded) {
     return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Drum Samples...</p></div>;
   }
 
@@ -96,3 +76,5 @@ export default function DrumPad({
     </div>
   );
 }
+
+    

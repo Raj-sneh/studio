@@ -12,6 +12,7 @@ import { flagContentForReview } from "@/ai/flows/flag-content-for-review";
 import { transcribeAudio, type TranscribeAudioOutput } from "@/ai/flows/transcribe-audio-flow";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useUser } from '@/firebase';
+import { getSampler } from "@/lib/samplers";
 
 
 import Piano from "@/components/Piano";
@@ -62,62 +63,6 @@ type AnalysisResult = {
 } | null;
 type Mode = "idle" | "demo" | "recording" | "analyzing" | "result" | "listening" | "transcribing" | "playback";
 
-const getSamplerForInstrument = (instrument: Instrument): Tone.Sampler => {
-    const baseUrl = "https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2F";
-    const apiKey = "alt=media"; // Firebase Storage requires this for direct downloads
-
-    let urls: { [note: string]: string } = {};
-    let instrumentPath: string;
-
-    switch (instrument) {
-        case 'piano':
-            urls = {
-                'A0': `A0.mp3?${apiKey}`, 'C1': `C1.mp3?${apiKey}`, 'D#1': `Ds1.mp3?${apiKey}`, 'F#1': `Fs1.mp3?${apiKey}`, 'A1': `A1.mp3?${apiKey}`,
-                'C2': `C2.mp3?${apiKey}`, 'D#2': `Ds2.mp3?${apiKey}`, 'F#2': `Fs2.mp3?${apiKey}`, 'A2': `A2.mp3?${apiKey}`, 'C3': `C3.mp3?${apiKey}`,
-                'D#3': `Ds3.mp3?${apiKey}`, 'F#3': `Fs3.mp3?${apiKey}`, 'A3': `A3.mp3?${apiKey}`, 'C4': `C4.mp3?${apiKey}`, 'D#4': `Ds4.mp3?${apiKey}`,
-                'F#4': `Fs4.mp3?${apiKey}`, 'A4': `A4.mp3?${apiKey}`, 'C5': `C5.mp3?${apiKey}`, 'D#5': `Ds5.mp3?${apiKey}`, 'F#5': `Fs5.mp3?${apiKey}`,
-                'A5': `A5.mp3?${apiKey}`, 'C6': `C6.mp3?${apiKey}`, 'D#6': `Ds6.mp3?${apiKey}`, 'F#6': `Fs6.mp3?${apiKey}`, 'A6': `A6.mp3?${apiKey}`,
-                'C7': `C7.mp3?${apiKey}`, 'D#7': `Ds7.mp3?${apiKey}`, 'F#7': `Fs7.mp3?${apiKey}`, 'A7': `A7.mp3?${apiKey}`, 'C8': `C8.mp3?${apiKey}`
-            };
-            instrumentPath = 'piano';
-            break;
-        case 'guitar':
-             urls = {
-                'E2': `E2.mp3?${apiKey}`, 'A2': `A2.mp3?${apiKey}`, 'D3': `D3.mp3?${apiKey}`, 'G3': `G3.mp3?${apiKey}`, 'B3': `B3.mp3?${apiKey}`, 'E4': `E4.mp3?${apiKey}`
-            };
-            instrumentPath = 'guitar-acoustic';
-            break;
-        case 'drums':
-            urls = {
-                'C4': `kick.mp3?${apiKey}`,
-                'D4': `snare.mp3?${apiKey}`,
-                'E4': `hihat.mp3?${apiKey}`,
-            };
-            instrumentPath = 'drums';
-            break;
-        case 'violin':
-            urls = { 'A3': `A3.mp3?${apiKey}`, 'C4': `C4.mp3?${apiKey}`, 'E4': `E4.mp3?${apiKey}`, 'G4': `G4.mp3?${apiKey}` };
-            instrumentPath = 'violin';
-            break;
-        case 'xylophone':
-            urls = { 'C5': `C5.mp3?${apiKey}` };
-            instrumentPath = 'xylophone';
-             break;
-        case 'flute':
-            urls = { 'C5': `C5.mp3?${apiKey}` };
-            instrumentPath = 'flute';
-            break;
-        case 'saxophone':
-            urls = { 'C5': `C5.mp3?${apiKey}` };
-            instrumentPath = 'saxophone';
-            break;
-        default:
-             urls = { 'C4': `C4.mp3?${apiKey}` };
-            instrumentPath = 'piano';
-    }
-    return new Tone.Sampler({ urls, baseUrl: `${baseUrl}${instrumentPath}%2F`, release: 1 }).toDestination();
-};
-
 export default function LessonPage() {
   const router = useRouter();
   const params = useParams();
@@ -135,7 +80,6 @@ export default function LessonPage() {
   const [playbackInstrument, setPlaybackInstrument] = useState<Instrument>('piano');
   const [showPlaybackDialog, setShowPlaybackDialog] = useState(false);
   const reportReasonRef = useRef<HTMLTextAreaElement>(null);
-  const notePlayer = useRef<Tone.Sampler | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const noteTimeoutIds = useRef<NodeJS.Timeout[]>([]);
@@ -153,7 +97,6 @@ export default function LessonPage() {
     }
     
     return () => {
-        notePlayer.current?.dispose();
         noteTimeoutIds.current.forEach(clearTimeout);
         if (Tone.Transport.state === "started") {
           Tone.Transport.stop();
@@ -176,57 +119,55 @@ export default function LessonPage() {
       onEndCallback?.();
       return;
     }
-  
-    if(notePlayer.current) {
-        notePlayer.current.dispose();
-    }
+
+    const notePlayer = getSampler(currentInstrument);
     
-    setIsLoading(true);
-    notePlayer.current = getSamplerForInstrument(currentInstrument);
-    notePlayer.current.onload = () => {
+    if (!notePlayer.loaded) {
+      setIsLoading(true);
+      await Tone.loaded();
       setIsLoading(false);
+    }
       
-      noteTimeoutIds.current.forEach(clearTimeout);
-      noteTimeoutIds.current = [];
-      setHighlightedKeys([]);
-      if (Tone.Transport.state === "started") {
-        Tone.Transport.stop();
+    noteTimeoutIds.current.forEach(clearTimeout);
+    noteTimeoutIds.current = [];
+    setHighlightedKeys([]);
+    if (Tone.Transport.state === "started") {
+      Tone.Transport.stop();
+    }
+    Tone.Transport.cancel();
+    
+    const now = Tone.now() + 0.2;
+    
+    notesToPlay.forEach(note => {
+      if (note.key && note.duration && typeof note.time === 'number') {
+        const noteTimeMs = note.time * 1000;
+        const durationSeconds = Tone.Time(note.duration).toSeconds();
+    
+        notePlayer.triggerAttackRelease(note.key, durationSeconds, now + note.time);
+    
+        const attackTimeout = setTimeout(() => {
+          setHighlightedKeys(current => [...current, note.key]);
+        }, noteTimeMs);
+    
+        const releaseTimeout = setTimeout(() => {
+          setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
+        }, noteTimeMs + (durationSeconds * 1000));
+    
+        noteTimeoutIds.current.push(attackTimeout, releaseTimeout);
       }
-      Tone.Transport.cancel();
+    });
     
-      const now = Tone.now() + 0.2;
-    
-      notesToPlay.forEach(note => {
-        if (note.key && note.duration && typeof note.time === 'number') {
-          const noteTimeMs = note.time * 1000;
-          const durationSeconds = Tone.Time(note.duration).toSeconds();
-    
-          notePlayer.current?.triggerAttackRelease(note.key, durationSeconds, now + note.time);
-    
-          const attackTimeout = setTimeout(() => {
-            setHighlightedKeys(current => [...current, note.key]);
-          }, noteTimeMs);
-    
-          const releaseTimeout = setTimeout(() => {
-            setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
-          }, noteTimeMs + (durationSeconds * 1000));
-    
-          noteTimeoutIds.current.push(attackTimeout, releaseTimeout);
-        }
-      });
-    
-      const lastNote = notesToPlay[notesToPlay.length - 1];
-      if (lastNote && typeof lastNote.time === 'number' && lastNote.duration) {
-        const totalDuration = (lastNote.time + Tone.Time(lastNote.duration).toSeconds()) * 1000 + 500;
-        const modeTimeout = setTimeout(() => {
-          setMode("idle");
-          onEndCallback?.();
-        }, totalDuration);
-        noteTimeoutIds.current.push(modeTimeout);
-      } else {
-         onEndCallback?.();
-      }
-    };
+    const lastNote = notesToPlay[notesToPlay.length - 1];
+    if (lastNote && typeof lastNote.time === 'number' && lastNote.duration) {
+      const totalDuration = (lastNote.time + Tone.Time(lastNote.duration).toSeconds()) * 1000 + 500;
+      const modeTimeout = setTimeout(() => {
+        setMode("idle");
+        onEndCallback?.();
+      }, totalDuration);
+      noteTimeoutIds.current.push(modeTimeout);
+    } else {
+        onEndCallback?.();
+    }
   }, [lesson?.instrument]);
 
   const playDemo = useCallback(() => {
@@ -364,7 +305,15 @@ export default function LessonPage() {
   };
 
   useEffect(() => {
-    if (lesson) setIsLoading(false);
+    if (lesson) {
+      const sampler = getSampler(lesson.instrument);
+      if (!sampler.loaded) {
+        setIsLoading(true);
+        Tone.loaded().then(() => setIsLoading(false));
+      } else {
+        setIsLoading(false);
+      }
+    }
   }, [lesson]);
 
   const renderInstrument = () => {
@@ -514,11 +463,12 @@ export default function LessonPage() {
           
 
           <div className="grid grid-cols-2 gap-2">
-            <Button onClick={playDemo} disabled={mode !== 'idle'} size="lg">
-              <Play className="mr-2 h-5 w-5"/> Demo
+            <Button onClick={playDemo} disabled={mode !== 'idle' || isLoading} size="lg">
+              {isLoading && mode === 'idle' ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Play className="mr-2 h-5 w-5"/>}
+              Demo
             </Button>
             {mode !== 'recording' ? (
-              <Button onClick={startRecording} disabled={mode !== 'idle'} size="lg">
+              <Button onClick={startRecording} disabled={mode !== 'idle' || isLoading} size="lg">
                 <Mic className="mr-2 h-5 w-5"/> Your Turn
               </Button>
             ) : (
@@ -610,3 +560,5 @@ export default function LessonPage() {
     </div>
   );
 }
+
+    

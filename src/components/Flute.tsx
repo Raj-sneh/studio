@@ -1,10 +1,11 @@
 
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
 import { Wind } from "lucide-react";
+import { getSampler } from "@/lib/samplers";
 
 interface FluteProps {
   onNotePlay?: (note: string) => void;
@@ -17,31 +18,13 @@ export default function Flute({
   highlightedKeys = [],
   disabled = false,
 }: FluteProps) {
-  const sampler = useRef<Tone.Sampler | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    const initializeSampler = async () => {
-      sampler.current = new Tone.Sampler({
-        urls: { 'C5': 'C5.mp3' },
-        baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fflute%2F',
-        release: 1,
-        onload: () => {
-            setIsLoaded(true);
-        }
-      }).toDestination();
-    };
-    initializeSampler();
-    return () => {
-      sampler.current?.dispose();
-    };
-  }, []);
+  const sampler = getSampler('flute');
 
   const playNote = useCallback((note: string) => {
-    if (!sampler.current || disabled || !isLoaded) return;
-    sampler.current.triggerAttackRelease(note, "8n", Tone.now());
+    if (!sampler || disabled || !sampler.loaded) return;
+    sampler.triggerAttackRelease(note, "8n", Tone.now());
     onNotePlay?.(note);
-  }, [disabled, onNotePlay, isLoaded]);
+  }, [disabled, onNotePlay, sampler]);
 
    // Placeholder effect to trigger sounds for highlighted keys
   useEffect(() => {
@@ -51,7 +34,7 @@ export default function Flute({
     }
   }, [highlightedKeys, disabled, playNote]);
 
-  if (!isLoaded) {
+  if (!sampler.loaded) {
     return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Flute Samples...</p></div>;
   }
   
@@ -68,3 +51,5 @@ export default function Flute({
     </div>
   );
 }
+
+    

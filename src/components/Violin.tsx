@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import * as Tone from "tone";
-import { cn } from "@/lib/utils";
 import { Music2 } from "lucide-react";
+import { getSampler } from "@/lib/samplers";
 
 interface ViolinProps {
   onNotePlay?: (note: string) => void;
@@ -17,36 +17,13 @@ export default function Violin({
   highlightedKeys = [],
   disabled = false,
 }: ViolinProps) {
-  const sampler = useRef<Tone.Sampler | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    const initializeSampler = async () => {
-      sampler.current = new Tone.Sampler({
-        urls: {
-            'A3': 'A3.mp3',
-            'C4': 'C4.mp3',
-            'E4': 'E4.mp3',
-            'G4': 'G4.mp3'
-        },
-        baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fviolin%2F',
-        release: 1,
-        onload: () => {
-            setIsLoaded(true);
-        }
-      }).toDestination();
-    };
-    initializeSampler();
-    return () => {
-      sampler.current?.dispose();
-    };
-  }, []);
+  const sampler = getSampler('violin');
 
   const playNote = useCallback((note: string) => {
-    if (!sampler.current || disabled || !isLoaded) return;
-    sampler.current.triggerAttackRelease(note, "1n", Tone.now());
+    if (!sampler || disabled || !sampler.loaded) return;
+    sampler.triggerAttackRelease(note, "1n", Tone.now());
     onNotePlay?.(note);
-  }, [disabled, onNotePlay, isLoaded]);
+  }, [disabled, onNotePlay, sampler]);
 
    // Placeholder effect to trigger sounds for highlighted keys
   useEffect(() => {
@@ -57,7 +34,7 @@ export default function Violin({
   }, [highlightedKeys, disabled, playNote]);
 
 
-  if (!isLoaded) {
+  if (!sampler.loaded) {
     return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Violin Samples...</p></div>;
   }
   
@@ -74,3 +51,5 @@ export default function Violin({
     </div>
   );
 }
+
+    

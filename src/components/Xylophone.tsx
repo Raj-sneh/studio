@@ -1,9 +1,10 @@
 
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
+import { getSampler } from "@/lib/samplers";
 
 const notes = ["C", "D", "E", "F", "G", "A", "B", "C"];
 const colors = [
@@ -32,36 +33,16 @@ export default function Xylophone({
     highlightedKeys = [],
     disabled = false,
 }: XylophoneProps) {
-    const sampler = useRef<Tone.Sampler | null>(null);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const sampler = getSampler('xylophone');
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
-
-    useEffect(() => {
-        const initializeSampler = async () => {
-            sampler.current = new Tone.Sampler({
-                urls: { 'C5': 'C5.mp3' },
-                baseUrl: 'https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/samples%2Fxylophone%2F',
-                release: 1,
-                onload: () => {
-                    setIsLoaded(true);
-                }
-            }).toDestination();
-        }
-        
-        initializeSampler();
-
-        return () => {
-            sampler.current?.dispose();
-        };
-    }, []);
 
     const playNote = useCallback(async (note: string, octave: number) => {
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!sampler.current || disabled || !isLoaded) return;
+        if (!sampler || disabled || !sampler.loaded) return;
         const fullNote = `${note}${octave}`;
-        sampler.current.triggerAttackRelease(fullNote, "8n", Tone.now());
+        sampler.triggerAttackRelease(fullNote, "8n", Tone.now());
         onNotePlay?.(fullNote);
         setPressedKeys(prev => new Set(prev).add(fullNote));
         setTimeout(() => {
@@ -71,7 +52,7 @@ export default function Xylophone({
                 return newSet;
             });
         }, 200);
-    }, [disabled, onNotePlay, isLoaded]);
+    }, [disabled, onNotePlay, sampler]);
     
     const xylophoneKeys = Array.from({ length: octaves }, (_, i) => i + startOctave)
         .flatMap(octave => notes.map((note, index) => {
@@ -79,7 +60,7 @@ export default function Xylophone({
             return { note, octave: finalOctave, color: colors[index % colors.length] }
         }));
 
-    if (!isLoaded) {
+    if (!sampler.loaded) {
         return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Xylophone Samples...</p></div>;
     }
 
@@ -111,3 +92,5 @@ export default function Xylophone({
         </div>
     );
 }
+
+    
