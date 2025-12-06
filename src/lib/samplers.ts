@@ -4,7 +4,11 @@ import type { Instrument } from '@/types';
 
 const samplers: Partial<Record<Instrument, Tone.Sampler>> = {};
 
-const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, release?: number, path: string }> = {
+// Use the official Tone.js sample hosting on GitHub.
+// This is a reliable public source with correct CORS headers.
+const GITHUB_BASE_URL = 'https://raw.githubusercontent.com/Tonejs/audio/main/salamander/';
+
+const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, release?: number, baseUrl: string }> = {
     piano: {
         urls: {
             'A0': 'A0.mp3', 'C1': 'C1.mp3', 'D#1': 'Ds1.mp3', 'F#1': 'Fs1.mp3',
@@ -17,15 +21,12 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
             'A7': 'A7.mp3', 'C8': 'C8.mp3'
         },
         release: 1,
-        path: 'samples/piano/'
+        baseUrl: GITHUB_BASE_URL
     }
 };
 
 const initializeSamplers = () => {
     if (typeof window === 'undefined') return;
-
-    // Use the correct project ID for the storage bucket.
-    const storageBucket = 'socio-f6b39.appspot.com';
 
     (Object.keys(instrumentConfigs) as Instrument[]).forEach((instrument) => {
         if (samplers[instrument]) {
@@ -34,18 +35,10 @@ const initializeSamplers = () => {
 
         const config = instrumentConfigs[instrument];
         
-        const urlsWithFullPath = Object.keys(config.urls).reduce((acc, note) => {
-            const fileName = config.urls[note];
-            // Correctly URL-encode the path for Firebase Storage.
-            const encodedPath = (config.path + fileName).replace(/\//g, '%2F');
-            acc[note] = `https://firebasestorage.googleapis.com/v0/b/${storageBucket}/o/${encodedPath}?alt=media`;
-            return acc;
-        }, {} as { [note: string]: string });
-
-
         const sampler = new Tone.Sampler({
-            urls: urlsWithFullPath,
+            urls: config.urls,
             release: config.release,
+            baseUrl: config.baseUrl,
             onload: () => {
                 console.log(`${instrument} samples loaded.`);
             }
