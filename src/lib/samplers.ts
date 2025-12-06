@@ -1,7 +1,6 @@
 
 import * as Tone from 'tone';
 import type { Instrument } from '@/types';
-import { firebaseConfig } from '@/firebase/config';
 
 const samplers: Partial<Record<Instrument, Tone.Sampler>> = {};
 
@@ -25,7 +24,8 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
 const initializeSamplers = () => {
     if (typeof window === 'undefined') return;
 
-    const storageBucket = firebaseConfig.projectId + '.appspot.com';
+    // Use the correct project ID for the storage bucket.
+    const storageBucket = 'socio-f6b39.appspot.com';
 
     (Object.keys(instrumentConfigs) as Instrument[]).forEach((instrument) => {
         if (samplers[instrument]) {
@@ -36,8 +36,8 @@ const initializeSamplers = () => {
         
         const urlsWithFullPath = Object.keys(config.urls).reduce((acc, note) => {
             const fileName = config.urls[note];
+            // Correctly URL-encode the path for Firebase Storage.
             const encodedPath = (config.path + fileName).replace(/\//g, '%2F');
-            // Construct the full URL for Firebase Storage
             acc[note] = `https://firebasestorage.googleapis.com/v0/b/${storageBucket}/o/${encodedPath}?alt=media`;
             return acc;
         }, {} as { [note: string]: string });
