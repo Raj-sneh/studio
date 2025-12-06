@@ -1,12 +1,13 @@
 
 import * as Tone from 'tone';
 import type { Instrument } from '@/types';
+import { firebaseConfig } from '@/firebase/config';
 
 const samplers: Partial<Record<Instrument, Tone.Sampler>> = {};
 
-// Use the official Tone.js sample hosting on GitHub.
-// This is a reliable public source with correct CORS headers.
-const GITHUB_BASE_URL = 'https://raw.githubusercontent.com/Tonejs/audio/main/salamander/';
+// This base URL points to the Firebase Storage emulator or live service,
+// constructed using the project ID from your Firebase config.
+const STORAGE_BASE_URL = `https://firebasestorage.googleapis.com/v0/b/${firebaseConfig.projectId}.appspot.com/o/`;
 
 const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, release?: number, baseUrl: string }> = {
     piano: {
@@ -21,7 +22,9 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
             'A7': 'A7.mp3', 'C8': 'C8.mp3'
         },
         release: 1,
-        baseUrl: GITHUB_BASE_URL
+        // The base URL for piano samples is a sub-path within storage.
+        // It's URL-encoded ('samples/piano' becomes 'samples%2Fpiano').
+        baseUrl: `${STORAGE_BASE_URL}samples%2Fpiano%2F`
     }
 };
 
@@ -35,9 +38,14 @@ const initializeSamplers = () => {
 
         const config = instrumentConfigs[instrument];
         
+        // For each note URL, we must append `?alt=media` to get the raw file data.
+        const fullUrls: { [note: string]: string } = {};
+        for (const note in config.urls) {
+            fullUrls[note] = `${config.urls[note]}?alt=media`;
+        }
+
         const sampler = new Tone.Sampler({
-            urls: config.urls,
-            release: config.release,
+            urls: fullUrls,
             baseUrl: config.baseUrl,
             onload: () => {
                 console.log(`${instrument} samples loaded.`);
@@ -69,3 +77,5 @@ export const getSampler = (instrument: Instrument): Tone.Sampler => {
 export const allSamplersLoaded = async () => {
     await Tone.loaded();
 }
+
+    
