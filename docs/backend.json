@@ -216,6 +216,19 @@
       "phone"
     ]
   },
+  "storage": {
+    "buckets": [
+      {
+        "name": "$(projectId).appspot.com",
+        "files": [
+          {
+            "path": "samples/piano",
+            "source": "https://github.com/firebase/codelab-friendly-chat-web/raw/master/storage-files/salamander.zip"
+          }
+        ]
+      }
+    ]
+  },
   "firestore": {
     "structure": [
       {

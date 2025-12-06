@@ -1,13 +1,11 @@
 
 import * as Tone from 'tone';
 import type { Instrument } from '@/types';
+import { firebaseConfig } from '@/firebase/config';
 
 const samplers: Partial<Record<Instrument, Tone.Sampler>> = {};
 
-// Using a reliable CDN for Tone.js samples to ensure proper CORS headers.
-const CDN_BASE_URL = 'https://unpkg.com/@tonejs/audio@0.0.10/salamander/';
-
-const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, release?: number, baseUrl?: string }> = {
+const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, release?: number, path: string }> = {
     piano: {
         urls: {
             'A0': 'A0.mp3', 'C1': 'C1.mp3', 'D#1': 'Ds1.mp3', 'F#1': 'Fs1.mp3',
@@ -20,22 +18,34 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
             'A7': 'A7.mp3', 'C8': 'C8.mp3'
         },
         release: 1,
-        baseUrl: CDN_BASE_URL
+        path: 'samples/piano/'
     }
 };
 
 const initializeSamplers = () => {
+    if (typeof window === 'undefined') return;
+
+    const storageBucket = firebaseConfig.projectId + '.appspot.com';
+
     (Object.keys(instrumentConfigs) as Instrument[]).forEach((instrument) => {
         if (samplers[instrument]) {
             return;
         }
 
         const config = instrumentConfigs[instrument];
+        
+        const urlsWithFullPath = Object.keys(config.urls).reduce((acc, note) => {
+            const fileName = config.urls[note];
+            const encodedPath = encodeURIComponent(config.path + fileName);
+            // Construct the full URL for Firebase Storage
+            acc[note] = `https://firebasestorage.googleapis.com/v0/b/${storageBucket}/o/${encodedPath}?alt=media`;
+            return acc;
+        }, {} as { [note: string]: string });
+
 
         const sampler = new Tone.Sampler({
-            urls: config.urls,
+            urls: urlsWithFullPath,
             release: config.release,
-            baseUrl: config.baseUrl,
             onload: () => {
                 console.log(`${instrument} samples loaded.`);
             }
@@ -46,9 +56,8 @@ const initializeSamplers = () => {
 };
 
 // Initialize samplers on module load (client-side)
-if (typeof window !== 'undefined') {
-    initializeSamplers();
-}
+initializeSamplers();
+
 
 export const getSampler = (instrument: Instrument): Tone.Sampler => {
     const sampler = samplers[instrument];
