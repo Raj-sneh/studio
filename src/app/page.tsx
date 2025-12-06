@@ -27,6 +27,7 @@ function AppRootPage({ children }: { children: ReactNode }) {
             displayName: 'Guest User',
             email: `guest_${newUser.uid}@example.com`,
             createdAt: new Date().toISOString(),
+            phoneNumber: '', // Added missing required field
           }, { merge: true });
         })
         .catch(error => {
