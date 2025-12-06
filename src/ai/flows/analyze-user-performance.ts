@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -19,7 +20,7 @@ const AnalyzeUserPerformanceInputSchema = z.object({
     .array(z.string())
     .describe('An array of notes recorded by the user.'),
   expectedNotes: z.array(z.string()).describe('An array of notes expected to be played.'),
-  instrument: z.enum(['piano', 'guitar', 'drums', 'violin']).describe('The instrument being played.'),
+  instrument: z.enum(['piano']).describe('The instrument being played.'),
 });
 export type AnalyzeUserPerformanceInput = z.infer<
   typeof AnalyzeUserPerformanceInputSchema

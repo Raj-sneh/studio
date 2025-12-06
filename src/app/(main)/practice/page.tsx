@@ -1,16 +1,10 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Play, Pause, Square, History, Music4, Loader2 } from "lucide-react";
 import * as Tone from "tone";
 import Piano from "@/components/Piano";
-import Guitar from "@/components/Guitar";
-import DrumPad from "@/components/DrumPad";
-import Violin from "@/components/Violin";
-import Xylophone from "@/components/Xylophone";
-import Flute from "@/components/Flute";
-import Saxophone from "@/components/Saxophone";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,7 +24,7 @@ type RecordedNote = {
     instrument: Instrument;
 };
 
-const instruments: Instrument[] = ['piano', 'guitar', 'drums', 'violin', 'xylophone', 'flute', 'saxophone'];
+const instruments: Instrument[] = ['piano'];
 
 export default function PracticePage() {
     const [isRecording, setIsRecording] = useState(false);
@@ -136,7 +130,7 @@ export default function PracticePage() {
             </div>
 
             <Tabs defaultValue="piano" className="w-full" onValueChange={(value) => setActiveInstrument(value as Instrument)}>
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-7">
+                <TabsList className="grid w-full grid-cols-1">
                     {instruments.map(inst => (
                         <TabsTrigger key={inst} value={inst} className="capitalize">{inst}</TabsTrigger>
                     ))}
@@ -149,72 +143,6 @@ export default function PracticePage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <Piano onNotePlay={handleNotePlay} />
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                 <TabsContent value="guitar">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Virtual Guitar</CardTitle>
-                            <CardDescription>Click the chords to play, or pick individual notes on the fretboard.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <Guitar onNotePlay={handleNotePlay} />
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                <TabsContent value="drums">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Drum Pad</CardTitle>
-                            <CardDescription>Click the pads to play drum sounds.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <DrumPad onNotePlay={handleNotePlay} />
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                <TabsContent value="violin">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Violin</CardTitle>
-                            <CardDescription>A virtual violin. Play notes or practice scales.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <Violin onNotePlay={handleNotePlay} />
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                <TabsContent value="xylophone">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Xylophone</CardTitle>
-                            <CardDescription>Play the colorful xylophone bars.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <Xylophone onNotePlay={handleNotePlay} />
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                <TabsContent value="flute">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Flute</CardTitle>
-                            <CardDescription>Practice with a virtual flute sound.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <Flute onNotePlay={handleNotePlay} />
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                 <TabsContent value="saxophone">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Saxophone</CardTitle>
-                            <CardDescription>Practice with a virtual saxophone sound.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <Saxophone onNotePlay={handleNotePlay} />
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -249,5 +177,3 @@ export default function PracticePage() {
         </div>
     );
 }
-
-    

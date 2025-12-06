@@ -7,24 +7,6 @@
       "imageHint": "piano lesson"
     },
     {
-      "id": "guitar-lesson",
-      "description": "A person playing a guitar",
-      "imageUrl": "https://images.unsplash.com/photo-1670853781884-72204de6b910?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxndWl0YXIlMjBsZXNzb258ZW58MHx8fHwxNzYzMDcxNjY0fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "guitar lesson"
-    },
-    {
-      "id": "drums-lesson",
-      "description": "A drum set",
-      "imageUrl": "https://images.unsplash.com/photo-1580625528104-830b09667e42?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxkcnVtJTIwc2V0fGVufDB8fHx8MTc2MzExNzQyMnww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "drum set"
-    },
-    {
-      "id": "violin-lesson",
-      "description": "A person playing a violin",
-      "imageUrl": "https://images.unsplash.com/photo-1755389176207-74bbb0e605d9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx2aW9saW4lMjBsZXNzb258ZW58MHx8fHwxNzYzMTE3NDIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "violin lesson"
-    },
-    {
       "id": "dashboard-practice",
       "description": "Musical notes on a sheet",
       "imageUrl": "https://images.unsplash.com/photo-1538402074774-8e624f3f7e5d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtdXNpYyUyMG5vdGVzfGVufDB8fHx8MTc2MzAyMjQ4MXww&ixlib=rb-4.1.0&q=80&w=1080",
@@ -35,24 +17,6 @@
       "description": "A teacher with a student",
       "imageUrl": "https://images.unsplash.com/photo-1636581563713-5ead3fb53a80?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtdXNpYyUyMHRlYWNoZXJ8ZW58MHx8fHwxNzYzMTE3NDIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "music teacher"
-    },
-    {
-      "id": "xylophone-lesson",
-      "description": "A colorful xylophone",
-      "imageUrl": "https://images.unsplash.com/photo-1669439609311-043969dc5b06?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx4eWxvcGhvbmUlMjBjb2xvcmZ1bHxlbnwwfHx8fDE3NjM1NjUxNjd8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "xylophone colorful"
-    },
-    {
-      "id": "flute-lesson",
-      "description": "A person playing a flute",
-      "imageUrl": "https://images.unsplash.com/photo-1699383443324-44d963a775eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxmbHV0ZSUyMG11c2ljfGVufDB8fHx8MTc2MzU2NTE2N3ww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "flute music"
-    },
-    {
-      "id": "saxophone-lesson",
-      "description": "A person playing a saxophone",
-      "imageUrl": "https://images.unsplash.com/photo-1725830071503-d705ef4a0975?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzYXhvcGhvbmUlMjBqYXp6fGVufDB8fHx8MTc2MzU2NTE2OHww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "saxophone jazz"
     }
   ]
 }

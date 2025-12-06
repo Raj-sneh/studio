@@ -7,25 +7,21 @@ import { lessons } from "@/lib/lessons";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Guitar, Drum, Music2 as Violin, Piano as PianoIcon, Wind, Lollipop } from "lucide-react";
+import { ArrowRight, Piano as PianoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Instrument } from "@/types";
 
 const instrumentIcons: Record<Instrument, React.ElementType> = {
   piano: PianoIcon,
-  guitar: Guitar,
-  drums: Drum,
-  violin: Violin,
-  xylophone: Lollipop,
-  flute: Wind,
-  saxophone: Wind,
 };
 
-const instrumentOrder: Instrument[] = ['piano', 'guitar', 'drums', 'violin', 'xylophone', 'flute', 'saxophone'];
+const instrumentOrder: Instrument[] = ['piano'];
 
 export default function LessonsPage() {
   const groupedLessons = lessons.reduce((acc, lesson) => {
-    (acc[lesson.instrument] = acc[lesson.instrument] || []).push(lesson);
+    if (lesson.instrument === 'piano') {
+      (acc[lesson.instrument] = acc[lesson.instrument] || []).push(lesson);
+    }
     return acc;
   }, {} as Record<Instrument, typeof lessons>);
 

@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview This file defines the Genkit flow for transcribing audio into a sequence of musical notes.
@@ -16,7 +17,7 @@ const TranscribeAudioInputSchema = z.object({
     .describe(
       "A recording of music, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
-  instrument: z.enum(['piano', 'guitar', 'drums', 'violin', 'xylophone', 'flute', 'saxophone']).describe('The instrument the user claims they are playing.'),
+  instrument: z.enum(['piano']).describe('The instrument the user claims they are playing.'),
 });
 export type TranscribeAudioInput = z.infer<typeof TranscribeAudioInputSchema>;
 
@@ -27,7 +28,7 @@ const TranscribeAudioOutputSchema = z.object({
     duration: z.string().describe("The duration of the note in Tone.js notation (e.g., '4n' for a quarter note, '8n' for an eighth note)."),
     time: z.number().describe('The start time of the note in seconds from the beginning of the audio.'),
   })).describe('An array of transcribed notes, ordered by their start time.'),
-  instrument: z.enum(['piano', 'guitar', 'drums', 'violin', 'xylophone', 'flute', 'saxophone']).describe('The instrument identified in the audio. You must choose one from the list.'),
+  instrument: z.enum(['piano']).describe('The instrument identified in the audio. You must choose one from the list.'),
 });
 export type TranscribeAudioOutput = z.infer<typeof TranscribeAudioOutputSchema>;
 
