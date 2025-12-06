@@ -5,8 +5,8 @@ import type { Instrument } from '@/types';
 const samplers: Partial<Record<Instrument, Tone.Sampler>> = {};
 
 const baseUrl = "https://firebasestorage.googleapis.com/v0/b/socio-f6b39.appspot.com/o/";
+const suffix = "?alt=media";
 
-// Note: The file paths are URL-encoded (e.g., '/' becomes '%2F'). This is required for Firebase Storage URLs.
 const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, release?: number }> = {
     piano: {
         urls: {
@@ -55,12 +55,16 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
 
 const initializeSamplers = () => {
     (Object.keys(instrumentConfigs) as Instrument[]).forEach((instrument) => {
+        if (samplers[instrument]) {
+            return;
+        }
+
         const config = instrumentConfigs[instrument];
         const processedUrls: { [note: string]: string } = {};
 
         for (const note in config.urls) {
             const path = config.urls[note];
-            processedUrls[note] = `${baseUrl}${path}?alt=media`;
+            processedUrls[note] = `${baseUrl}${path}${suffix}`;
         }
         
         const sampler = new Tone.Sampler({
