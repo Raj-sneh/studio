@@ -11,7 +11,7 @@ import { analyzeUserPerformance } from "@/ai/flows/analyze-user-performance";
 import { flagContentForReview } from "@/ai/flows/flag-content-for-review";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useUser } from '@/firebase';
-import { getSampler } from "@/lib/samplers";
+import { getSampler, allSamplersLoaded } from "@/lib/samplers";
 
 
 import Piano from "@/components/Piano";
@@ -80,6 +80,16 @@ export default function LessonPage() {
     const foundLesson = lessons.find((l) => l.id === lessonId);
     if (foundLesson) {
       setLesson(foundLesson);
+      // Pre-load samplers
+      const sampler = getSampler(foundLesson.instrument);
+      if (!sampler.loaded) {
+        setIsLoading(true);
+        allSamplersLoaded().then(() => {
+          setIsLoading(false);
+        });
+      } else {
+        setIsLoading(false);
+      }
     } else {
       router.push("/lessons");
     }
@@ -111,8 +121,9 @@ export default function LessonPage() {
     const notePlayer = getSampler(currentInstrument);
     
     if (!notePlayer.loaded) {
+      // This should ideally not happen due to pre-loading, but as a fallback.
       setIsLoading(true);
-      await Tone.loaded();
+      await allSamplersLoaded();
       setIsLoading(false);
     }
       
@@ -159,12 +170,13 @@ export default function LessonPage() {
   }, [lesson?.instrument]);
 
   const playDemo = useCallback(() => {
-    if (!lesson) return;
+    if (!lesson || isLoading) return;
     setMode("demo");
     playNotes(lesson.notes, lesson.instrument);
-  }, [lesson, playNotes]);
+  }, [lesson, playNotes, isLoading]);
 
   const startRecording = async () => {
+    if (isLoading) return;
     await ensureAudioContext();
     setUserRecording([]);
     setRecordingStartTime(Date.now());
@@ -223,20 +235,12 @@ export default function LessonPage() {
     }
   };
 
-  useEffect(() => {
-    if (lesson) {
-      const sampler = getSampler(lesson.instrument);
-      if (!sampler.loaded) {
-        setIsLoading(true);
-        Tone.loaded().then(() => setIsLoading(false));
-      } else {
-        setIsLoading(false);
-      }
-    }
-  }, [lesson]);
-
   const renderInstrument = () => {
-    if (isLoading || !lesson) return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    if (!lesson) return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    
+    if (isLoading) {
+        return <div className="flex flex-col items-center justify-center h-full text-center"><Loader2 className="h-8 w-8 animate-spin" /><p className="mt-4 text-muted-foreground">Loading instrument...</p></div>;
+    }
 
     const props = {
       onNotePlay: handleNotePlay,
@@ -247,11 +251,12 @@ export default function LessonPage() {
     return <Piano {...props} />;
   }
 
-  if (isLoading || !lesson) {
+  if (!lesson) {
     return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
   
   const renderStatus = () => {
+    if (isLoading) return "Getting the instrument ready...";
     switch (mode) {
       case 'idle': return "Ready when you are. Start with a demo or your turn.";
       case 'demo': return "Listen and watch the demo.";
@@ -334,18 +339,15 @@ export default function LessonPage() {
         </CardContent>
       </Card>
       
-      <AlertDialog open={mode === 'analyzing' || (isLoading && (mode === 'demo'))}>
+      <AlertDialog open={mode === 'analyzing'}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center justify-center font-headline text-2xl gap-3">
               <Bot className="h-8 w-8 animate-pulse text-primary"/> 
-              {mode === 'analyzing' ? 'Analyzing...' : 'Loading Samples...'}
+              Analyzing...
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center pt-4">
-              {mode === 'analyzing' 
-                ? "The AI Teacher is listening to your performance. Please wait a moment for your feedback."
-                : "Getting the instrument ready. Please wait."
-              }
+              The AI Teacher is listening to your performance. Please wait a moment for your feedback.
             </AlertDialogDescription>
           </AlertDialogHeader>
         </AlertDialogContent>
@@ -394,3 +396,5 @@ export default function LessonPage() {
     </div>
   );
 }
+
+    
