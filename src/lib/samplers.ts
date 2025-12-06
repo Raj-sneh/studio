@@ -36,7 +36,7 @@ const initializeSamplers = () => {
         
         const urlsWithFullPath = Object.keys(config.urls).reduce((acc, note) => {
             const fileName = config.urls[note];
-            const encodedPath = encodeURIComponent(config.path + fileName);
+            const encodedPath = (config.path + fileName).replace(/\//g, '%2F');
             // Construct the full URL for Firebase Storage
             acc[note] = `https://firebasestorage.googleapis.com/v0/b/${storageBucket}/o/${encodedPath}?alt=media`;
             return acc;
