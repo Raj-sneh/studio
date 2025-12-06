@@ -4,8 +4,8 @@ import type { Instrument } from '@/types';
 
 const samplers: Partial<Record<Instrument, Tone.Sampler>> = {};
 
-// Using Tone.js's own sample library on GitHub for reliability.
-const GITHUB_BASE_URL = 'https://raw.githubusercontent.com/Tonejs/audio/main/salamander/';
+// Using a reliable CDN for Tone.js samples to ensure proper CORS headers.
+const CDN_BASE_URL = 'https://unpkg.com/@tonejs/audio@0.0.10/salamander/';
 
 const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, release?: number, baseUrl?: string }> = {
     piano: {
@@ -20,7 +20,7 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
             'A7': 'A7.mp3', 'C8': 'C8.mp3'
         },
         release: 1,
-        baseUrl: GITHUB_BASE_URL
+        baseUrl: CDN_BASE_URL
     }
 };
 
