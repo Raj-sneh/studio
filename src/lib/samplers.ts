@@ -21,7 +21,8 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
     },
     guitar: {
         urls: {
-            'E2': 'samples%2Fguitar-acoustic%2FE2.mp3', 'A2': 'samples%2Fguitar-acoustic%2FA2.mp3', 'D3': 'samples%2Fguitar-acoustic%2FD3.mp3', 'G3': 'samples%2Fguitar-acoustic%2FG3.mp3', 'B3': 'samples%2Fguitar-acoustic%2FB3.mp3', 'E4': 'samples%2Fguitar-acoustic%2FE4.mp3'
+            'E2': 'samples%2Fguitar-acoustic%2FE2.mp3', 'A2': 'samples%2Fguitar-acoustic%2FA2.mp3', 'D3': 'samples%2Fguitar-acoustic%2FD3.mp3', 'G3': 'samples%2Fguitar-acoustic%2FG3.mp3', 'B3': 'samples%2Fguitar-acoustic%2FB3.mp3', 'E4': 'samples%2Fguitar-acoustic%2FE4.mp3',
+            'F#4': 'samples%2Fguitar-acoustic%2FFs4.mp3', 'G#3': 'samples%2Fguitar-acoustic%2FGs3.mp3', 'C3': 'samples%2Fguitar-acoustic%2FC3.mp3', 'F#3': 'samples%2Fguitar-acoustic%2FFs3.mp3', 'B2': 'samples%2Fguitar-acoustic%2FB2.mp3'
         },
         release: 1
     },
@@ -34,26 +35,27 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
     },
     violin: {
         urls: { 
-            'A3': 'samples%2Fviolin%2FA3.mp3', 'C4': 'samples%2Fviolin%2FC4.mp3', 'E4': 'samples%2Fviolin%2FE4.mp3', 'G4': 'samples%2Fviolin%2FG4.mp3' 
+            'A3': 'samples%2Fviolin%2FA3.mp3', 'C4': 'samples%2Fviolin%2FC4.mp3', 'E4': 'samples%2Fviolin%2FE4.mp3', 'G4': 'samples%2Fviolin%2FG4.mp3', 'B3': 'samples%2Fviolin%2FB3.mp3', 'D4': 'samples%2Fviolin%2FD4.mp3', 'F#4': 'samples%2Fviolin%2FFs4.mp3'
         },
         release: 1
     },
     xylophone: {
-        urls: { 'C5': 'samples%2Fxylophone%2FC5.mp3' },
+        urls: { 'C4': 'samples%2Fxylophone%2FC4.mp3', 'D4': 'samples%2Fxylophone%2FD4.mp3', 'E4': 'samples%2Fxylophone%2FE4.mp3', 'F4': 'samples%2Fxylophone%2FF4.mp3', 'G4': 'samples%2Fxylophone%2FG4.mp3', 'A4': 'samples%2Fxylophone%2FA4.mp3', 'B4': 'samples%2Fxylophone%2FB4.mp3', 'C5': 'samples%2Fxylophone%2FC5.mp3' },
         release: 1
     },
     flute: {
-        urls: { 'C5': 'samples%2Fflute%2FC5.mp3' },
+        urls: { 'C4': 'samples%2Fflute%2FC4.mp3', 'D4': 'samples%2Fflute%2FD4.mp3', 'E4': 'samples%2Fflute%2FE4.mp3' },
         release: 1
     },
     saxophone: {
-        urls: { 'C5': 'samples%2Fsaxophone%2FC5.mp3' },
+        urls: { 'C#5': 'samples%2Fsaxophone%2FCs5.mp3', 'B4': 'samples%2Fsaxophone%2FB4.mp3', 'A4': 'samples%2Fsaxophone%2FA4.mp3', 'G#4': 'samples%2Fsaxophone%2FGs4.mp3' },
         release: 1
     }
 };
 
 const initializeSamplers = () => {
-    Object.entries(instrumentConfigs).forEach(([instrument, config]) => {
+    (Object.keys(instrumentConfigs) as Instrument[]).forEach((instrument) => {
+        const config = instrumentConfigs[instrument];
         const processedUrls: { [note: string]: string } = {};
 
         for (const note in config.urls) {
@@ -69,7 +71,7 @@ const initializeSamplers = () => {
             }
         }).toDestination();
         
-        samplers[instrument as Instrument] = sampler;
+        samplers[instrument] = sampler;
     });
 };
 
@@ -82,7 +84,7 @@ export const getSampler = (instrument: Instrument): Tone.Sampler => {
     const sampler = samplers[instrument];
     if (!sampler) {
         // This is a fallback for development/HMR, should not happen in production if initialized correctly.
-        console.warn(`Sampler for instrument "${instrument}" not found on first call, initializing now.`);
+        console.warn(`Sampler for instrument "${instrument}" not found on first call, re-initializing.`);
         initializeSamplers();
         const newSampler = samplers[instrument];
         if(!newSampler) {
