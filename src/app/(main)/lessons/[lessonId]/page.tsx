@@ -75,21 +75,31 @@ export default function LessonPage() {
   const [isLoading, setIsLoading] = useState(true);
   
 
+  const ensureAudioContext = useCallback(async () => {
+    if (Tone.context.state !== 'running') {
+        await Tone.start();
+        console.log('Audio context started');
+    }
+  }, []);
+
   useEffect(() => {
     const lessonId = params.lessonId as string;
     const foundLesson = lessons.find((l) => l.id === lessonId);
     if (foundLesson) {
       setLesson(foundLesson);
-      // Pre-load samplers
-      const sampler = getSampler(foundLesson.instrument);
-      if (!sampler.loaded) {
+      
+      const loadAudio = async () => {
         setIsLoading(true);
-        allSamplersLoaded().then(() => {
-          setIsLoading(false);
-        });
-      } else {
+        await ensureAudioContext();
+        // Pre-load samplers
+        const sampler = getSampler(foundLesson.instrument);
+        if (!sampler.loaded) {
+          await allSamplersLoaded();
+        }
         setIsLoading(false);
       }
+      loadAudio();
+
     } else {
       router.push("/lessons");
     }
@@ -101,17 +111,9 @@ export default function LessonPage() {
         }
         Tone.Transport.cancel();
     }
-  }, [params.lessonId, router]);
+  }, [params.lessonId, router, ensureAudioContext]);
   
-  const ensureAudioContext = async () => {
-    if (Tone.context.state !== 'running') {
-        await Tone.start();
-        console.log('Audio context started');
-    }
-  };
-
   const playNotes = useCallback(async (notesToPlay: NoteType[], instrumentOverride?: Instrument, onEndCallback?: () => void) => {
-    await ensureAudioContext();
     const currentInstrument = instrumentOverride || lesson?.instrument;
     if (!currentInstrument || notesToPlay.length === 0) {
       onEndCallback?.();
@@ -177,7 +179,6 @@ export default function LessonPage() {
 
   const startRecording = async () => {
     if (isLoading) return;
-    await ensureAudioContext();
     setUserRecording([]);
     setRecordingStartTime(Date.now());
     setMode("recording");
