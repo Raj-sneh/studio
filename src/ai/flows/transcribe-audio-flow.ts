@@ -10,6 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const TranscribeAudioInputSchema = z.object({
   audioDataUri: z
@@ -46,6 +47,7 @@ const transcribeAudioFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await ai.generate({
+      model: googleAI.model('gemini-2.5-flash-music-preview'),
       prompt: `You are an expert music transcriber and instrument identifier with perfect pitch.
     Your task is to listen to an audio recording and perform two actions with high accuracy:
     1. Identify the primary instrument being played. The user suggests it is a '{{{instrument}}}', but you must rely on your own analysis of the audio to make the final determination from the available options.
@@ -61,9 +63,6 @@ const transcribeAudioFlow = ai.defineFlow(
 
     Analyze the following audio: {{media url=audioDataUri}}`,
       output: { schema: TranscribeAudioOutputSchema },
-       config: {
-        temperature: 0.1, // Lower temperature for more deterministic, less "creative" transcription
-      }
     });
 
     return llmResponse.output || { notes: [], instrument: 'piano' };
