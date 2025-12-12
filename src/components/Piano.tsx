@@ -63,7 +63,7 @@ export default function Piano({
     const stopNote = useCallback((note: string, octave: number) => {
         if (!sampler || disabled || !isLoaded) return;
         const fullNote = `${note}${octave}`;
-        sampler.triggerRelease([fullNote], Tone.now() + 0.1);
+        sampler.triggerRelease(fullNote, Tone.now() + 0.1);
         setPressedKeys(prev => {
             const newSet = new Set(prev);
             newSet.delete(fullNote);
@@ -164,5 +164,3 @@ export default function Piano({
         </div>
     );
 }
-
-    
