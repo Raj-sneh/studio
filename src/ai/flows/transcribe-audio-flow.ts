@@ -3,21 +3,20 @@
 /**
  * @fileOverview This file defines the Genkit flow for transcribing audio into a sequence of musical notes.
  *
- * @interface TranscribeAudioInput - Defines the input schema for the transcribeAudio function.
- * @interface TranscribeAudioOutput - Defines the output schema for the transcribeAudio function.
+ * This file contains a server action and should only export async functions.
  */
 import {ai} from '@/ai/genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
 import type {Instrument, Note} from '@/types';
 
-export const TranscribeAudioInputSchema = z.object({
+const TranscribeAudioInputSchema = z.object({
   audioDataUri: z.string().describe('The audio data URI to transcribe.'),
   instrument: z.enum(['piano']).describe('The instrument being played.'),
 });
 export type TranscribeAudioInput = z.infer<typeof TranscribeAudioInputSchema>;
 
-export const TranscribeAudioOutputSchema = z.object({
+const TranscribeAudioOutputSchema = z.object({
   notes: z
     .array(
       z.object({
