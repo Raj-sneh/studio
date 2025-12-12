@@ -14,6 +14,7 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useUser } from '@/firebase';
 import { getSampler, allSamplersLoaded } from "@/lib/samplers";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
+import { cn } from "@/lib/utils";
 
 
 import Piano from "@/components/Piano";
