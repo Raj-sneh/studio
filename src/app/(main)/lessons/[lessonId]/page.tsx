@@ -9,9 +9,11 @@ import { lessons } from "@/lib/lessons";
 import type { Lesson, Note as NoteType, Instrument } from "@/types";
 import { analyzeUserPerformance } from "@/ai/flows/analyze-user-performance";
 import { flagContentForReview } from "@/ai/flows/flag-content-for-review";
+import { transcribeAudio } from "@/ai/flows/transcribe-audio-flow";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useUser } from '@/firebase';
 import { getSampler, allSamplersLoaded } from "@/lib/samplers";
+import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 
 
 import Piano from "@/components/Piano";
@@ -46,7 +48,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Play, Square, Mic, Send, Flag, Bot, Loader2, Star, Trophy, Target, Sparkles, ChevronLeft } from "lucide-react";
+import { Play, Square, Mic, Send, Flag, Bot, Loader2, Star, Trophy, Target, Sparkles, ChevronLeft, Ear, Music } from "lucide-react";
 
 type RecordedNote = { note: string; time: number };
 type AnalysisResult = {
@@ -54,13 +56,14 @@ type AnalysisResult = {
   strengths: string;
   weaknesses: string;
 } | null;
-type Mode = "idle" | "demo" | "recording" | "analyzing" | "result";
+type Mode = "idle" | "demo" | "recording" | "analyzing" | "result" | "listening" | "transcribing";
 
 export default function LessonPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
   const { user } = useUser();
+  const { isRecording, startRecording: startMicRecording, stopRecording: stopMicRecording } = useAudioRecorder();
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [mode, setMode] = useState<Mode>("idle");
@@ -73,6 +76,7 @@ export default function LessonPage() {
   const noteTimeoutIds = useRef<NodeJS.Timeout[]>([]);
   const image = lesson ? PlaceHolderImages.find(img => img.id === lesson.imageId) : null;
   const [isLoading, setIsLoading] = useState(true);
+  const [transcribedNotes, setTranscribedNotes] = useState<NoteType[]>([]);
   
 
   const ensureAudioContext = useCallback(async () => {
@@ -91,7 +95,6 @@ export default function LessonPage() {
       const loadAudio = async () => {
         setIsLoading(true);
         await ensureAudioContext();
-        // Pre-load samplers
         getSampler(foundLesson.instrument);
         await allSamplersLoaded();
         setIsLoading(false);
@@ -117,10 +120,9 @@ export default function LessonPage() {
       onEndCallback?.();
       return;
     }
-
+  
     const notePlayer = getSampler(currentInstrument);
-    
-      
+          
     noteTimeoutIds.current.forEach(clearTimeout);
     noteTimeoutIds.current = [];
     setHighlightedKeys([]);
@@ -169,7 +171,7 @@ export default function LessonPage() {
     playNotes(lesson.notes, lesson.instrument);
   }, [lesson, playNotes, isLoading]);
 
-  const startRecording = async () => {
+  const startVirtualRecording = async () => {
     if (isLoading) return;
     setUserRecording([]);
     setRecordingStartTime(Date.now());
@@ -205,6 +207,49 @@ export default function LessonPage() {
         variant: "destructive",
       });
       setMode("idle");
+    }
+  };
+
+  const handleListenLearn = async () => {
+    if (!lesson || isLoading) return;
+    if (isRecording) {
+      setMode('transcribing');
+      const audioBlob = await stopMicRecording();
+      if (!audioBlob) {
+        toast({ title: 'Recording failed', description: 'Could not capture audio.', variant: 'destructive' });
+        setMode('idle');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      reader.onloadend = async () => {
+        const base64Audio = reader.result as string;
+        try {
+          const result = await transcribeAudio({ audioDataUri: base64Audio, instrument: 'piano' });
+          if(result.notes.length > 0) {
+            setTranscribedNotes(result.notes);
+            playNotes(result.notes, result.instrument, () => setMode('idle'));
+          } else {
+            toast({title: 'No notes detected', description: 'The AI could not detect any notes in your recording.'});
+            setMode('idle');
+          }
+        } catch (error) {
+          console.error("Transcription failed:", error);
+          toast({ title: 'Transcription Failed', description: 'Could not transcribe your audio. Please try again.', variant: 'destructive' });
+          setMode('idle');
+        }
+      }
+
+    } else {
+      setTranscribedNotes([]);
+      try {
+        await startMicRecording();
+        setMode('listening');
+      } catch (error) {
+        toast({ title: 'Microphone Error', description: 'Could not access the microphone. Please check permissions.', variant: 'destructive' });
+        setMode('idle');
+      }
     }
   };
   
@@ -256,9 +301,14 @@ export default function LessonPage() {
       case 'recording': return `Your turn! Play the notes on the piano.`;
       case 'analyzing': return "AI Teacher is analyzing your performance...";
       case 'result': return "Here's your feedback!";
+      case 'listening': return "Listening... Play your instrument.";
+      case 'transcribing': return "AI is transcribing your audio...";
       default: return "";
     }
   };
+  
+  const isUIDisabled = !['idle'].includes(mode) || isLoading;
+
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -305,7 +355,7 @@ export default function LessonPage() {
         </CardHeader>
         <CardContent className="flex-1 flex flex-col justify-between space-y-4">
           <div className="space-y-2">
-            <Progress value={(mode === 'demo') ? 100 : 0} />
+            <Progress value={(mode === 'demo' || mode === 'listening' || isRecording) ? 100 : 0} className={cn((mode === 'listening' || isRecording) && 'animate-pulse')} />
             <p className="text-center text-sm text-muted-foreground">{renderStatus()}</p>
           </div>
 
@@ -314,33 +364,39 @@ export default function LessonPage() {
           </div>
           
 
-          <div className="grid grid-cols-2 gap-2">
-            <Button onClick={playDemo} disabled={mode !== 'idle' || isLoading} size="lg">
+          <div className="grid grid-cols-3 gap-2">
+            <Button onClick={playDemo} disabled={isUIDisabled} size="lg">
               {isLoading && mode === 'idle' ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Play className="mr-2 h-5 w-5"/>}
               Demo
             </Button>
             {mode !== 'recording' ? (
-              <Button onClick={startRecording} disabled={mode !== 'idle' || isLoading} size="lg">
-                <Mic className="mr-2 h-5 w-5"/> Your Turn
+              <Button onClick={startVirtualRecording} disabled={isUIDisabled} size="lg">
+                <Music className="mr-2 h-5 w-5"/> Your Turn
               </Button>
             ) : (
               <Button onClick={stopRecordingAndAnalyze} size="lg" variant="destructive">
                 <Square className="mr-2 h-5 w-5"/> Finish &amp; Analyze
               </Button>
             )}
+             <Button onClick={handleListenLearn} disabled={!['idle', 'listening'].includes(mode) || isLoading} size="lg" variant={mode === 'listening' ? 'destructive' : 'default'}>
+              {mode === 'listening' ? <Square className="mr-2 h-5 w-5" /> : <Ear className="mr-2 h-5 w-5" />}
+              {mode === 'listening' ? "Stop" : "Listen & Learn"}
+            </Button>
           </div>
         </CardContent>
       </Card>
       
-      <AlertDialog open={mode === 'analyzing'}>
+      <AlertDialog open={mode === 'analyzing' || mode === 'transcribing'}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center justify-center font-headline text-2xl gap-3">
               <Bot className="h-8 w-8 animate-pulse text-primary"/> 
-              Analyzing...
+              {mode === 'analyzing' ? 'Analyzing...' : 'Transcribing...'}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center pt-4">
-              The AI Teacher is listening to your performance. Please wait a moment for your feedback.
+              {mode === 'analyzing'
+                ? 'The AI Teacher is listening to your performance. Please wait a moment for your feedback.'
+                : 'The AI is analyzing your recording to identify the notes you played.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
         </AlertDialogContent>
@@ -390,4 +446,3 @@ export default function LessonPage() {
   );
 }
 
-    
