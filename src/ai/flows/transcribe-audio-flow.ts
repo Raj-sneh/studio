@@ -8,7 +8,7 @@
  */
 import {ai} from '@/ai/genkit';
 import {googleAI} from '@genkit-ai/google-genai';
-import {z} from 'genkit/zod';
+import {z} from 'genkit';
 import type {Instrument, Note} from '@/types';
 
 export const TranscribeAudioInputSchema = z.object({
