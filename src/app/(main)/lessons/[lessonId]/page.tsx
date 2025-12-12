@@ -92,10 +92,8 @@ export default function LessonPage() {
         setIsLoading(true);
         await ensureAudioContext();
         // Pre-load samplers
-        const sampler = getSampler(foundLesson.instrument);
-        if (!sampler.loaded) {
-          await allSamplersLoaded();
-        }
+        getSampler(foundLesson.instrument);
+        await allSamplersLoaded();
         setIsLoading(false);
       }
       loadAudio();
@@ -122,12 +120,6 @@ export default function LessonPage() {
 
     const notePlayer = getSampler(currentInstrument);
     
-    if (!notePlayer.loaded) {
-      // This should ideally not happen due to pre-loading, but as a fallback.
-      setIsLoading(true);
-      await allSamplersLoaded();
-      setIsLoading(false);
-    }
       
     noteTimeoutIds.current.forEach(clearTimeout);
     noteTimeoutIds.current = [];

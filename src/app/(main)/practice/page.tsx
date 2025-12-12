@@ -50,11 +50,8 @@ export default function PracticePage() {
         const loadAllSamplers = async () => {
             setIsLoading(true);
             try {
-                const samplerPromises = instruments.map(inst => {
-                    const sampler = getSampler(inst);
-                    return sampler.loaded ? Promise.resolve() : Tone.loaded();
-                });
-                await Promise.all(samplerPromises);
+                instruments.forEach(inst => getSampler(inst));
+                await Tone.loaded();
             } catch (error) {
                 console.error("Failed to load all samplers:", error);
             } finally {
@@ -92,7 +89,7 @@ export default function PracticePage() {
         setIsPlaying(true);
 
         const instrumentsInRecording = new Set(recordedNotes.map(n => n.instrument));
-        const samplers: Partial<Record<Instrument, Tone.Sampler>> = {};
+        const samplers: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
         instrumentsInRecording.forEach(inst => {
             samplers[inst] = getSampler(inst);
         });
@@ -177,3 +174,5 @@ export default function PracticePage() {
         </div>
     );
 }
+
+    

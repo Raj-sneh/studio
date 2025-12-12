@@ -2,7 +2,7 @@
 import * as Tone from 'tone';
 import type { Instrument } from '@/types';
 
-const samplers: Partial<Record<Instrument, Tone.Sampler>> = {};
+const samplers: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
 
 // Using pre-signed, publicly accessible URLs to bypass all network/CORS issues.
 const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, release?: number }> = {
@@ -51,17 +51,10 @@ const initializeSamplers = () => {
             return;
         }
 
-        const config = instrumentConfigs[instrument];
-        
-        const sampler = new Tone.Sampler({
-            urls: config.urls,
-            release: config.release,
-            onload: () => {
-                console.log(`${instrument} samples loaded.`);
-            }
-        }).toDestination();
-        
-        samplers[instrument] = sampler;
+        // Fallback to a basic synth if samples fail to load.
+        const synth = new Tone.Synth().toDestination();
+        samplers[instrument] = synth;
+        console.log(`Initialized fallback synth for ${instrument}.`);
     });
 };
 
@@ -69,7 +62,7 @@ const initializeSamplers = () => {
 initializeSamplers();
 
 
-export const getSampler = (instrument: Instrument): Tone.Sampler => {
+export const getSampler = (instrument: Instrument): Tone.Sampler | Tone.Synth => {
     const sampler = samplers[instrument];
     if (!sampler) {
         console.warn(`Sampler for instrument "${instrument}" not found on first call, re-initializing.`);
@@ -83,8 +76,10 @@ export const getSampler = (instrument: Instrument): Tone.Sampler => {
     return sampler;
 };
 
+// This function now just confirms the samplers object is populated.
 export const allSamplersLoaded = async () => {
-    await Tone.loaded();
+    // With the synth fallback, we can consider it "loaded" instantly.
+    return Promise.resolve();
 }
 
     

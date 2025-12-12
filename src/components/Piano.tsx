@@ -31,22 +31,37 @@ export default function Piano({
     const sampler = getSampler('piano');
     const [currentOctave, setCurrentOctave] = useState(3);
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    useEffect(() => {
+        const checkLoaded = async () => {
+             if (sampler instanceof Tone.Sampler && sampler.loaded) {
+                setIsLoaded(true);
+             } else if (sampler instanceof Tone.Synth) {
+                setIsLoaded(true);
+             } else if (sampler instanceof Tone.Sampler) {
+                 await Tone.loaded();
+                 setIsLoaded(true);
+             }
+        };
+        checkLoaded();
+    }, [sampler]);
 
     const playNote = useCallback(async (note: string, octave: number) => {
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!sampler || disabled || !sampler.loaded) return;
+        if (!sampler || disabled || !isLoaded) return;
         const fullNote = `${note}${octave}`;
         
         sampler.triggerAttack(fullNote, Tone.now());
 
         onNotePlay?.(fullNote);
         setPressedKeys(prev => new Set(prev).add(fullNote));
-    }, [disabled, onNotePlay, sampler]);
+    }, [disabled, onNotePlay, sampler, isLoaded]);
 
     const stopNote = useCallback((note: string, octave: number) => {
-        if (!sampler || disabled || !sampler.loaded) return;
+        if (!sampler || disabled || !isLoaded) return;
         const fullNote = `${note}${octave}`;
         sampler.triggerRelease([fullNote], Tone.now() + 0.1);
         setPressedKeys(prev => {
@@ -54,11 +69,11 @@ export default function Piano({
             newSet.delete(fullNote);
             return newSet;
         });
-    }, [disabled, sampler]);
+    }, [disabled, sampler, isLoaded]);
     
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (disabled || event.repeat) return;
+            if (disabled || event.repeat || !isLoaded) return;
             const note = keyMap[event.key.toLowerCase()];
             if (note) {
                 let octave = currentOctave;
@@ -75,7 +90,7 @@ export default function Piano({
         };
 
         const handleKeyUp = (event: KeyboardEvent) => {
-            if (disabled) return;
+            if (disabled || !isLoaded) return;
             const note = keyMap[event.key.toLowerCase()];
             if (note) {
                 let octave = currentOctave;
@@ -93,7 +108,7 @@ export default function Piano({
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [playNote, stopNote, currentOctave, disabled, pressedKeys]);
+    }, [playNote, stopNote, currentOctave, disabled, pressedKeys, isLoaded]);
 
     const changeOctave = (direction: number) => {
         setCurrentOctave(prev => Math.max(1, Math.min(6, prev + direction)));
@@ -102,7 +117,7 @@ export default function Piano({
     const pianoKeys = Array.from({ length: octaves }, (_, i) => i + startOctave)
         .flatMap(octave => notes.map(note => ({ note, octave })));
 
-    if (!sampler.loaded) {
+    if (!isLoaded) {
         return <div className="flex items-center justify-center h-40 bg-muted rounded-lg"><p>Loading Piano Samples...</p></div>;
     }
 
