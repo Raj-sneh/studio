@@ -43,43 +43,45 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
     }
 };
 
-const initializeSamplers = () => {
-    if (typeof window === 'undefined') return;
+const initializeSampler = (instrument: Instrument) => {
+    if (typeof window === 'undefined' || samplers[instrument]) {
+        return;
+    }
 
-    (Object.keys(instrumentConfigs) as Instrument[]).forEach((instrument) => {
-        if (samplers[instrument]) {
-            return;
-        }
-
-        // Fallback to a basic synth if samples fail to load.
+    const config = instrumentConfigs[instrument];
+    if (config) {
+        const sampler = new Tone.Sampler(config).toDestination();
+        samplers[instrument] = sampler;
+        Tone.loaded().then(() => {
+            console.log(`${instrument} sampler loaded successfully.`);
+        }).catch(err => {
+            console.error(`Failed to load ${instrument} sampler, falling back to synth.`, err);
+            // Fallback to a basic synth if samples fail to load.
+            const synth = new Tone.Synth().toDestination();
+            samplers[instrument] = synth;
+        });
+    } else {
+        console.warn(`No config for instrument ${instrument}, falling back to synth.`);
         const synth = new Tone.Synth().toDestination();
         samplers[instrument] = synth;
-        console.log(`Initialized fallback synth for ${instrument}.`);
-    });
+    }
 };
 
-// Initialize samplers on module load (client-side)
-initializeSamplers();
-
+// Initialize all potential samplers on module load
+(Object.keys(instrumentConfigs) as Instrument[]).forEach(initializeSampler);
 
 export const getSampler = (instrument: Instrument): Tone.Sampler | Tone.Synth => {
+    if (!samplers[instrument]) {
+        console.warn(`Sampler for "${instrument}" was not pre-initialized. Initializing now.`);
+        initializeSampler(instrument);
+    }
     const sampler = samplers[instrument];
     if (!sampler) {
-        console.warn(`Sampler for instrument "${instrument}" not found on first call, re-initializing.`);
-        initializeSamplers();
-        const newSampler = samplers[instrument];
-        if(!newSampler) {
-             throw new Error(`Sampler for instrument "${instrument}" could not be initialized.`);
-        }
-        return newSampler;
+         throw new Error(`Sampler for instrument "${instrument}" could not be initialized.`);
     }
     return sampler;
 };
 
-// This function now just confirms the samplers object is populated.
 export const allSamplersLoaded = async () => {
-    // With the synth fallback, we can consider it "loaded" instantly.
-    return Promise.resolve();
+    return Tone.loaded();
 }
-
-    
