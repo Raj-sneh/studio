@@ -58,17 +58,17 @@ const initializeSampler = (instrument: Instrument) => {
         console.log(`Initializing ${instrument} sampler...`);
         const sampler = new Tone.Sampler({
             ...config,
-            baseUrl: config.baseUrl ? `${config.baseUrl}` : undefined,
+            baseUrl: config.baseUrl, // Base URL is set here
             onload: () => {
                  console.log(`${instrument} sampler loaded successfully.`);
             }
         }).toDestination();
 
-        // Workaround for firebase storage URLs
-        // Tone.js doesn't handle the ?alt=media query param well when it is in the baseUrl
+        // WORKAROUND: Tone.js doesn't handle query params in baseUrl well.
+        // Manually add each URL with the required ?alt=media param.
         Object.keys(config.urls).forEach(note => {
-            const url = config.urls[note];
-            const fullUrl = `${config.baseUrl}${url}?alt=media`;
+            const fileName = config.urls[note];
+            const fullUrl = `${config.baseUrl}${fileName}?alt=media`;
             sampler.add(note, fullUrl);
         });
 
