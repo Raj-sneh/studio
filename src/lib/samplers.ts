@@ -58,18 +58,21 @@ const initializeSampler = (instrument: Instrument) => {
         console.log(`Initializing ${instrument} sampler...`);
         const sampler = new Tone.Sampler({
             ...config,
-            baseUrl: config.baseUrl ? `${config.baseUrl}?alt=media&prefix=` : undefined,
+            baseUrl: config.baseUrl ? `${config.baseUrl}` : undefined,
+            onload: () => {
+                 console.log(`${instrument} sampler loaded successfully.`);
+            }
         }).toDestination();
-        samplers[instrument] = sampler;
 
-        Tone.loaded().then(() => {
-            console.log(`${instrument} sampler loaded successfully.`);
-        }).catch(err => {
-            console.error(`Failed to load ${instrument} sampler, falling back to synth.`, err);
-            samplers[instrument]?.dispose();
-            const synth = new Tone.Synth().toDestination();
-            samplers[instrument] = synth;
+        // Workaround for firebase storage URLs
+        // Tone.js doesn't handle the ?alt=media query param well when it is in the baseUrl
+        Object.keys(config.urls).forEach(note => {
+            const url = config.urls[note];
+            const fullUrl = `${config.baseUrl}${url}?alt=media`;
+            sampler.add(note, fullUrl);
         });
+
+        samplers[instrument] = sampler;
     } else {
         console.warn(`No config for instrument ${instrument}, falling back to synth.`);
         if (!samplers[instrument] || samplers[instrument]?.disposed) {
@@ -100,5 +103,13 @@ export const getSampler = (instrument: Instrument): Tone.Sampler | Tone.Synth =>
 };
 
 export const allSamplersLoaded = async () => {
-    return Tone.loaded();
+    const samplerPromises = Object.values(samplers)
+        .filter(s => s instanceof Tone.Sampler && !s.loaded)
+        .map(s => (s as Tone.Sampler).load(s.get('urls')));
+    
+    if (samplerPromises.length === 0) {
+        return Promise.resolve();
+    }
+    
+    return Promise.all(samplerPromises);
 }
