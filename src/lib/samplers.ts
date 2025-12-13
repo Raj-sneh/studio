@@ -103,13 +103,6 @@ export const getSampler = (instrument: Instrument): Tone.Sampler | Tone.Synth =>
 };
 
 export const allSamplersLoaded = async () => {
-    const samplerPromises = Object.values(samplers)
-        .filter(s => s instanceof Tone.Sampler && !s.loaded)
-        .map(s => (s as Tone.Sampler).load(s.get('urls')));
-    
-    if (samplerPromises.length === 0) {
-        return Promise.resolve();
-    }
-    
-    return Promise.all(samplerPromises);
+    // Correct way to await all pending audio buffers to load in Tone.js
+    return Tone.loaded();
 }
