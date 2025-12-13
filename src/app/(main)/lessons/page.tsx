@@ -44,10 +44,10 @@ export default function LessonsPage() {
               <h2 className="font-headline text-3xl font-bold capitalize">{instrument} Lessons</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {lessonsForInstrument.map((lesson) => {
+              {lessonsForInstrument.map((lesson, index) => {
                 const image = PlaceHolderImages.find(img => img.id === lesson.imageId);
                 return (
-                  <Card key={lesson.id} className="flex flex-col overflow-hidden group hover:border-primary transition-all duration-300 transform hover:-translate-y-1">
+                  <Card key={lesson.id} className="flex flex-col overflow-hidden group hover:border-primary transition-all duration-300 thumbnail-animation" style={{ animationDelay: `${index * 150}ms` }}>
                     <CardHeader className="p-0">
                       {image && (
                         <div className="aspect-video overflow-hidden relative">

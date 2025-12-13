@@ -37,7 +37,7 @@
 }
 
 @layer utilities {
-  @keyframes float {
+  @keyframes float-note {
     0% {
       transform: translateY(-10vh);
       opacity: 0;
@@ -51,7 +51,20 @@
     }
   }
 
+  @keyframes float-card {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
   .music-note {
-    animation: float linear infinite;
+    animation: float-note linear infinite;
+  }
+
+  .thumbnail-animation {
+    animation: float-card 3s ease-in-out infinite;
   }
 }
