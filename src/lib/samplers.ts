@@ -50,7 +50,9 @@ const initializeSampler = (instrument: Instrument) => {
         }).toDestination();
 
         samplers[instrument] = sampler;
-        loadingPromises[instrument] = sampler.load(fullUrls);
+        loadingPromises[instrument] = new Promise((resolve, reject) => {
+            sampler.load(fullUrls).then(resolve).catch(reject);
+        });
 
     } else {
         console.warn(`No config or baseUrl for instrument ${instrument}, falling back to synth.`);
