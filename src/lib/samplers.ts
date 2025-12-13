@@ -40,7 +40,7 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
             'C8': 'C8.mp3'
         },
         release: 1,
-        baseUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-4164192500-5d49e.appspot.com/o/samples%2Fpiano%2F',
+        baseUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-4164192500-5d49e.appspot.com/o/samples%2Fpiano%2F?alt=media&prefix=A',
     }
 };
 
