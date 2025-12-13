@@ -2,21 +2,21 @@
   "placeholderImages": [
     {
       "id": "piano-lesson",
-      "description": "A person playing a piano",
-      "imageUrl": "https://images.unsplash.com/photo-1540593463874-59835505e99d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwaWFubyUyMGxlc3NvbnxlbnwwfHx8fDE3NjMxMTc0MjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "piano lesson"
+      "description": "A cartoon illustration of a grand piano in a spotlight.",
+      "imageUrl": "https://images.unsplash.com/photo-1616429326442-8c8c4a1d4a9c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjYXJ0b29uJTIwcGlhbm98ZW58MHx8fHwxNzYzOTg0NjIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cartoon piano"
     },
     {
       "id": "dashboard-practice",
-      "description": "Musical notes on a sheet",
-      "imageUrl": "https://images.unsplash.com/photo-1538402074774-8e624f3f7e5d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtdXNpYyUyMG5vdGVzfGVufDB8fHx8MTc2MzAyMjQ4MXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "music notes"
+      "description": "A cartoon illustration of colorful musical notes floating around a treble clef.",
+      "imageUrl": "https://images.unsplash.com/photo-1618641974158-a65c27a43582?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYXJ0b29uJTIwbXVzaWMlMjBub3Rlc3xlbnwwfHx8fDE3NjM5ODQ3MTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cartoon music"
     },
     {
       "id": "dashboard-teacher",
-      "description": "A teacher with a student",
-      "imageUrl": "https://images.unsplash.com/photo-1636581563713-5ead3fb53a80?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtdXNpYyUyMHRlYWNoZXJ8ZW58MHx8fHwxNzYzMTE3NDIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "music teacher"
+      "description": "A cartoon illustration of a friendly robot teacher pointing at a musical note.",
+      "imageUrl": "https://images.unsplash.com/photo-1691523302983-c2c7193b216c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYXJ0b29uJTIwcm9ib3QlMjBtdXNpY3xlbnwwfHx8fDE3NjM5ODQ4OTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cartoon robot"
     }
   ]
 }
