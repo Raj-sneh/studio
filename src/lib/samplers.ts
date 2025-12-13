@@ -3,40 +3,19 @@ import * as Tone from 'tone';
 import type { Instrument } from '@/types';
 
 const samplers: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
+const loadingPromises: Record<string, Promise<void>> = {};
 
 const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, release?: number, baseUrl?: string }> = {
     piano: {
         urls: {
-            'A0': 'A0.mp3',
-            'C1': 'C1.mp3',
-            'D#1': 'Ds1.mp3',
-            'F#1': 'Fs1.mp3',
-            'A1': 'A1.mp3',
-            'C2': 'C2.mp3',
-            'D#2': 'Ds2.mp3',
-            'F#2': 'Fs2.mp3',
-            'A2': 'A2.mp3',
-            'C3': 'C3.mp3',
-            'D#3': 'Ds3.mp3',
-            'F#3': 'Fs3.mp3',
-            'A3': 'A3.mp3',
-            'C4': 'C4.mp3',
-            'D#4': 'Ds4.mp3',
-            'F#4': 'Fs4.mp3',
-            'A4': 'A4.mp3',
-            'C5': 'C5.mp3',
-            'D#5': 'Ds5.mp3',
-            'F#5': 'Fs5.mp3',
-            'A5': 'A5.mp3',
-            'C6': 'C6.mp3',
-            'D#6': 'Ds6.mp3',
-            'F#6': 'Fs6.mp3',
-            'A6': 'A6.mp3',
-            'C7': 'C7.mp3',
-            'D#7': 'Ds7.mp3',
-            'F#7': 'Fs7.mp3',
-            'A7': 'A7.mp3',
-            'C8': 'C8.mp3'
+            'A0': 'A0.mp3', 'C1': 'C1.mp3', 'D#1': 'Ds1.mp3', 'F#1': 'Fs1.mp3',
+            'A1': 'A1.mp3', 'C2': 'C2.mp3', 'D#2': 'Ds2.mp3', 'F#2': 'Fs2.mp3',
+            'A2': 'A2.mp3', 'C3': 'C3.mp3', 'D#3': 'Ds3.mp3', 'F#3': 'Fs3.mp3',
+            'A3': 'A3.mp3', 'C4': 'C4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3',
+            'A4': 'A4.mp3', 'C5': 'C5.mp3', 'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3',
+            'A5': 'A5.mp3', 'C6': 'C6.mp3', 'D#6': 'Ds6.mp3', 'F#6': 'Fs6.mp3',
+            'A6': 'A6.mp3', 'C7': 'C7.mp3', 'D#7': 'Ds7.mp3', 'F#7': 'Fs7.mp3',
+            'A7': 'A7.mp3', 'C8': 'C8.mp3'
         },
         release: 1,
         baseUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-4164192500-5d49e.appspot.com/o/samples%2Fpiano%2F',
@@ -46,38 +25,39 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
 const initializeSampler = (instrument: Instrument) => {
     if (typeof window === 'undefined') return;
 
-    if (samplers[instrument]) {
-        const sampler = samplers[instrument];
-        if (sampler && !sampler.disposed && (sampler instanceof Tone.Synth || sampler.loaded)) {
-             return;
+    if (samplers[instrument] && !samplers[instrument]?.disposed) {
+        if (samplers[instrument] instanceof Tone.Synth || (samplers[instrument] as Tone.Sampler).loaded) {
+            return;
         }
     }
     
     const config = instrumentConfigs[instrument];
-    if (config) {
-        console.log(`Initializing ${instrument} sampler...`);
+    if (config && config.baseUrl) {
+        // Manually construct the full URLs with the required query parameter
+        const fullUrls: { [note: string]: string } = {};
+        for (const note in config.urls) {
+            const fileName = config.urls[note];
+            fullUrls[note] = `${config.baseUrl}${encodeURIComponent(fileName)}?alt=media`;
+        }
+
+        console.log(`Initializing ${instrument} sampler with manually constructed URLs...`);
         const sampler = new Tone.Sampler({
-            ...config,
-            baseUrl: config.baseUrl, // Base URL is set here
+            urls: fullUrls,
+            release: config.release,
             onload: () => {
-                 console.log(`${instrument} sampler loaded successfully.`);
+                console.log(`${instrument} sampler loaded successfully.`);
             }
         }).toDestination();
 
-        // WORKAROUND: Tone.js doesn't handle query params in baseUrl well.
-        // Manually add each URL with the required ?alt=media param.
-        Object.keys(config.urls).forEach(note => {
-            const fileName = config.urls[note];
-            const fullUrl = `${config.baseUrl}${fileName}?alt=media`;
-            sampler.add(note, fullUrl);
-        });
-
         samplers[instrument] = sampler;
+        loadingPromises[instrument] = sampler.load(fullUrls);
+
     } else {
-        console.warn(`No config for instrument ${instrument}, falling back to synth.`);
+        console.warn(`No config or baseUrl for instrument ${instrument}, falling back to synth.`);
         if (!samplers[instrument] || samplers[instrument]?.disposed) {
             const synth = new Tone.Synth().toDestination();
             samplers[instrument] = synth;
+            loadingPromises[instrument] = Promise.resolve();
         }
     }
 };
@@ -103,6 +83,6 @@ export const getSampler = (instrument: Instrument): Tone.Sampler | Tone.Synth =>
 };
 
 export const allSamplersLoaded = async () => {
-    // Correct way to await all pending audio buffers to load in Tone.js
-    return Tone.loaded();
+    // This now waits for all explicitly created loading promises to resolve.
+    return Promise.all(Object.values(loadingPromises));
 }
