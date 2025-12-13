@@ -39,7 +39,7 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
             'C8': 'C8.mp3'
         },
         release: 1,
-        baseUrl: 'https://storage.googleapis.com/download/storage/v1/b/studio-4164192500-5d49e/o/samples%2Fpiano%2F?alt=media&name=',
+        baseUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-4164192500-5d49e.appspot.com/o/samples%2Fpiano%2F',
     }
 };
 
@@ -56,7 +56,10 @@ const initializeSampler = (instrument: Instrument) => {
     const config = instrumentConfigs[instrument];
     if (config) {
         console.log(`Initializing ${instrument} sampler...`);
-        const sampler = new Tone.Sampler(config).toDestination();
+        const sampler = new Tone.Sampler({
+            ...config,
+            baseUrl: config.baseUrl ? `${config.baseUrl}?alt=media&prefix=` : undefined,
+        }).toDestination();
         samplers[instrument] = sampler;
 
         Tone.loaded().then(() => {
