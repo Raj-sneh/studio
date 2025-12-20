@@ -1,10 +1,9 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Play, Pause, Square, History, Music4, Loader2 } from "lucide-react";
 import * as Tone from "tone";
-import Piano from "@/components/Piano";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,7 +15,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Instrument } from "@/types";
-import { getSampler } from "@/lib/samplers";
+import { getSampler, allSamplersLoaded } from "@/lib/samplers";
+
+const Piano = lazy(() => import("@/components/Piano"));
 
 type RecordedNote = {
     note: string;
@@ -25,6 +26,15 @@ type RecordedNote = {
 };
 
 const instruments: Instrument[] = ['piano'];
+
+function InstrumentLoader() {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-[200px] text-center bg-muted rounded-lg">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="mt-4 text-muted-foreground">Loading Instrument...</p>
+        </div>
+    )
+}
 
 export default function PracticePage() {
     const [isRecording, setIsRecording] = useState(false);
@@ -47,26 +57,27 @@ export default function PracticePage() {
             window.addEventListener(type, startAudio, options);
         });
 
-        const loadAllSamplers = async () => {
+        const loadInstrument = async () => {
             setIsLoading(true);
             try {
-                instruments.forEach(inst => getSampler(inst));
-                await Tone.loaded();
+                // Now we only get the sampler for the active instrument
+                getSampler(activeInstrument);
+                await allSamplersLoaded();
             } catch (error) {
-                console.error("Failed to load all samplers:", error);
+                console.error("Failed to load sampler:", error);
             } finally {
                 setIsLoading(false);
             }
         };
 
-        loadAllSamplers();
+        loadInstrument();
 
         return () => {
             eventTypes.forEach(type => {
                 window.removeEventListener(type, startAudio, options);
             });
         };
-    }, []);
+    }, [activeInstrument]);
 
     const handleNotePlay = (note: string) => {
         if (isRecording) {
@@ -114,7 +125,7 @@ export default function PracticePage() {
         return (
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)]">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="mt-4 text-muted-foreground">Loading instruments...</p>
+                <p className="mt-4 text-muted-foreground">Getting things ready...</p>
             </div>
         );
     }
@@ -139,7 +150,9 @@ export default function PracticePage() {
                             <CardDescription>Use your mouse or keyboard to play notes.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <Piano onNotePlay={handleNotePlay} />
+                            <Suspense fallback={<InstrumentLoader />}>
+                                <Piano onNotePlay={handleNotePlay} />
+                            </Suspense>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -174,5 +187,3 @@ export default function PracticePage() {
         </div>
     );
 }
-
-    

@@ -2,10 +2,12 @@
 import * as Tone from 'tone';
 import type { Instrument } from '@/types';
 
+// Store for our sampler instances and their loading promises
 const samplers: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
-const loadingPromises: Record<string, Promise<void>> = {};
+const loadingPromises: Partial<Record<Instrument, Promise<void>>> = {};
 
-const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, release?: number, baseUrl?: string }> = {
+// Configuration for each instrument's samples
+const instrumentConfigs: Partial<Record<Instrument, { urls: { [note: string]: string }, release?: number, baseUrl?: string }>> = {
     piano: {
         urls: {
             'A0': 'A0.mp3', 'C1': 'C1.mp3', 'D#1': 'Ds1.mp3', 'F#1': 'Fs1.mp3',
@@ -19,72 +21,88 @@ const instrumentConfigs: Record<Instrument, { urls: { [note: string]: string }, 
         },
         release: 1,
         baseUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-4164192500-5d49e.appspot.com/o/samples%2Fpiano%2F',
-    }
+    },
+    // Other instruments can be configured here
 };
 
+/**
+ * Initializes a sampler for a given instrument. This function is called by getSampler
+ * if the sampler hasn't been initialized yet.
+ * @param instrument The instrument to initialize.
+ */
 const initializeSampler = (instrument: Instrument) => {
+    // Avoid running on the server
     if (typeof window === 'undefined') return;
 
-    if (samplers[instrument] && !samplers[instrument]?.disposed) {
-        if (samplers[instrument] instanceof Tone.Synth || (samplers[instrument] as Tone.Sampler).loaded) {
-            return;
-        }
+    // If a loading promise already exists, we are already in the process of loading.
+    if (loadingPromises[instrument]) {
+        return;
     }
-    
+
     const config = instrumentConfigs[instrument];
+
     if (config && config.baseUrl) {
-        // Manually construct the full URLs with the required query parameter
-        const fullUrls: { [note: string]: string } = {};
-        for (const note in config.urls) {
-            const fileName = config.urls[note];
-            fullUrls[note] = `${config.baseUrl}${encodeURIComponent(fileName)}?alt=media`;
-        }
-
-        console.log(`Initializing ${instrument} sampler with manually constructed URLs...`);
-        const sampler = new Tone.Sampler({
-            urls: fullUrls,
-            release: config.release,
-            onload: () => {
-                console.log(`${instrument} sampler loaded successfully.`);
-            }
-        }).toDestination();
-
-        samplers[instrument] = sampler;
+        // This promise will be stored and reused to avoid re-initializing.
         loadingPromises[instrument] = new Promise((resolve, reject) => {
-            sampler.load(fullUrls).then(resolve).catch(reject);
+            const fullUrls: { [note: string]: string } = {};
+            for (const note in config.urls) {
+                const fileName = config.urls[note];
+                fullUrls[note] = `${config.baseUrl}${encodeURIComponent(fileName)}?alt=media`;
+            }
+
+            const sampler = new Tone.Sampler({
+                urls: fullUrls,
+                release: config.release,
+                onload: () => {
+                    console.log(`${instrument} sampler loaded successfully.`);
+                    samplers[instrument] = sampler;
+                    resolve();
+                }
+            }).toDestination();
+            
+            // Handle potential loading errors
+            sampler.load(fullUrls).catch(err => {
+                console.error(`Failed to load sampler for ${instrument}:`, err);
+                // Fallback to a synth to avoid crashing the app
+                samplers[instrument] = new Tone.Synth().toDestination();
+                reject(err); // Reject the promise to signal failure
+            });
         });
 
     } else {
-        console.warn(`No config or baseUrl for instrument ${instrument}, falling back to synth.`);
+        // If no sample configuration exists, fallback to a simple synth immediately.
+        console.warn(`No sample config for instrument ${instrument}, falling back to synth.`);
         if (!samplers[instrument] || samplers[instrument]?.disposed) {
-            const synth = new Tone.Synth().toDestination();
-            samplers[instrument] = synth;
-            loadingPromises[instrument] = Promise.resolve();
+            samplers[instrument] = new Tone.Synth().toDestination();
         }
+        loadingPromises[instrument] = Promise.resolve();
     }
 };
 
-if (typeof window !== 'undefined') {
-    (Object.keys(instrumentConfigs) as Instrument[]).forEach(initializeSampler);
-}
-
-
+/**
+ * Gets the sampler for a given instrument.
+ * If the sampler is not yet initialized, it will trigger initialization.
+ * @param instrument The instrument to get the sampler for.
+ * @returns The Tone.Sampler or Tone.Synth instance.
+ */
 export const getSampler = (instrument: Instrument): Tone.Sampler | Tone.Synth => {
-    if (!samplers[instrument] || samplers[instrument]?.disposed) {
-        console.warn(`Sampler for "${instrument}" was not pre-initialized or was disposed. Initializing now.`);
+    // Initialize the sampler if it hasn't been started yet.
+    if (!loadingPromises[instrument]) {
         initializeSampler(instrument);
     }
-    const sampler = samplers[instrument];
-    if (!sampler) {
-         console.error(`Fallback to synth because sampler for instrument "${instrument}" could not be initialized.`);
-         const synth = new Tone.Synth().toDestination();
-         samplers[instrument] = synth;
-         return synth;
-    }
-    return sampler;
+
+    // Return the existing sampler instance if available, otherwise a fallback synth.
+    return samplers[instrument] || new Tone.Synth().toDestination();
 };
 
+
+/**
+ * Returns a promise that resolves when all requested samplers have loaded.
+ * It now dynamically checks only for samplers that have been requested.
+ * @returns A promise that resolves when all active loading processes are complete.
+ */
 export const allSamplersLoaded = async () => {
-    // This now waits for all explicitly created loading promises to resolve.
-    return Promise.all(Object.values(loadingPromises));
+    // Wait only for the promises that have actually been created.
+    const activePromises = Object.values(loadingPromises).filter(p => p !== undefined) as Promise<void>[];
+    return Promise.all(activePromises);
 }

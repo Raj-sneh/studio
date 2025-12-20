@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense, lazy } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import * as Tone from "tone";
@@ -16,8 +16,6 @@ import { getSampler, allSamplersLoaded } from "@/lib/samplers";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 import { cn } from "@/lib/utils";
 
-
-import Piano from "@/components/Piano";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -51,6 +49,8 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Play, Square, Mic, Send, Flag, Bot, Loader2, Star, Trophy, Target, Sparkles, ChevronLeft, Ear, Music } from "lucide-react";
 
+const Piano = lazy(() => import("@/components/Piano"));
+
 type RecordedNote = { note: string; time: number };
 type AnalysisResult = {
   overallScore: number;
@@ -58,6 +58,15 @@ type AnalysisResult = {
   weaknesses: string;
 } | null;
 type Mode = "idle" | "demo" | "recording" | "analyzing" | "result" | "listening" | "transcribing";
+
+function InstrumentLoader() {
+    return (
+        <div className="flex flex-col items-center justify-center h-full text-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="mt-4 text-muted-foreground">Loading Instrument...</p>
+        </div>
+    )
+}
 
 export default function LessonPage() {
   const router = useRouter();
@@ -96,7 +105,7 @@ export default function LessonPage() {
       const loadAudio = async () => {
         setIsLoading(true);
         await ensureAudioContext();
-        getSampler(foundLesson.instrument);
+        getSampler(foundLesson.instrument); // This will trigger loading for the specific instrument
         await allSamplersLoaded();
         setIsLoading(false);
       }
@@ -275,10 +284,10 @@ export default function LessonPage() {
   };
 
   const renderInstrument = () => {
-    if (!lesson) return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    if (!lesson) return <InstrumentLoader />;
     
     if (isLoading) {
-        return <div className="flex flex-col items-center justify-center h-full text-center"><Loader2 className="h-8 w-8 animate-spin" /><p className="mt-4 text-muted-foreground">Loading instrument...</p></div>;
+        return <InstrumentLoader />;
     }
 
     const props = {
@@ -287,7 +296,12 @@ export default function LessonPage() {
       disabled: mode !== 'recording',
     };
 
-    return <Piano {...props} />;
+    if (lesson.instrument === 'piano') {
+        return <Suspense fallback={<InstrumentLoader />}><Piano {...props} /></Suspense>;
+    }
+    
+    // Fallback or other instruments
+    return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
   if (!lesson) {
@@ -446,4 +460,3 @@ export default function LessonPage() {
     </div>
   );
 }
-
