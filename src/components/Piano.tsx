@@ -63,11 +63,15 @@ export default function Piano({
     const stopNote = useCallback((note: string, octave: number) => {
         if (!sampler || disabled || !isLoaded) return;
         const fullNote = `${note}${octave}`;
-        sampler.triggerRelease(fullNote);
+        
         setPressedKeys(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(fullNote);
-            return newSet;
+            if (prev.has(fullNote)) {
+                sampler.triggerRelease(fullNote);
+                const newSet = new Set(prev);
+                newSet.delete(fullNote);
+                return newSet;
+            }
+            return prev;
         });
     }, [disabled, sampler, isLoaded]);
     
