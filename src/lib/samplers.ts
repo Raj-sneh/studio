@@ -44,28 +44,35 @@ const initializeSampler = (instrument: Instrument) => {
     if (config && config.baseUrl) {
         // This promise will be stored and reused to avoid re-initializing.
         loadingPromises[instrument] = new Promise((resolve, reject) => {
-            try {
-                const fullUrls: { [note: string]: string } = {};
-                for (const note in config.urls) {
-                    const fileName = config.urls[note];
-                    fullUrls[note] = `${config.baseUrl}${encodeURIComponent(fileName)}?alt=media`;
-                }
-
-                const sampler = new Tone.Sampler({
-                    urls: fullUrls,
-                    release: config.release,
-                    onload: () => {
-                        console.log(`${instrument} sampler loaded successfully.`);
-                        samplers[instrument] = sampler;
-                        resolve();
-                    }
-                }).toDestination();
-            } catch (err) {
-                 console.error(`Failed to load sampler for ${instrument}:`, err);
-                // Fallback to a synth to avoid crashing the app
-                samplers[instrument] = new Tone.Synth().toDestination();
-                reject(err); // Reject the promise to signal failure
+            const fullUrls: { [note: string]: string } = {};
+            for (const note in config.urls) {
+                const fileName = config.urls[note];
+                fullUrls[note] = `${config.baseUrl}${encodeURIComponent(fileName)}?alt=media`;
             }
+
+            const sampler = new Tone.Sampler({
+                urls: fullUrls,
+                release: config.release,
+                onload: () => {
+                    console.log(`${instrument} sampler loaded successfully.`);
+                    samplers[instrument] = sampler;
+                    resolve();
+                }
+            }).toDestination();
+            
+            // Handle potential loading errors - this is a bit tricky as Tone.Sampler doesn't have a direct onerror
+            // We can assume if it doesn't load in a certain time, it failed. This is a fallback.
+            setTimeout(() => {
+                if (!sampler.loaded) {
+                    console.error(`Failed to load sampler for ${instrument} within timeout.`);
+                    // Fallback to a synth to avoid crashing the app
+                    if (!samplers[instrument] || samplers[instrument]?.disposed) {
+                        samplers[instrument] = new Tone.Synth().toDestination();
+                    }
+                    reject(new Error(`Sampler for ${instrument} failed to load.`));
+                }
+            }, 20000); // 20-second timeout
+
         });
 
     } else {
