@@ -44,29 +44,28 @@ const initializeSampler = (instrument: Instrument) => {
     if (config && config.baseUrl) {
         // This promise will be stored and reused to avoid re-initializing.
         loadingPromises[instrument] = new Promise((resolve, reject) => {
-            const fullUrls: { [note: string]: string } = {};
-            for (const note in config.urls) {
-                const fileName = config.urls[note];
-                fullUrls[note] = `${config.baseUrl}${encodeURIComponent(fileName)}?alt=media`;
-            }
-
-            const sampler = new Tone.Sampler({
-                urls: fullUrls,
-                release: config.release,
-                onload: () => {
-                    console.log(`${instrument} sampler loaded successfully.`);
-                    samplers[instrument] = sampler;
-                    resolve();
+            try {
+                const fullUrls: { [note: string]: string } = {};
+                for (const note in config.urls) {
+                    const fileName = config.urls[note];
+                    fullUrls[note] = `${config.baseUrl}${encodeURIComponent(fileName)}?alt=media`;
                 }
-            }).toDestination();
-            
-            // Handle potential loading errors
-            sampler.load(fullUrls).catch(err => {
-                console.error(`Failed to load sampler for ${instrument}:`, err);
+
+                const sampler = new Tone.Sampler({
+                    urls: fullUrls,
+                    release: config.release,
+                    onload: () => {
+                        console.log(`${instrument} sampler loaded successfully.`);
+                        samplers[instrument] = sampler;
+                        resolve();
+                    }
+                }).toDestination();
+            } catch (err) {
+                 console.error(`Failed to load sampler for ${instrument}:`, err);
                 // Fallback to a synth to avoid crashing the app
                 samplers[instrument] = new Tone.Synth().toDestination();
                 reject(err); // Reject the promise to signal failure
-            });
+            }
         });
 
     } else {
