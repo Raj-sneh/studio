@@ -19,16 +19,6 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-col items-center justify-center text-center space-y-4">
-        {isUserLoading ? (
-            <Skeleton className="h-24 w-24 rounded-full" />
-        ) : (
-            <Avatar className="h-24 w-24 border-4 border-primary">
-                <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || ''} />
-                <AvatarFallback className="text-3xl">
-                    <UserIcon />
-                </AvatarFallback>
-            </Avatar>
-        )}
         <h1 className="font-headline text-4xl font-bold tracking-tight text-foreground">Welcome to Socio</h1>
         <p className="text-lg text-muted-foreground">What would you like to do today?</p>
       </div>
