@@ -1,12 +1,6 @@
 {
   "placeholderImages": [
     {
-      "id": "piano-lesson",
-      "description": "A cartoon illustration of a grand piano in a spotlight.",
-      "imageUrl": "https://images.unsplash.com/photo-1571504994840-d51bcf3797c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYXJ0b29uJTIwcGlhbm98ZW58MHx8fHwxNzY0MDk0NTg3fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "cartoon piano"
-    },
-    {
       "id": "dashboard-practice",
       "description": "A cartoon illustration of colorful musical notes floating around a treble clef.",
       "imageUrl": "https://images.unsplash.com/photo-1618641974158-a65c27a43582?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYXJ0b29uJTIwbXVzaWMlMjBub3Rlc3xlbnwwfHx8fDE3NjM5ODQ3MTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
