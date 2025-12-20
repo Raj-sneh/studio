@@ -58,6 +58,7 @@ type AnalysisResult = {
   weaknesses: string;
 } | null;
 type Mode = "idle" | "demo" | "recording" | "analyzing" | "result" | "listening" | "transcribing";
+type ActionState = "idle" | "loading" | "executing";
 
 function InstrumentLoader() {
     return (
@@ -85,7 +86,12 @@ export default function LessonPage() {
   const reportReasonRef = useRef<HTMLTextAreaElement>(null);
   const noteTimeoutIds = useRef<NodeJS.Timeout[]>([]);
   const image = lesson ? PlaceHolderImages.find(img => img.id === lesson.imageId) : null;
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInstrumentReady, setIsInstrumentReady] = useState(false);
+  const [actionState, setActionState] = useState<Record<string, ActionState>>({
+    demo: 'idle',
+    yourTurn: 'idle',
+    listenLearn: 'idle'
+  });
   const [transcribedNotes, setTranscribedNotes] = useState<NoteType[]>([]);
   
 
@@ -103,11 +109,10 @@ export default function LessonPage() {
       setLesson(foundLesson);
       
       const loadAudio = async () => {
-        setIsLoading(true);
         await ensureAudioContext();
-        getSampler(foundLesson.instrument); // This will trigger loading for the specific instrument
+        getSampler(foundLesson.instrument);
         await allSamplersLoaded();
-        setIsLoading(false);
+        setIsInstrumentReady(true);
       }
       loadAudio();
 
@@ -123,6 +128,19 @@ export default function LessonPage() {
         Tone.Transport.cancel();
     }
   }, [params.lessonId, router, ensureAudioContext]);
+
+  const withAudio = useCallback((actionName: string, actionFn: () => Promise<void> | void) => async () => {
+    if (!isInstrumentReady) {
+      setActionState(prev => ({ ...prev, [actionName]: 'loading' }));
+      await allSamplersLoaded();
+      setIsInstrumentReady(true);
+      setActionState(prev => ({ ...prev, [actionName]: 'executing' }));
+      await actionFn();
+      setActionState(prev => ({ ...prev, [actionName]: 'idle' }));
+    } else {
+      await actionFn();
+    }
+  }, [isInstrumentReady]);
   
   const playNotes = useCallback(async (notesToPlay: NoteType[], instrumentOverride?: Instrument, onEndCallback?: () => void) => {
     const currentInstrument = instrumentOverride || lesson?.instrument;
@@ -175,18 +193,17 @@ export default function LessonPage() {
     }
   }, [lesson?.instrument]);
 
-  const playDemo = useCallback(() => {
-    if (!lesson || isLoading) return;
+  const playDemo = useCallback(withAudio('demo', () => {
+    if (!lesson) return;
     setMode("demo");
     playNotes(lesson.notes, lesson.instrument);
-  }, [lesson, playNotes, isLoading]);
+  }), [lesson, playNotes, withAudio]);
 
-  const startVirtualRecording = async () => {
-    if (isLoading) return;
+  const startVirtualRecording = useCallback(withAudio('yourTurn', () => {
     setUserRecording([]);
     setRecordingStartTime(Date.now());
     setMode("recording");
-  };
+  }), [withAudio]);
 
   const handleNotePlay = useCallback((note: string) => {
     if (mode === 'recording') {
@@ -220,8 +237,8 @@ export default function LessonPage() {
     }
   };
 
-  const handleListenLearn = async () => {
-    if (!lesson || isLoading) return;
+  const handleListenLearn = useCallback(withAudio('listenLearn', async () => {
+    if (!lesson) return;
     if (isRecording) {
       setMode('transcribing');
       const audioBlob = await stopMicRecording();
@@ -261,7 +278,7 @@ export default function LessonPage() {
         setMode('idle');
       }
     }
-  };
+  }), [lesson, isRecording, stopMicRecording, startMicRecording, playNotes, withAudio, toast]);
   
   const handleReportSubmit = async () => {
     if (!lesson || !reportReasonRef.current?.value) return;
@@ -286,10 +303,6 @@ export default function LessonPage() {
   const renderInstrument = () => {
     if (!lesson) return <InstrumentLoader />;
     
-    if (isLoading) {
-        return <InstrumentLoader />;
-    }
-
     const props = {
       onNotePlay: handleNotePlay,
       highlightedKeys: highlightedKeys,
@@ -309,7 +322,7 @@ export default function LessonPage() {
   }
   
   const renderStatus = () => {
-    if (isLoading) return "Getting the instrument ready...";
+    if (!isInstrumentReady && Object.values(actionState).some(s => s === 'loading')) return "Getting the instrument ready...";
     switch (mode) {
       case 'idle': return "Ready when you are. Start with a demo or your turn.";
       case 'demo': return "Listen and watch the demo.";
@@ -322,8 +335,7 @@ export default function LessonPage() {
     }
   };
   
-  const isUIDisabled = !['idle'].includes(mode) || isLoading;
-
+  const isUIDisabled = mode !== 'idle';
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -380,21 +392,22 @@ export default function LessonPage() {
           
 
           <div className="grid grid-cols-3 gap-2">
-            <Button onClick={playDemo} disabled={isUIDisabled} size="lg">
-              {isLoading && mode === 'idle' ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Play className="mr-2 h-5 w-5"/>}
+            <Button onClick={playDemo} disabled={isUIDisabled || actionState.demo === 'loading'} size="lg">
+              {actionState.demo === 'loading' ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Play className="mr-2 h-5 w-5"/>}
               Demo
             </Button>
             {mode !== 'recording' ? (
-              <Button onClick={startVirtualRecording} disabled={isUIDisabled} size="lg">
-                <Music className="mr-2 h-5 w-5"/> Your Turn
+              <Button onClick={startVirtualRecording} disabled={isUIDisabled || actionState.yourTurn === 'loading'} size="lg">
+                {actionState.yourTurn === 'loading' ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : <Music className="mr-2 h-5 w-5"/>}
+                 Your Turn
               </Button>
             ) : (
               <Button onClick={stopRecordingAndAnalyze} size="lg" variant="destructive">
                 <Square className="mr-2 h-5 w-5"/> Finish &amp; Analyze
               </Button>
             )}
-             <Button onClick={handleListenLearn} disabled={!['idle', 'listening'].includes(mode) || isLoading} size="lg" variant={mode === 'listening' ? 'destructive' : 'default'}>
-              {mode === 'listening' ? <Square className="mr-2 h-5 w-5" /> : <Ear className="mr-2 h-5 w-5" />}
+             <Button onClick={handleListenLearn} disabled={!['idle', 'listening'].includes(mode) || actionState.listenLearn === 'loading'} size="lg" variant={mode === 'listening' ? 'destructive' : 'default'}>
+              {actionState.listenLearn === 'loading' ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : mode === 'listening' ? <Square className="mr-2 h-5 w-5" /> : <Ear className="mr-2 h-5 w-5" />}
               {mode === 'listening' ? "Stop" : "Listen & Learn"}
             </Button>
           </div>
@@ -460,3 +473,5 @@ export default function LessonPage() {
     </div>
   );
 }
+
+    
