@@ -3,18 +3,32 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Music, BrainCircuit } from "lucide-react";
+import { ArrowRight, Music, BrainCircuit, User as UserIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { useUser } from "@/firebase";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardPage() {
+  const { user, isUserLoading } = useUser();
   const practiceImage = PlaceHolderImages.find(img => img.id === 'dashboard-practice');
   const teacherImage = PlaceHolderImages.find(img => img.id === 'dashboard-teacher');
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col items-center justify-center text-center space-y-2">
+      <div className="flex flex-col items-center justify-center text-center space-y-4">
+        {isUserLoading ? (
+            <Skeleton className="h-24 w-24 rounded-full" />
+        ) : (
+            <Avatar className="h-24 w-24 border-4 border-primary">
+                <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || ''} />
+                <AvatarFallback className="text-3xl">
+                    <UserIcon />
+                </AvatarFallback>
+            </Avatar>
+        )}
         <h1 className="font-headline text-4xl font-bold tracking-tight text-foreground">Welcome to Socio</h1>
         <p className="text-lg text-muted-foreground">What would you like to do today?</p>
       </div>
