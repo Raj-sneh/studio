@@ -8,8 +8,8 @@
     },
     {
       "id": "dashboard-teacher",
-      "description": "A colorful cartoon illustration of a brain with musical notes coming out of it, representing AI and music.",
-      "imageUrl": "https://images.unsplash.com/photo-1565022513943-d3406ded75ae?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMGFpJTIwY2FydG9vbnxlbnwwfHx8fDE3MTg5ODg5OTR8MA&ixlib=rb-4.0.3&q=80&w=1080",
+      "description": "A colorful cartoon illustration of a robot interacting with musical notes, representing an AI music teacher.",
+      "imageUrl": "https://images.unsplash.com/photo-1589254065909-b7086229d092?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYXJ0b29uJTIwcm9ib3QlMjBtdXNpY3xlbnwwfHx8fDE3MTg5ODg5OTR8MA&ixlib=rb-4.0.3&q=80&w=1080",
       "imageHint": "music ai"
     },
     {
