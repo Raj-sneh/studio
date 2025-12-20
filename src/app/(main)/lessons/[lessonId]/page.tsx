@@ -9,11 +9,9 @@ import { lessons } from "@/lib/lessons";
 import type { Lesson, Note as NoteType } from "@/types";
 import { analyzeUserPerformance } from "@/ai/flows/analyze-user-performance";
 import { flagContentForReview } from "@/ai/flows/flag-content-for-review";
-import { transcribeAudio } from "@/ai/flows/transcribe-audio-flow";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useUser } from '@/firebase';
 import { getSampler, allSamplersLoaded } from "@/lib/samplers";
-import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
@@ -57,7 +55,7 @@ type AnalysisResult = {
   strengths: string;
   weaknesses: string;
 } | null;
-type Mode = "idle" | "demo" | "recording" | "analyzing" | "result" | "listening" | "transcribing";
+type Mode = "idle" | "demo" | "recording" | "analyzing" | "result";
 
 function InstrumentLoader() {
     return (
@@ -73,8 +71,7 @@ export default function LessonPage() {
   const params = useParams();
   const { toast } = useToast();
   const { user } = useUser();
-  const { isRecording, startRecording: startMicRecording, stopRecording: stopMicRecording } = useAudioRecorder();
-
+  
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [mode, setMode] = useState<Mode>("idle");
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
@@ -86,98 +83,82 @@ export default function LessonPage() {
   const noteTimeoutIds = useRef<NodeJS.Timeout[]>([]);
   const image = lesson ? PlaceHolderImages.find(img => img.id === lesson.imageId) : null;
   const [isInstrumentReady, setIsInstrumentReady] = useState(false);
-  const [transcribedNotes, setTranscribedNotes] = useState<NoteType[]>([]);
   
-
-  const ensureAudioContext = useCallback(async () => {
-    if (Tone.context.state !== 'running') {
-        await Tone.start();
-        console.log('Audio context started');
-    }
-  }, []);
+  const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
 
   useEffect(() => {
     const lessonId = params.lessonId as string;
     const foundLesson = lessons.find((l) => l.id === lessonId);
+
     if (foundLesson) {
       setLesson(foundLesson);
-      
       const loadAudio = async () => {
-        await ensureAudioContext();
-        getSampler(foundLesson.instrument);
-        await allSamplersLoaded();
+        await Tone.start();
+        samplerRef.current = getSampler(foundLesson.instrument);
+        await allSamplersLoaded(foundLesson.instrument);
         setIsInstrumentReady(true);
-      }
+      };
       loadAudio();
-
     } else {
       router.push("/lessons");
     }
-    
+
     return () => {
-        noteTimeoutIds.current.forEach(clearTimeout);
-        if (Tone.Transport.state === "started") {
-          Tone.Transport.stop();
-        }
-        Tone.Transport.cancel();
-    }
-  }, [params.lessonId, router, ensureAudioContext]);
+      noteTimeoutIds.current.forEach(clearTimeout);
+      Tone.Transport.stop();
+      Tone.Transport.cancel();
+    };
+  }, [params.lessonId, router]);
 
   const playNotes = useCallback(async (notesToPlay: NoteType[]) => {
-    if (!lesson || !isInstrumentReady || notesToPlay.length === 0) return;
+    if (!samplerRef.current || notesToPlay.length === 0) return;
   
-    const sampler = getSampler(lesson.instrument);
-          
     noteTimeoutIds.current.forEach(clearTimeout);
     noteTimeoutIds.current = [];
     setHighlightedKeys([]);
-    if (Tone.Transport.state === "started") {
-      Tone.Transport.stop();
-    }
+    Tone.Transport.stop();
     Tone.Transport.cancel();
     
-    const now = Tone.now() + 0.2;
+    const sampler = samplerRef.current;
+    const now = Tone.now() + 0.1;
     
     notesToPlay.forEach(note => {
-      if (note.key && note.duration && typeof note.time === 'number') {
-        const noteTimeMs = note.time * 1000;
-        const durationSeconds = Tone.Time(note.duration).toSeconds();
-    
-        sampler.triggerAttackRelease(note.key, durationSeconds, now + note.time);
-    
-        const attackTimeout = setTimeout(() => {
-          setHighlightedKeys(current => [...current, note.key]);
-        }, noteTimeMs);
-    
-        const releaseTimeout = setTimeout(() => {
-          setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
-        }, noteTimeMs + (durationSeconds * 1000));
-    
-        noteTimeoutIds.current.push(attackTimeout, releaseTimeout);
-      }
+      const noteTimeMs = note.time * 1000;
+      const durationSeconds = Tone.Time(note.duration).toSeconds();
+  
+      sampler.triggerAttackRelease(note.key, durationSeconds, now + note.time);
+  
+      const attackTimeout = setTimeout(() => {
+        setHighlightedKeys(current => [...current, note.key]);
+      }, noteTimeMs);
+  
+      const releaseTimeout = setTimeout(() => {
+        setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
+      }, noteTimeMs + (durationSeconds * 1000));
+  
+      noteTimeoutIds.current.push(attackTimeout, releaseTimeout);
     });
     
     const lastNote = notesToPlay[notesToPlay.length - 1];
-    if (lastNote && typeof lastNote.time === 'number' && lastNote.duration) {
-      const totalDuration = (lastNote.time + Tone.Time(lastNote.duration).toSeconds()) * 1000 + 500;
-      const modeTimeout = setTimeout(() => {
-        setMode("idle");
-      }, totalDuration);
-      noteTimeoutIds.current.push(modeTimeout);
-    }
-  }, [lesson, isInstrumentReady]);
+    const totalDuration = (lastNote.time + Tone.Time(lastNote.duration).toSeconds()) * 1000 + 500;
+    const modeTimeout = setTimeout(() => {
+      setMode("idle");
+    }, totalDuration);
+    noteTimeoutIds.current.push(modeTimeout);
+  }, []);
 
   const playDemo = useCallback(() => {
-    if (!lesson) return;
+    if (!lesson || !isInstrumentReady) return;
     setMode("demo");
     playNotes(lesson.notes);
-  }, [lesson, playNotes]);
+  }, [lesson, isInstrumentReady, playNotes]);
 
   const startVirtualRecording = useCallback(() => {
+    if (!isInstrumentReady) return;
     setUserRecording([]);
     setRecordingStartTime(Date.now());
     setMode("recording");
-  }, []);
+  }, [isInstrumentReady]);
 
   const handleNotePlay = useCallback((note: string) => {
     if (mode === 'recording') {
@@ -210,49 +191,6 @@ export default function LessonPage() {
       setMode("idle");
     }
   };
-
-  const handleListenLearn = useCallback(async () => {
-    if (!lesson) return;
-    if (isRecording) {
-      setMode('transcribing');
-      const audioBlob = await stopMicRecording();
-      if (!audioBlob) {
-        toast({ title: 'Recording failed', description: 'Could not capture audio.', variant: 'destructive' });
-        setMode('idle');
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      reader.onloadend = async () => {
-        const base64Audio = reader.result as string;
-        try {
-          const result = await transcribeAudio({ audioDataUri: base64Audio, instrument: 'piano' });
-          if(result.notes.length > 0) {
-            setTranscribedNotes(result.notes);
-            playNotes(result.notes);
-          } else {
-            toast({title: 'No notes detected', description: 'The AI could not detect any notes in your recording.'});
-            setMode('idle');
-          }
-        } catch (error) {
-          console.error("Transcription failed:", error);
-          toast({ title: 'Transcription Failed', description: 'Could not transcribe your audio. Please try again.', variant: 'destructive' });
-          setMode('idle');
-        }
-      }
-
-    } else {
-      setTranscribedNotes([]);
-      try {
-        await startMicRecording();
-        setMode('listening');
-      } catch (error) {
-        toast({ title: 'Microphone Error', description: 'Could not access the microphone. Please check permissions.', variant: 'destructive' });
-        setMode('idle');
-      }
-    }
-  }, [lesson, isRecording, stopMicRecording, startMicRecording, playNotes, toast]);
   
   const handleReportSubmit = async () => {
     if (!lesson || !reportReasonRef.current?.value) return;
@@ -287,28 +225,26 @@ export default function LessonPage() {
         return <Suspense fallback={<InstrumentLoader />}><Piano {...props} /></Suspense>;
     }
     
-    // Fallback or other instruments
-    return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    return <div className="flex items-center justify-center h-full"><p>This instrument is not yet available.</p></div>;
   }
 
-  if (!lesson || !isInstrumentReady) {
+  if (!lesson) {
     return <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /> <p className="ml-2">Loading Lesson...</p></div>;
   }
   
   const renderStatus = () => {
+    if (!isInstrumentReady) return "Loading instrument...";
     switch (mode) {
       case 'idle': return "Ready when you are. Start with a demo or your turn.";
       case 'demo': return "Listen and watch the demo.";
       case 'recording': return `Your turn! Play the notes on the piano.`;
       case 'analyzing': return "AI Teacher is analyzing your performance...";
       case 'result': return "Here's your feedback!";
-      case 'listening': return "Listening... Play your instrument.";
-      case 'transcribing': return "AI is transcribing your audio...";
       default: return "";
     }
   };
   
-  const isUIDisabled = mode !== 'idle';
+  const isUIDisabled = mode !== 'idle' || !isInstrumentReady;
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -355,22 +291,24 @@ export default function LessonPage() {
         </CardHeader>
         <CardContent className="flex-1 flex flex-col justify-between space-y-4">
           <div className="space-y-2">
-            <Progress value={(mode === 'demo' || mode === 'listening' || isRecording) ? 100 : 0} className={cn((mode === 'listening' || isRecording) && 'animate-pulse')} />
+            <Progress value={(mode === 'demo') ? 100 : 0} />
             <p className="text-center text-sm text-muted-foreground">{renderStatus()}</p>
           </div>
 
           <div className="flex-1 min-h-[300px]">
-            {renderInstrument()}
+            {isInstrumentReady ? renderInstrument() : <InstrumentLoader />}
           </div>
           
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <Button onClick={playDemo} disabled={isUIDisabled} size="lg">
+              {mode === 'demo' && <Loader2 className="animate-spin" />}
               <Play className="mr-2 h-5 w-5"/>
               Demo
             </Button>
             {mode !== 'recording' ? (
               <Button onClick={startVirtualRecording} disabled={isUIDisabled} size="lg">
+                 {mode === 'recording' && <Loader2 className="animate-spin" />}
                 <Music className="mr-2 h-5 w-5"/>
                  Your Turn
               </Button>
@@ -379,25 +317,19 @@ export default function LessonPage() {
                 <Square className="mr-2 h-5 w-5"/> Finish &amp; Analyze
               </Button>
             )}
-             <Button onClick={handleListenLearn} disabled={!['idle', 'listening'].includes(mode)} size="lg" variant={mode === 'listening' ? 'destructive' : 'default'}>
-              {mode === 'listening' ? <Square className="mr-2 h-5 w-5" /> : <Ear className="mr-2 h-5 w-5" />}
-              {mode === 'listening' ? "Stop" : "Listen & Learn"}
-            </Button>
           </div>
         </CardContent>
       </Card>
       
-      <AlertDialog open={mode === 'analyzing' || mode === 'transcribing'}>
+      <AlertDialog open={mode === 'analyzing'}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center justify-center font-headline text-2xl gap-3">
               <Bot className="h-8 w-8 animate-pulse text-primary"/> 
-              {mode === 'analyzing' ? 'Analyzing...' : 'Transcribing...'}
+              Analyzing...
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center pt-4">
-              {mode === 'analyzing'
-                ? 'The AI Teacher is listening to your performance. Please wait a moment for your feedback.'
-                : 'The AI is analyzing your recording to identify the notes you played.'}
+              The AI Teacher is listening to your performance. Please wait a moment for your feedback.
             </AlertDialogDescription>
           </AlertDialogHeader>
         </AlertDialogContent>
