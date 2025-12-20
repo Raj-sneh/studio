@@ -19,14 +19,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-col items-center justify-center text-center space-y-2">
-        {isUserLoading ? (
-            <Skeleton className="h-16 w-16 rounded-full" />
-        ) : (
-            <Avatar className="h-16 w-16 border-2 border-primary">
-                <AvatarImage src={user?.photoURL || "https://picsum.photos/seed/user-avatar/100/100"} alt={user?.displayName || "User"} />
-                <AvatarFallback>{user?.displayName?.charAt(0).toUpperCase() || 'G'}</AvatarFallback>
-            </Avatar>
-        )}
+        
         <h1 className="font-headline text-4xl font-bold tracking-tight text-foreground">Welcome to Socio</h1>
         <p className="text-lg text-muted-foreground">What would you like to do today?</p>
       </div>
