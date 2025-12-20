@@ -7,19 +7,14 @@ import { ArrowRight, Music, BrainCircuit } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { useUser } from "@/firebase";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardPage() {
   const practiceImage = PlaceHolderImages.find(img => img.id === 'dashboard-practice');
   const teacherImage = PlaceHolderImages.find(img => img.id === 'dashboard-teacher');
-  const { user, isUserLoading } = useUser();
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col items-center justify-center text-center space-y-2">
-        
         <h1 className="font-headline text-4xl font-bold tracking-tight text-foreground">Welcome to Socio</h1>
         <p className="text-lg text-muted-foreground">What would you like to do today?</p>
       </div>
