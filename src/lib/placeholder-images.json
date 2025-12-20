@@ -2,15 +2,15 @@
   "placeholderImages": [
     {
       "id": "dashboard-practice",
-      "description": "A colorful cartoon illustration of musical notes and symbols.",
-      "imageUrl": "https://images.unsplash.com/photo-1619992525838-c608023a07aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYXJ0b29uJTIwbXVzaWMlMjBub3Rlc3xlbnwwfHx8fDE3NjM5ODQ3MTB8MA&ixlib=rb-4.0.3&q=80&w=1080",
-      "imageHint": "cartoon music"
+      "description": "A vibrant and colorful cartoon illustration of various musical notes, instruments, and symbols, creating a lively and energetic scene.",
+      "imageUrl": "https://images.unsplash.com/photo-1511379938547-c1f69419868d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMG5vdGVzJTIwY29sb3JmdWx8ZW58MHx8fHwxNzE2NTYyMzMzfDA&ixlib=rb-4.0.3&q=80&w=1080",
+      "imageHint": "colorful music"
     },
     {
       "id": "dashboard-teacher",
-      "description": "A cartoon illustration of a friendly robot teacher pointing at a musical note.",
-      "imageUrl": "https://images.unsplash.com/photo-1691523302983-c2c7193b216c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYXJ0b29uJTIwcm9ib3QlMjBtdXNpY3xlbnwwfHx8fDE3NjM5ODQ4OTF8MA&ixlib=rb-4.0.3&q=80&w=1080",
-      "imageHint": "cartoon robot"
+      "description": "A colorful cartoon illustration of a brain with musical notes coming out of it, representing AI and music.",
+      "imageUrl": "https://images.unsplash.com/photo-1565022513943-d3406ded75ae?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMGFpJTIwY2FydG9vbnxlbnwwfHx8fDE3MTg5ODg5OTR8MA&ixlib=rb-4.0.3&q=80&w=1080",
+      "imageHint": "music ai"
     },
     {
       "id": "twinkle-twinkle-lesson",
