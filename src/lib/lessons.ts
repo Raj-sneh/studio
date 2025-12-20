@@ -8,7 +8,7 @@ export const lessons: Lesson[] = [
     instrument: 'piano',
     difficulty: 'Beginner',
     tempo: 100,
-    imageId: 'piano-lesson',
+    imageId: 'twinkle-twinkle-lesson',
     notes: [
         { key: 'C4', duration: '4n', time: 0 },
         { key: 'C4', duration: '4n', time: 0.5 },
@@ -32,7 +32,7 @@ export const lessons: Lesson[] = [
     instrument: 'piano',
     difficulty: 'Beginner',
     tempo: 120,
-    imageId: 'piano-lesson',
+    imageId: 'ode-to-joy-lesson',
     notes: [
         { key: 'E4', duration: '4n', time: 0 },
         { key: 'E4', duration: '4n', time: 0.5 },

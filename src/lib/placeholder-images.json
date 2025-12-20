@@ -17,6 +17,18 @@
       "description": "A cartoon illustration of a friendly robot teacher pointing at a musical note.",
       "imageUrl": "https://images.unsplash.com/photo-1691523302983-c2c7193b216c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYXJ0b29uJTIwcm9ib3QlMjBtdXNpY3xlbnwwfHx8fDE3NjM5ODQ4OTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "cartoon robot"
+    },
+    {
+      "id": "twinkle-twinkle-lesson",
+      "description": "A cartoon illustration of a twinkling star in a night sky with musical notes.",
+      "imageUrl": "https://images.unsplash.com/photo-1608232239212-6fa67c135264?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYXJ0b29uJTIwc3RhcnxlbnwwfHx8fDE3NjYyMzI5Njh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cartoon star"
+    },
+    {
+      "id": "ode-to-joy-lesson",
+      "description": "A cartoon illustration of a joyful symphony orchestra.",
+      "imageUrl": "https://images.unsplash.com/photo-1735046287880-fc11ec7da118?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y2FydG9vbiUyMG9yY2hlc3RyYXxlbnwwfHx8fDE3NjYyMzI5Njd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cartoon orchestra"
     }
   ]
 }
