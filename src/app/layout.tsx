@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
+import { AppStateProvider } from '@/app/app-state-provider';
 
 export const metadata: Metadata = {
   title: 'Socio - AI Music Teacher',
@@ -23,7 +24,11 @@ export default function RootLayout({
      crossOrigin="anonymous"></script>
       </head>
       <body className="font-body antialiased min-h-screen bg-background">
-        <FirebaseClientProvider>{children}</FirebaseClientProvider>
+        <FirebaseClientProvider>
+          <AppStateProvider>
+            {children}
+          </AppStateProvider>
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>
