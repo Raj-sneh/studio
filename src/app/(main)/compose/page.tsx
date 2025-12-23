@@ -18,7 +18,7 @@ function InstrumentLoader() {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center">
       <Loader2 className="h-8 w-8 animate-spin" />
-      <p className="mt-4 text-muted-foreground">Loading Instrument...</p>
+      <p className="mt-4 text-muted-foreground">Warming up the instruments...</p>
     </div>
   );
 }
@@ -93,7 +93,7 @@ export default function ComposePage() {
   };
   
   const playMelody = useCallback(async () => {
-    if (!samplerRef.current || generatedNotes.length === 0) return;
+    if (!samplerRef.current || generatedNotes.length === 0 || !(samplerRef.current instanceof Tone.Sampler && samplerRef.current.loaded)) return;
     setMode('playing');
 
     noteTimeoutIds.current.forEach(clearTimeout);
@@ -136,9 +136,11 @@ export default function ComposePage() {
     setHighlightedKeys([]);
     Tone.Transport.stop();
     Tone.Transport.cancel();
-    // Flush any notes that might be "stuck" on in the synth
+    // Flush any notes that might be "stuck" on in the sampler/synth
     if(samplerRef.current) {
-        samplerRef.current.releaseAll();
+        if (samplerRef.current instanceof Tone.Sampler) {
+            samplerRef.current.releaseAll();
+        }
     }
     setMode("idle");
   };
@@ -150,7 +152,7 @@ export default function ComposePage() {
       <div className="text-center">
         <h1 className="font-headline text-4xl font-bold tracking-tight flex items-center justify-center gap-3">
           <Wand2 className="h-8 w-8 text-primary" />
-          AI Magic
+          Magic
         </h1>
         <p className="mt-2 text-lg text-muted-foreground">
           Describe the music you want to create, and let AI bring it to life.
@@ -161,14 +163,14 @@ export default function ComposePage() {
         <CardHeader>
           <CardTitle>Describe Your Melody</CardTitle>
           <CardDescription>
-            Use descriptive words like "a happy, fast-paced piano tune" or "a slow, sad melody in a minor key".
+            Ask for a song like "play the theme from Titanic" or describe a mood like "a happy, fast-paced piano tune".
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g., A simple and cheerful nursery rhyme..."
+            placeholder="e.g., a simple and cheerful nursery rhyme..."
             className="min-h-[100px]"
             disabled={!isUIReady}
           />

@@ -43,17 +43,17 @@ const generateMelodyPrompt = ai.definePrompt({
   name: 'generateMelodyPrompt',
   input: {schema: GenerateMelodyInputSchema},
   output: {schema: GenerateMelodyOutputSchema},
-  prompt: `You are an expert composer and musician. Your task is to create a piano melody based on the user's prompt.
+  prompt: `You are an expert composer and musician with perfect pitch. Your primary task is to create a piano melody based on the user's prompt.
 
 - The output must be a JSON object containing an array of note objects.
-- Each note object must have 'key' (e.g., 'C4'), 'duration' (e.g., '8n', '4n'), and 'time' (in seconds from the start).
+- Each note object must have 'key' (e.g., 'C4'), 'duration' (e.g., '8n'), and 'time' (in seconds).
 
-**Instructions:**
+**CRITICAL INSTRUCTIONS:**
 
-1.  **Check for a specific song request.** If the user asks for a known song (e.g., "play titanic theme", "kal ho naa ho", "twinkle twinkle"), generate a simplified but recognizable version of that song's main melody. The melody should last for approximately 30 seconds.
-2.  **If it's not a specific song,** create an original melody based on the user's description (e.g., "a happy, upbeat tune"). This melody should be between 8 and 16 notes long.
-3.  The melody should be musically coherent and reflect the user's prompt.
-4.  Be creative!
+1.  **Prioritize Accuracy for Known Songs:** If the user asks for a specific, known song (e.g., "play titanic theme", "kal ho naa ho", "twinkle twinkle", or provides lyrics), your absolute priority is to generate a **highly accurate and recognizable** version of that song's main melody. Do not improvise or create a "similar" tune. Transcribe the core melody faithfully. The melody should last for approximately 20-30 seconds.
+2.  **Generate Original Melodies Otherwise:** If the prompt is a general description (e.g., "a happy, upbeat tune", "a sad, slow melody"), create a short, original melody that fits the description. This melody should be between 8 and 16 notes long.
+3.  **Ensure Musical Coherence:** All melodies, whether transcribed or original, must be musically coherent and pleasing to the ear.
+4.  **Instrument:** For now, all melodies are for the 'piano'.
 
 User prompt: {{{prompt}}}
 `,
