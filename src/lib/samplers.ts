@@ -52,19 +52,7 @@ const getInstrumentSampler = (instrument: Instrument): Tone.Sampler => {
         }).toDestination();
         
         instruments[instrument] = sampler;
-        loadingPromises[instrument] = new Promise((resolve) => {
-           sampler.context.addInit(() => {
-                if (sampler.loaded) {
-                    resolve();
-                } else {
-                    const oldOnload = sampler.onload;
-                    sampler.onload = () => {
-                        oldOnload?.();
-                        resolve();
-                    }
-                }
-           });
-        });
+        loadingPromises[instrument] = Tone.loaded();
     }
     return instruments[instrument] as Tone.Sampler;
 };
