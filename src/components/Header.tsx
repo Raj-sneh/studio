@@ -21,8 +21,7 @@ import { Music, LayoutDashboard, LogOut, User as UserIcon, Wand2 } from "lucide-
 const navLinks = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/practice", label: "Practice", icon: Music },
-  { href: "/lessons", label: "Lessons", icon: "AI" },
-  { href: "/compose", label: "Compose", icon: Wand2 },
+  { href: "/compose", label: "Magic", icon: Wand2 },
 ];
 
 export default function Header() {

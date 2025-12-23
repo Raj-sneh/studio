@@ -3,19 +3,15 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Music, BrainCircuit, User as UserIcon } from "lucide-react";
+import { ArrowRight, Music, Wand2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { useUser } from "@/firebase";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
 import { AIBot } from "@/components/AIBot";
 
 export default function DashboardPage() {
-  const { user, isUserLoading } = useUser();
   const practiceImage = PlaceHolderImages.find(img => img.id === 'dashboard-practice');
-  const teacherImage = PlaceHolderImages.find(img => img.id === 'dashboard-teacher');
+  const magicImage = PlaceHolderImages.find(img => img.id === 'dashboard-teacher');
 
   return (
     <div className="space-y-8">
@@ -61,32 +57,32 @@ export default function DashboardPage() {
 
         <Card className="overflow-hidden group hover:border-primary transition-all duration-300 transform hover:-translate-y-1">
           <CardHeader className="p-0">
-            {teacherImage && (
+            {magicImage && (
               <div className="aspect-video overflow-hidden">
                 <Image
-                  src={teacherImage.imageUrl}
-                  alt={teacherImage.description}
+                  src={magicImage.imageUrl}
+                  alt={magicImage.description}
                   width={600}
                   height={400}
-                  data-ai-hint={teacherImage.imageHint}
+                  data-ai-hint={magicImage.imageHint}
                   className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
                 />
               </div>
             )}
             <div className="p-6">
               <CardTitle className="font-headline text-2xl flex items-center gap-2">
-                <BrainCircuit className="text-accent" />
-                AI Teacher
+                <Wand2 className="text-accent" />
+                Magic
               </CardTitle>
               <CardDescription className="pt-2">
-                Take on guided lessons. Get real-time feedback and analysis from our AI to accelerate your learning.
+                Describe the music you want to create, and let our AI bring it to life in an instant.
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent>
-            <Link href="/lessons">
+            <Link href="/compose">
               <Button className="w-full">
-                Browse Lessons <ArrowRight className="ml-2 h-4 w-4" />
+                Create Magic <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </CardContent>
