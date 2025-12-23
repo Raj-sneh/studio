@@ -44,7 +44,7 @@ const getInstrumentSampler = (instrument: Instrument): Tone.Sampler => {
 
         const sampler = new Tone.Sampler({
             urls: samplerUrls[instrument],
-            baseUrl: `/samples/${instrument}/`,
+            baseUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-4164192500-5d49e.appspot.com/o/samples%2Fpiano%2F',
             release: 1,
             onload: () => {
                 console.log(`${instrument} sampler loaded.`);
