@@ -7,7 +7,7 @@
       "imageHint": "colorful music"
     },
     {
-      "id": "dashboard-teacher",
+      "id": "dashboard-magic",
       "description": "A colorful cartoon illustration of a robot interacting with musical notes, representing an AI music teacher.",
       "imageUrl": "https://images.unsplash.com/photo-1589254065909-b7086229d092?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYXJ0b29uJTIwcm9ib3QlMjBtdXNpY3xlbnwwfHx8fDE3MTg5ODg5OTR8MA&ixlib=rb-4.0.3&q=80&w=1080",
       "imageHint": "music ai"
@@ -19,10 +19,22 @@
       "imageHint": "cartoon star"
     },
     {
-      "id": "ode-to-joy-lesson",
-      "description": "A cartoon illustration of a joyful symphony orchestra.",
-      "imageUrl": "https://images.unsplash.com/photo-1735046287880-fc11ec7da118?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y2FydG9vbiUyMG9yY2hlc3RyYXxlbnwwfHx8fDE3NjYyMzI5Njd8MA&ixlib=rb-4.0.3&q=80&w=1080",
-      "imageHint": "cartoon orchestra"
+      "id": "kal-ho-naa-ho-lesson",
+      "description": "A stylized cartoon illustration of a heart with musical notes, representing a romantic Bollywood song.",
+      "imageUrl": "https://images.unsplash.com/photo-1518622393894-35ba34857473?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxib2xseXdvb2QlMjBsb3ZlJTIwc29uZ3xlbnwwfHx8fDE3NjYzMDI5MTN8MA&ixlib=rb-4.0.3&q=80&w=1080",
+      "imageHint": "bollywood love"
+    },
+    {
+      "id": "titanic-lesson",
+      "description": "A cartoon illustration of a majestic ship on the ocean at sunset, with musical notes in the sky.",
+      "imageUrl": "https://images.unsplash.com/photo-1611403565363-536968ign321?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxoaXN0b3JpYyUyMHNoaXAlMjBjYXJ0b29ufGVufDB8fHx8MTc2NjMwMjg4MXww&ixlib=rb-4.0.3&q=80&w=1080",
+      "imageHint": "historic ship"
+    },
+    {
+      "id": "dashboard-learn",
+      "description": "A colorful cartoon illustration of a wise owl wearing a graduation cap, pointing to a chalkboard with musical notes.",
+      "imageUrl": "https://images.unsplash.com/photo-1606232525524-8254885829b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYXJ0b29uJTIwb3dsJTIwdGVhY2hlcnxlbnwwfHx8fDE3NjYzMDIyMjN8MA&ixlib=rb-4.0.3&q=80&w=1080",
+      "imageHint": "cartoon teacher"
     }
   ]
 }

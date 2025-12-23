@@ -78,7 +78,7 @@ export default function LessonPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [mode, setMode] = useState<Mode>("idle");
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
-  const [userRecording, setUserRecording] = useState<RecordedNote[]>([]);
+  const [userRecording, setUserRecording] = useState<NoteType[]>([]);
   const [recordingStartTime, setRecordingStartTime] = useState(0);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult>(null);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
@@ -189,6 +189,7 @@ export default function LessonPage() {
             const base64Audio = reader.result as string;
             const transcriptionResult = await transcribeAudio({ audioDataUri: base64Audio, instrument: 'piano' });
             
+            setUserRecording(transcriptionResult.notes);
             const recordedNoteNames = transcriptionResult.notes.map(n => n.key);
             const expectedNoteNames = lesson.notes.map(n => n.key);
 
@@ -213,9 +214,10 @@ export default function LessonPage() {
   };
 
 
-  const handleNotePlay = useCallback((note: string) => {
+  const handleNotePlay = useCallback((note: string, duration: string) => {
     if (mode === 'recording') {
-        setUserRecording(prev => [...prev, { note, time: Date.now() - recordingStartTime }]);
+        const time = (Date.now() - recordingStartTime) / 1000;
+        setUserRecording(prev => [...prev, { key: note, duration, time }]);
     }
   }, [mode, recordingStartTime]);
 
@@ -223,7 +225,7 @@ export default function LessonPage() {
     setMode("analyzing");
     if (!lesson) return;
 
-    const recordedNoteNames = userRecording.map(n => n.note);
+    const recordedNoteNames = userRecording.map(n => n.key);
     const expectedNoteNames = lesson.notes.map(n => n.key);
     
     try {
@@ -269,7 +271,7 @@ export default function LessonPage() {
     if (!lesson) return <InstrumentLoader />;
     
     const props = {
-      onNotePlay: handleNotePlay,
+      onNotePlay: (note: string) => handleNotePlay(note, '8n'), // Assume 8n for virtual playing
       highlightedKeys: highlightedKeys,
       disabled: mode !== 'recording',
     };
@@ -290,8 +292,8 @@ export default function LessonPage() {
     switch (mode) {
       case 'idle': return "Ready when you are. Start with a demo or your turn.";
       case 'demo': return "Listen and watch the demo.";
-      case 'recording': return `Your turn! Play the notes on the piano.`;
-      case 'listening': return "Listening to your playing...";
+      case 'recording': return `Your turn! Play the notes on the virtual piano.`;
+      case 'listening': return "Listening to your playing via microphone...";
       case 'analyzing': return "AI Teacher is analyzing your performance...";
       case 'result': return "Here's your feedback!";
       default: return "";
@@ -356,28 +358,26 @@ export default function LessonPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             <Button onClick={playDemo} disabled={isUIDisabled} size="lg">
-              {mode === 'demo' && <Loader2 className="animate-spin" />}
-              <Play className="mr-2 h-5 w-5"/>
+              {mode === 'demo' ? <Loader2 className="animate-spin" /> : <Play className="mr-2 h-5 w-5"/>}
               Demo
             </Button>
             {mode !== 'recording' ? (
               <Button onClick={startVirtualRecording} disabled={isUIDisabled} size="lg">
-                 {mode === 'recording' && <Loader2 className="animate-spin" />}
                 <Music className="mr-2 h-5 w-5"/>
                  Your Turn
               </Button>
             ) : (
               <Button onClick={stopRecordingAndAnalyze} size="lg" variant="destructive">
-                <Square className="mr-2 h-5 w-5"/> Finish &amp; Analyze
+                <Square className="mr-2 h-5 w-5"/> Finish & Analyze
               </Button>
             )}
              {mode !== 'listening' ? (
               <Button onClick={startListening} disabled={isUIDisabled} size="lg" variant="outline">
-                <Mic className="mr-2 h-5 w-5"/> Listen &amp; Learn
+                <Mic className="mr-2 h-5 w-5"/> Listen & Learn
               </Button>
             ) : (
                 <Button onClick={stopListeningAndAnalyze} size="lg" variant="destructive">
-                    <Square className="mr-2 h-5 w-5" /> Stop &amp; Analyze
+                    <Square className="mr-2 h-5 w-5" /> Stop & Analyze
                 </Button>
             )}
           </div>
@@ -417,7 +417,7 @@ export default function LessonPage() {
             </Card>
             <Card className="md:col-span-2">
               <CardContent className="p-6">
-                 <p className="text-muted-foreground">{analysisResult ? `${(analysisResult.overallScore / 100 * userRecording.length).toFixed(0)} / ${userRecording.length} notes correct` : ''}</p>
+                 <p className="text-muted-foreground">{analysisResult ? `${(analysisResult.overallScore / 100 * userRecording.length).toFixed(0)} / ${lesson?.notes.length} notes correct` : ''}</p>
                  <Progress value={analysisResult?.overallScore || 0} className="mt-2"/>
               </CardContent>
             </Card>

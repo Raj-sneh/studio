@@ -19,17 +19,18 @@ const instrumentOrder: Instrument[] = ['piano'];
 
 export default function LessonsPage() {
   const groupedLessons = lessons.reduce((acc, lesson) => {
-    if (lesson.instrument === 'piano') {
-      (acc[lesson.instrument] = acc[lesson.instrument] || []).push(lesson);
+    if (!acc[lesson.instrument]) {
+      acc[lesson.instrument] = [];
     }
+    acc[lesson.instrument].push(lesson);
     return acc;
   }, {} as Record<Instrument, typeof lessons>);
 
   return (
     <div className="space-y-12">
       <div className="text-center">
-        <h1 className="font-headline text-4xl font-bold tracking-tight">AI Teacher Lessons</h1>
-        <p className="mt-2 text-lg text-muted-foreground">Choose a lesson to start learning with AI feedback.</p>
+        <h1 className="font-headline text-4xl font-bold tracking-tight">Learn a Song</h1>
+        <p className="mt-2 text-lg text-muted-foreground">Choose a song to start learning with AI feedback.</p>
       </div>
 
       {instrumentOrder.map(instrument => {
@@ -40,14 +41,14 @@ export default function LessonsPage() {
         return (
           <div key={instrument} className="space-y-6">
             <div className="flex items-center gap-3">
-              <Icon className="h-8 w-8 text-primary" />
+              {Icon && <Icon className="h-8 w-8 text-primary" />}
               <h2 className="font-headline text-3xl font-bold capitalize">{instrument} Lessons</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {lessonsForInstrument.map((lesson, index) => {
                 const image = PlaceHolderImages.find(img => img.id === lesson.imageId);
                 return (
-                  <Card key={lesson.id} className="flex flex-col overflow-hidden group hover:border-primary transition-all duration-300 thumbnail-animation" style={{ animationDelay: `${index * 150}ms` }}>
+                  <Card key={lesson.id} className="flex flex-col overflow-hidden group hover:border-primary transition-all duration-300">
                     <CardHeader className="p-0">
                       {image && (
                         <div className="aspect-video overflow-hidden relative">
