@@ -10,6 +10,7 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useUser } from "@/firebase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AIBot } from "@/components/AIBot";
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
@@ -18,6 +19,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+       <AIBot />
       <div className="flex flex-col items-center justify-center text-center space-y-4">
         <h1 className="font-headline text-4xl font-bold tracking-tight text-foreground">Welcome to Socio</h1>
         <p className="text-lg text-muted-foreground">What would you like to do today?</p>
