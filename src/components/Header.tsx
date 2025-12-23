@@ -16,13 +16,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import MonogramLogo from "@/components/icons/MonogramLogo";
 import { cn } from "@/lib/utils";
-import { Music, LayoutDashboard, LogOut, User as UserIcon, Wand2, BookOpen } from "lucide-react";
+import { Music, LayoutDashboard, LogOut, User as UserIcon, Wand2 } from "lucide-react";
 
 const navLinks = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/practice", label: "Practice", icon: Music },
   { href: "/compose", label: "Magic", icon: Wand2 },
-  { href: "/lessons", label: "Learn", icon: BookOpen },
 ];
 
 export default function Header() {
