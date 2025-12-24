@@ -29,8 +29,12 @@ export default function Flute({
   }, []);
 
 
-  const playNote = useCallback((note: string) => {
-    if (!sampler || disabled || !('loaded' in sampler && sampler.loaded) || sampler.disposed) return;
+  const playNote = useCallback(async (note: string) => {
+    if (!sampler || disabled) return;
+     if (Tone.context.state !== 'running') {
+        await Tone.start();
+    }
+    if (('loaded' in sampler && !sampler.loaded) || sampler.disposed) return;
     if ('triggerAttackRelease' in sampler) {
       sampler.triggerAttackRelease(note, "8n", Tone.now());
     }

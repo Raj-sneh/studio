@@ -78,10 +78,11 @@ export default function Guitar({
     }, []);
 
     const playNote = useCallback(async (note: string) => {
+        if (!sampler || disabled) return;
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!sampler || disabled || !('loaded' in sampler && sampler.loaded) || sampler.disposed) return;
+        if (('loaded' in sampler && !sampler.loaded) || sampler.disposed) return;
         if ('triggerAttack' in sampler) {
           sampler.triggerAttack(note, Tone.now());
         }
@@ -90,7 +91,8 @@ export default function Guitar({
     }, [disabled, onNotePlay, sampler]);
 
     const stopNote = useCallback((note: string) => {
-        if (!sampler || disabled || !('loaded' in sampler && sampler.loaded) || sampler.disposed) return;
+        if (!sampler || disabled) return;
+        if (('loaded' in sampler && !sampler.loaded) || sampler.disposed) return;
         if ('triggerRelease' in sampler) {
           sampler.triggerRelease([note], Tone.now());
         }
@@ -102,10 +104,11 @@ export default function Guitar({
     }, [disabled, sampler]);
 
     const playChord = useCallback(async (chordName: string) => {
+        if (!sampler || disabled) return;
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!sampler || disabled || !('loaded' in sampler && sampler.loaded) || sampler.disposed) return;
+        if (('loaded' in sampler && !sampler.loaded) || sampler.disposed) return;
         const chordNotes = chords[chordName].filter(n => n !== null) as string[];
         if ('triggerAttackRelease' in sampler) {
           sampler.triggerAttackRelease(chordNotes, '1n');

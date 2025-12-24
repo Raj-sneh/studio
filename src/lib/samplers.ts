@@ -3,12 +3,12 @@ import * as Tone from 'tone';
 import type { Instrument } from '@/types';
 
 // Store for our sampler/synth instances
-const instruments: Partial<record<Instrument, Tone.Sampler | Tone.Synth>> = {};
-const loadingPromises: Partial<record<Instrument, Promise<any>>> = {};
+const instruments: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
+const loadingPromises: Partial<Record<Instrument, Promise<Tone.Sampler | Tone.Synth>>> = {};
 
 const samplerUrls: Record<string, Record<string, string>> = {
     piano: {
-        A0: "A0.mp3", C1: "C1.mp3", "D#1": "Ds1.mp3", "F#1": "Fs1.mp3", A1: "A1.mp3", C2: "C2.mp3", "D#2": "Ds2.mp3", "F#2": "Fs2.mp3", A2: "A2.mp3", C3: "C3.mp3", "D#3": "Ds3.mp3", "F#3": "Fs3.mp3", A3: "A3.mp3", C4: "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3", A4: "A4.mp3", C5: "C5.mp3", "D#5": "Ds5.mp3", "F#5": "Fs5.mp3", A5: "A5.mp3", C6: "C6.mp3", "D#6": "Ds6.mp3", "F#6": "Fs6.mp3", A7: "A7.mp3", C7: "C7.mp3", "D#7": "Ds7.mp3", "F#7": "Fs7.mp3", A7: "A7.mp3", C8: "C8.mp3"
+        A0: "A0.mp3", C1: "C1.mp3", "D#1": "Ds1.mp3", "F#1": "Fs1.mp3", A1: "A1.mp3", C2: "C2.mp3", "D#2": "Ds2.mp3", "F#2": "Fs2.mp3", A2: "A2.mp3", C3: "C3.mp3", "D#3": "Ds3.mp3", "F#3": "Fs3.mp3", A3: "A3.mp3", C4: "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3", A4: "A4.mp3", C5: "C5.mp3", "D#5": "Ds5.mp3", "F#5": "Fs5.mp3", A5: "A5.mp3", C6: "C6.mp3", "D#6": "Ds6.mp3", "F#6": "Fs6.mp3", A6: "A6.mp3", C7: "C7.mp3", "D#7": "Ds7.mp3", "F#7": "Fs7.mp3", A7: "A7.mp3", C8: "C8.mp3"
     },
     guitar: {
         A2: "A2.mp3", C3: "C3.mp3", E3: "E3.mp3", "G#3": "Gs3.mp3",
@@ -65,25 +65,26 @@ export const getSampler = async (instrument: Instrument): Promise<Tone.Sampler |
         } as unknown as Tone.Sampler;
     }
 
-    // If a loading promise is already in flight, await it and return the result.
+    // If a loading promise is already in flight for this instrument, await it.
     if (loadingPromises[instrument]) {
-        return loadingPromises[instrument] as Promise<Tone.Sampler | Tone.Synth>;
+        return loadingPromises[instrument]!;
     }
 
-    // If the instrument exists and has not been disposed, return it immediately.
+    // If a valid, non-disposed instrument already exists, return it.
     if (instruments[instrument] && !instruments[instrument]?.disposed) {
         return instruments[instrument]!;
     }
-
+    
     const hasUrls = samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0;
     
-    // Create and store a new loading promise.
+    // Create and store a new loading promise. This prevents multiple concurrent loads for the same instrument.
     const loadingPromise = new Promise<Tone.Sampler | Tone.Synth>((resolve) => {
         if (hasUrls) {
             const newSampler = new Tone.Sampler({
                 urls: samplerUrls[instrument],
                 baseUrl: baseUrlMap[instrument],
                 release: 1,
+                // The 'onload' callback is the correct way to know when the sampler is ready.
                 onload: () => {
                     instruments[instrument] = newSampler;
                     resolve(newSampler);
@@ -91,6 +92,7 @@ export const getSampler = async (instrument: Instrument): Promise<Tone.Sampler |
             }).toDestination();
         } else {
             console.warn(`No sampler URLs for ${instrument}, falling back to synth.`);
+            // A synth doesn't need to load, so it's ready immediately.
             const newSynth = new Tone.Synth().toDestination();
             instruments[instrument] = newSynth;
             resolve(newSynth); // Resolve immediately for synth
@@ -98,24 +100,13 @@ export const getSampler = async (instrument: Instrument): Promise<Tone.Sampler |
     });
 
     loadingPromises[instrument] = loadingPromise;
-
-    // Await the newly created promise and return the loaded instrument.
-    const loadedInstrument = await loadingPromise;
-    // Clear the promise from the map once it's resolved.
-    delete loadingPromises[instrument];
-    return loadedInstrument;
-};
-
-/**
- * Ensures all requested instruments have loaded. This function is kept for compatibility
- * but `getSampler` should be the primary way to get instruments now.
- * @param instrument A single instrument or an array of instruments.
- * @returns A promise that resolves when all specified loading processes are complete.
- */
-export const allSamplersLoaded = (instrument: Instrument | Instrument[]) => {
-    const instrumentsToLoad = Array.isArray(instrument) ? instrument : [instrument];
     
-    const promises = instrumentsToLoad.map(inst => getSampler(inst));
-
-    return Promise.all(promises);
+    try {
+      // Await the newly created promise.
+      const loadedInstrument = await loadingPromise;
+      return loadedInstrument;
+    } finally {
+      // Clear the promise from the map once it's resolved or rejected.
+      delete loadingPromises[instrument];
+    }
 };

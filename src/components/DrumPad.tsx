@@ -35,10 +35,11 @@ export default function DrumPad({
   }, []);
 
   const playNote = useCallback(async (noteKey: string) => {
+    if (!sampler || disabled) return;
     if (Tone.context.state !== 'running') {
         await Tone.start();
     }
-    if (!sampler || disabled || !('loaded' in sampler && sampler.loaded) || sampler.disposed) return;
+    if (('loaded' in sampler && !sampler.loaded) || sampler.disposed) return;
     const drumSound = drumMap[noteKey];
     if (drumSound && 'triggerAttackRelease' in sampler) {
       sampler.triggerAttackRelease(drumSound.note, '1n', Tone.now());

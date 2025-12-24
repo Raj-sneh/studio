@@ -41,10 +41,11 @@ export default function Piano({
     }, []);
 
     const playNote = useCallback(async (note: string, octave: number) => {
+        if (!sampler || disabled) return;
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!sampler || disabled || !('loaded' in sampler && sampler.loaded) || sampler.disposed) return;
+        if (('loaded' in sampler && !sampler.loaded) || sampler.disposed) return;
 
         const fullNote = `${note}${octave}`;
         if ('triggerAttack' in sampler) {
@@ -56,7 +57,8 @@ export default function Piano({
     }, [disabled, onNotePlay, sampler]);
 
     const stopNote = useCallback((note: string, octave: number) => {
-        if (!sampler || disabled || !('loaded'in sampler && sampler.loaded) || sampler.disposed) return;
+        if (!sampler || disabled) return;
+        if (('loaded'in sampler && !sampler.loaded) || sampler.disposed) return;
         const fullNote = `${note}${octave}`;
         
         setPressedKeys(prev => {

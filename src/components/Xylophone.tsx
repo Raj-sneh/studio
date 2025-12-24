@@ -45,10 +45,11 @@ export default function Xylophone({
     }, []);
 
     const playNote = useCallback(async (note: string, octave: number) => {
+        if (!sampler || disabled) return;
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!sampler || disabled || !('loaded' in sampler && sampler.loaded) || sampler.disposed) return;
+        if (('loaded' in sampler && !sampler.loaded) || sampler.disposed) return;
         const fullNote = `${note}${octave}`;
         if ('triggerAttackRelease' in sampler) {
             sampler.triggerAttackRelease(fullNote, "8n", Tone.now());
