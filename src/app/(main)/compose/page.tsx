@@ -47,7 +47,11 @@ export default function ComposePage() {
     loadAudio();
 
     return () => {
+      // Cleanup on unmount
       noteTimeoutIds.current.forEach(clearTimeout);
+      if (samplerRef.current && 'releaseAll' in samplerRef.current) {
+        samplerRef.current.releaseAll();
+      }
       Tone.Transport.stop();
       Tone.Transport.cancel();
     };
@@ -92,58 +96,62 @@ export default function ComposePage() {
     }
   };
   
-  const playMelody = useCallback(async () => {
-    if (!samplerRef.current || generatedNotes.length === 0 || !(samplerRef.current instanceof Tone.Sampler && samplerRef.current.loaded)) return;
-    setMode('playing');
-
+  const stopPlayback = useCallback(() => {
+    // Clear all scheduled timeouts for visual feedback
     noteTimeoutIds.current.forEach(clearTimeout);
     noteTimeoutIds.current = [];
-    setHighlightedKeys([]);
+    
+    // Stop any notes that are currently playing
+    if (samplerRef.current && 'releaseAll' in samplerRef.current) {
+        samplerRef.current.releaseAll();
+    }
+    
+    // Clear any events scheduled on the transport
     Tone.Transport.stop();
     Tone.Transport.cancel();
     
+    // Reset visual and state indicators
+    setHighlightedKeys([]);
+    setMode("idle");
+  }, []);
+
+  const playMelody = useCallback(async () => {
+    if (!samplerRef.current || generatedNotes.length === 0 || !(samplerRef.current instanceof Tone.Sampler && samplerRef.current.loaded)) return;
+    
+    // Stop any previous playback before starting a new one
+    stopPlayback();
+    
+    setMode('playing');
+
     const sampler = samplerRef.current;
     const now = Tone.now() + 0.1;
     
     generatedNotes.forEach(note => {
-      const noteTimeMs = note.time * 1000;
       const durationSeconds = Tone.Time(note.duration).toSeconds();
-  
       sampler.triggerAttackRelease(note.key, durationSeconds, now + note.time);
   
+      // Schedule visual highlighting
       const attackTimeout = setTimeout(() => {
         setHighlightedKeys(current => [...current, note.key]);
-      }, noteTimeMs);
+      }, note.time * 1000);
   
       const releaseTimeout = setTimeout(() => {
         setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
-      }, noteTimeMs + (durationSeconds * 1000));
+      }, (note.time + durationSeconds) * 1000);
   
       noteTimeoutIds.current.push(attackTimeout, releaseTimeout);
     });
     
     const lastNote = generatedNotes[generatedNotes.length - 1];
     const totalDuration = (lastNote.time + Tone.Time(lastNote.duration).toSeconds()) * 1000 + 500;
-    const modeTimeout = setTimeout(() => {
+    
+    const playbackEndTimeout = setTimeout(() => {
       setMode("idle");
     }, totalDuration);
-    noteTimeoutIds.current.push(modeTimeout);
-  }, [generatedNotes]);
+    
+    noteTimeoutIds.current.push(playbackEndTimeout);
+  }, [generatedNotes, stopPlayback]);
 
-  const stopPlayback = () => {
-    noteTimeoutIds.current.forEach(clearTimeout);
-    noteTimeoutIds.current = [];
-    setHighlightedKeys([]);
-    Tone.Transport.stop();
-    Tone.Transport.cancel();
-    // Flush any notes that might be "stuck" on in the sampler/synth
-    if(samplerRef.current) {
-        if (samplerRef.current instanceof Tone.Sampler) {
-            samplerRef.current.releaseAll();
-        }
-    }
-    setMode("idle");
-  };
   
   const isUIReady = isInstrumentReady && mode !== 'generating';
 
