@@ -44,34 +44,6 @@ const baseUrlMap: Record<string, string> = {
     drums: 'https://tonejs.github.io/audio/drum-samples/CR78/'
 }
 
-
-// Use a simple synth as a fallback or default
-const getSynth = (instrument: Instrument): Tone.Synth => {
-    if (!instruments[instrument] || instruments[instrument]?.disposed) {
-        const synth = new Tone.Synth().toDestination();
-        instruments[instrument] = synth;
-        // Synth loads instantly, but let's be consistent and return a resolved promise
-        loadingPromises[instrument] = Promise.resolve();
-    }
-    return instruments[instrument] as Tone.Synth;
-};
-
-const createSampler = (instrument: Instrument): Tone.Sampler => {
-    if (!samplerUrls[instrument] || Object.keys(samplerUrls[instrument]).length === 0) {
-        console.warn(`No sampler URLs for ${instrument}, falling back to synth.`);
-        return getSynth(instrument) as unknown as Tone.Sampler;
-    }
-    
-    const sampler = new Tone.Sampler({
-        urls: samplerUrls[instrument],
-        baseUrl: baseUrlMap[instrument],
-        release: 1,
-    }).toDestination();
-    
-    return sampler;
-};
-
-
 /**
  * Gets the sampler for a given instrument. It handles creating, caching,
  * and re-creating samplers if they have been disposed.
@@ -90,23 +62,35 @@ export const getSampler = (instrument: Instrument): Tone.Sampler | Tone.Synth =>
             loaded: false,
         } as unknown as Tone.Sampler;
     }
+
+    // If the instrument exists and has not been disposed, return it.
+    if (instruments[instrument] && !instruments[instrument]?.disposed) {
+        return instruments[instrument]!;
+    }
     
     const hasUrls = samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0;
 
-    // If the instrument doesn't exist or is disposed, create it.
-    if (!instruments[instrument] || instruments[instrument]?.disposed) {
-        if (hasUrls) {
-            const newSampler = createSampler(instrument);
-            instruments[instrument] = newSampler;
-            loadingPromises[instrument] = new Promise(resolve => {
-                newSampler.load(samplerUrls[instrument], () => {
-                    resolve();
-                });
-            });
-        } else {
-            // Fallback to synth if no URLs
-            getSynth(instrument);
-        }
+    if (hasUrls) {
+        const newSampler = new Tone.Sampler({
+            urls: samplerUrls[instrument],
+            baseUrl: baseUrlMap[instrument],
+            release: 1,
+        }).toDestination();
+
+        instruments[instrument] = newSampler;
+        // The loading promise should be attached to the sampler instance loading process.
+        loadingPromises[instrument] = new Promise(resolve => {
+            // Tone.loaded() can be used, but attaching to the sampler's onload is more specific.
+            newSampler.load(samplerUrls[instrument]).then(() => resolve());
+        });
+
+    } else {
+        // Fallback to a simple synth if no specific samples are available.
+        console.warn(`No sampler URLs for ${instrument}, falling back to synth.`);
+        const newSynth = new Tone.Synth().toDestination();
+        instruments[instrument] = newSynth;
+        // Synths don't require async loading, so the promise can be resolved immediately.
+        loadingPromises[instrument] = Promise.resolve();
     }
     
     return instruments[instrument]!;
@@ -121,8 +105,8 @@ export const allSamplersLoaded = (instrument: Instrument | Instrument[]) => {
     const instrumentsToLoad = Array.isArray(instrument) ? instrument : [instrument];
     
     const promises = instrumentsToLoad.map(inst => {
-         if (!loadingPromises[inst] || !instruments[inst] || instruments[inst]?.disposed) {
-            // This will ensure the sampler and its loading promise are created if missing.
+         // Ensure the instrument is initialized and a loading promise exists.
+         if (!loadingPromises[inst] || instruments[inst]?.disposed) {
             getSampler(inst); 
         }
         return loadingPromises[inst] || Promise.resolve();
