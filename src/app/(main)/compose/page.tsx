@@ -99,10 +99,12 @@ export default function ComposePage() {
         setGeneratedNotes(result.notes);
         
         // Load the new instrument sampler if it's different
-        setIsInstrumentReady(false);
-        samplerRef.current = getSampler(selectedInstrument);
-        await allSamplersLoaded(selectedInstrument);
-        setIsInstrumentReady(true);
+        if (selectedInstrument !== instrument) {
+            setIsInstrumentReady(false);
+            samplerRef.current = getSampler(selectedInstrument);
+            await allSamplersLoaded(selectedInstrument);
+            setIsInstrumentReady(true);
+        }
         
         toast({
             title: "Melody Generated!",
@@ -132,17 +134,18 @@ export default function ComposePage() {
     if (partRef.current) {
         partRef.current.stop(0);
         partRef.current.dispose();
-        partRef.current = null;
     }
     Tone.Transport.stop();
-    Tone.Transport.cancel();
+    Tone.Transport.cancel(0);
 
+    // This is important to stop any lingering notes
     if (samplerRef.current && 'releaseAll' in samplerRef.current) {
         (samplerRef.current as Tone.Sampler).releaseAll();
     }
     
     setHighlightedKeys([]);
     setMode("idle");
+    partRef.current = null;
   }, []);
 
   const playMelody = useCallback(async () => {
@@ -152,7 +155,11 @@ export default function ComposePage() {
         return;
     };
     
-    stopPlayback();
+    if (mode === 'playing') {
+      stopPlayback();
+      return;
+    }
+    
     setMode('playing');
 
     partRef.current = new Tone.Part((time, note) => {
@@ -182,7 +189,7 @@ export default function ComposePage() {
         stopPlayback();
     }, totalDuration + 0.5);
 
-  }, [generatedNotes, stopPlayback, toast]);
+  }, [generatedNotes, stopPlayback, toast, mode]);
 
   
   const isUIReady = isInstrumentReady && mode !== 'generating';
@@ -260,3 +267,5 @@ export default function ComposePage() {
     </div>
   );
 }
+
+    
