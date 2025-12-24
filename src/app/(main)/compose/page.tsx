@@ -54,6 +54,7 @@ export default function ComposePage() {
   const partRef = useRef<Tone.Part | null>(null);
 
   const cleanupAudio = useCallback(() => {
+    // This is a more robust cleanup
     if (partRef.current) {
       partRef.current.stop(0);
       partRef.current.dispose();
@@ -61,14 +62,18 @@ export default function ComposePage() {
     }
     Tone.Transport.stop();
     Tone.Transport.cancel();
+    setHighlightedKeys([]);
+
+    // The sampler itself doesn't need to be disposed here if we are reusing it,
+    // but we ensure all sounds are stopped.
     if (samplerRef.current && 'releaseAll' in samplerRef.current && typeof samplerRef.current.releaseAll === 'function' && !samplerRef.current.disposed) {
       (samplerRef.current as Tone.Sampler).releaseAll();
     }
   }, []);
 
-
+  // Effect for initial load and cleanup on unmount
   useEffect(() => {
-    const loadAudio = async () => {
+    const loadInitialInstrument = async () => {
       setIsInstrumentReady(false);
       await Tone.start();
       // Pre-load piano by default
@@ -76,9 +81,9 @@ export default function ComposePage() {
       await allSamplersLoaded('piano');
       setIsInstrumentReady(true);
     };
-    loadAudio();
+    loadInitialInstrument();
 
-    // This is the key cleanup function that runs on unmount
+    // This is the key cleanup function that runs only on unmount
     return () => {
       cleanupAudio();
     };
@@ -86,10 +91,8 @@ export default function ComposePage() {
 
   const stopPlayback = useCallback(() => {
     cleanupAudio();
-    setHighlightedKeys([]);
     setMode("idle");
   }, [cleanupAudio]);
-
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -111,15 +114,15 @@ export default function ComposePage() {
 
     try {
       const result = await generateMelody({ prompt });
+      
       if (result && result.notes && result.notes.length > 0) {
-        
         const isInstrumentValid = result.instrument && Object.keys(instrumentComponents).includes(result.instrument);
         const selectedInstrument = isInstrumentValid ? result.instrument : 'piano';
         
-        cleanupAudio(); // Clean up old instrument before loading a new one
         setCurrentInstrument(selectedInstrument);
         setGeneratedNotes(result.notes);
         
+        // Don't clean up here, getSampler handles instance management
         samplerRef.current = getSampler(selectedInstrument);
         await allSamplersLoaded(selectedInstrument);
         
@@ -127,7 +130,7 @@ export default function ComposePage() {
             title: "Melody Generated!",
             description: `Your new melody is ready to be played on the ${selectedInstrument}.`,
         });
-
+        
       } else {
         toast({
             variant: "destructive",
@@ -162,20 +165,23 @@ export default function ComposePage() {
     
     setMode('playing');
 
-    // Ensure previous part is disposed before creating a new one
+    // Ensure any previous part is disposed of before creating a new one
     if (partRef.current) {
       partRef.current.dispose();
     }
 
     partRef.current = new Tone.Part((time, note) => {
+        // Check sampler exists and is ready to be played
         if ('triggerAttackRelease' in currentSampler && !currentSampler.disposed) {
             currentSampler.triggerAttackRelease(note.key, note.duration, time);
         }
         
+        // Schedule visual updates with Tone.Draw
         Tone.Draw.schedule(() => {
             setHighlightedKeys(current => [...current, note.key]);
         }, time);
 
+        // Schedule key highlight removal
         const releaseTime = time + Tone.Time(note.duration).toSeconds() * 0.9;
         Tone.Draw.schedule(() => {
              setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
@@ -183,13 +189,14 @@ export default function ComposePage() {
 
     }, generatedNotes).start(0);
 
+    // Make sure the last note has time to play
     const lastNote = generatedNotes[generatedNotes.length - 1];
     const totalDuration = lastNote.time + Tone.Time(lastNote.duration).toSeconds();
     partRef.current.loop = false;
     
     Tone.Transport.start();
 
-    // Schedule the stop event on the Transport
+    // Schedule the stop event on the Transport itself
     Tone.Transport.scheduleOnce(() => {
         stopPlayback();
     }, totalDuration + 0.5);
@@ -228,7 +235,7 @@ export default function ComposePage() {
             disabled={mode === 'generating'}
           />
           <Button onClick={handleGenerate} disabled={mode === 'generating' || !prompt.trim()} size="lg" className="w-full">
-            {mode === 'generating' && <Loader2 className="animate-spin" />}
+            {mode === 'generating' && <Loader2 className="animate-spin mr-2" />}
             {mode !== 'generating' && <Sparkles className="mr-2 h-5 w-5" />}
             Generate Melody
           </Button>
