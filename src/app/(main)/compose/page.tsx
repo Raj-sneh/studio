@@ -52,23 +52,21 @@ export default function ComposePage() {
   
   const partRef = useRef<Tone.Part | null>(null);
 
-  // This is the single source of truth for stopping audio and cleaning up.
+  // Stop playback and clean up Tone.js resources
   const stopPlayback = useCallback(() => {
-    if (partRef.current) {
-      partRef.current.stop(0);
-      partRef.current.dispose(); // Fully remove the part
-      partRef.current = null;
+    if (Tone.Transport.state === 'started') {
+        Tone.Transport.stop();
     }
-    Tone.Transport.stop();
     Tone.Transport.cancel();
-    setHighlightedKeys([]);
-
-    // Get the current sampler and release its notes. We don't dispose the sampler itself
-    // as it's managed by the `getSampler` utility now.
+    if (partRef.current) {
+        partRef.current.dispose();
+        partRef.current = null;
+    }
     const sampler = getSampler(currentInstrument);
     if (sampler && 'releaseAll' in sampler && typeof sampler.releaseAll === 'function' && !sampler.disposed) {
-      sampler.releaseAll();
+      sampler.releaseAll(0);
     }
+    setHighlightedKeys([]);
     setMode("idle");
   }, [currentInstrument]);
   
@@ -77,14 +75,13 @@ export default function ComposePage() {
     const loadInitialInstrument = async () => {
       setIsInstrumentReady(false);
       await Tone.start();
-      getSampler('piano'); // This ensures the sampler is created
       await allSamplersLoaded('piano');
       setIsInstrumentReady(true);
     };
     loadInitialInstrument();
     
+    // Ensure that when the component unmounts, all audio is stopped.
     return () => {
-      // When the component unmounts for good, stop any lingering sound.
       stopPlayback();
     };
   }, [stopPlayback]);
@@ -99,11 +96,7 @@ export default function ComposePage() {
       return;
     }
     
-    // Always stop any ongoing playback before generating a new melody.
-    if (mode === 'playing') {
-      stopPlayback();
-    }
-
+    stopPlayback();
     setMode('generating');
     setGeneratedNotes([]);
     setIsInstrumentReady(false);
@@ -118,19 +111,19 @@ export default function ComposePage() {
             description: "The AI could not create a melody from your prompt. Try being more specific.",
         });
         setMode('idle');
-        setIsInstrumentReady(true); // Re-enable UI for another try with the current instrument
+        // Ensure the previous instrument is ready again if generation fails
+        await allSamplersLoaded(currentInstrument);
+        setIsInstrumentReady(true);
         return;
       }
       
-      // Defensively check for a valid instrument, defaulting to piano.
-      const isInstrumentValid = result.instrument && Object.keys(instrumentComponents).includes(result.instrument);
-      const newInstrument = isInstrumentValid ? result.instrument : 'piano';
+      const newInstrument = result.instrument && Object.keys(instrumentComponents).includes(result.instrument)
+        ? result.instrument
+        : 'piano';
       
       setCurrentInstrument(newInstrument);
       setGeneratedNotes(result.notes);
       
-      // Load the new instrument's samples. This will create if it doesn't exist or is disposed.
-      getSampler(newInstrument);
       await allSamplersLoaded(newInstrument);
       
       toast({
@@ -146,7 +139,6 @@ export default function ComposePage() {
         description: 'An unexpected error occurred while generating the melody. Please try again.',
       });
     } finally {
-      // Transition to idle and mark instrument as ready for playback.
       setMode('idle');
       setIsInstrumentReady(true);
     }
@@ -156,15 +148,12 @@ export default function ComposePage() {
     if (!isInstrumentReady || generatedNotes.length === 0 || mode === 'playing') return;
     
     const sampler = getSampler(currentInstrument);
-    if (!sampler || ('loaded' in sampler && !sampler.loaded)) {
-      toast({ title: "Cannot Play", description: "The instrument is still loading."});
+    if (!sampler || ('loaded' in sampler && !sampler.loaded) || sampler.disposed) {
+      toast({ title: "Cannot Play", description: "The instrument is still loading or has been disposed."});
       return;
     }
 
-    // Ensure any previous part is fully cleaned up before creating a new one.
-    if (partRef.current) {
-        partRef.current.dispose();
-    }
+    stopPlayback(); // Ensure everything is clean before starting
     setMode('playing');
     
     partRef.current = new Tone.Part((time, note) => {
@@ -189,11 +178,12 @@ export default function ComposePage() {
     
     Tone.Transport.start();
 
+    // Schedule the stop action
     Tone.Transport.scheduleOnce(() => {
         stopPlayback();
     }, totalDuration + 0.5);
 
-  }, [generatedNotes, isInstrumentReady, mode, stopPlayback, toast, currentInstrument]);
+  }, [generatedNotes, isInstrumentReady, mode, stopPlayback, currentInstrument, toast]);
 
   
   const isUIReady = isInstrumentReady && mode !== 'generating';

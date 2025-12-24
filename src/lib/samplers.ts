@@ -48,51 +48,39 @@ const baseUrlMap: Record<string, string> = {
 // Use a simple synth as a fallback or default
 const getSynth = (instrument: Instrument): Tone.Synth => {
     if (!instruments[instrument] || instruments[instrument]?.disposed) {
-        console.log(`Initializing new synth for ${instrument}`);
         const synth = new Tone.Synth().toDestination();
         instruments[instrument] = synth;
-        loadingPromises[instrument] = Promise.resolve(); // Synth loads instantly
+        // Synth loads instantly, but let's be consistent and return a resolved promise
+        loadingPromises[instrument] = Promise.resolve();
     }
     return instruments[instrument] as Tone.Synth;
 };
 
-const getInstrumentSampler = (instrument: Instrument): Tone.Sampler => {
-    // If the instrument exists and is disposed, we must create a new one.
-    if (!instruments[instrument] || instruments[instrument]?.disposed) {
-        console.log(`Initializing new sampler for ${instrument}`);
-        
-        if (!samplerUrls[instrument] || Object.keys(samplerUrls[instrument]).length === 0) {
-            console.warn(`No sampler URLs for ${instrument}, falling back to synth.`);
-            return getSynth(instrument) as unknown as Tone.Sampler;
-        }
-
-        const sampler = new Tone.Sampler({
-            urls: samplerUrls[instrument],
-            baseUrl: baseUrlMap[instrument],
-            release: 1,
-        }).toDestination();
-        
-        instruments[instrument] = sampler;
-        // The promise for loading is now handled by Tone.loaded() which we await elsewhere
-        loadingPromises[instrument] = new Promise(resolve => {
-            Tone.loaded().then(() => {
-                console.log(`${instrument} sampler loaded.`);
-                resolve();
-            });
-        });
+const createSampler = (instrument: Instrument): Tone.Sampler => {
+    if (!samplerUrls[instrument] || Object.keys(samplerUrls[instrument]).length === 0) {
+        console.warn(`No sampler URLs for ${instrument}, falling back to synth.`);
+        return getSynth(instrument) as unknown as Tone.Sampler;
     }
-    return instruments[instrument] as Tone.Sampler;
+    
+    const sampler = new Tone.Sampler({
+        urls: samplerUrls[instrument],
+        baseUrl: baseUrlMap[instrument],
+        release: 1,
+    }).toDestination();
+    
+    return sampler;
 };
 
 
 /**
- * Gets the sampler for a given instrument.
+ * Gets the sampler for a given instrument. It handles creating, caching,
+ * and re-creating samplers if they have been disposed.
  * @param instrument The instrument to get the sampler for.
- * @returns The Tone.Sampler instance.
+ * @returns The Tone.Sampler or Tone.Synth instance.
  */
 export const getSampler = (instrument: Instrument): Tone.Sampler | Tone.Synth => {
     if (typeof window === 'undefined') {
-        // Return a mock object on the server to prevent errors
+        // Return a mock object on the server to prevent errors during SSR
         return {
             triggerAttack: () => {},
             triggerRelease: () => {},
@@ -100,31 +88,41 @@ export const getSampler = (instrument: Instrument): Tone.Sampler | Tone.Synth =>
             dispose: () => {},
             disposed: false,
             loaded: false,
-            toDestination: () => ({
-                triggerAttack: () => {},
-                triggerRelease: () => {},
-            }),
         } as unknown as Tone.Sampler;
     }
     
-    if (samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0) {
-        return getInstrumentSampler(instrument);
+    const hasUrls = samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0;
+
+    // If the instrument doesn't exist or is disposed, create it.
+    if (!instruments[instrument] || instruments[instrument]?.disposed) {
+        if (hasUrls) {
+            const newSampler = createSampler(instrument);
+            instruments[instrument] = newSampler;
+            loadingPromises[instrument] = new Promise(resolve => {
+                newSampler.load(samplerUrls[instrument], () => {
+                    resolve();
+                });
+            });
+        } else {
+            // Fallback to synth if no URLs
+            getSynth(instrument);
+        }
     }
     
-    // Fallback to a basic synth for any other case.
-    return getSynth(instrument);
+    return instruments[instrument]!;
 };
 
 /**
  * Returns a promise that resolves when all requested instruments have loaded.
- * @returns A promise that resolves when all active loading processes are complete.
+ * @param instrument A single instrument or an array of instruments.
+ * @returns A promise that resolves when all specified loading processes are complete.
  */
-export const allSamplersLoaded = (instrument?: Instrument | Instrument[]) => {
-    const instrumentsToLoad = Array.isArray(instrument) ? instrument : (instrument ? [instrument] : Object.keys(loadingPromises) as Instrument[]);
+export const allSamplersLoaded = (instrument: Instrument | Instrument[]) => {
+    const instrumentsToLoad = Array.isArray(instrument) ? instrument : [instrument];
     
     const promises = instrumentsToLoad.map(inst => {
-         if (!loadingPromises[inst]) {
-            // This will create the promise if it doesn't exist
+         if (!loadingPromises[inst] || !instruments[inst] || instruments[inst]?.disposed) {
+            // This will ensure the sampler and its loading promise are created if missing.
             getSampler(inst); 
         }
         return loadingPromises[inst] || Promise.resolve();
