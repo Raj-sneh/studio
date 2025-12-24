@@ -53,12 +53,13 @@ const generateMelodyPrompt = ai.definePrompt({
 **CRITICAL INSTRUCTIONS:**
 
 1.  **Prioritize Accuracy for Known Songs:** If the user asks for a specific, known song (e.g., "play titanic theme", "kal ho naa ho", "twinkle twinkle", or provides lyrics), your absolute priority is to generate a **highly accurate and recognizable** version of that song's main melody. Do not improvise or create a "similar" tune. Transcribe the core melody faithfully. The melody should last for approximately 20-30 seconds.
-2.  **Choose the Best Instrument:** Based on the user's prompt, select the most suitable instrument from the available options. For example:
-    - 'Stairway to Heaven' should probably be 'guitar'.
-    - 'My Heart Will Go On' could be 'flute' or 'violin'.
-    - Most pop songs or classical pieces are great on 'piano'.
-    - A simple nursery rhyme might be good for 'xylophone'.
-    Think about the original song's instrumentation and choose the best fit.
+2.  **Choose the Best Instrument:** Based on the user's prompt, select the most suitable instrument.
+    - **Default to Piano:** For most general requests (e.g., "a happy tune", "a sad song"), 'piano' is an excellent and safe choice.
+    - **Contextual Choices:** Select other instruments only when they are a clear fit. For example:
+        - 'Stairway to Heaven' should be 'guitar'.
+        - 'My Heart Will Go On' could be 'flute' or 'violin'.
+        - A simple nursery rhyme is a good fit for 'xylophone'.
+    - **Avoid Overusing Xylophone:** Do not default to 'xylophone' for complex or general prompts. It is a specialized instrument.
 3.  **Generate Original Melodies Otherwise:** If the prompt is a general description (e.g., "a happy, upbeat tune", "a sad, slow melody"), create a short, original melody that fits the description. This melody should be between 8 and 16 notes long.
 4.  **Ensure Musical Coherence:** All melodies, whether transcribed or original, must be musically coherent and pleasing to the ear.
 
