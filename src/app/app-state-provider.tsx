@@ -5,7 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useAuth, useUser, setDocumentNonBlocking, initiateAnonymousSignIn } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
-import SButtonIcon from "@/components/icons/SButtonIcon";
+import { Loader2 } from "lucide-react";
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -41,7 +41,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           <p className="text-destructive">{error}</p>
         ) : (
           <>
-            <SButtonIcon className="animate-spin h-12 w-12 text-primary" />
+            <Loader2 className="animate-spin h-12 w-12 text-primary" />
             <p className="mt-4 text-muted-foreground">Loading Socio...</p>
           </>
         )}
