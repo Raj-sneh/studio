@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Play, Sparkles, Square, Wand2 } from 'lucide-react';
 import { generateMelody } from '@/ai/flows/generate-melody-flow';
 import type { Note, Instrument } from '@/types';
-import { createSampler } from '@/lib/samplers';
+import { getSampler } from '@/lib/samplers';
 import { useToast } from '@/hooks/use-toast';
 
 const Piano = lazy(() => import('@/components/Piano'));
@@ -54,7 +54,6 @@ export default function ComposePage() {
   const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
 
-  // Stop playback and clean up Tone.js transport
   const stopPlayback = () => {
     if (Tone.Transport.state === 'started') {
       Tone.Transport.stop();
@@ -70,23 +69,6 @@ export default function ComposePage() {
       setMode("idle");
     }
   };
-
-  // General cleanup on unmount
-  useEffect(() => {
-    return () => {
-      // This is a direct reference to the cleanup function, avoiding stale closures.
-      if (Tone.Transport.state === 'started') {
-        Tone.Transport.stop();
-        Tone.Transport.cancel();
-      }
-      if (partRef.current) {
-        partRef.current.dispose();
-      }
-      if (sampler && !sampler.disposed) {
-        sampler.dispose();
-      }
-    };
-  }, [sampler]); // Depend only on sampler for disposal cleanup.
   
   const handleGenerate = async () => {
     if (!prompt.trim() || mode === 'generating') {
@@ -121,20 +103,14 @@ export default function ComposePage() {
       setCurrentInstrument(newInstrument);
       setGeneratedNotes(result.notes);
       
-      // Dispose old sampler if it exists and create a new one
-      if (sampler && !sampler.disposed) {
-        sampler.dispose();
-      }
-
-      const newSampler = await createSampler(newInstrument);
-      setSampler(newSampler);
-      
-      toast({
-          title: "Melody Generated!",
-          description: `Your new melody is ready to be played on the ${newInstrument}.`,
+      getSampler(newInstrument).then(newSampler => {
+        setSampler(newSampler);
+        setMode('idle');
+        toast({
+            title: "Melody Generated!",
+            description: `Your new melody is ready to be played on the ${newInstrument}.`,
+        });
       });
-      
-      setMode('idle');
       
     } catch (error) {
       console.error('Melody generation failed:', error);
@@ -162,7 +138,6 @@ export default function ComposePage() {
 
     try {
         partRef.current = new Tone.Part((time, note) => {
-            // Check sampler availability inside the callback as well
             if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
                 sampler.triggerAttackRelease(note.key, note.duration, time);
             }
@@ -186,7 +161,6 @@ export default function ComposePage() {
         Tone.Transport.start();
 
         Tone.Transport.scheduleOnce(() => {
-            // Use a function reference for the stop logic
             stopPlayback();
         }, totalDuration + 0.5);
 

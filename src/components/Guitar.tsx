@@ -6,7 +6,7 @@ import * as Tone from "tone";
 import { cn } from "@/lib/utils";
 import { Settings, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
-import { createSampler } from "@/lib/samplers";
+import { getSampler } from "@/lib/samplers";
 
 // Standard tuning for a 6-string guitar
 const openStrings = ['E4', 'B3', 'G3', 'D3', 'A2', 'E2'];
@@ -71,17 +71,10 @@ export default function Guitar({
     const [activeChord, setActiveChord] = useState<string | null>(null);
 
     useEffect(() => {
-        let localSampler: Tone.Sampler | Tone.Synth | null = null;
-        const loadSampler = async () => {
-            setIsLoading(true);
-            localSampler = await createSampler('guitar');
-            setSampler(localSampler);
+        getSampler('guitar').then(loadedSampler => {
+            setSampler(loadedSampler);
             setIsLoading(false);
-        }
-        loadSampler();
-        return () => {
-            if(localSampler) localSampler.dispose();
-        }
+        });
     }, []);
 
     const playNote = useCallback(async (note: string) => {

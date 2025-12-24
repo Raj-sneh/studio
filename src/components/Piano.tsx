@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback } from "react";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
-import { createSampler } from "@/lib/samplers";
+import { getSampler } from "@/lib/samplers";
 import { Loader2 } from "lucide-react";
 
 const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -35,31 +35,17 @@ export default function Piano({
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
 
     useEffect(() => {
-        let localSampler: Tone.Sampler | Tone.Synth | null = null;
-
-        const loadSampler = async () => {
-            setIsLoading(true);
-            localSampler = await createSampler('piano');
-            setSampler(localSampler);
+        getSampler('piano').then(loadedSampler => {
+            setSampler(loadedSampler);
             setIsLoading(false);
-        };
-
-        loadSampler();
-
-        // Cleanup function to dispose of the sampler when the component unmounts.
-        return () => {
-            if (localSampler) {
-                localSampler.dispose();
-            }
-        };
+        });
     }, []);
 
     const playNote = useCallback(async (note: string, octave: number) => {
-        if (!sampler || disabled || isLoading) return;
+        if (!sampler || disabled || isLoading || sampler.disposed) return;
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (sampler.disposed) return;
 
         const fullNote = `${note}${octave}`;
         if ('triggerAttack' in sampler) {

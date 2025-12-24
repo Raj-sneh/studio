@@ -10,7 +10,7 @@ import { analyzeUserPerformance } from "@/ai/flows/analyze-user-performance";
 import { flagContentForReview } from "@/ai/flows/flag-content-for-review";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useUser } from '@/firebase';
-import { createSampler } from "@/lib/samplers";
+import { getSampler } from "@/lib/samplers";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 import { transcribeAudio } from "@/ai/flows/transcribe-audio-flow";
 
@@ -74,8 +74,10 @@ export default function LessonPage() {
         partRef.current = null;
     }
     setHighlightedKeys([]);
-    setMode("idle");
-  }, []);
+    if (mode === 'demo') {
+        setMode("idle");
+    }
+  }, [mode]);
 
   useEffect(() => {
     const lessonId = params.lessonId as string;
@@ -83,25 +85,17 @@ export default function LessonPage() {
 
     if (foundLesson) {
       setLesson(foundLesson);
-      const loadAudio = async () => {
-        setIsInstrumentReady(false);
-        await Tone.start();
-        if (samplerRef.current) {
-            samplerRef.current.dispose();
-        }
-        samplerRef.current = await createSampler(foundLesson.instrument);
+      setIsInstrumentReady(false);
+      getSampler(foundLesson.instrument).then(loadedSampler => {
+        samplerRef.current = loadedSampler;
         setIsInstrumentReady(true);
-      };
-      loadAudio();
+      });
     } else {
       router.push("/lessons");
     }
 
     return () => {
       stopPlayback();
-      if (samplerRef.current && !samplerRef.current.disposed) {
-        samplerRef.current.dispose();
-      }
       if (isMicRecording) {
         stopMicRecording();
       }
@@ -340,9 +334,9 @@ export default function LessonPage() {
           
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            <Button onClick={playDemo} disabled={isUIDisabled} size="lg">
-              {mode === 'demo' ? <Loader2 className="animate-spin" /> : <Play className="mr-2 h-5 w-5"/>}
-              Demo
+            <Button onClick={playDemo} disabled={isUIDisabled || mode === 'demo'} size="lg">
+              {mode === 'demo' ? <Square className="mr-2 h-5 w-5" /> : <Play className="mr-2 h-5 w-5"/>}
+              {mode === 'demo' ? "Stop" : "Demo"}
             </Button>
             {mode !== 'recording' ? (
               <Button onClick={startVirtualRecording} disabled={isUIDisabled} size="lg">

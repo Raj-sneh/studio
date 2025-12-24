@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import * as Tone from 'tone';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import { createSampler } from '@/lib/samplers';
+import { getSampler } from '@/lib/samplers';
 import { Loader2 } from 'lucide-react';
 
 const drumMap: { [key: string]: { name: string; note: string; imageUrl: string; hint: string } } = {
@@ -29,17 +29,10 @@ export default function DrumPad({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let localSampler: Tone.Sampler | Tone.Synth | null = null;
-    const loadSampler = async () => {
-      setIsLoading(true);
-      localSampler = await createSampler('drums');
-      setSampler(localSampler);
+    getSampler('drums').then(loadedSampler => {
+      setSampler(loadedSampler);
       setIsLoading(false);
-    }
-    loadSampler();
-    return () => {
-      if(localSampler) localSampler.dispose();
-    }
+    });
   }, []);
 
   const playNote = useCallback(async (noteKey: string) => {

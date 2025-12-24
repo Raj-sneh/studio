@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Instrument } from "@/types";
-import { createSampler } from "@/lib/samplers";
+import { getSampler } from "@/lib/samplers";
 
 const Piano = lazy(() => import("@/components/Piano"));
 const Guitar = lazy(() => import("@/components/Guitar"));
@@ -84,7 +84,10 @@ export default function PracticePage() {
             window.addEventListener(type, startAudio, options);
         });
 
-        setIsLoading(false);
+        // Preload the default instrument
+        getSampler('piano').then(() => {
+            setIsLoading(false);
+        });
 
         return () => {
             eventTypes.forEach(type => {
@@ -94,6 +97,15 @@ export default function PracticePage() {
             Tone.Transport.cancel();
         };
     }, []);
+
+    const handleInstrumentChange = (value: string) => {
+        const instrument = value as Instrument;
+        setActiveInstrument(instrument);
+        setIsLoading(true);
+        getSampler(instrument).then(() => {
+            setIsLoading(false);
+        });
+    }
 
     const handleNotePlay = (note: string) => {
         if (isRecording) {
@@ -116,11 +128,11 @@ export default function PracticePage() {
         if (recordedNotes.length === 0 || isPlaying) return;
         setIsPlaying(true);
 
-        const samplers: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
         const instrumentsInRecording = new Set(recordedNotes.map(n => n.instrument));
+        const samplers: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
         
         for (const inst of instrumentsInRecording) {
-            samplers[inst] = await createSampler(inst);
+            samplers[inst] = await getSampler(inst);
         }
 
         const now = Tone.now();
@@ -137,19 +149,13 @@ export default function PracticePage() {
         
         const timeoutId = setTimeout(() => {
             setIsPlaying(false);
-            // Dispose all created samplers
-            Object.values(samplers).forEach(sampler => {
-                if (sampler && !sampler.disposed) {
-                    sampler.dispose();
-                }
-            });
         }, totalTime + 1000);
 
         // This part is for potential cleanup if component unmounts while playing.
         return () => clearTimeout(timeoutId);
     };
 
-    if (isLoading) {
+    if (isLoading && !activeInstrument) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)]">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -165,7 +171,7 @@ export default function PracticePage() {
                 <p className="mt-2 text-lg text-muted-foreground">Select an instrument and play freely.</p>
             </div>
 
-            <Tabs defaultValue="piano" className="w-full" onValueChange={(value) => setActiveInstrument(value as Instrument)}>
+            <Tabs defaultValue="piano" className="w-full" onValueChange={handleInstrumentChange}>
                 <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
                     {instruments.map(inst => (
                         <TabsTrigger key={inst} value={inst} className="capitalize">{inst}</TabsTrigger>
@@ -181,9 +187,11 @@ export default function PracticePage() {
                                     <CardDescription>{instrumentDescriptions[inst]}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4 min-h-[300px] flex items-center justify-center">
-                                    <Suspense fallback={<InstrumentLoader />}>
-                                        <InstrumentComponent onNotePlay={handleNotePlay} />
-                                    </Suspense>
+                                    {(isLoading && activeInstrument === inst) ? <InstrumentLoader /> : (
+                                        <Suspense fallback={<InstrumentLoader />}>
+                                            <InstrumentComponent onNotePlay={handleNotePlay} />
+                                        </Suspense>
+                                    )}
                                 </CardContent>
                             </Card>
                         </TabsContent>

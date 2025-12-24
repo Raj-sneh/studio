@@ -2,8 +2,8 @@
 import * as Tone from 'tone';
 import type { Instrument } from '@/types';
 
-// This file is now a simple factory for creating new instrument instances.
-// The complex caching logic has been removed to favor component-level state management, which is more robust.
+// Centralized cache for loaded samplers
+const samplerCache = new Map<Instrument, Tone.Sampler | Tone.Synth>();
 
 const samplerUrls: Record<string, Record<string, string>> = {
     piano: {
@@ -45,24 +45,31 @@ const baseUrlMap: Record<string, string> = {
 
 
 /**
- * Creates a new Tone.js instrument (Sampler or Synth).
+ * Creates or retrieves a cached Tone.js instrument.
  * This function is async and resolves with the loaded instrument.
- * It ALWAYS creates a new instance.
- * @param instrument The instrument to create.
- * @returns A promise that resolves with the new Tone.Sampler or Tone.Synth instance.
+ * It ensures that an instrument is loaded only once.
+ * @param instrument The instrument to create or retrieve.
+ * @returns A promise that resolves with the Tone.Sampler or Tone.Synth instance.
  */
-export const createSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.Synth> => {
+export const getSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.Synth> => {
     return new Promise((resolve) => {
+        // Return cached sampler if it exists and is not disposed
+        const cachedSampler = samplerCache.get(instrument);
+        if (cachedSampler && !cachedSampler.disposed) {
+            return resolve(cachedSampler);
+        }
+
         if (typeof window === 'undefined') {
-            // On the server, return a mock object immediately.
-            return resolve({
+            const mockSampler = {
                 triggerAttack: () => {},
                 triggerRelease: () => {},
                 releaseAll: () => {},
                 dispose: () => {},
                 disposed: true,
                 loaded: false,
-            } as unknown as Tone.Sampler);
+            } as unknown as Tone.Sampler;
+            samplerCache.set(instrument, mockSampler);
+            return resolve(mockSampler);
         }
 
         const hasUrls = samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0;
@@ -73,13 +80,14 @@ export const createSampler = (instrument: Instrument): Promise<Tone.Sampler | To
                 baseUrl: baseUrlMap[instrument],
                 release: 1,
                 onload: () => {
-                    resolve(sampler); // Resolve the promise when loading is complete
+                    samplerCache.set(instrument, sampler);
+                    resolve(sampler);
                 }
             }).toDestination();
         } else {
-            // If no samples are available, fall back to a basic synth.
             const synth = new Tone.Synth().toDestination();
-            resolve(synth); // A synth is ready immediately.
+            samplerCache.set(instrument, synth);
+            resolve(synth);
         }
     });
 };

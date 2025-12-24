@@ -5,7 +5,7 @@ import { useEffect, useCallback, useState } from "react";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
 import { Wind, Loader2 } from "lucide-react";
-import { createSampler } from "@/lib/samplers";
+import { getSampler } from "@/lib/samplers";
 
 interface FluteProps {
   onNotePlay?: (note: string) => void;
@@ -22,19 +22,11 @@ export default function Flute({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let localSampler: Tone.Sampler | Tone.Synth | null = null;
-    const loadSampler = async () => {
-      setIsLoading(true);
-      localSampler = await createSampler('flute');
-      setSampler(localSampler);
+    getSampler('flute').then(loadedSampler => {
+      setSampler(loadedSampler);
       setIsLoading(false);
-    }
-    loadSampler();
-    return () => {
-      if(localSampler) localSampler.dispose();
-    }
+    });
   }, []);
-
 
   const playNote = useCallback(async (note: string) => {
     if (!sampler || disabled || isLoading || sampler.disposed) return;

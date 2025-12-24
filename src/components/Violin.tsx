@@ -4,7 +4,7 @@
 import { useEffect, useCallback, useState } from "react";
 import * as Tone from "tone";
 import { Music2, Loader2 } from "lucide-react";
-import { createSampler } from "@/lib/samplers";
+import { getSampler } from "@/lib/samplers";
 
 interface ViolinProps {
   onNotePlay?: (note: string) => void;
@@ -21,17 +21,10 @@ export default function Violin({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let localSampler: Tone.Sampler | Tone.Synth | null = null;
-    const loadSampler = async () => {
-      setIsLoading(true);
-      localSampler = await createSampler('violin');
-      setSampler(localSampler);
+    getSampler('violin').then(loadedSampler => {
+      setSampler(loadedSampler);
       setIsLoading(false);
-    }
-    loadSampler();
-    return () => {
-      if(localSampler) localSampler.dispose();
-    }
+    });
   }, []);
 
   const playNote = useCallback(async (note: string) => {
