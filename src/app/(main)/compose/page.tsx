@@ -53,6 +53,20 @@ export default function ComposePage() {
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
 
+  const cleanupAudio = useCallback(() => {
+    if (partRef.current) {
+      partRef.current.stop(0);
+      partRef.current.dispose();
+      partRef.current = null;
+    }
+    Tone.Transport.stop();
+    Tone.Transport.cancel();
+    if (samplerRef.current && 'releaseAll' in samplerRef.current && typeof samplerRef.current.releaseAll === 'function' && !samplerRef.current.disposed) {
+      (samplerRef.current as Tone.Sampler).releaseAll();
+    }
+  }, []);
+
+
   useEffect(() => {
     const loadAudio = async () => {
       setIsInstrumentReady(false);
@@ -64,37 +78,17 @@ export default function ComposePage() {
     };
     loadAudio();
 
+    // This is the key cleanup function that runs on unmount
     return () => {
-      // Robust cleanup on unmount
-      if (partRef.current) {
-        partRef.current.stop(0);
-        partRef.current.dispose();
-        partRef.current = null;
-      }
-      Tone.Transport.stop();
-      Tone.Transport.cancel();
-      if (samplerRef.current && 'releaseAll' in samplerRef.current && samplerRef.current.disposed === false) {
-        (samplerRef.current as Tone.Sampler).releaseAll();
-      }
+      cleanupAudio();
     };
-  }, []);
+  }, [cleanupAudio]);
 
   const stopPlayback = useCallback(() => {
-    if (partRef.current) {
-        partRef.current.stop(0);
-        partRef.current.dispose();
-        partRef.current = null;
-    }
-    Tone.Transport.stop();
-    Tone.Transport.cancel(0);
-
-    if (samplerRef.current && 'releaseAll' in samplerRef.current && samplerRef.current.disposed === false) {
-        (samplerRef.current as Tone.Sampler).releaseAll();
-    }
-    
+    cleanupAudio();
     setHighlightedKeys([]);
     setMode("idle");
-  }, []);
+  }, [cleanupAudio]);
 
 
   const handleGenerate = async () => {
@@ -122,6 +116,7 @@ export default function ComposePage() {
         const isInstrumentValid = result.instrument && Object.keys(instrumentComponents).includes(result.instrument);
         const selectedInstrument = isInstrumentValid ? result.instrument : 'piano';
         
+        cleanupAudio(); // Clean up old instrument before loading a new one
         setCurrentInstrument(selectedInstrument);
         setGeneratedNotes(result.notes);
         
@@ -167,6 +162,7 @@ export default function ComposePage() {
     
     setMode('playing');
 
+    // Ensure previous part is disposed before creating a new one
     if (partRef.current) {
       partRef.current.dispose();
     }
@@ -193,6 +189,7 @@ export default function ComposePage() {
     
     Tone.Transport.start();
 
+    // Schedule the stop event on the Transport
     Tone.Transport.scheduleOnce(() => {
         stopPlayback();
     }, totalDuration + 0.5);
@@ -271,3 +268,5 @@ export default function ComposePage() {
     </div>
   );
 }
+
+    
