@@ -53,8 +53,8 @@ export default function ComposePage() {
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
 
+  // This is the single source of truth for stopping audio and cleaning up.
   const cleanupAudio = useCallback(() => {
-    // This is a more robust cleanup
     if (partRef.current) {
       partRef.current.stop(0);
       partRef.current.dispose();
@@ -63,32 +63,31 @@ export default function ComposePage() {
     Tone.Transport.stop();
     Tone.Transport.cancel();
     setHighlightedKeys([]);
-
-    // The sampler itself doesn't need to be disposed here if we are reusing it,
-    // but we ensure all sounds are stopped.
+    
+    // Samplers are managed by `getSampler`, so we don't dispose them here,
+    // but we ensure any sound is stopped.
     if (samplerRef.current && 'releaseAll' in samplerRef.current && typeof samplerRef.current.releaseAll === 'function' && !samplerRef.current.disposed) {
       (samplerRef.current as Tone.Sampler).releaseAll();
     }
   }, []);
-
-  // Effect for initial load and cleanup on unmount
+  
+  // Effect for initial loading of the default instrument (piano).
   useEffect(() => {
     const loadInitialInstrument = async () => {
       setIsInstrumentReady(false);
       await Tone.start();
-      // Pre-load piano by default
       samplerRef.current = getSampler('piano');
       await allSamplersLoaded('piano');
       setIsInstrumentReady(true);
     };
     loadInitialInstrument();
-
-    // This is the key cleanup function that runs only on unmount
+    
+    // This is the key cleanup function that runs ONLY ONCE when the component unmounts.
     return () => {
       cleanupAudio();
     };
   }, [cleanupAudio]);
-
+  
   const stopPlayback = useCallback(() => {
     cleanupAudio();
     setMode("idle");
@@ -103,7 +102,8 @@ export default function ComposePage() {
       });
       return;
     }
-
+    
+    // Always stop any ongoing playback before generating a new melody.
     if (mode === 'playing') {
       stopPlayback();
     }
@@ -115,46 +115,50 @@ export default function ComposePage() {
     try {
       const result = await generateMelody({ prompt });
       
-      if (result && result.notes && result.notes.length > 0) {
-        const isInstrumentValid = result.instrument && Object.keys(instrumentComponents).includes(result.instrument);
-        const selectedInstrument = isInstrumentValid ? result.instrument : 'piano';
-        
-        setCurrentInstrument(selectedInstrument);
-        setGeneratedNotes(result.notes);
-        
-        // Don't clean up here, getSampler handles instance management
-        samplerRef.current = getSampler(selectedInstrument);
-        await allSamplersLoaded(selectedInstrument);
-        
-        toast({
-            title: "Melody Generated!",
-            description: `Your new melody is ready to be played on the ${selectedInstrument}.`,
-        });
-        
-      } else {
+      if (!result || !result.notes || result.notes.length === 0) {
         toast({
             variant: "destructive",
             title: "Could not generate melody",
             description: "The AI could not create a melody from your prompt. Try being more specific.",
         });
+        setMode('idle');
+        setIsInstrumentReady(true); // Re-enable UI for another try
+        return;
       }
+      
+      // Defensively check for a valid instrument, defaulting to piano.
+      const isInstrumentValid = result.instrument && Object.keys(instrumentComponents).includes(result.instrument);
+      const newInstrument = isInstrumentValid ? result.instrument : 'piano';
+      
+      setCurrentInstrument(newInstrument);
+      setGeneratedNotes(result.notes);
+      
+      // Load the new instrument's samples.
+      samplerRef.current = getSampler(newInstrument);
+      await allSamplersLoaded(newInstrument);
+      
+      toast({
+          title: "Melody Generated!",
+          description: `Your new melody is ready to be played on the ${newInstrument}.`,
+      });
+      
     } catch (error) {
       console.error('Melody generation failed:', error);
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
-        description: 'An error occurred while generating the melody. Please try again.',
+        description: 'An unexpected error occurred while generating the melody. Please try again.',
       });
     } finally {
+      // Transition to idle and mark instrument as ready for playback.
       setMode('idle');
       setIsInstrumentReady(true);
     }
   };
   
   const playMelody = useCallback(() => {
-    const currentSampler = samplerRef.current;
-    if (!currentSampler || generatedNotes.length === 0 || !isInstrumentReady) {
-        toast({ title: "Instrument not ready", description: "Please wait for the instrument to load."});
+    if (!isInstrumentReady || generatedNotes.length === 0) {
+        toast({ title: "Cannot Play", description: "The instrument is not ready or no melody is available."});
         return;
     };
     
@@ -163,25 +167,23 @@ export default function ComposePage() {
       return;
     }
     
+    // Ensure any previous part is fully cleaned up before creating a new one.
+    cleanupAudio();
     setMode('playing');
-
-    // Ensure any previous part is disposed of before creating a new one
-    if (partRef.current) {
-      partRef.current.dispose();
-    }
+    
+    const currentSampler = samplerRef.current;
+    if (!currentSampler) return;
 
     partRef.current = new Tone.Part((time, note) => {
-        // Check sampler exists and is ready to be played
         if ('triggerAttackRelease' in currentSampler && !currentSampler.disposed) {
             currentSampler.triggerAttackRelease(note.key, note.duration, time);
         }
         
-        // Schedule visual updates with Tone.Draw
+        // Schedule visual updates with Tone.Draw to sync with audio thread.
         Tone.Draw.schedule(() => {
             setHighlightedKeys(current => [...current, note.key]);
         }, time);
-
-        // Schedule key highlight removal
+        
         const releaseTime = time + Tone.Time(note.duration).toSeconds() * 0.9;
         Tone.Draw.schedule(() => {
              setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
@@ -189,19 +191,18 @@ export default function ComposePage() {
 
     }, generatedNotes).start(0);
 
-    // Make sure the last note has time to play
     const lastNote = generatedNotes[generatedNotes.length - 1];
     const totalDuration = lastNote.time + Tone.Time(lastNote.duration).toSeconds();
     partRef.current.loop = false;
     
     Tone.Transport.start();
 
-    // Schedule the stop event on the Transport itself
+    // Schedule the final stop event on the Transport itself for a clean finish.
     Tone.Transport.scheduleOnce(() => {
         stopPlayback();
     }, totalDuration + 0.5);
 
-  }, [generatedNotes, stopPlayback, toast, mode, isInstrumentReady]);
+  }, [generatedNotes, isInstrumentReady, mode, stopPlayback, toast, cleanupAudio]);
 
   
   const isUIReady = isInstrumentReady && mode !== 'generating';

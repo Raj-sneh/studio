@@ -2,7 +2,6 @@
 'use client';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { useFirestore } from '@/firebase/provider';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,7 +30,7 @@ function ProfileSkeleton() {
 
 export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
+  const { firestore } = useFirebase();
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
