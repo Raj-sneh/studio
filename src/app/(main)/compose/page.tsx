@@ -51,10 +51,10 @@ export default function ComposePage() {
   const [currentInstrument, setCurrentInstrument] = useState<Instrument>('piano');
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
   
-  const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
+  const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
 
-  // Stop playback and clean up Tone.js resources
+  // Stop playback and clean up Tone.js transport
   const stopPlayback = useCallback(() => {
     if (Tone.Transport.state === 'started') {
       Tone.Transport.stop();
@@ -75,11 +75,11 @@ export default function ComposePage() {
   useEffect(() => {
     return () => {
       stopPlayback();
-      if (samplerRef.current && !samplerRef.current.disposed) {
-        samplerRef.current.dispose();
+      if (sampler && !sampler.disposed) {
+        sampler.dispose();
       }
     };
-  }, [stopPlayback]);
+  }, [stopPlayback, sampler]);
   
   const handleGenerate = async () => {
     if (!prompt.trim() || mode === 'generating') {
@@ -114,20 +114,19 @@ export default function ComposePage() {
       setCurrentInstrument(newInstrument);
       setGeneratedNotes(result.notes);
       
-      // Dispose old sampler if it exists
-      if (samplerRef.current && !samplerRef.current.disposed) {
-        samplerRef.current.dispose();
+      // Dispose old sampler if it exists and create a new one
+      if (sampler && !sampler.disposed) {
+        sampler.dispose();
       }
 
-      // Create new sampler and wait for it to load
-      samplerRef.current = await createSampler(newInstrument);
+      const newSampler = await createSampler(newInstrument);
+      setSampler(newSampler); // This will trigger a re-render
       
       toast({
           title: "Melody Generated!",
           description: `Your new melody is ready to be played on the ${newInstrument}.`,
       });
       
-      // Now that the instrument is loaded, we can move to idle
       setMode('idle');
       
     } catch (error) {
@@ -142,9 +141,7 @@ export default function ComposePage() {
   };
   
   const playMelody = useCallback(async () => {
-    if (generatedNotes.length === 0 || mode === 'playing') return;
-
-    if (!samplerRef.current || samplerRef.current.disposed) {
+    if (!sampler || sampler.disposed || generatedNotes.length === 0 || mode === 'playing') {
       toast({
         title: "Cannot play melody",
         description: "The instrument is not ready or a melody hasn't been generated.",
@@ -153,12 +150,10 @@ export default function ComposePage() {
       return;
     }
     
-    stopPlayback(); // Ensure clean state before playing
+    stopPlayback();
     setMode('playing');
 
     try {
-        const sampler = samplerRef.current;
-
         partRef.current = new Tone.Part((time, note) => {
             if ('triggerAttackRelease' in sampler && !sampler.disposed) {
                 sampler.triggerAttackRelease(note.key, note.duration, time);
@@ -195,7 +190,7 @@ export default function ComposePage() {
         });
         setMode("idle");
     }
-  }, [generatedNotes, stopPlayback, toast]);
+  }, [generatedNotes, sampler, stopPlayback, toast, mode]);
   
   const isBusy = mode === 'generating' || mode === 'loadingInstrument';
   const InstrumentComponent = instrumentComponents[currentInstrument];
@@ -250,7 +245,7 @@ export default function ComposePage() {
             </CardHeader>
             <CardContent className="space-y-4">
                  {mode !== 'playing' ? (
-                     <Button onClick={playMelody} disabled={isBusy || generatedNotes.length === 0 || mode === 'playing'} size="lg" className="w-full">
+                     <Button onClick={playMelody} disabled={isBusy || generatedNotes.length === 0} size="lg" className="w-full">
                         <Play className="mr-2 h-5 w-5"/>
                         Play Melody
                     </Button>
