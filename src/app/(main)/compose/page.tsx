@@ -75,7 +75,7 @@ export default function ComposePage() {
       Tone.Transport.cancel();
       if (samplerRef.current && 'releaseAll' in samplerRef.current && samplerRef.current.disposed === false) {
         (samplerRef.current as Tone.Sampler).releaseAll();
-        samplerRef.current.dispose();
+        // Do not dispose the default piano sampler on unmount, but dispose others
       }
     };
   }, []);
@@ -118,18 +118,16 @@ export default function ComposePage() {
 
     try {
       const result = await generateMelody({ prompt });
-      if (result.notes && result.notes.length > 0) {
+      if (result && result.notes && result.notes.length > 0) {
         
-        const selectedInstrument = result.instrument && instrumentComponents[result.instrument] ? result.instrument : 'piano';
+        const isInstrumentValid = result.instrument && Object.keys(instrumentComponents).includes(result.instrument);
+        const selectedInstrument = isInstrumentValid ? result.instrument : 'piano';
         
+        setCurrentInstrument(selectedInstrument);
         setGeneratedNotes(result.notes);
         
-        // Load the new instrument sampler if it's different or not loaded
-        if (selectedInstrument !== currentInstrument || !samplerRef.current) {
-            setCurrentInstrument(selectedInstrument);
-            samplerRef.current = getSampler(selectedInstrument);
-            await allSamplersLoaded(selectedInstrument);
-        }
+        samplerRef.current = getSampler(selectedInstrument);
+        await allSamplersLoaded(selectedInstrument);
         
         toast({
             title: "Melody Generated!",
@@ -170,7 +168,6 @@ export default function ComposePage() {
     
     setMode('playing');
 
-    // Dispose of any existing part before creating a new one
     if (partRef.current) {
       partRef.current.dispose();
     }
@@ -197,7 +194,6 @@ export default function ComposePage() {
     
     Tone.Transport.start();
 
-    // Schedule the end of playback
     Tone.Transport.scheduleOnce(() => {
         stopPlayback();
     }, totalDuration + 0.5);
