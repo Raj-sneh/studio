@@ -11,7 +11,7 @@ import { analyzeUserPerformance } from "@/ai/flows/analyze-user-performance";
 import { flagContentForReview } from "@/ai/flows/flag-content-for-review";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useUser } from '@/firebase';
-import { getSampler, allSamplersLoaded } from "@/lib/samplers";
+import { getSampler } from "@/lib/samplers";
 import { cn } from "@/lib/utils";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 import { transcribeAudio } from "@/ai/flows/transcribe-audio-flow";
@@ -98,8 +98,7 @@ export default function LessonPage() {
       const loadAudio = async () => {
         setIsInstrumentReady(false);
         await Tone.start();
-        samplerRef.current = getSampler(foundLesson.instrument);
-        await allSamplersLoaded(foundLesson.instrument);
+        samplerRef.current = await getSampler(foundLesson.instrument);
         setIsInstrumentReady(true);
       };
       loadAudio();
@@ -127,13 +126,16 @@ export default function LessonPage() {
     Tone.Transport.cancel();
     
     const sampler = samplerRef.current;
+    if (('loaded' in sampler && !sampler.loaded) || sampler.disposed) return;
     const now = Tone.now() + 0.1;
     
     notesToPlay.forEach(note => {
       const noteTimeMs = note.time * 1000;
       const durationSeconds = Tone.Time(note.duration).toSeconds();
   
-      sampler.triggerAttackRelease(note.key, durationSeconds, now + note.time);
+      if ('triggerAttackRelease' in sampler) {
+        sampler.triggerAttackRelease(note.key, durationSeconds, now + note.time);
+      }
   
       const attackTimeout = setTimeout(() => {
         setHighlightedKeys(current => [...current, note.key]);

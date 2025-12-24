@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Play, Sparkles, Square, Wand2 } from 'lucide-react';
 import { generateMelody } from '@/ai/flows/generate-melody-flow';
 import type { Note, Instrument } from '@/types';
-import { getSampler, allSamplersLoaded } from '@/lib/samplers';
+import { getSampler } from '@/lib/samplers';
 import { useToast } from '@/hooks/use-toast';
 
 const Piano = lazy(() => import('@/components/Piano'));
@@ -51,31 +51,32 @@ export default function ComposePage() {
   const [isInstrumentReady, setIsInstrumentReady] = useState(false);
   
   const partRef = useRef<Tone.Part | null>(null);
+  const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
 
   // Stop playback and clean up Tone.js resources
   const stopPlayback = useCallback(() => {
+    if (partRef.current) {
+        partRef.current.stop();
+        partRef.current.dispose();
+        partRef.current = null;
+    }
     if (Tone.Transport.state === 'started') {
         Tone.Transport.stop();
     }
     Tone.Transport.cancel();
-    if (partRef.current) {
-        partRef.current.dispose();
-        partRef.current = null;
-    }
-    const sampler = getSampler(currentInstrument);
-    if (sampler && 'releaseAll' in sampler && typeof sampler.releaseAll === 'function' && !sampler.disposed) {
-      sampler.releaseAll(0);
+    if (samplerRef.current && 'releaseAll' in samplerRef.current && typeof samplerRef.current.releaseAll === 'function' && !samplerRef.current.disposed) {
+      samplerRef.current.releaseAll(0);
     }
     setHighlightedKeys([]);
     setMode("idle");
-  }, [currentInstrument]);
+  }, []);
   
   // Effect for initial loading of the default instrument (piano).
   useEffect(() => {
     const loadInitialInstrument = async () => {
       setIsInstrumentReady(false);
       await Tone.start();
-      await allSamplersLoaded('piano');
+      samplerRef.current = await getSampler('piano');
       setIsInstrumentReady(true);
     };
     loadInitialInstrument();
@@ -104,27 +105,24 @@ export default function ComposePage() {
     try {
       const result = await generateMelody({ prompt });
       
-      if (!result || !result.notes || result.notes.length === 0) {
+      const newInstrument = result?.instrument && instrumentComponents[result.instrument] ? result.instrument : 'piano';
+      
+      if (!result?.notes || result.notes.length === 0) {
         toast({
             variant: "destructive",
             title: "Could not generate melody",
             description: "The AI could not create a melody from your prompt. Try being more specific.",
         });
         setMode('idle');
-        // Ensure the previous instrument is ready again if generation fails
-        await allSamplersLoaded(currentInstrument);
+        setCurrentInstrument('piano');
+        samplerRef.current = await getSampler('piano');
         setIsInstrumentReady(true);
         return;
       }
       
-      const newInstrument = result.instrument && Object.keys(instrumentComponents).includes(result.instrument)
-        ? result.instrument
-        : 'piano';
-      
       setCurrentInstrument(newInstrument);
+      samplerRef.current = await getSampler(newInstrument);
       setGeneratedNotes(result.notes);
-      
-      await allSamplersLoaded(newInstrument);
       
       toast({
           title: "Melody Generated!",
@@ -145,10 +143,10 @@ export default function ComposePage() {
   };
   
   const playMelody = useCallback(() => {
-    if (!isInstrumentReady || generatedNotes.length === 0 || mode === 'playing') return;
+    if (!isInstrumentReady || generatedNotes.length === 0 || mode === 'playing' || !samplerRef.current) return;
     
-    const sampler = getSampler(currentInstrument);
-    if (!sampler || ('loaded' in sampler && !sampler.loaded) || sampler.disposed) {
+    const sampler = samplerRef.current;
+    if (('loaded' in sampler && !sampler.loaded) || sampler.disposed) {
       toast({ title: "Cannot Play", description: "The instrument is still loading or has been disposed."});
       return;
     }
@@ -183,7 +181,7 @@ export default function ComposePage() {
         stopPlayback();
     }, totalDuration + 0.5);
 
-  }, [generatedNotes, isInstrumentReady, mode, stopPlayback, currentInstrument, toast]);
+  }, [generatedNotes, isInstrumentReady, mode, stopPlayback]);
 
   
   const isUIReady = isInstrumentReady && mode !== 'generating';

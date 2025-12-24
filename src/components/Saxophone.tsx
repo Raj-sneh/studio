@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
 import { Wind } from "lucide-react";
@@ -18,11 +18,21 @@ export default function Saxophone({
   highlightedKeys = [],
   disabled = false,
 }: SaxophoneProps) {
-  const sampler = getSampler('saxophone');
+  const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
+
+  useEffect(() => {
+    const loadSampler = async () => {
+      const s = await getSampler('saxophone');
+      setSampler(s);
+    }
+    loadSampler();
+  }, []);
 
   const playNote = useCallback((note: string) => {
-    if (!sampler || disabled || !sampler.loaded) return;
-    sampler.triggerAttackRelease(note, "8n", Tone.now());
+    if (!sampler || disabled || !('loaded' in sampler && sampler.loaded) || sampler.disposed) return;
+    if ('triggerAttackRelease' in sampler) {
+      sampler.triggerAttackRelease(note, "8n", Tone.now());
+    }
     onNotePlay?.(note);
   }, [disabled, onNotePlay, sampler]);
 
@@ -34,7 +44,7 @@ export default function Saxophone({
     }
   }, [highlightedKeys, disabled, playNote]);
 
-  if (!sampler.loaded) {
+  if (!sampler || ('loaded' in sampler && !sampler.loaded)) {
     return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Saxophone Samples...</p></div>;
   }
   
@@ -51,5 +61,3 @@ export default function Saxophone({
     </div>
   );
 }
-
-    

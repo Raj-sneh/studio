@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
 import { getSampler } from "@/lib/samplers";
@@ -33,16 +33,26 @@ export default function Xylophone({
     highlightedKeys = [],
     disabled = false,
 }: XylophoneProps) {
-    const sampler = getSampler('xylophone');
+    const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        const loadSampler = async () => {
+            const s = await getSampler('xylophone');
+            setSampler(s);
+        }
+        loadSampler();
+    }, []);
 
     const playNote = useCallback(async (note: string, octave: number) => {
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!sampler || disabled || !sampler.loaded) return;
+        if (!sampler || disabled || !('loaded' in sampler && sampler.loaded) || sampler.disposed) return;
         const fullNote = `${note}${octave}`;
-        sampler.triggerAttackRelease(fullNote, "8n", Tone.now());
+        if ('triggerAttackRelease' in sampler) {
+            sampler.triggerAttackRelease(fullNote, "8n", Tone.now());
+        }
         onNotePlay?.(fullNote);
         setPressedKeys(prev => new Set(prev).add(fullNote));
         setTimeout(() => {
@@ -60,7 +70,7 @@ export default function Xylophone({
             return { note, octave: finalOctave, color: colors[index % colors.length] }
         }));
 
-    if (!sampler.loaded) {
+    if (!sampler || ('loaded' in sampler && !sampler.loaded)) {
         return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Xylophone Samples...</p></div>;
     }
 
@@ -92,5 +102,3 @@ export default function Xylophone({
         </div>
     );
 }
-
-    

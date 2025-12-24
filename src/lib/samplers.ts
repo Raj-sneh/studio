@@ -4,7 +4,7 @@ import type { Instrument } from '@/types';
 
 // Store for our sampler/synth instances
 const instruments: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
-const loadingPromises: Partial<Record<Instrument, Promise<void>>> = {};
+const loadingPromises: Partial<Record<Instrument, Promise<any>>> = {};
 
 const samplerUrls: Record<string, Record<string, string>> = {
     piano: {
@@ -44,13 +44,15 @@ const baseUrlMap: Record<string, string> = {
     drums: 'https://tonejs.github.io/audio/drum-samples/CR78/'
 }
 
+
 /**
  * Gets the sampler for a given instrument. It handles creating, caching,
- * and re-creating samplers if they have been disposed.
+ * and re-creating samplers if they have been disposed. This is now an async function
+ * that resolves with the loaded instrument.
  * @param instrument The instrument to get the sampler for.
- * @returns The Tone.Sampler or Tone.Synth instance.
+ * @returns A promise that resolves with the Tone.Sampler or Tone.Synth instance.
  */
-export const getSampler = (instrument: Instrument): Tone.Sampler | Tone.Synth => {
+export const getSampler = async (instrument: Instrument): Promise<Tone.Sampler | Tone.Synth> => {
     if (typeof window === 'undefined') {
         // Return a mock object on the server to prevent errors during SSR
         return {
@@ -63,55 +65,57 @@ export const getSampler = (instrument: Instrument): Tone.Sampler | Tone.Synth =>
         } as unknown as Tone.Sampler;
     }
 
-    // If the instrument exists and has not been disposed, return it.
+    // If a loading promise is already in flight, await it and return the result.
+    if (loadingPromises[instrument]) {
+        return loadingPromises[instrument] as Promise<Tone.Sampler | Tone.Synth>;
+    }
+
+    // If the instrument exists and has not been disposed, return it immediately.
     if (instruments[instrument] && !instruments[instrument]?.disposed) {
         return instruments[instrument]!;
     }
-    
+
     const hasUrls = samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0;
     
-    // This promise will be stored and awaited by allSamplersLoaded
-    loadingPromises[instrument] = new Promise(resolve => {
+    // Create and store a new loading promise.
+    const loadingPromise = new Promise<Tone.Sampler | Tone.Synth>((resolve) => {
         if (hasUrls) {
-            // Create a new Sampler. The 'onload' callback is the correct way to handle loading.
             const newSampler = new Tone.Sampler({
                 urls: samplerUrls[instrument],
                 baseUrl: baseUrlMap[instrument],
                 release: 1,
-                // The onload function is called when all samples are loaded.
                 onload: () => {
-                    resolve();
+                    instruments[instrument] = newSampler;
+                    resolve(newSampler);
                 }
             }).toDestination();
-            instruments[instrument] = newSampler;
         } else {
-            // Fallback to a simple synth if no specific samples are available.
             console.warn(`No sampler URLs for ${instrument}, falling back to synth.`);
             const newSynth = new Tone.Synth().toDestination();
             instruments[instrument] = newSynth;
-            // For Tone.Synth, there is nothing to load, so we can resolve immediately.
-            resolve();
+            resolve(newSynth); // Resolve immediately for synth
         }
     });
 
-    return instruments[instrument]!;
+    loadingPromises[instrument] = loadingPromise;
+
+    // Await the newly created promise and return the loaded instrument.
+    const loadedInstrument = await loadingPromise;
+    // Clear the promise from the map once it's resolved.
+    delete loadingPromises[instrument];
+    return loadedInstrument;
 };
 
 /**
- * Returns a promise that resolves when all requested instruments have loaded.
+ * Ensures all requested instruments have loaded. This function is kept for compatibility
+ * but `getSampler` should be the primary way to get instruments now.
  * @param instrument A single instrument or an array of instruments.
  * @returns A promise that resolves when all specified loading processes are complete.
  */
 export const allSamplersLoaded = (instrument: Instrument | Instrument[]) => {
     const instrumentsToLoad = Array.isArray(instrument) ? instrument : [instrument];
     
-    const promises = instrumentsToLoad.map(inst => {
-         // Ensure the instrument is initialized and a loading promise exists.
-         if (!loadingPromises[inst] || instruments[inst]?.disposed) {
-            getSampler(inst); 
-        }
-        return loadingPromises[inst] || Promise.resolve();
-    });
+    const promises = instrumentsToLoad.map(inst => getSampler(inst));
 
     return Promise.all(promises);
 };

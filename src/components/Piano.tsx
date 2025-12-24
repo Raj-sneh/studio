@@ -28,56 +28,53 @@ export default function Piano({
     highlightedKeys = [],
     disabled = false,
 }: PianoProps) {
-    const sampler = getSampler('piano');
+    const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
     const [currentOctave, setCurrentOctave] = useState(3);
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
-    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-        const checkLoaded = async () => {
-             if (sampler instanceof Tone.Sampler && sampler.loaded) {
-                setIsLoaded(true);
-             } else if (sampler instanceof Tone.Synth) {
-                setIsLoaded(true);
-             } else if (sampler instanceof Tone.Sampler) {
-                 await Tone.loaded();
-                 setIsLoaded(true);
-             }
+        const loadSampler = async () => {
+            const s = await getSampler('piano');
+            setSampler(s);
         };
-        checkLoaded();
-    }, [sampler]);
+        loadSampler();
+    }, []);
 
     const playNote = useCallback(async (note: string, octave: number) => {
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!sampler || disabled || !isLoaded) return;
+        if (!sampler || disabled || !('loaded' in sampler && sampler.loaded) || sampler.disposed) return;
+
         const fullNote = `${note}${octave}`;
-        
-        sampler.triggerAttack(fullNote, Tone.now());
+        if ('triggerAttack' in sampler) {
+            sampler.triggerAttack(fullNote, Tone.now());
+        }
 
         onNotePlay?.(fullNote);
         setPressedKeys(prev => new Set(prev).add(fullNote));
-    }, [disabled, onNotePlay, sampler, isLoaded]);
+    }, [disabled, onNotePlay, sampler]);
 
     const stopNote = useCallback((note: string, octave: number) => {
-        if (!sampler || disabled || !isLoaded) return;
+        if (!sampler || disabled || !('loaded'in sampler && sampler.loaded) || sampler.disposed) return;
         const fullNote = `${note}${octave}`;
         
         setPressedKeys(prev => {
             if (prev.has(fullNote)) {
-                sampler.triggerRelease(fullNote);
+                if ('triggerRelease' in sampler) {
+                    sampler.triggerRelease(fullNote);
+                }
                 const newSet = new Set(prev);
                 newSet.delete(fullNote);
                 return newSet;
             }
             return prev;
         });
-    }, [disabled, sampler, isLoaded]);
+    }, [disabled, sampler]);
     
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (disabled || event.repeat || !isLoaded) return;
+            if (disabled || event.repeat || !sampler) return;
             const note = keyMap[event.key.toLowerCase()];
             if (note) {
                 let octave = currentOctave;
@@ -94,7 +91,7 @@ export default function Piano({
         };
 
         const handleKeyUp = (event: KeyboardEvent) => {
-            if (disabled || !isLoaded) return;
+            if (disabled || !sampler) return;
             const note = keyMap[event.key.toLowerCase()];
             if (note) {
                 let octave = currentOctave;
@@ -112,7 +109,7 @@ export default function Piano({
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [playNote, stopNote, currentOctave, disabled, pressedKeys, isLoaded]);
+    }, [playNote, stopNote, currentOctave, disabled, pressedKeys, sampler]);
 
     const changeOctave = (direction: number) => {
         setCurrentOctave(prev => Math.max(1, Math.min(6, prev + direction)));
@@ -121,7 +118,7 @@ export default function Piano({
     const pianoKeys = Array.from({ length: octaves }, (_, i) => i + startOctave)
         .flatMap(octave => notes.map(note => ({ note, octave })));
 
-    if (!isLoaded) {
+    if (!sampler || ('loaded' in sampler && !sampler.loaded)) {
         return <div className="flex items-center justify-center h-40 bg-muted rounded-lg"><p>Loading Piano Samples...</p></div>;
     }
 

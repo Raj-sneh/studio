@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Instrument } from "@/types";
-import { getSampler, allSamplersLoaded } from "@/lib/samplers";
+import { getSampler } from "@/lib/samplers";
 
 const Piano = lazy(() => import("@/components/Piano"));
 const Guitar = lazy(() => import("@/components/Guitar"));
@@ -83,11 +83,18 @@ export default function PracticePage() {
             window.addEventListener(type, startAudio, options);
         });
 
+        return () => {
+            eventTypes.forEach(type => {
+                window.removeEventListener(type, startAudio, options);
+            });
+        };
+    }, []);
+
+    useEffect(() => {
         const loadInstrument = async () => {
             setIsLoading(true);
             try {
-                getSampler(activeInstrument);
-                await allSamplersLoaded(activeInstrument);
+                await getSampler(activeInstrument);
             } catch (error) {
                 console.error("Failed to load sampler:", error);
             } finally {
@@ -96,12 +103,6 @@ export default function PracticePage() {
         };
 
         loadInstrument();
-
-        return () => {
-            eventTypes.forEach(type => {
-                window.removeEventListener(type, startAudio, options);
-            });
-        };
     }, [activeInstrument]);
 
     const handleNotePlay = (note: string) => {
@@ -127,19 +128,19 @@ export default function PracticePage() {
         const instrumentsInRecording = new Set(recordedNotes.map(n => n.instrument));
         const samplers: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
         
-        await allSamplersLoaded(Array.from(instrumentsInRecording));
-
-        instrumentsInRecording.forEach(inst => {
-            samplers[inst] = getSampler(inst);
-        });
+        for (const inst of instrumentsInRecording) {
+            samplers[inst] = await getSampler(inst);
+        }
 
         // Play notes
         const now = Tone.now();
         recordedNotes.forEach(noteEvent => {
             const sampler = samplers[noteEvent.instrument];
-            if (sampler && ('loaded' in sampler && sampler.loaded)) {
+            if (sampler && !sampler.disposed) {
                 const duration = Array.isArray(noteEvent.note) ? "1n" : "8n";
-                sampler.triggerAttackRelease(noteEvent.note, duration, now + noteEvent.time / 1000);
+                if ('triggerAttackRelease' in sampler) {
+                    sampler.triggerAttackRelease(noteEvent.note, duration, now + noteEvent.time / 1000);
+                }
             }
         });
 
@@ -181,7 +182,7 @@ export default function PracticePage() {
                                     <CardDescription>{instrumentDescriptions[inst]}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4 min-h-[300px] flex items-center justify-center">
-                                    {isLoading ? <InstrumentLoader /> : (
+                                    {isLoading && activeInstrument === inst ? <InstrumentLoader /> : (
                                         <Suspense fallback={<InstrumentLoader />}>
                                             <InstrumentComponent onNotePlay={handleNotePlay} />
                                         </Suspense>

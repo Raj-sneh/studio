@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import * as Tone from 'tone';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -24,21 +24,29 @@ export default function DrumPad({
   highlightedKeys = [],
   disabled = false,
 }: DrumPadProps) {
-  const sampler = getSampler('drums');
+  const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
+
+  useEffect(() => {
+    const loadSampler = async () => {
+      const s = await getSampler('drums');
+      setSampler(s);
+    }
+    loadSampler();
+  }, []);
 
   const playNote = useCallback(async (noteKey: string) => {
     if (Tone.context.state !== 'running') {
         await Tone.start();
     }
-    if (!sampler || disabled || !sampler.loaded) return;
+    if (!sampler || disabled || !('loaded' in sampler && sampler.loaded) || sampler.disposed) return;
     const drumSound = drumMap[noteKey];
-    if (drumSound) {
+    if (drumSound && 'triggerAttackRelease' in sampler) {
       sampler.triggerAttackRelease(drumSound.note, '1n', Tone.now());
       onNotePlay?.(noteKey);
     }
   }, [disabled, onNotePlay, sampler]);
 
-  if (!sampler.loaded) {
+  if (!sampler || ('loaded' in sampler && !sampler.loaded)) {
     return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Drum Samples...</p></div>;
   }
 
@@ -76,5 +84,3 @@ export default function DrumPad({
     </div>
   );
 }
-
-    

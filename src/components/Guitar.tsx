@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
 import { Settings } from "lucide-react";
@@ -65,23 +65,35 @@ export default function Guitar({
     highlightedNotes = [],
     disabled = false,
 }: GuitarProps) {
-    const sampler = getSampler('guitar');
+    const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
     const [pressedNotes, setPressedNotes] = useState<Set<string>>(new Set());
     const [activeChord, setActiveChord] = useState<string | null>(null);
+
+    useEffect(() => {
+        const loadSampler = async () => {
+            const s = await getSampler('guitar');
+            setSampler(s);
+        }
+        loadSampler();
+    }, []);
 
     const playNote = useCallback(async (note: string) => {
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!sampler || disabled || !sampler.loaded) return;
-        sampler.triggerAttack(note, Tone.now());
+        if (!sampler || disabled || !('loaded' in sampler && sampler.loaded) || sampler.disposed) return;
+        if ('triggerAttack' in sampler) {
+          sampler.triggerAttack(note, Tone.now());
+        }
         onNotePlay?.(note);
         setPressedNotes(prev => new Set(prev).add(note));
     }, [disabled, onNotePlay, sampler]);
 
     const stopNote = useCallback((note: string) => {
-        if (!sampler || disabled || !sampler.loaded) return;
-        sampler.triggerRelease([note], Tone.now());
+        if (!sampler || disabled || !('loaded' in sampler && sampler.loaded) || sampler.disposed) return;
+        if ('triggerRelease' in sampler) {
+          sampler.triggerRelease([note], Tone.now());
+        }
         setPressedNotes(prev => {
             const newSet = new Set(prev);
             newSet.delete(note);
@@ -93,9 +105,11 @@ export default function Guitar({
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (!sampler || disabled || !sampler.loaded) return;
+        if (!sampler || disabled || !('loaded' in sampler && sampler.loaded) || sampler.disposed) return;
         const chordNotes = chords[chordName].filter(n => n !== null) as string[];
-        sampler.triggerAttackRelease(chordNotes, '1n');
+        if ('triggerAttackRelease' in sampler) {
+          sampler.triggerAttackRelease(chordNotes, '1n');
+        }
         setActiveChord(chordName);
         onNotePlay?.(chordName);
         setTimeout(() => setActiveChord(null), 500);
@@ -115,7 +129,7 @@ export default function Guitar({
         return positions;
     }, [highlightedNotes]);
 
-    if (!sampler.loaded) {
+    if (!sampler || ('loaded' in sampler && !sampler.loaded)) {
         return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Guitar Samples...</p></div>;
     }
 
@@ -212,5 +226,3 @@ export default function Guitar({
         </div>
     );
 }
-
-    
