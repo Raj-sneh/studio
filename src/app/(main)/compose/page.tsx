@@ -193,7 +193,7 @@ export default function ComposePage() {
         });
         setMode("idle");
     }
-  }, [generatedNotes, mode, stopPlayback, toast]);
+  }, [generatedNotes, mode, stopPlayback, toast, samplerRef.current]);
   
   const isBusy = mode === 'generating' || mode === 'loadingInstrument';
   const InstrumentComponent = instrumentComponents[currentInstrument];
