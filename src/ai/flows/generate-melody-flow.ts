@@ -13,6 +13,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
 import type {Note, Instrument} from '@/types';
 
@@ -74,7 +75,9 @@ const generateMelodyFlow = ai.defineFlow(
     outputSchema: GenerateMelodyOutputSchema,
   },
   async input => {
-    const {output} = await generateMelodyPrompt(input);
+    const {output} = await generateMelodyPrompt(input, {
+      model: googleAI.model('gemini-1.5-flash-latest'),
+    });
     return output!;
   }
 );
