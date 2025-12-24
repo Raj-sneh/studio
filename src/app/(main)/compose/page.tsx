@@ -46,7 +46,7 @@ export default function ComposePage() {
   const [prompt, setPrompt] = useState('');
   const [mode, setMode] = useState<Mode>('idle');
   const [generatedNotes, setGeneratedNotes] = useState<Note[]>([]);
-  const [instrument, setInstrument] = useState<Instrument>('piano');
+  const [currentInstrument, setCurrentInstrument] = useState<Instrument>('piano');
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
   const [isInstrumentReady, setIsInstrumentReady] = useState(false);
   
@@ -71,8 +71,8 @@ export default function ComposePage() {
       }
       Tone.Transport.stop();
       Tone.Transport.cancel();
-      if (samplerRef.current && 'releaseAll' in samplerRef.current) {
-        samplerRef.current.releaseAll();
+      if (samplerRef.current && 'releaseAll' in samplerRef.current && samplerRef.current) {
+        (samplerRef.current as Tone.Sampler).releaseAll();
       }
     };
   }, []);
@@ -94,16 +94,19 @@ export default function ComposePage() {
       if (result.notes && result.notes.length > 0) {
         
         const selectedInstrument = result.instrument && instrumentComponents[result.instrument] ? result.instrument : 'piano';
-
-        setInstrument(selectedInstrument);
+        
         setGeneratedNotes(result.notes);
         
         // Load the new instrument sampler if it's different
-        if (selectedInstrument !== instrument) {
+        if (selectedInstrument !== currentInstrument) {
             setIsInstrumentReady(false);
             samplerRef.current = getSampler(selectedInstrument);
             await allSamplersLoaded(selectedInstrument);
+            setCurrentInstrument(selectedInstrument);
             setIsInstrumentReady(true);
+        } else {
+             // If instrument is the same, just set it and we're ready
+             setCurrentInstrument(selectedInstrument);
         }
         
         toast({
@@ -134,23 +137,22 @@ export default function ComposePage() {
     if (partRef.current) {
         partRef.current.stop(0);
         partRef.current.dispose();
+        partRef.current = null;
     }
     Tone.Transport.stop();
     Tone.Transport.cancel(0);
 
-    // This is important to stop any lingering notes
-    if (samplerRef.current && 'releaseAll' in samplerRef.current) {
+    if (samplerRef.current && 'releaseAll' in samplerRef.current && samplerRef.current) {
         (samplerRef.current as Tone.Sampler).releaseAll();
     }
     
     setHighlightedKeys([]);
     setMode("idle");
-    partRef.current = null;
   }, []);
 
   const playMelody = useCallback(async () => {
     const currentSampler = samplerRef.current;
-    if (!currentSampler || generatedNotes.length === 0 || ('loaded' in currentSampler && !currentSampler.loaded)) {
+    if (!currentSampler || generatedNotes.length === 0 || !isInstrumentReady) {
         toast({ title: "Instrument not ready", description: "Please wait for the instrument to load."});
         return;
     };
@@ -189,11 +191,11 @@ export default function ComposePage() {
         stopPlayback();
     }, totalDuration + 0.5);
 
-  }, [generatedNotes, stopPlayback, toast, mode]);
+  }, [generatedNotes, stopPlayback, toast, mode, isInstrumentReady]);
 
   
   const isUIReady = isInstrumentReady && mode !== 'generating';
-  const InstrumentComponent = instrumentComponents[instrument];
+  const InstrumentComponent = instrumentComponents[currentInstrument];
 
   return (
     <div className="space-y-8">
@@ -234,7 +236,7 @@ export default function ComposePage() {
         <Card>
             <CardHeader>
                 <CardTitle>Your AI-Generated Melody</CardTitle>
-                <CardDescription>Press play to hear the result on the {instrument}.</CardDescription>
+                <CardDescription>Press play to hear the result on the {currentInstrument}.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                  {mode !== 'playing' ? (
@@ -267,5 +269,3 @@ export default function ComposePage() {
     </div>
   );
 }
-
-    
