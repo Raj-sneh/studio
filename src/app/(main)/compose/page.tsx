@@ -50,48 +50,44 @@ export default function ComposePage() {
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
   const [isInstrumentReady, setIsInstrumentReady] = useState(false);
   
-  const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
 
   // This is the single source of truth for stopping audio and cleaning up.
-  const cleanupAudio = useCallback(() => {
+  const stopPlayback = useCallback(() => {
     if (partRef.current) {
       partRef.current.stop(0);
-      partRef.current.dispose();
+      partRef.current.dispose(); // Fully remove the part
       partRef.current = null;
     }
     Tone.Transport.stop();
     Tone.Transport.cancel();
     setHighlightedKeys([]);
-    
-    // Samplers are managed by `getSampler`, so we don't dispose them here,
-    // but we ensure any sound is stopped.
-    if (samplerRef.current && 'releaseAll' in samplerRef.current && typeof samplerRef.current.releaseAll === 'function' && !samplerRef.current.disposed) {
-      (samplerRef.current as Tone.Sampler).releaseAll();
+
+    // Get the current sampler and release its notes. We don't dispose the sampler itself
+    // as it's managed by the `getSampler` utility now.
+    const sampler = getSampler(currentInstrument);
+    if (sampler && 'releaseAll' in sampler && typeof sampler.releaseAll === 'function' && !sampler.disposed) {
+      sampler.releaseAll();
     }
-  }, []);
+    setMode("idle");
+  }, [currentInstrument]);
   
   // Effect for initial loading of the default instrument (piano).
   useEffect(() => {
     const loadInitialInstrument = async () => {
       setIsInstrumentReady(false);
       await Tone.start();
-      samplerRef.current = getSampler('piano');
+      getSampler('piano'); // This ensures the sampler is created
       await allSamplersLoaded('piano');
       setIsInstrumentReady(true);
     };
     loadInitialInstrument();
     
-    // This is the key cleanup function that runs ONLY ONCE when the component unmounts.
     return () => {
-      cleanupAudio();
+      // When the component unmounts for good, stop any lingering sound.
+      stopPlayback();
     };
-  }, [cleanupAudio]);
-  
-  const stopPlayback = useCallback(() => {
-    cleanupAudio();
-    setMode("idle");
-  }, [cleanupAudio]);
+  }, [stopPlayback]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -122,7 +118,7 @@ export default function ComposePage() {
             description: "The AI could not create a melody from your prompt. Try being more specific.",
         });
         setMode('idle');
-        setIsInstrumentReady(true); // Re-enable UI for another try
+        setIsInstrumentReady(true); // Re-enable UI for another try with the current instrument
         return;
       }
       
@@ -133,8 +129,8 @@ export default function ComposePage() {
       setCurrentInstrument(newInstrument);
       setGeneratedNotes(result.notes);
       
-      // Load the new instrument's samples.
-      samplerRef.current = getSampler(newInstrument);
+      // Load the new instrument's samples. This will create if it doesn't exist or is disposed.
+      getSampler(newInstrument);
       await allSamplersLoaded(newInstrument);
       
       toast({
@@ -157,29 +153,25 @@ export default function ComposePage() {
   };
   
   const playMelody = useCallback(() => {
-    if (!isInstrumentReady || generatedNotes.length === 0) {
-        toast({ title: "Cannot Play", description: "The instrument is not ready or no melody is available."});
-        return;
-    };
+    if (!isInstrumentReady || generatedNotes.length === 0 || mode === 'playing') return;
     
-    if (mode === 'playing') {
-      stopPlayback();
+    const sampler = getSampler(currentInstrument);
+    if (!sampler || ('loaded' in sampler && !sampler.loaded)) {
+      toast({ title: "Cannot Play", description: "The instrument is still loading."});
       return;
     }
-    
+
     // Ensure any previous part is fully cleaned up before creating a new one.
-    cleanupAudio();
+    if (partRef.current) {
+        partRef.current.dispose();
+    }
     setMode('playing');
     
-    const currentSampler = samplerRef.current;
-    if (!currentSampler) return;
-
     partRef.current = new Tone.Part((time, note) => {
-        if ('triggerAttackRelease' in currentSampler && !currentSampler.disposed) {
-            currentSampler.triggerAttackRelease(note.key, note.duration, time);
+        if ('triggerAttackRelease' in sampler && !sampler.disposed) {
+            sampler.triggerAttackRelease(note.key, note.duration, time);
         }
         
-        // Schedule visual updates with Tone.Draw to sync with audio thread.
         Tone.Draw.schedule(() => {
             setHighlightedKeys(current => [...current, note.key]);
         }, time);
@@ -197,12 +189,11 @@ export default function ComposePage() {
     
     Tone.Transport.start();
 
-    // Schedule the final stop event on the Transport itself for a clean finish.
     Tone.Transport.scheduleOnce(() => {
         stopPlayback();
     }, totalDuration + 0.5);
 
-  }, [generatedNotes, isInstrumentReady, mode, stopPlayback, toast, cleanupAudio]);
+  }, [generatedNotes, isInstrumentReady, mode, stopPlayback, toast, currentInstrument]);
 
   
   const isUIReady = isInstrumentReady && mode !== 'generating';

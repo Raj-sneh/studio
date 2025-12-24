@@ -6,7 +6,7 @@ import type { Instrument } from '@/types';
 const instruments: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
 const loadingPromises: Partial<Record<Instrument, Promise<void>>> = {};
 
-const samplerUrls: Record<Instrument, Record<string, string>> = {
+const samplerUrls: Record<string, Record<string, string>> = {
     piano: {
         A0: "A0.mp3", C1: "C1.mp3", "D#1": "Ds1.mp3", "F#1": "Fs1.mp3", A1: "A1.mp3", C2: "C2.mp3", "D#2": "Ds2.mp3", "F#2": "Fs2.mp3", A2: "A2.mp3", C3: "C3.mp3", "D#3": "Ds3.mp3", "F#3": "Fs3.mp3", A3: "A3.mp3", C4: "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3", A4: "A4.mp3", C5: "C5.mp3", "D#5": "Ds5.mp3", "F#5": "Fs5.mp3", A5: "A5.mp3", C6: "C6.mp3", "D#6": "Ds6.mp3", "F#6": "Fs6.mp3", A6: "A6.mp3", C7: "C7.mp3", "D#7": "Ds7.mp3", "F#7": "Fs7.mp3", A7: "A7.mp3", C8: "C8.mp3"
     },
@@ -57,6 +57,7 @@ const getSynth = (instrument: Instrument): Tone.Synth => {
 };
 
 const getInstrumentSampler = (instrument: Instrument): Tone.Sampler => {
+    // If the instrument exists and is disposed, we must create a new one.
     if (!instruments[instrument] || instruments[instrument]?.disposed) {
         console.log(`Initializing new sampler for ${instrument}`);
         
@@ -69,13 +70,16 @@ const getInstrumentSampler = (instrument: Instrument): Tone.Sampler => {
             urls: samplerUrls[instrument],
             baseUrl: baseUrlMap[instrument],
             release: 1,
-            onload: () => {
-                console.log(`${instrument} sampler loaded.`);
-            }
         }).toDestination();
         
         instruments[instrument] = sampler;
-        loadingPromises[instrument] = Tone.loaded();
+        // The promise for loading is now handled by Tone.loaded() which we await elsewhere
+        loadingPromises[instrument] = new Promise(resolve => {
+            Tone.loaded().then(() => {
+                console.log(`${instrument} sampler loaded.`);
+                resolve();
+            });
+        });
     }
     return instruments[instrument] as Tone.Sampler;
 };
@@ -93,6 +97,7 @@ export const getSampler = (instrument: Instrument): Tone.Sampler | Tone.Synth =>
             triggerAttack: () => {},
             triggerRelease: () => {},
             releaseAll: () => {},
+            dispose: () => {},
             disposed: false,
             loaded: false,
             toDestination: () => ({
@@ -119,7 +124,8 @@ export const allSamplersLoaded = (instrument?: Instrument | Instrument[]) => {
     
     const promises = instrumentsToLoad.map(inst => {
          if (!loadingPromises[inst]) {
-            getSampler(inst); // This will create the promise
+            // This will create the promise if it doesn't exist
+            getSampler(inst); 
         }
         return loadingPromises[inst] || Promise.resolve();
     });
