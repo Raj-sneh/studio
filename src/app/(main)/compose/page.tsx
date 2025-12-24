@@ -65,74 +65,21 @@ export default function ComposePage() {
     loadAudio();
 
     return () => {
-      // Cleanup on unmount
+      // Robust cleanup on unmount
       if (partRef.current) {
+        partRef.current.stop(0);
         partRef.current.dispose();
+        partRef.current = null;
       }
       Tone.Transport.stop();
       Tone.Transport.cancel();
-      if (samplerRef.current && 'releaseAll' in samplerRef.current && samplerRef.current) {
+      if (samplerRef.current && 'releaseAll' in samplerRef.current && samplerRef.current.disposed === false) {
         (samplerRef.current as Tone.Sampler).releaseAll();
+        samplerRef.current.dispose();
       }
     };
   }, []);
 
-  const handleGenerate = async () => {
-    if (!prompt.trim()) {
-      toast({
-        title: 'Prompt is empty',
-        description: 'Please describe the melody you want to create.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    setMode('generating');
-    setGeneratedNotes([]);
-
-    try {
-      const result = await generateMelody({ prompt });
-      if (result.notes && result.notes.length > 0) {
-        
-        const selectedInstrument = result.instrument && instrumentComponents[result.instrument] ? result.instrument : 'piano';
-        
-        setGeneratedNotes(result.notes);
-        
-        // Load the new instrument sampler if it's different
-        if (selectedInstrument !== currentInstrument) {
-            setIsInstrumentReady(false);
-            samplerRef.current = getSampler(selectedInstrument);
-            await allSamplersLoaded(selectedInstrument);
-            setCurrentInstrument(selectedInstrument);
-            setIsInstrumentReady(true);
-        } else {
-             // If instrument is the same, just set it and we're ready
-             setCurrentInstrument(selectedInstrument);
-        }
-        
-        toast({
-            title: "Melody Generated!",
-            description: `Your new melody is ready to be played on the ${selectedInstrument}.`,
-        });
-
-      } else {
-        toast({
-            title: "Could not generate melody",
-            description: "The AI could not create a melody from your prompt. Try being more specific.",
-            variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Melody generation failed:', error);
-      toast({
-        title: 'Generation Failed',
-        description: 'An error occurred while generating the melody. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setMode('idle');
-    }
-  };
-  
   const stopPlayback = useCallback(() => {
     if (partRef.current) {
         partRef.current.stop(0);
@@ -142,7 +89,7 @@ export default function ComposePage() {
     Tone.Transport.stop();
     Tone.Transport.cancel(0);
 
-    if (samplerRef.current && 'releaseAll' in samplerRef.current && samplerRef.current) {
+    if (samplerRef.current && 'releaseAll' in samplerRef.current && samplerRef.current.disposed === false) {
         (samplerRef.current as Tone.Sampler).releaseAll();
     }
     
@@ -150,7 +97,66 @@ export default function ComposePage() {
     setMode("idle");
   }, []);
 
-  const playMelody = useCallback(async () => {
+
+  const handleGenerate = async () => {
+    if (!prompt.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Prompt is empty',
+        description: 'Please describe the melody you want to create.',
+      });
+      return;
+    }
+
+    if (mode === 'playing') {
+      stopPlayback();
+    }
+
+    setMode('generating');
+    setGeneratedNotes([]);
+    setIsInstrumentReady(false);
+
+    try {
+      const result = await generateMelody({ prompt });
+      if (result.notes && result.notes.length > 0) {
+        
+        const selectedInstrument = result.instrument && instrumentComponents[result.instrument] ? result.instrument : 'piano';
+        
+        setGeneratedNotes(result.notes);
+        
+        // Load the new instrument sampler if it's different or not loaded
+        if (selectedInstrument !== currentInstrument || !samplerRef.current) {
+            setCurrentInstrument(selectedInstrument);
+            samplerRef.current = getSampler(selectedInstrument);
+            await allSamplersLoaded(selectedInstrument);
+        }
+        
+        toast({
+            title: "Melody Generated!",
+            description: `Your new melody is ready to be played on the ${selectedInstrument}.`,
+        });
+
+      } else {
+        toast({
+            variant: "destructive",
+            title: "Could not generate melody",
+            description: "The AI could not create a melody from your prompt. Try being more specific.",
+        });
+      }
+    } catch (error) {
+      console.error('Melody generation failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Generation Failed',
+        description: 'An error occurred while generating the melody. Please try again.',
+      });
+    } finally {
+      setMode('idle');
+      setIsInstrumentReady(true);
+    }
+  };
+  
+  const playMelody = useCallback(() => {
     const currentSampler = samplerRef.current;
     if (!currentSampler || generatedNotes.length === 0 || !isInstrumentReady) {
         toast({ title: "Instrument not ready", description: "Please wait for the instrument to load."});
@@ -164,8 +170,13 @@ export default function ComposePage() {
     
     setMode('playing');
 
+    // Dispose of any existing part before creating a new one
+    if (partRef.current) {
+      partRef.current.dispose();
+    }
+
     partRef.current = new Tone.Part((time, note) => {
-        if ('triggerAttackRelease' in currentSampler) {
+        if ('triggerAttackRelease' in currentSampler && !currentSampler.disposed) {
             currentSampler.triggerAttackRelease(note.key, note.duration, time);
         }
         
@@ -232,11 +243,13 @@ export default function ComposePage() {
         </CardContent>
       </Card>
       
-      {generatedNotes.length > 0 && (
+      {(generatedNotes.length > 0 || mode === 'generating') && (
         <Card>
             <CardHeader>
                 <CardTitle>Your AI-Generated Melody</CardTitle>
-                <CardDescription>Press play to hear the result on the {currentInstrument}.</CardDescription>
+                <CardDescription>
+                  {mode === 'generating' ? 'The AI is composing your melody...' : `Press play to hear the result on the ${currentInstrument}.`}
+                </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                  {mode !== 'playing' ? (
@@ -259,12 +272,6 @@ export default function ComposePage() {
                 </div>
             </CardContent>
         </Card>
-      )}
-
-      {mode === 'generating' && (
-        <div className="flex justify-center">
-            <InstrumentLoader />
-        </div>
       )}
     </div>
   );
