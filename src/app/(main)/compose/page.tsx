@@ -55,7 +55,7 @@ export default function ComposePage() {
   const partRef = useRef<Tone.Part | null>(null);
 
   // Stop playback and clean up Tone.js transport
-  const stopPlayback = useCallback(() => {
+  const stopPlayback = () => {
     if (Tone.Transport.state === 'started') {
       Tone.Transport.stop();
       Tone.Transport.cancel();
@@ -69,17 +69,24 @@ export default function ComposePage() {
     if (mode === 'playing') {
       setMode("idle");
     }
-  }, [mode]);
+  };
 
   // General cleanup on unmount
   useEffect(() => {
     return () => {
-      stopPlayback();
+      // This is a direct reference to the cleanup function, avoiding stale closures.
+      if (Tone.Transport.state === 'started') {
+        Tone.Transport.stop();
+        Tone.Transport.cancel();
+      }
+      if (partRef.current) {
+        partRef.current.dispose();
+      }
       if (sampler && !sampler.disposed) {
         sampler.dispose();
       }
     };
-  }, [stopPlayback, sampler]);
+  }, [sampler]); // Depend only on sampler for disposal cleanup.
   
   const handleGenerate = async () => {
     if (!prompt.trim() || mode === 'generating') {
@@ -120,7 +127,7 @@ export default function ComposePage() {
       }
 
       const newSampler = await createSampler(newInstrument);
-      setSampler(newSampler); // This will trigger a re-render
+      setSampler(newSampler);
       
       toast({
           title: "Melody Generated!",
@@ -140,8 +147,8 @@ export default function ComposePage() {
     }
   };
   
-  const playMelody = useCallback(async () => {
-    if (!sampler || sampler.disposed || generatedNotes.length === 0 || mode === 'playing') {
+  const playMelody = async () => {
+    if (!sampler || sampler.disposed || generatedNotes.length === 0 || mode !== 'idle') {
       toast({
         title: "Cannot play melody",
         description: "The instrument is not ready or a melody hasn't been generated.",
@@ -155,7 +162,8 @@ export default function ComposePage() {
 
     try {
         partRef.current = new Tone.Part((time, note) => {
-            if ('triggerAttackRelease' in sampler && !sampler.disposed) {
+            // Check sampler availability inside the callback as well
+            if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
                 sampler.triggerAttackRelease(note.key, note.duration, time);
             }
             
@@ -178,6 +186,7 @@ export default function ComposePage() {
         Tone.Transport.start();
 
         Tone.Transport.scheduleOnce(() => {
+            // Use a function reference for the stop logic
             stopPlayback();
         }, totalDuration + 0.5);
 
@@ -190,7 +199,7 @@ export default function ComposePage() {
         });
         setMode("idle");
     }
-  }, [generatedNotes, sampler, stopPlayback, toast, mode]);
+  };
   
   const isBusy = mode === 'generating' || mode === 'loadingInstrument';
   const InstrumentComponent = instrumentComponents[currentInstrument];
