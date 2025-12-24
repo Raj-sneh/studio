@@ -25,8 +25,7 @@ const samplerUrls: Record<string, Record<string, string>> = {
         A4: "A4.mp3", C5: "C5.mp3", E5: "E5.mp3", G5: "G5.mp3"
     },
     xylophone: {
-        C4: "C4.mp3", G4: "G4.mp3", C5: "C5.mp3", G5: "G5.mp3",
-        C6: "C6.mp3", G6: "G6.mp3", C7: "C7.mp3", G7: "G7.mp3"
+        C4: "C4.mp3", G4: "G4.mp3", C5: "C5.mp3", G5: "G5.mp3"
     },
     drums: {
         C4: 'kick.mp3', D4: 'snare.mp3', E4: 'hihat.mp3'
