@@ -75,9 +75,7 @@ const generateMelodyFlow = ai.defineFlow(
     outputSchema: GenerateMelodyOutputSchema,
   },
   async input => {
-    const {output} = await generateMelodyPrompt(input, {
-      model: googleAI.model('gemini-1.5-flash-latest'),
-    });
+    const {output} = await generateMelodyPrompt(input);
     return output!;
   }
 );
