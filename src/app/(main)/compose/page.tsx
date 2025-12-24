@@ -142,7 +142,9 @@ export default function ComposePage() {
   };
   
   const playMelody = useCallback(async () => {
-    if (generatedNotes.length === 0 || mode !== 'idle' || !samplerRef.current || samplerRef.current.disposed) {
+    if (generatedNotes.length === 0 || mode === 'playing') return;
+
+    if (!samplerRef.current || samplerRef.current.disposed) {
       toast({
         title: "Cannot play melody",
         description: "The instrument is not ready or a melody hasn't been generated.",
@@ -193,7 +195,7 @@ export default function ComposePage() {
         });
         setMode("idle");
     }
-  }, [generatedNotes, mode, stopPlayback, toast, samplerRef.current]);
+  }, [generatedNotes, stopPlayback, toast]);
   
   const isBusy = mode === 'generating' || mode === 'loadingInstrument';
   const InstrumentComponent = instrumentComponents[currentInstrument];
