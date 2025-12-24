@@ -46,7 +46,7 @@ export default function DrumPad({
     }
   }, [disabled, onNotePlay, sampler]);
 
-  if (!sampler || ('loaded' in sampler && !sampler.loaded)) {
+  if (!sampler) {
     return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Drum Samples...</p></div>;
   }
 

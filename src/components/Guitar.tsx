@@ -55,14 +55,14 @@ for (let s = 0; s < 6; s++) {
 interface GuitarProps {
     frets?: number;
     onNotePlay?: (note: string) => void;
-    highlightedNotes?: string[];
+    highlightedKeys?: string[];
     disabled?: boolean;
 }
 
 export default function Guitar({
     frets = 12,
     onNotePlay,
-    highlightedNotes = [],
+    highlightedKeys: highlightedNotes = [], // Renamed for clarity
     disabled = false,
 }: GuitarProps) {
     const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
@@ -129,7 +129,7 @@ export default function Guitar({
         return positions;
     }, [highlightedNotes]);
 
-    if (!sampler || ('loaded' in sampler && !sampler.loaded)) {
+    if (!sampler) {
         return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Guitar Samples...</p></div>;
     }
 

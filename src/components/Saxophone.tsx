@@ -38,13 +38,13 @@ export default function Saxophone({
 
    // Placeholder effect to trigger sounds for highlighted keys
   useEffect(() => {
-    if (highlightedKeys.length > 0 && !disabled) {
+    if (highlightedKeys.length > 0 && !disabled && sampler) {
       const lastNote = highlightedKeys[highlightedKeys.length - 1];
       playNote(lastNote);
     }
-  }, [highlightedKeys, disabled, playNote]);
+  }, [highlightedKeys, disabled, playNote, sampler]);
 
-  if (!sampler || ('loaded' in sampler && !sampler.loaded)) {
+  if (!sampler) {
     return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Saxophone Samples...</p></div>;
   }
   

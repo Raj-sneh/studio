@@ -62,7 +62,7 @@ export default function Piano({
         setPressedKeys(prev => {
             if (prev.has(fullNote)) {
                 if ('triggerRelease' in sampler) {
-                    sampler.triggerRelease(fullNote);
+                    sampler.triggerRelease([fullNote]);
                 }
                 const newSet = new Set(prev);
                 newSet.delete(fullNote);
@@ -118,7 +118,7 @@ export default function Piano({
     const pianoKeys = Array.from({ length: octaves }, (_, i) => i + startOctave)
         .flatMap(octave => notes.map(note => ({ note, octave })));
 
-    if (!sampler || ('loaded' in sampler && !sampler.loaded)) {
+    if (!sampler) {
         return <div className="flex items-center justify-center h-40 bg-muted rounded-lg"><p>Loading Piano Samples...</p></div>;
     }
 

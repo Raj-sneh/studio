@@ -70,7 +70,7 @@ export default function Xylophone({
             return { note, octave: finalOctave, color: colors[index % colors.length] }
         }));
 
-    if (!sampler || ('loaded' in sampler && !sampler.loaded)) {
+    if (!sampler) {
         return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Xylophone Samples...</p></div>;
     }
 

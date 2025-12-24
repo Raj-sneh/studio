@@ -55,17 +55,14 @@ export default function ComposePage() {
 
   // Stop playback and clean up Tone.js resources
   const stopPlayback = useCallback(() => {
+    if (Tone.Transport.state === 'started') {
+      Tone.Transport.stop();
+    }
+    Tone.Transport.cancel();
     if (partRef.current) {
         partRef.current.stop();
         partRef.current.dispose();
         partRef.current = null;
-    }
-    if (Tone.Transport.state === 'started') {
-        Tone.Transport.stop();
-    }
-    Tone.Transport.cancel();
-    if (samplerRef.current && 'releaseAll' in samplerRef.current && typeof samplerRef.current.releaseAll === 'function' && !samplerRef.current.disposed) {
-      samplerRef.current.releaseAll(0);
     }
     setHighlightedKeys([]);
     setMode("idle");
@@ -84,6 +81,7 @@ export default function ComposePage() {
     // Ensure that when the component unmounts, all audio is stopped.
     return () => {
       stopPlayback();
+      // We don't dispose the sampler here as getSampler handles caching.
     };
   }, [stopPlayback]);
 
@@ -115,7 +113,7 @@ export default function ComposePage() {
         });
         setMode('idle');
         setCurrentInstrument('piano');
-        samplerRef.current = await getSampler('piano');
+        samplerRef.current = await getSampler('piano'); // Ensure piano is loaded
         setIsInstrumentReady(true);
         return;
       }
@@ -136,6 +134,10 @@ export default function ComposePage() {
         title: 'Generation Failed',
         description: 'An unexpected error occurred while generating the melody. Please try again.',
       });
+      // Reset to a known good state
+      setCurrentInstrument('piano');
+      await getSampler('piano');
+
     } finally {
       setMode('idle');
       setIsInstrumentReady(true);
@@ -181,7 +183,7 @@ export default function ComposePage() {
         stopPlayback();
     }, totalDuration + 0.5);
 
-  }, [generatedNotes, isInstrumentReady, mode, stopPlayback]);
+  }, [generatedNotes, isInstrumentReady, mode, stopPlayback, toast]);
 
   
   const isUIReady = isInstrumentReady && mode !== 'generating';

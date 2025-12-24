@@ -3,8 +3,8 @@ import * as Tone from 'tone';
 import type { Instrument } from '@/types';
 
 // Store for our sampler/synth instances
-const instruments: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
-const loadingPromises: Partial<Record<Instrument, Promise<any>>> = {};
+const instruments: Partial<record<Instrument, Tone.Sampler | Tone.Synth>> = {};
+const loadingPromises: Partial<record<Instrument, Promise<any>>> = {};
 
 const samplerUrls: Record<string, Record<string, string>> = {
     piano: {
