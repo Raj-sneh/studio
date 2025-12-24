@@ -131,9 +131,9 @@ export default function Guitar({
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-full min-h-[200px] bg-muted rounded-lg">
+            <div className="flex flex-col items-center justify-center min-h-[300px] text-center bg-muted rounded-lg w-full">
                 <Loader2 className="h-8 w-8 animate-spin" />
-                <p className="ml-2">Loading Guitar Samples...</p>
+                <p className="mt-4 text-muted-foreground capitalize">Loading Guitar Samples...</p>
             </div>
         );
     }

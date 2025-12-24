@@ -119,9 +119,9 @@ export default function Piano({
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-40 bg-muted rounded-lg w-full">
+            <div className="flex flex-col items-center justify-center min-h-[300px] text-center bg-muted rounded-lg w-full">
                 <Loader2 className="h-8 w-8 animate-spin" />
-                <p className="ml-2">Loading Piano Samples...</p>
+                <p className="mt-4 text-muted-foreground capitalize">Loading Piano Samples...</p>
             </div>
         );
     }

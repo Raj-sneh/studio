@@ -49,9 +49,9 @@ export default function Violin({
 
   if (isLoading) {
     return (
-        <div className="flex items-center justify-center h-full bg-muted rounded-lg">
+        <div className="flex flex-col items-center justify-center min-h-[300px] text-center bg-muted rounded-lg w-full">
             <Loader2 className="h-8 w-8 animate-spin" />
-            <p className="ml-2">Loading Violin Samples...</p>
+            <p className="mt-4 text-muted-foreground capitalize">Loading Violin Samples...</p>
         </div>
     );
   }
