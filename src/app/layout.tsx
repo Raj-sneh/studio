@@ -1,8 +1,24 @@
 import type { Metadata } from 'next';
+import { Poppins, Roboto } from 'next/font/google';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 import { AppStateProvider } from '@/app/app-state-provider';
+import { cn } from '@/lib/utils';
+
+const fontHeadline = Poppins({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-headline',
+  weight: ['400', '600', '700'],
+});
+
+const fontBody = Roboto({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-body',
+  weight: ['400', '500'],
+});
 
 export const metadata: Metadata = {
   title: 'Socio - AI Music Teacher',
@@ -17,13 +33,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet" />
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8391391679719370"
      crossOrigin="anonymous"></script>
       </head>
-      <body className="font-body antialiased min-h-screen bg-background">
+      <body className={cn("font-body antialiased min-h-screen bg-background", fontHeadline.variable, fontBody.variable)}>
         <FirebaseClientProvider>
           <AppStateProvider>
             {children}
