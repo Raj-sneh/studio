@@ -69,29 +69,32 @@ export const getSampler = (instrument: Instrument): Tone.Sampler | Tone.Synth =>
     }
     
     const hasUrls = samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0;
+    
+    let newInstrument: Tone.Sampler | Tone.Synth;
 
     if (hasUrls) {
-        const newSampler = new Tone.Sampler({
+        newInstrument = new Tone.Sampler({
             urls: samplerUrls[instrument],
             baseUrl: baseUrlMap[instrument],
             release: 1,
         }).toDestination();
-
-        instruments[instrument] = newSampler;
-        // The loading promise should be attached to the sampler instance loading process.
-        loadingPromises[instrument] = new Promise(resolve => {
-            // Tone.loaded() can be used, but attaching to the sampler's onload is more specific.
-            newSampler.load(samplerUrls[instrument]).then(() => resolve());
-        });
-
     } else {
         // Fallback to a simple synth if no specific samples are available.
         console.warn(`No sampler URLs for ${instrument}, falling back to synth.`);
-        const newSynth = new Tone.Synth().toDestination();
-        instruments[instrument] = newSynth;
-        // Synths don't require async loading, so the promise can be resolved immediately.
-        loadingPromises[instrument] = Promise.resolve();
+        newInstrument = new Tone.Synth().toDestination();
     }
+
+    instruments[instrument] = newInstrument;
+
+    loadingPromises[instrument] = new Promise(resolve => {
+        if (newInstrument instanceof Tone.Sampler) {
+            // The .load() method is specific to Tone.Sampler
+            newInstrument.load(samplerUrls[instrument]).then(() => resolve());
+        } else {
+            // For Tone.Synth, there is nothing to load, so we can resolve immediately.
+            resolve();
+        }
+    });
     
     return instruments[instrument]!;
 };
