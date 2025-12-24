@@ -75,7 +75,6 @@ export default function ComposePage() {
       Tone.Transport.cancel();
       if (samplerRef.current && 'releaseAll' in samplerRef.current && samplerRef.current.disposed === false) {
         (samplerRef.current as Tone.Sampler).releaseAll();
-        // Do not dispose the default piano sampler on unmount, but dispose others
       }
     };
   }, []);
