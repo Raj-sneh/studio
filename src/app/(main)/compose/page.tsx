@@ -92,18 +92,21 @@ export default function ComposePage() {
     try {
       const result = await generateMelody({ prompt });
       if (result.notes && result.notes.length > 0) {
-        setInstrument(result.instrument || 'piano');
+        
+        const selectedInstrument = result.instrument && instrumentComponents[result.instrument] ? result.instrument : 'piano';
+
+        setInstrument(selectedInstrument);
         setGeneratedNotes(result.notes);
         
         // Load the new instrument sampler if it's different
         setIsInstrumentReady(false);
-        samplerRef.current = getSampler(result.instrument);
-        await allSamplersLoaded(result.instrument);
+        samplerRef.current = getSampler(selectedInstrument);
+        await allSamplersLoaded(selectedInstrument);
         setIsInstrumentReady(true);
         
         toast({
             title: "Melody Generated!",
-            description: `Your new melody is ready to be played on the ${result.instrument}.`,
+            description: `Your new melody is ready to be played on the ${selectedInstrument}.`,
         });
 
       } else {
@@ -143,7 +146,8 @@ export default function ComposePage() {
   }, []);
 
   const playMelody = useCallback(async () => {
-    if (!samplerRef.current || generatedNotes.length === 0 || !(samplerRef.current instanceof Tone.Sampler && samplerRef.current.loaded)) {
+    const currentSampler = samplerRef.current;
+    if (!currentSampler || generatedNotes.length === 0 || ('loaded' in currentSampler && !currentSampler.loaded)) {
         toast({ title: "Instrument not ready", description: "Please wait for the instrument to load."});
         return;
     };
@@ -151,10 +155,10 @@ export default function ComposePage() {
     stopPlayback();
     setMode('playing');
 
-    const sampler = samplerRef.current;
-
     partRef.current = new Tone.Part((time, note) => {
-        sampler.triggerAttackRelease(note.key, note.duration, time);
+        if ('triggerAttackRelease' in currentSampler) {
+            currentSampler.triggerAttackRelease(note.key, note.duration, time);
+        }
         
         Tone.Draw.schedule(() => {
             setHighlightedKeys(current => [...current, note.key]);
@@ -240,7 +244,7 @@ export default function ComposePage() {
                  <div className="min-h-[200px] flex items-center justify-center">
                     {!isUIReady ? <InstrumentLoader /> : (
                         <Suspense fallback={<InstrumentLoader />}>
-                            <InstrumentComponent highlightedKeys={highlightedKeys} disabled={true} />
+                            {InstrumentComponent ? <InstrumentComponent highlightedKeys={highlightedKeys} disabled={true} /> : <p>Could not load instrument.</p>}
                         </Suspense>
                     )}
                 </div>
