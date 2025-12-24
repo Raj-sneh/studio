@@ -34,7 +34,7 @@ export default function ComposePage() {
   const [isInstrumentReady, setIsInstrumentReady] = useState(false);
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
-  const noteTimeoutIds = useRef<NodeJS.Timeout[]>([]);
+  const partRef = useRef<Tone.Part | null>(null);
 
   useEffect(() => {
     const loadAudio = async () => {
@@ -48,12 +48,14 @@ export default function ComposePage() {
 
     return () => {
       // Cleanup on unmount
-      noteTimeoutIds.current.forEach(clearTimeout);
-      if (samplerRef.current && 'releaseAll' in samplerRef.current) {
-        samplerRef.current.releaseAll();
+      if (partRef.current) {
+        partRef.current.dispose();
       }
       Tone.Transport.stop();
       Tone.Transport.cancel();
+      if (samplerRef.current && 'releaseAll' in samplerRef.current) {
+        samplerRef.current.releaseAll();
+      }
     };
   }, []);
 
@@ -97,20 +99,19 @@ export default function ComposePage() {
   };
   
   const stopPlayback = useCallback(() => {
-    // Clear all scheduled timeouts for visual feedback
-    noteTimeoutIds.current.forEach(clearTimeout);
-    noteTimeoutIds.current = [];
-    
-    // Stop any notes that are currently playing
-    if (samplerRef.current && 'releaseAll' in samplerRef.current) {
-        samplerRef.current.releaseAll();
-    }
-    
-    // Clear any events scheduled on the transport
     Tone.Transport.stop();
     Tone.Transport.cancel();
+
+    if (partRef.current) {
+      partRef.current.stop();
+      partRef.current.dispose();
+      partRef.current = null;
+    }
     
-    // Reset visual and state indicators
+    if (samplerRef.current && 'releaseAll' in samplerRef.current) {
+        (samplerRef.current as Tone.Sampler).releaseAll();
+    }
+    
     setHighlightedKeys([]);
     setMode("idle");
   }, []);
@@ -118,38 +119,36 @@ export default function ComposePage() {
   const playMelody = useCallback(async () => {
     if (!samplerRef.current || generatedNotes.length === 0 || !(samplerRef.current instanceof Tone.Sampler && samplerRef.current.loaded)) return;
     
-    // Stop any previous playback before starting a new one
     stopPlayback();
     
     setMode('playing');
 
     const sampler = samplerRef.current;
-    const now = Tone.now() + 0.1;
-    
-    generatedNotes.forEach(note => {
-      const durationSeconds = Tone.Time(note.duration).toSeconds();
-      sampler.triggerAttackRelease(note.key, durationSeconds, now + note.time);
-  
-      // Schedule visual highlighting
-      const attackTimeout = setTimeout(() => {
-        setHighlightedKeys(current => [...current, note.key]);
-      }, note.time * 1000);
-  
-      const releaseTimeout = setTimeout(() => {
-        setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
-      }, (note.time + durationSeconds) * 1000);
-  
-      noteTimeoutIds.current.push(attackTimeout, releaseTimeout);
-    });
-    
+
+    partRef.current = new Tone.Part((time, note) => {
+        sampler.triggerAttackRelease(note.key, note.duration, time);
+        
+        Tone.Draw.schedule(() => {
+            setHighlightedKeys(current => [...current, note.key]);
+        }, time);
+
+        Tone.Draw.schedule(() => {
+             setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
+        }, time + Tone.Time(note.duration).toSeconds());
+
+    }, generatedNotes).start(0);
+
     const lastNote = generatedNotes[generatedNotes.length - 1];
-    const totalDuration = (lastNote.time + Tone.Time(lastNote.duration).toSeconds()) * 1000 + 500;
+    const totalDuration = lastNote.time + Tone.Time(lastNote.duration).toSeconds();
+    partRef.current.loop = false;
     
-    const playbackEndTimeout = setTimeout(() => {
-      setMode("idle");
-    }, totalDuration);
-    
-    noteTimeoutIds.current.push(playbackEndTimeout);
+    Tone.Transport.start();
+
+    // Schedule the end of playback
+    Tone.Transport.scheduleOnce(() => {
+        setMode("idle");
+    }, totalDuration + 0.5);
+
   }, [generatedNotes, stopPlayback]);
 
   
