@@ -70,32 +70,30 @@ export const getSampler = (instrument: Instrument): Tone.Sampler | Tone.Synth =>
     
     const hasUrls = samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0;
     
-    let newInstrument: Tone.Sampler | Tone.Synth;
-
-    if (hasUrls) {
-        newInstrument = new Tone.Sampler({
-            urls: samplerUrls[instrument],
-            baseUrl: baseUrlMap[instrument],
-            release: 1,
-        }).toDestination();
-    } else {
-        // Fallback to a simple synth if no specific samples are available.
-        console.warn(`No sampler URLs for ${instrument}, falling back to synth.`);
-        newInstrument = new Tone.Synth().toDestination();
-    }
-
-    instruments[instrument] = newInstrument;
-
+    // This promise will be stored and awaited by allSamplersLoaded
     loadingPromises[instrument] = new Promise(resolve => {
-        if (newInstrument instanceof Tone.Sampler) {
-            // The .load() method is specific to Tone.Sampler
-            newInstrument.load(samplerUrls[instrument]).then(() => resolve());
+        if (hasUrls) {
+            // Create a new Sampler. The 'onload' callback is the correct way to handle loading.
+            const newSampler = new Tone.Sampler({
+                urls: samplerUrls[instrument],
+                baseUrl: baseUrlMap[instrument],
+                release: 1,
+                // The onload function is called when all samples are loaded.
+                onload: () => {
+                    resolve();
+                }
+            }).toDestination();
+            instruments[instrument] = newSampler;
         } else {
+            // Fallback to a simple synth if no specific samples are available.
+            console.warn(`No sampler URLs for ${instrument}, falling back to synth.`);
+            const newSynth = new Tone.Synth().toDestination();
+            instruments[instrument] = newSynth;
             // For Tone.Synth, there is nothing to load, so we can resolve immediately.
             resolve();
         }
     });
-    
+
     return instruments[instrument]!;
 };
 
