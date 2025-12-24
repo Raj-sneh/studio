@@ -18,6 +18,13 @@ import type { Instrument } from "@/types";
 import { getSampler, allSamplersLoaded } from "@/lib/samplers";
 
 const Piano = lazy(() => import("@/components/Piano"));
+const Guitar = lazy(() => import("@/components/Guitar"));
+const Flute = lazy(() => import("@/components/Flute"));
+const Saxophone = lazy(() => import("@/components/Saxophone"));
+const Violin = lazy(() => import("@/components/Violin"));
+const Xylophone = lazy(() => import("@/components/Xylophone"));
+const DrumPad = lazy(() => import("@/components/DrumPad"));
+
 
 type RecordedNote = {
     note: string;
@@ -25,7 +32,26 @@ type RecordedNote = {
     instrument: Instrument;
 };
 
-const instruments: Instrument[] = ['piano'];
+const instruments: Instrument[] = ['piano', 'guitar', 'drums', 'flute', 'violin', 'saxophone', 'xylophone'];
+const instrumentComponents: Record<Instrument, React.ElementType> = {
+    piano: Piano,
+    guitar: Guitar,
+    drums: DrumPad,
+    flute: Flute,
+    violin: Violin,
+    saxophone: Saxophone,
+    xylophone: Xylophone,
+};
+const instrumentDescriptions: Record<Instrument, string> = {
+    piano: "Use your mouse or keyboard to play the classic piano.",
+    guitar: "Strum chords or pick individual notes on the acoustic guitar.",
+    drums: "Tap the pads to create a beat with this classic drum machine.",
+    flute: "A beautiful woodwind instrument. Use an external app or a real instrument for practice.",
+    violin: "A fretless wonder! Use an external app or a real instrument for practice.",
+    saxophone: "A soulful reed instrument. Use an external app or a real instrument for practice.",
+    xylophone: "Play a colorful and bright percussion instrument."
+}
+
 
 function InstrumentLoader() {
     return (
@@ -60,9 +86,8 @@ export default function PracticePage() {
         const loadInstrument = async () => {
             setIsLoading(true);
             try {
-                // Now we only get the sampler for the active instrument
                 getSampler(activeInstrument);
-                await allSamplersLoaded();
+                await allSamplersLoaded(activeInstrument);
             } catch (error) {
                 console.error("Failed to load sampler:", error);
             } finally {
@@ -95,12 +120,15 @@ export default function PracticePage() {
         }
     };
 
-    const playRecording = () => {
+    const playRecording = async () => {
         if (recordedNotes.length === 0 || isPlaying) return;
         setIsPlaying(true);
 
         const instrumentsInRecording = new Set(recordedNotes.map(n => n.instrument));
         const samplers: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
+        
+        await allSamplersLoaded(Array.from(instrumentsInRecording));
+
         instrumentsInRecording.forEach(inst => {
             samplers[inst] = getSampler(inst);
         });
@@ -109,7 +137,7 @@ export default function PracticePage() {
         const now = Tone.now();
         recordedNotes.forEach(noteEvent => {
             const sampler = samplers[noteEvent.instrument];
-            if (sampler) {
+            if (sampler && ('loaded' in sampler && sampler.loaded)) {
                 const duration = Array.isArray(noteEvent.note) ? "1n" : "8n";
                 sampler.triggerAttackRelease(noteEvent.note, duration, now + noteEvent.time / 1000);
             }
@@ -121,7 +149,7 @@ export default function PracticePage() {
         }, totalTime + 1000);
     };
 
-    if (isLoading) {
+    if (isLoading && !instrumentComponents[activeInstrument]) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)]">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -138,24 +166,31 @@ export default function PracticePage() {
             </div>
 
             <Tabs defaultValue="piano" className="w-full" onValueChange={(value) => setActiveInstrument(value as Instrument)}>
-                <TabsList className="grid w-full grid-cols-1">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
                     {instruments.map(inst => (
                         <TabsTrigger key={inst} value={inst} className="capitalize">{inst}</TabsTrigger>
                     ))}
                 </TabsList>
-                <TabsContent value="piano">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Virtual Piano</CardTitle>
-                            <CardDescription>Use your mouse or keyboard to play notes.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <Suspense fallback={<InstrumentLoader />}>
-                                <Piano onNotePlay={handleNotePlay} />
-                            </Suspense>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
+                {instruments.map(inst => {
+                    const InstrumentComponent = instrumentComponents[inst];
+                    return (
+                        <TabsContent key={inst} value={inst}>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="capitalize">Virtual {inst}</CardTitle>
+                                    <CardDescription>{instrumentDescriptions[inst]}</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4 min-h-[300px] flex items-center justify-center">
+                                    {isLoading ? <InstrumentLoader /> : (
+                                        <Suspense fallback={<InstrumentLoader />}>
+                                            <InstrumentComponent onNotePlay={handleNotePlay} />
+                                        </Suspense>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    )
+                })}
             </Tabs>
             
             <Card>
