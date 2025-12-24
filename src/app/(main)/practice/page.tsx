@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Instrument } from "@/types";
-import { getSampler } from "@/lib/samplers";
+import { createSampler } from "@/lib/samplers";
 
 const Piano = lazy(() => import("@/components/Piano"));
 const Guitar = lazy(() => import("@/components/Guitar"));
@@ -30,6 +30,7 @@ type RecordedNote = {
     note: string;
     time: number;
     instrument: Instrument;
+    duration: string;
 };
 
 const instruments: Instrument[] = ['piano', 'guitar', 'drums', 'flute', 'violin', 'saxophone', 'xylophone'];
@@ -83,31 +84,21 @@ export default function PracticePage() {
             window.addEventListener(type, startAudio, options);
         });
 
+        setIsLoading(false);
+
         return () => {
             eventTypes.forEach(type => {
                 window.removeEventListener(type, startAudio, options);
             });
+            Tone.Transport.stop();
+            Tone.Transport.cancel();
         };
     }, []);
 
-    useEffect(() => {
-        const loadInstrument = async () => {
-            setIsLoading(true);
-            try {
-                await getSampler(activeInstrument);
-            } catch (error) {
-                console.error("Failed to load sampler:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        loadInstrument();
-    }, [activeInstrument]);
-
     const handleNotePlay = (note: string) => {
         if (isRecording) {
-            setRecordedNotes(prev => [...prev, { note, time: Date.now() - startTime, instrument: activeInstrument }]);
+            const duration = note.includes(" ") ? "1n" : "8n";
+            setRecordedNotes(prev => [...prev, { note, time: Date.now() - startTime, instrument: activeInstrument, duration }]);
         }
     };
 
@@ -125,32 +116,40 @@ export default function PracticePage() {
         if (recordedNotes.length === 0 || isPlaying) return;
         setIsPlaying(true);
 
-        const instrumentsInRecording = new Set(recordedNotes.map(n => n.instrument));
         const samplers: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
+        const instrumentsInRecording = new Set(recordedNotes.map(n => n.instrument));
         
         for (const inst of instrumentsInRecording) {
-            samplers[inst] = await getSampler(inst);
+            samplers[inst] = await createSampler(inst);
         }
 
-        // Play notes
         const now = Tone.now();
         recordedNotes.forEach(noteEvent => {
             const sampler = samplers[noteEvent.instrument];
             if (sampler && !sampler.disposed) {
-                const duration = Array.isArray(noteEvent.note) ? "1n" : "8n";
                 if ('triggerAttackRelease' in sampler) {
-                    sampler.triggerAttackRelease(noteEvent.note, duration, now + noteEvent.time / 1000);
+                    sampler.triggerAttackRelease(noteEvent.note, noteEvent.duration, now + noteEvent.time / 1000);
                 }
             }
         });
 
         const totalTime = recordedNotes.length > 0 ? recordedNotes[recordedNotes.length - 1].time : 0;
-        setTimeout(() => {
+        
+        const timeoutId = setTimeout(() => {
             setIsPlaying(false);
+            // Dispose all created samplers
+            Object.values(samplers).forEach(sampler => {
+                if (sampler && !sampler.disposed) {
+                    sampler.dispose();
+                }
+            });
         }, totalTime + 1000);
+
+        // This part is for potential cleanup if component unmounts while playing.
+        return () => clearTimeout(timeoutId);
     };
 
-    if (isLoading && !instrumentComponents[activeInstrument]) {
+    if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)]">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -182,11 +181,9 @@ export default function PracticePage() {
                                     <CardDescription>{instrumentDescriptions[inst]}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4 min-h-[300px] flex items-center justify-center">
-                                    {isLoading && activeInstrument === inst ? <InstrumentLoader /> : (
-                                        <Suspense fallback={<InstrumentLoader />}>
-                                            <InstrumentComponent onNotePlay={handleNotePlay} />
-                                        </Suspense>
-                                    )}
+                                    <Suspense fallback={<InstrumentLoader />}>
+                                        <InstrumentComponent onNotePlay={handleNotePlay} />
+                                    </Suspense>
                                 </CardContent>
                             </Card>
                         </TabsContent>

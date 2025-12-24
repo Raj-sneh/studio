@@ -3,8 +3,8 @@
 
 import { useEffect, useCallback, useState } from "react";
 import * as Tone from "tone";
-import { Music2 } from "lucide-react";
-import { getSampler } from "@/lib/samplers";
+import { Music2, Loader2 } from "lucide-react";
+import { createSampler } from "@/lib/samplers";
 
 interface ViolinProps {
   onNotePlay?: (note: string) => void;
@@ -18,38 +18,49 @@ export default function Violin({
   disabled = false,
 }: ViolinProps) {
   const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let localSampler: Tone.Sampler | Tone.Synth | null = null;
     const loadSampler = async () => {
-      const s = await getSampler('violin');
-      setSampler(s);
+      setIsLoading(true);
+      localSampler = await createSampler('violin');
+      setSampler(localSampler);
+      setIsLoading(false);
     }
     loadSampler();
+    return () => {
+      if(localSampler) localSampler.dispose();
+    }
   }, []);
 
   const playNote = useCallback(async (note: string) => {
-    if (!sampler || disabled) return;
+    if (!sampler || disabled || isLoading || sampler.disposed) return;
     if (Tone.context.state !== 'running') {
         await Tone.start();
     }
-    if (('loaded' in sampler && !sampler.loaded) || sampler.disposed) return;
     if ('triggerAttackRelease' in sampler) {
       sampler.triggerAttackRelease(note, "1n", Tone.now());
     }
     onNotePlay?.(note);
-  }, [disabled, onNotePlay, sampler]);
+  }, [disabled, onNotePlay, sampler, isLoading]);
 
    // Placeholder effect to trigger sounds for highlighted keys
   useEffect(() => {
-    if (highlightedKeys.length > 0 && !disabled && sampler) {
+    if (highlightedKeys.length > 0 && !disabled && sampler && !isLoading) {
       const lastNote = highlightedKeys[highlightedKeys.length - 1];
       playNote(lastNote);
     }
-  }, [highlightedKeys, disabled, playNote, sampler]);
+  }, [highlightedKeys, disabled, playNote, sampler, isLoading]);
 
 
-  if (!sampler) {
-    return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Violin Samples...</p></div>;
+  if (isLoading) {
+    return (
+        <div className="flex items-center justify-center h-full bg-muted rounded-lg">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="ml-2">Loading Violin Samples...</p>
+        </div>
+    );
   }
   
   return (

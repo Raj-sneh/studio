@@ -4,7 +4,8 @@
 import { useCallback, useState, useEffect } from "react";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
-import { getSampler } from "@/lib/samplers";
+import { createSampler } from "@/lib/samplers";
+import { Loader2 } from "lucide-react";
 
 const notes = ["C", "D", "E", "F", "G", "A", "B", "C"];
 const colors = [
@@ -34,22 +35,28 @@ export default function Xylophone({
     disabled = false,
 }: XylophoneProps) {
     const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
 
     useEffect(() => {
+        let localSampler: Tone.Sampler | Tone.Synth | null = null;
         const loadSampler = async () => {
-            const s = await getSampler('xylophone');
-            setSampler(s);
+            setIsLoading(true);
+            localSampler = await createSampler('xylophone');
+            setSampler(localSampler);
+            setIsLoading(false);
         }
         loadSampler();
+        return () => {
+            if(localSampler) localSampler.dispose();
+        }
     }, []);
 
     const playNote = useCallback(async (note: string, octave: number) => {
-        if (!sampler || disabled) return;
+        if (!sampler || disabled || isLoading || sampler.disposed) return;
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-        if (('loaded' in sampler && !sampler.loaded) || sampler.disposed) return;
         const fullNote = `${note}${octave}`;
         if ('triggerAttackRelease' in sampler) {
             sampler.triggerAttackRelease(fullNote, "8n", Tone.now());
@@ -63,7 +70,7 @@ export default function Xylophone({
                 return newSet;
             });
         }, 200);
-    }, [disabled, onNotePlay, sampler]);
+    }, [disabled, onNotePlay, sampler, isLoading]);
     
     const xylophoneKeys = Array.from({ length: octaves }, (_, i) => i + startOctave)
         .flatMap(octave => notes.map((note, index) => {
@@ -71,8 +78,13 @@ export default function Xylophone({
             return { note, octave: finalOctave, color: colors[index % colors.length] }
         }));
 
-    if (!sampler) {
-        return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Xylophone Samples...</p></div>;
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-full bg-muted rounded-lg">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <p className="ml-2">Loading Xylophone Samples...</p>
+            </div>
+        );
     }
 
     return (
@@ -91,7 +103,7 @@ export default function Xylophone({
                                 "relative cursor-pointer transition-all duration-100 flex items-center justify-center h-12 rounded-md border-2 border-black/50 text-white font-bold shadow-md",
                                 color,
                                 isHighlighted ? "scale-105 border-white shadow-lg shadow-white/50" : "hover:scale-[1.02]",
-                                disabled && "opacity-60 cursor-not-allowed"
+                                (disabled || isLoading) && "opacity-60 cursor-not-allowed"
                             )}
                             style={{ width: `${barLength}%`, marginLeft: `${(100 - barLength) / 2}%` }}
                         >

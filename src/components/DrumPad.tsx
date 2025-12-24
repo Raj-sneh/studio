@@ -5,7 +5,8 @@ import { useCallback, useEffect, useState } from 'react';
 import * as Tone from 'tone';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import { getSampler } from '@/lib/samplers';
+import { createSampler } from '@/lib/samplers';
+import { Loader2 } from 'lucide-react';
 
 const drumMap: { [key: string]: { name: string; note: string; imageUrl: string; hint: string } } = {
   'C4': { name: 'Kick', note: 'C4', imageUrl: 'https://picsum.photos/seed/kick-drum/200/200', hint: 'kick drum' },
@@ -25,30 +26,41 @@ export default function DrumPad({
   disabled = false,
 }: DrumPadProps) {
   const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let localSampler: Tone.Sampler | Tone.Synth | null = null;
     const loadSampler = async () => {
-      const s = await getSampler('drums');
-      setSampler(s);
+      setIsLoading(true);
+      localSampler = await createSampler('drums');
+      setSampler(localSampler);
+      setIsLoading(false);
     }
     loadSampler();
+    return () => {
+      if(localSampler) localSampler.dispose();
+    }
   }, []);
 
   const playNote = useCallback(async (noteKey: string) => {
-    if (!sampler || disabled) return;
+    if (!sampler || disabled || isLoading || sampler.disposed) return;
     if (Tone.context.state !== 'running') {
         await Tone.start();
     }
-    if (('loaded' in sampler && !sampler.loaded) || sampler.disposed) return;
     const drumSound = drumMap[noteKey];
     if (drumSound && 'triggerAttackRelease' in sampler) {
       sampler.triggerAttackRelease(drumSound.note, '1n', Tone.now());
       onNotePlay?.(noteKey);
     }
-  }, [disabled, onNotePlay, sampler]);
+  }, [disabled, onNotePlay, sampler, isLoading]);
 
-  if (!sampler) {
-    return <div className="flex items-center justify-center h-full bg-muted rounded-lg"><p>Loading Drum Samples...</p></div>;
+  if (isLoading) {
+    return (
+        <div className="flex items-center justify-center h-full bg-muted rounded-lg">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="ml-2">Loading Drum Samples...</p>
+        </div>
+    );
   }
 
   return (
@@ -63,7 +75,7 @@ export default function DrumPad({
               onClick={() => playNote(noteKey)}
               className={cn(
                 'w-32 h-32 rounded-full overflow-hidden bg-muted border-4 border-muted-foreground flex flex-col items-center justify-center cursor-pointer transition-all duration-100 relative',
-                disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105',
+                (disabled || isLoading) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105',
                 isHighlighted ? 'bg-primary border-primary-foreground scale-105 shadow-lg shadow-primary/50' : ''
               )}
             >

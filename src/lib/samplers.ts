@@ -2,9 +2,8 @@
 import * as Tone from 'tone';
 import type { Instrument } from '@/types';
 
-// Store for our sampler/synth instances
-const instruments: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
-const loadingPromises: Partial<Record<Instrument, Promise<Tone.Sampler | Tone.Synth>>> = {};
+// This file is now a simple factory for creating new instrument instances.
+// The complex caching logic has been removed to favor component-level state management, which is more robust.
 
 const samplerUrls: Record<string, Record<string, string>> = {
     piano: {
@@ -46,67 +45,41 @@ const baseUrlMap: Record<string, string> = {
 
 
 /**
- * Gets the sampler for a given instrument. It handles creating, caching,
- * and re-creating samplers if they have been disposed. This is now an async function
- * that resolves with the loaded instrument.
- * @param instrument The instrument to get the sampler for.
- * @returns A promise that resolves with the Tone.Sampler or Tone.Synth instance.
+ * Creates a new Tone.js instrument (Sampler or Synth).
+ * This function is async and resolves with the loaded instrument.
+ * It ALWAYS creates a new instance.
+ * @param instrument The instrument to create.
+ * @returns A promise that resolves with the new Tone.Sampler or Tone.Synth instance.
  */
-export const getSampler = async (instrument: Instrument): Promise<Tone.Sampler | Tone.Synth> => {
-    if (typeof window === 'undefined') {
-        // Return a mock object on the server to prevent errors during SSR
-        return {
-            triggerAttack: () => {},
-            triggerRelease: () => {},
-            releaseAll: () => {},
-            dispose: () => {},
-            disposed: false,
-            loaded: false,
-        } as unknown as Tone.Sampler;
-    }
+export const createSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.Synth> => {
+    return new Promise((resolve) => {
+        if (typeof window === 'undefined') {
+            // On the server, return a mock object immediately.
+            return resolve({
+                triggerAttack: () => {},
+                triggerRelease: () => {},
+                releaseAll: () => {},
+                dispose: () => {},
+                disposed: true,
+                loaded: false,
+            } as unknown as Tone.Sampler);
+        }
 
-    // If a loading promise is already in flight for this instrument, await it.
-    if (loadingPromises[instrument]) {
-        return loadingPromises[instrument]!;
-    }
-
-    // If a valid, non-disposed instrument already exists, return it.
-    if (instruments[instrument] && !instruments[instrument]?.disposed) {
-        return instruments[instrument]!;
-    }
-    
-    const hasUrls = samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0;
-    
-    // Create and store a new loading promise. This prevents multiple concurrent loads for the same instrument.
-    const loadingPromise = new Promise<Tone.Sampler | Tone.Synth>((resolve) => {
+        const hasUrls = samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0;
+        
         if (hasUrls) {
-            const newSampler = new Tone.Sampler({
+            const sampler = new Tone.Sampler({
                 urls: samplerUrls[instrument],
                 baseUrl: baseUrlMap[instrument],
                 release: 1,
-                // The 'onload' callback is the correct way to know when the sampler is ready.
                 onload: () => {
-                    instruments[instrument] = newSampler;
-                    resolve(newSampler);
+                    resolve(sampler); // Resolve the promise when loading is complete
                 }
             }).toDestination();
         } else {
-            console.warn(`No sampler URLs for ${instrument}, falling back to synth.`);
-            // A synth doesn't need to load, so it's ready immediately.
-            const newSynth = new Tone.Synth().toDestination();
-            instruments[instrument] = newSynth;
-            resolve(newSynth); // Resolve immediately for synth
+            // If no samples are available, fall back to a basic synth.
+            const synth = new Tone.Synth().toDestination();
+            resolve(synth); // A synth is ready immediately.
         }
     });
-
-    loadingPromises[instrument] = loadingPromise;
-    
-    try {
-      // Await the newly created promise.
-      const loadedInstrument = await loadingPromise;
-      return loadedInstrument;
-    } finally {
-      // Clear the promise from the map once it's resolved or rejected.
-      delete loadingPromises[instrument];
-    }
 };

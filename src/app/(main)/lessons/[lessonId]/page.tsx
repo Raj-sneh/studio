@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense, lazy } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import * as Tone from "tone";
 import { lessons } from "@/lib/lessons";
 import type { Lesson, Note as NoteType } from "@/types";
@@ -11,37 +10,14 @@ import { analyzeUserPerformance } from "@/ai/flows/analyze-user-performance";
 import { flagContentForReview } from "@/ai/flows/flag-content-for-review";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useUser } from '@/firebase';
-import { getSampler } from "@/lib/samplers";
-import { cn } from "@/lib/utils";
+import { createSampler } from "@/lib/samplers";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 import { transcribeAudio } from "@/ai/flows/transcribe-audio-flow";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +27,6 @@ import { Play, Square, Mic, Send, Flag, Bot, Loader2, Star, Trophy, Target, Spar
 
 const Piano = lazy(() => import("@/components/Piano"));
 
-type RecordedNote = { note: string; time: number };
 type AnalysisResult = {
   overallScore: number;
   strengths: string;
@@ -61,7 +36,7 @@ type Mode = "idle" | "demo" | "recording" | "analyzing" | "result" | "listening"
 
 function InstrumentLoader() {
     return (
-        <div className="flex flex-col items-center justify-center h-full text-center">
+        <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center">
             <Loader2 className="h-8 w-8 animate-spin" />
             <p className="mt-4 text-muted-foreground">Loading Instrument...</p>
         </div>
@@ -83,11 +58,24 @@ export default function LessonPage() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult>(null);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const reportReasonRef = useRef<HTMLTextAreaElement>(null);
-  const noteTimeoutIds = useRef<NodeJS.Timeout[]>([]);
   const image = lesson ? PlaceHolderImages.find(img => img.id === lesson.imageId) : null;
   const [isInstrumentReady, setIsInstrumentReady] = useState(false);
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
+  const partRef = useRef<Tone.Part | null>(null);
+
+  const stopPlayback = useCallback(() => {
+    if (Tone.Transport.state === "started") {
+      Tone.Transport.stop();
+      Tone.Transport.cancel();
+    }
+    if (partRef.current) {
+        partRef.current.dispose();
+        partRef.current = null;
+    }
+    setHighlightedKeys([]);
+    setMode("idle");
+  }, []);
 
   useEffect(() => {
     const lessonId = params.lessonId as string;
@@ -98,7 +86,10 @@ export default function LessonPage() {
       const loadAudio = async () => {
         setIsInstrumentReady(false);
         await Tone.start();
-        samplerRef.current = await getSampler(foundLesson.instrument);
+        if (samplerRef.current) {
+            samplerRef.current.dispose();
+        }
+        samplerRef.current = await createSampler(foundLesson.instrument);
         setIsInstrumentReady(true);
       };
       loadAudio();
@@ -107,58 +98,48 @@ export default function LessonPage() {
     }
 
     return () => {
-      noteTimeoutIds.current.forEach(clearTimeout);
-      Tone.Transport.stop();
-      Tone.Transport.cancel();
+      stopPlayback();
+      if (samplerRef.current && !samplerRef.current.disposed) {
+        samplerRef.current.dispose();
+      }
       if (isMicRecording) {
         stopMicRecording();
       }
     };
-  }, [params.lessonId, router, isMicRecording, stopMicRecording]);
+  }, [params.lessonId, router, isMicRecording, stopMicRecording, stopPlayback]);
 
   const playNotes = useCallback(async (notesToPlay: NoteType[]) => {
-    if (!samplerRef.current || notesToPlay.length === 0) return;
+    if (!samplerRef.current || samplerRef.current.disposed || notesToPlay.length === 0) return;
   
-    noteTimeoutIds.current.forEach(clearTimeout);
-    noteTimeoutIds.current = [];
-    setHighlightedKeys([]);
-    Tone.Transport.stop();
-    Tone.Transport.cancel();
-    
+    stopPlayback();
+    setMode("demo");
     const sampler = samplerRef.current;
-    if (('loaded' in sampler && !sampler.loaded) || sampler.disposed) return;
-    const now = Tone.now() + 0.1;
     
-    notesToPlay.forEach(note => {
-      const noteTimeMs = note.time * 1000;
-      const durationSeconds = Tone.Time(note.duration).toSeconds();
-  
-      if ('triggerAttackRelease' in sampler) {
-        sampler.triggerAttackRelease(note.key, durationSeconds, now + note.time);
-      }
-  
-      const attackTimeout = setTimeout(() => {
-        setHighlightedKeys(current => [...current, note.key]);
-      }, noteTimeMs);
-  
-      const releaseTimeout = setTimeout(() => {
-        setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
-      }, noteTimeMs + (durationSeconds * 1000));
-  
-      noteTimeoutIds.current.push(attackTimeout, releaseTimeout);
-    });
-    
+    partRef.current = new Tone.Part((time, note) => {
+        if ('triggerAttackRelease' in sampler) {
+            sampler.triggerAttackRelease(note.key, note.duration, time);
+        }
+
+        Tone.Draw.schedule(() => setHighlightedKeys(current => [...current, note.key]), time);
+        const releaseTime = time + Tone.Time(note.duration).toSeconds() * 0.9;
+        Tone.Draw.schedule(() => setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key)), releaseTime);
+    }, notesToPlay).start(0);
+
     const lastNote = notesToPlay[notesToPlay.length - 1];
-    const totalDuration = (lastNote.time + Tone.Time(lastNote.duration).toSeconds()) * 1000 + 500;
-    const modeTimeout = setTimeout(() => {
-      setMode("idle");
-    }, totalDuration);
-    noteTimeoutIds.current.push(modeTimeout);
-  }, []);
+    const totalDuration = lastNote.time + Tone.Time(lastNote.duration).toSeconds();
+    partRef.current.loop = false;
+    
+    await Tone.start();
+    Tone.Transport.start();
+    
+    Tone.Transport.scheduleOnce(() => {
+      stopPlayback();
+    }, totalDuration + 0.5);
+
+  }, [stopPlayback]);
 
   const playDemo = useCallback(() => {
     if (!lesson || !isInstrumentReady) return;
-    setMode("demo");
     playNotes(lesson.notes);
   }, [lesson, isInstrumentReady, playNotes]);
 
@@ -415,7 +396,7 @@ export default function LessonPage() {
               <CardHeader>
                 <CardTitle className="text-4xl font-bold text-primary">{analysisResult?.overallScore || 'N/A'}</CardTitle>
                 <CardDescription className="flex items-center justify-center gap-1"><Trophy className="h-4 w-4" /> Overall Score</CardDescription>
-              </CardHeader>
+              </header>
             </Card>
             <Card className="md:col-span-2">
               <CardContent className="p-6">
