@@ -86,7 +86,7 @@ export default function Xylophone({
     }, [disabled, onNotePlay, sampler, loadingState]);
     
     const xylophoneKeys = Array.from({ length: octaves }, (_, i) => i + startOctave)
-        .flatMap(octave => notes.map((note, index) => {
+        .flatMap((octave, octaveIndex) => notes.map((note, index) => {
             const finalOctave = note === "C" && index > 0 ? octave + 1 : octave;
             return { note, octave: finalOctave, color: colors[index % colors.length] }
         }));
@@ -118,10 +118,14 @@ export default function Xylophone({
                     const isHighlighted = highlightedKeys.includes(fullNote) || pressedKeys.has(fullNote);
                     const barLength = 95 - index * 6;
 
+                    const handleClick = () => {
+                        playNote(note, octave);
+                    };
+
                     return (
                         <div
                             key={`${note}${octave}`}
-                            onClick={() => playNote(note, octave)}
+                            onClick={handleClick}
                             className={cn(
                                 "relative cursor-pointer transition-all duration-100 flex items-center justify-center h-12 rounded-md border-2 border-black/50 text-white font-bold shadow-md",
                                 color,
