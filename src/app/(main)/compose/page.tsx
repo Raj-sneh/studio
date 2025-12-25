@@ -105,7 +105,6 @@ export default function ComposePage() {
       if (samplerRef.current && !samplerRef.current.disposed) {
         samplerRef.current.dispose();
       }
-      samplerRef.current = null;
     };
   }, [generatedNotes, currentInstrument, toast, stopPlayback]);
 
