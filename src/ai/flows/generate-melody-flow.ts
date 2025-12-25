@@ -53,7 +53,7 @@ const generateMelodyPrompt = ai.definePrompt({
 
 **CRITICAL INSTRUCTIONS:**
 
-1.  **Prioritize Accuracy for Known Songs:** If the user asks for a specific, known song (e.g., "play titanic theme", "kal ho naa ho", "twinkle twinkle", or provides lyrics), your absolute priority is to generate a **highly accurate and recognizable** version of that song's main melody. The melody should last for approximately 20-30 seconds.
+1.  **Prioritize Accuracy for Known Songs:** If the user asks for a specific, known song (e.g., "play titanic theme", "kal ho naa ho", "twinkle twinkle", or provides lyrics), your absolute priority is to generate a **highly accurate and recognizable** version of that song's main melody. The melody should be between 8 and 16 notes.
 2.  **Handle Unrecognized Songs:** If you do not recognize the song, or if the request is ambiguous, state that you do not know the song and offer to create something original in a similar style. In this case, generate a short, original melody that fits the described mood.
 3.  **Choose the Best Instrument:** Based on the user's prompt, select the most suitable instrument.
     - **Default to Piano:** For most general requests (e.g., "a happy tune", "a sad song"), 'piano' is an excellent and safe choice.
