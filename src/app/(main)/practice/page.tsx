@@ -133,7 +133,7 @@ export default function PracticePage() {
         {instruments.map((inst) => {
           const InstrumentComponent = instrumentComponents[inst];
           return (
-            <TabsContent key={inst} value={inst}>
+            <TabsContent key={inst} value={inst} data-state={activeInstrument === inst ? 'active' : 'inactive'} className="data-[state=inactive]:hidden">
               <Card>
                 <CardHeader>
                   <CardTitle className="capitalize">Virtual {inst}</CardTitle>
