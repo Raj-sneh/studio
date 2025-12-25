@@ -70,15 +70,49 @@ export default function ComposePage() {
     }
   }, [mode]);
   
-  // Cleanup effect
+  // Effect to load instrument when notes or instrument change
   useEffect(() => {
+    if (generatedNotes.length === 0) return;
+
+    setMode('loadingInstrument');
+
+    let isMounted = true;
+
+    // Dispose old sampler if it exists
+    if (samplerRef.current && !samplerRef.current.disposed) {
+        samplerRef.current.dispose();
+    }
+
+    getSampler(currentInstrument).then(newSampler => {
+      if (isMounted) {
+        samplerRef.current = newSampler;
+        setMode('idle');
+        toast({
+            title: "Melody Generated!",
+            description: `Your new melody is ready to be played on the ${currentInstrument}.`,
+        });
+      }
+    }).catch(error => {
+        if(isMounted) {
+            console.error('Failed to load instrument:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Instrument Failed to Load',
+                description: `Could not load samples for the ${currentInstrument}. Please try again.`
+            });
+            setMode('idle');
+        }
+    });
+
     return () => {
+      isMounted = false;
       stopPlayback();
       if (samplerRef.current && !samplerRef.current.disposed) {
         samplerRef.current.dispose();
       }
     };
-  }, [stopPlayback]);
+  }, [generatedNotes, currentInstrument, toast, stopPlayback]);
+
   
   const handleGenerate = async () => {
     if (!prompt.trim() || mode === 'generating') {
@@ -108,24 +142,8 @@ export default function ComposePage() {
       }
       
       const newInstrument = result.instrument && instrumentComponents[result.instrument] ? result.instrument : 'piano';
-      
-      setMode('loadingInstrument');
       setCurrentInstrument(newInstrument);
-      setGeneratedNotes(result.notes);
-      
-      // Dispose old sampler if it exists
-      if (samplerRef.current && !samplerRef.current.disposed) {
-          samplerRef.current.dispose();
-      }
-
-      getSampler(newInstrument).then(newSampler => {
-        samplerRef.current = newSampler;
-        setMode('idle');
-        toast({
-            title: "Melody Generated!",
-            description: `Your new melody is ready to be played on the ${newInstrument}.`,
-        });
-      });
+      setGeneratedNotes(result.notes); // This will trigger the useEffect to load the instrument
       
     } catch (error) {
       console.error('Melody generation failed:', error);
@@ -203,7 +221,8 @@ export default function ComposePage() {
   const getCardDescription = () => {
     if (mode === 'generating') return 'The AI is composing your melody...';
     if (mode === 'loadingInstrument') return `Loading ${currentInstrument} samples...`;
-    return `Press play to hear the result on the ${currentInstrument}.`;
+    if (generatedNotes.length > 0) return `Press play to hear the result on the ${currentInstrument}.`;
+    return 'Your generated melody will appear here.';
   };
 
   return (
@@ -240,7 +259,7 @@ export default function ComposePage() {
         </CardContent>
       </Card>
       
-      {(generatedNotes.length > 0 || isBusy) && (
+      {(generatedNotes.length > 0 || mode === 'generating' || mode === 'loadingInstrument') && (
         <Card>
             <CardHeader>
                 <CardTitle>Your AI-Generated Melody</CardTitle>
