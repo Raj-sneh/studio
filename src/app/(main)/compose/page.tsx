@@ -70,63 +70,59 @@ export default function ComposePage() {
     }
   }, [mode]);
   
-  // Effect to load instrument when notes or instrument change
   useEffect(() => {
     if (generatedNotes.length === 0) return;
 
     setMode('loadingInstrument');
-
     let isMounted = true;
+    
+    // Previous sampler instance must be disposed before creating a new one.
+    samplerRef.current?.dispose();
 
-    // Dispose old sampler if it exists
-    if (samplerRef.current && !samplerRef.current.disposed) {
-        samplerRef.current.dispose();
-    }
-
-    getSampler(currentInstrument).then(newSampler => {
-      if (isMounted) {
-        samplerRef.current = newSampler;
-        setMode('idle');
-        toast({
-            title: "Melody Generated!",
-            description: `Your new melody is ready to be played on the ${currentInstrument}.`,
-        });
-      }
-    }).catch(error => {
-        if(isMounted) {
-            console.error('Failed to load instrument:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Instrument Failed to Load',
-                description: `Could not load samples for the ${currentInstrument}. Please try again.`
-            });
-            setMode('idle');
+    getSampler(currentInstrument)
+      .then(newSampler => {
+        if (isMounted) {
+          samplerRef.current = newSampler;
+          setMode('idle');
+          toast({
+              title: "Melody Generated!",
+              description: `Your new melody is ready to be played on the ${currentInstrument}.`,
+          });
+        } else {
+          // If component unmounted before sampler loaded, dispose it
+          newSampler.dispose();
         }
-    });
+      })
+      .catch(error => {
+          if(isMounted) {
+              console.error('Failed to load instrument:', error);
+              toast({
+                  variant: 'destructive',
+                  title: 'Instrument Failed to Load',
+                  description: `Could not load samples for the ${currentInstrument}. Please try again.`
+              });
+              setMode('idle');
+          }
+      });
 
     return () => {
       isMounted = false;
-      stopPlayback();
-      if (samplerRef.current && !samplerRef.current.disposed) {
-        samplerRef.current.dispose();
-      }
+      // This cleanup runs when the component unmounts or deps change.
+      // We need to ensure that we are not disposing a sampler that a new effect run is creating.
+      // The `isMounted` flag helps, but also directly cleaning up the ref on unmount is key.
+      samplerRef.current?.dispose();
     };
-  }, [generatedNotes, currentInstrument, toast, stopPlayback]);
+  }, [generatedNotes, currentInstrument, toast]);
 
-  
+
   const handleGenerate = async () => {
     if (!prompt.trim() || mode === 'generating') {
-      toast({
-        variant: 'destructive',
-        title: 'Prompt is empty or generation is in progress',
-        description: 'Please describe the melody you want to create.',
-      });
       return;
     }
     
     stopPlayback();
     setMode('generating');
-    setGeneratedNotes([]);
+    setGeneratedNotes([]); // Clear previous notes
 
     try {
       const result = await generateMelody({ prompt });
@@ -142,8 +138,10 @@ export default function ComposePage() {
       }
       
       const newInstrument = result.instrument && instrumentComponents[result.instrument] ? result.instrument : 'piano';
+      
+      // Set instrument and notes, which triggers the useEffect to load the sampler
       setCurrentInstrument(newInstrument);
-      setGeneratedNotes(result.notes); // This will trigger the useEffect to load the instrument
+      setGeneratedNotes(result.notes);
       
     } catch (error) {
       console.error('Melody generation failed:', error);
@@ -269,7 +267,7 @@ export default function ComposePage() {
             </CardHeader>
             <CardContent className="space-y-4">
                  {mode !== 'playing' ? (
-                     <Button onClick={playMelody} disabled={isBusy || generatedNotes.length === 0} size="lg" className="w-full">
+                     <Button onClick={playMelody} disabled={isBusy || mode === 'playing' || generatedNotes.length === 0} size="lg" className="w-full">
                         <Play className="mr-2 h-5 w-5"/>
                         Play Melody
                     </Button>
@@ -292,5 +290,3 @@ export default function ComposePage() {
     </div>
   );
 }
-
-    
