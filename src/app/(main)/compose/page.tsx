@@ -71,7 +71,7 @@ export default function ComposePage() {
   }, [mode]);
   
   useEffect(() => {
-    if (!generatedNotes.length) return;
+    if (generatedNotes.length === 0) return;
 
     let isMounted = true;
     setMode('loadingInstrument');
