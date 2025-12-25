@@ -54,7 +54,7 @@ export default function ComposePage() {
   const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
 
-  const stopPlayback = () => {
+  const stopPlayback = useCallback(() => {
     if (Tone.Transport.state === 'started') {
       Tone.Transport.stop();
       Tone.Transport.cancel();
@@ -68,7 +68,7 @@ export default function ComposePage() {
     if (mode === 'playing') {
       setMode("idle");
     }
-  };
+  }, [mode]);
   
   const handleGenerate = async () => {
     if (!prompt.trim() || mode === 'generating') {
@@ -87,7 +87,7 @@ export default function ComposePage() {
     try {
       const result = await generateMelody({ prompt });
       
-      if (!result?.notes || result.notes.length === 0) {
+      if (!result || !result.notes || result.notes.length === 0) {
         toast({
             variant: "destructive",
             title: "Could not generate melody",
@@ -97,7 +97,7 @@ export default function ComposePage() {
         return;
       }
       
-      const newInstrument = result?.instrument && instrumentComponents[result.instrument] ? result.instrument : 'piano';
+      const newInstrument = result.instrument && instrumentComponents[result.instrument] ? result.instrument : 'piano';
       
       setMode('loadingInstrument');
       setCurrentInstrument(newInstrument);
@@ -123,7 +123,7 @@ export default function ComposePage() {
     }
   };
   
-  const playMelody = async () => {
+  const playMelody = useCallback(async () => {
     if (!sampler || sampler.disposed || generatedNotes.length === 0 || mode !== 'idle') {
       toast({
         title: "Cannot play melody",
@@ -137,6 +137,12 @@ export default function ComposePage() {
     setMode('playing');
 
     try {
+        const noteEvents = generatedNotes.map(note => ({
+            time: note.time,
+            key: note.key,
+            duration: note.duration,
+        }));
+
         partRef.current = new Tone.Part((time, note) => {
             if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
                 sampler.triggerAttackRelease(note.key, note.duration, time);
@@ -151,7 +157,7 @@ export default function ComposePage() {
                  setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
             }, releaseTime);
 
-        }, generatedNotes).start(0);
+        }, noteEvents).start(0);
 
         const lastNote = generatedNotes[generatedNotes.length - 1];
         const totalDuration = lastNote.time + Tone.Time(lastNote.duration).toSeconds();
@@ -173,7 +179,7 @@ export default function ComposePage() {
         });
         setMode("idle");
     }
-  };
+  }, [sampler, generatedNotes, mode, stopPlayback, toast]);
   
   const isBusy = mode === 'generating' || mode === 'loadingInstrument';
   const InstrumentComponent = instrumentComponents[currentInstrument];
