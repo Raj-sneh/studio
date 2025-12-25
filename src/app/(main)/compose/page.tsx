@@ -76,11 +76,11 @@ export default function ComposePage() {
     let isMounted = true;
     setMode('loadingInstrument');
     
-    // Dispose previous sampler before creating a new one.
-    if (samplerRef.current) {
+    // Dispose previous sampler if it exists
+    if (samplerRef.current && !samplerRef.current.disposed) {
       samplerRef.current.dispose();
-      samplerRef.current = null;
     }
+    samplerRef.current = null;
 
     getSampler(currentInstrument)
       .then(newSampler => {
@@ -92,7 +92,6 @@ export default function ComposePage() {
               description: `Your new melody is ready to be played on the ${currentInstrument}.`,
           });
         } else {
-          // If component unmounted before sampler loaded, dispose it
           newSampler.dispose();
         }
       })
@@ -110,11 +109,9 @@ export default function ComposePage() {
 
     return () => {
       isMounted = false;
-      // Cleanup on unmount or when dependencies change.
       stopPlayback();
-      if (samplerRef.current) {
+      if (samplerRef.current && !samplerRef.current.disposed) {
         samplerRef.current.dispose();
-        samplerRef.current = null;
       }
     };
   }, [generatedNotes, currentInstrument, toast, stopPlayback]);
@@ -127,7 +124,7 @@ export default function ComposePage() {
     
     stopPlayback();
     setMode('generating');
-    setGeneratedNotes([]); // Clear previous notes
+    setGeneratedNotes([]);
 
     try {
       const result = await generateMelody({ prompt });
@@ -144,7 +141,6 @@ export default function ComposePage() {
       
       const newInstrument = result.instrument && instrumentComponents[result.instrument] ? result.instrument : 'piano';
       
-      // Set instrument and notes, which triggers the useEffect to load the sampler
       setCurrentInstrument(newInstrument);
       setGeneratedNotes(result.notes);
       
@@ -174,11 +170,13 @@ export default function ComposePage() {
 
     try {
         const sampler = samplerRef.current;
-        const noteEvents = generatedNotes.map(note => ({
-            time: note.time,
-            key: note.key,
-            duration: note.duration,
-        }));
+        const noteEvents = generatedNotes.map(note => {
+            return {
+                time: note.time,
+                key: note.key,
+                duration: note.duration,
+            };
+        });
 
         partRef.current = new Tone.Part((time, note) => {
             if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
@@ -196,16 +194,22 @@ export default function ComposePage() {
 
         }, noteEvents).start(0);
 
-        const lastNote = generatedNotes[generatedNotes.length - 1];
-        const totalDuration = lastNote.time + Tone.Time(lastNote.duration).toSeconds();
-        partRef.current.loop = false;
-        
-        await Tone.start();
-        Tone.Transport.start();
+        if (generatedNotes.length > 0) {
+            const lastNote = generatedNotes[generatedNotes.length - 1];
+            const totalDuration = lastNote.time + Tone.Time(lastNote.duration).toSeconds();
+            if (partRef.current) {
+              partRef.current.loop = false;
+            }
+            
+            await Tone.start();
+            Tone.Transport.start();
 
-        Tone.Transport.scheduleOnce(() => {
+            Tone.Transport.scheduleOnce(() => {
+                stopPlayback();
+            }, totalDuration + 0.5);
+        } else {
             stopPlayback();
-        }, totalDuration + 0.5);
+        }
 
     } catch (error) {
         console.error("Playback failed:", error);
