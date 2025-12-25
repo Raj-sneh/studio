@@ -31,7 +31,7 @@ const GenerateMelodyOutputSchema = z.object({
     })
   ).describe('An array of generated notes that form a melody.'),
 });
-export type GenerateMelodyOutput = z.infer<typeof GenerateMelodyOutputSchema>;
+export type GenerateMelodyOutput = z-infer<typeof GenerateMelodyOutputSchema>;
 
 
 export async function generateMelody(
@@ -78,4 +78,3 @@ const generateMelodyFlow = ai.defineFlow(
     return output!;
   }
 );
-
