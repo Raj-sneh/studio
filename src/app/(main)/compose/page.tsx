@@ -73,11 +73,14 @@ export default function ComposePage() {
   useEffect(() => {
     if (generatedNotes.length === 0) return;
 
-    setMode('loadingInstrument');
     let isMounted = true;
+    setMode('loadingInstrument');
     
-    // Previous sampler instance must be disposed before creating a new one.
-    samplerRef.current?.dispose();
+    // Dispose previous sampler before creating a new one.
+    if (samplerRef.current) {
+      samplerRef.current.dispose();
+      samplerRef.current = null;
+    }
 
     getSampler(currentInstrument)
       .then(newSampler => {
@@ -107,12 +110,14 @@ export default function ComposePage() {
 
     return () => {
       isMounted = false;
-      // This cleanup runs when the component unmounts or deps change.
-      // We need to ensure that we are not disposing a sampler that a new effect run is creating.
-      // The `isMounted` flag helps, but also directly cleaning up the ref on unmount is key.
-      samplerRef.current?.dispose();
+      // Cleanup on unmount or when dependencies change.
+      stopPlayback();
+      if (samplerRef.current) {
+        samplerRef.current.dispose();
+        samplerRef.current = null;
+      }
     };
-  }, [generatedNotes, currentInstrument, toast]);
+  }, [generatedNotes, currentInstrument, toast, stopPlayback]);
 
 
   const handleGenerate = async () => {
@@ -155,8 +160,7 @@ export default function ComposePage() {
   };
   
   const playMelody = useCallback(async () => {
-    const sampler = samplerRef.current;
-    if (!sampler || sampler.disposed || generatedNotes.length === 0 || mode !== 'idle') {
+    if (!samplerRef.current || samplerRef.current.disposed || generatedNotes.length === 0 || mode !== 'idle') {
       toast({
         title: "Cannot play melody",
         description: "The instrument is not ready or a melody hasn't been generated.",
@@ -169,6 +173,7 @@ export default function ComposePage() {
     setMode('playing');
 
     try {
+        const sampler = samplerRef.current;
         const noteEvents = generatedNotes.map(note => ({
             time: note.time,
             key: note.key,
@@ -290,3 +295,5 @@ export default function ComposePage() {
     </div>
   );
 }
+
+    
