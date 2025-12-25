@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, lazy, Suspense, useCallback } from 'react';
+import { useState, lazy, Suspense, useCallback, useEffect } from 'react';
 import { Loader2, Music4, History, Play, Pause, Square } from 'lucide-react';
 import * as Tone from 'tone';
 import { Button } from '@/components/ui/button';
