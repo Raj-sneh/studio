@@ -51,7 +51,7 @@ export default function ComposePage() {
   const [currentInstrument, setCurrentInstrument] = useState<Instrument>('piano');
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
   
-  const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
+  const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
 
   const stopPlayback = useCallback(() => {
@@ -60,7 +60,7 @@ export default function ComposePage() {
       Tone.Transport.cancel();
     }
     if (partRef.current) {
-      partRef.current.stop();
+      partRef.current.stop(0);
       partRef.current.dispose();
       partRef.current = null;
     }
@@ -69,6 +69,16 @@ export default function ComposePage() {
       setMode("idle");
     }
   }, [mode]);
+  
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      stopPlayback();
+      if (samplerRef.current && !samplerRef.current.disposed) {
+        samplerRef.current.dispose();
+      }
+    };
+  }, [stopPlayback]);
   
   const handleGenerate = async () => {
     if (!prompt.trim() || mode === 'generating') {
@@ -103,8 +113,13 @@ export default function ComposePage() {
       setCurrentInstrument(newInstrument);
       setGeneratedNotes(result.notes);
       
+      // Dispose old sampler if it exists
+      if (samplerRef.current && !samplerRef.current.disposed) {
+          samplerRef.current.dispose();
+      }
+
       getSampler(newInstrument).then(newSampler => {
-        setSampler(newSampler);
+        samplerRef.current = newSampler;
         setMode('idle');
         toast({
             title: "Melody Generated!",
@@ -124,6 +139,7 @@ export default function ComposePage() {
   };
   
   const playMelody = useCallback(async () => {
+    const sampler = samplerRef.current;
     if (!sampler || sampler.disposed || generatedNotes.length === 0 || mode !== 'idle') {
       toast({
         title: "Cannot play melody",
@@ -179,7 +195,7 @@ export default function ComposePage() {
         });
         setMode("idle");
     }
-  }, [sampler, generatedNotes, mode, stopPlayback, toast]);
+  }, [generatedNotes, mode, stopPlayback, toast]);
   
   const isBusy = mode === 'generating' || mode === 'loadingInstrument';
   const InstrumentComponent = instrumentComponents[currentInstrument];
