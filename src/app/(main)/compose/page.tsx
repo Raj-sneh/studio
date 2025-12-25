@@ -195,8 +195,9 @@ export default function ComposePage() {
         }, noteEvents).start(0);
 
         if (generatedNotes.length > 0) {
-            const lastNote = generatedNotes[generatedNotes.length - 1];
+            const lastNote = generatedNotes.reduce((prev, curr) => (prev.time > curr.time ? prev : curr));
             const totalDuration = lastNote.time + Tone.Time(lastNote.duration).toSeconds();
+            
             if (partRef.current) {
               partRef.current.loop = false;
             }
@@ -299,3 +300,5 @@ export default function ComposePage() {
     </div>
   );
 }
+
+    
