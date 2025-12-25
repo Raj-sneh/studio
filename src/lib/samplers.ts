@@ -52,7 +52,7 @@ const baseUrlMap: Record<string, string> = {
  * @returns A promise that resolves with the Tone.Sampler or Tone.Synth instance.
  */
 export const getSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.Synth> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         // Return cached sampler if it exists and is not disposed
         const cachedSampler = samplerCache.get(instrument);
         if (cachedSampler && !cachedSampler.disposed) {
@@ -75,15 +75,23 @@ export const getSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.
         const hasUrls = samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0;
         
         if (hasUrls) {
-            const sampler = new Tone.Sampler({
-                urls: samplerUrls[instrument],
-                baseUrl: baseUrlMap[instrument],
-                release: 1,
-                onload: () => {
-                    samplerCache.set(instrument, sampler);
-                    resolve(sampler);
-                }
-            }).toDestination();
+            try {
+                const sampler = new Tone.Sampler({
+                    urls: samplerUrls[instrument],
+                    baseUrl: baseUrlMap[instrument],
+                    release: 1,
+                    onload: () => {
+                        samplerCache.set(instrument, sampler);
+                        resolve(sampler);
+                    },
+                    onerror: (error) => {
+                        console.error(`Error loading sampler for ${instrument}:`, error);
+                        reject(error);
+                    }
+                }).toDestination();
+            } catch (error) {
+                 reject(error);
+            }
         } else {
             const synth = new Tone.Synth().toDestination();
             samplerCache.set(instrument, synth);
