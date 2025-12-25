@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useCallback } from 'react';
 import { Loader2, Music4, History, Play, Pause, Square } from 'lucide-react';
 import * as Tone from 'tone';
 import { Button } from '@/components/ui/button';
@@ -57,7 +57,6 @@ function InstrumentLoader({ instrument }: { instrument: Instrument }) {
 
 export default function PracticePage() {
   const [isRecording, setIsRecording] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [recordedNotes, setRecordedNotes] = useState<RecordedNote[]>([]);
   const [startTime, setStartTime] = useState(0);
   const [activeInstrument, setActiveInstrument] = useState<Instrument>('piano');
@@ -82,13 +81,14 @@ export default function PracticePage() {
     }
   };
 
-  const playRecording = async () => {
-    if (recordedNotes.length === 0 || isPlaying) return;
-    setIsPlaying(true);
+  const playRecording = useCallback(async () => {
+    if (recordedNotes.length === 0) return;
+    
     await Tone.start();
 
     const samplers: Partial<Record<Instrument, Tone.Sampler | Tone.Synth>> = {};
     const instrumentsInRecording = new Set(recordedNotes.map((n) => n.instrument));
+    
     for (const inst of instrumentsInRecording) {
       samplers[inst] = await getSampler(inst);
     }
@@ -100,15 +100,7 @@ export default function PracticePage() {
         sampler.triggerAttackRelease(noteEvent.note, noteEvent.duration, now + noteEvent.time / 1000);
       }
     });
-
-    const totalTime = recordedNotes.length > 0 ? recordedNotes[recordedNotes.length - 1].time : 0;
-
-    const timeoutId = setTimeout(() => {
-      setIsPlaying(false);
-    }, totalTime + 1000);
-
-    return () => clearTimeout(timeoutId);
-  };
+  }, [recordedNotes]);
   
   return (
     <div className="space-y-8">
@@ -133,7 +125,7 @@ export default function PracticePage() {
         {instruments.map((inst) => {
           const InstrumentComponent = instrumentComponents[inst];
           return (
-            <TabsContent key={inst} value={inst} data-state={activeInstrument === inst ? 'active' : 'inactive'} className="data-[state=inactive]:hidden">
+            <TabsContent key={inst} value={inst} data-state={activeInstrument === inst ? 'active' : 'inactive'} className="data-[state=inactive]:hidden mt-4">
               <Card>
                 <CardHeader>
                   <CardTitle className="capitalize">Virtual {inst}</CardTitle>
@@ -173,9 +165,9 @@ export default function PracticePage() {
                 )}
                 {isRecording ? 'Stop' : 'Record'}
               </Button>
-              <Button onClick={playRecording} disabled={isRecording || isPlaying || recordedNotes.length === 0}>
-                {isPlaying ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
-                {isPlaying ? 'Playing...' : 'Playback'}
+              <Button onClick={playRecording} disabled={isRecording || recordedNotes.length === 0}>
+                 <Play className="mr-2 h-4 w-4" />
+                 Playback
               </Button>
               <Button
                 onClick={() => setRecordedNotes([])}
