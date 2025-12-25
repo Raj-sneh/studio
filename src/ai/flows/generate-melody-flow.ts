@@ -13,9 +13,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
-import type {Note, Instrument} from '@/types';
 
 const GenerateMelodyInputSchema = z.object({
   prompt: z.string().describe('A text description of the melody to generate. e.g., "a happy, upbeat tune" or "play the theme from titanic"'),
@@ -76,9 +74,7 @@ const generateMelodyFlow = ai.defineFlow(
     outputSchema: GenerateMelodyOutputSchema,
   },
   async input => {
-    const {output} = await generateMelodyPrompt(input, {
-      model: googleAI.model('gemini-1.5-flash-latest'),
-    });
+    const {output} = await generateMelodyPrompt(input);
     return output!;
   }
 );

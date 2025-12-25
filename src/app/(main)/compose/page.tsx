@@ -76,12 +76,6 @@ export default function ComposePage() {
     let isMounted = true;
     setMode('loadingInstrument');
     
-    // Dispose previous sampler if it exists
-    if (samplerRef.current && !samplerRef.current.disposed) {
-      samplerRef.current.dispose();
-    }
-    samplerRef.current = null;
-
     getSampler(currentInstrument)
       .then(newSampler => {
         if (isMounted) {
@@ -112,6 +106,7 @@ export default function ComposePage() {
       stopPlayback();
       if (samplerRef.current && !samplerRef.current.disposed) {
         samplerRef.current.dispose();
+        samplerRef.current = null;
       }
     };
   }, [generatedNotes, currentInstrument, toast, stopPlayback]);
@@ -173,23 +168,22 @@ export default function ComposePage() {
         const noteEvents = generatedNotes.map(note => {
             return {
                 time: note.time,
-                key: note.key,
-                duration: note.duration,
+                note: note,
             };
         });
 
-        partRef.current = new Tone.Part((time, note) => {
+        partRef.current = new Tone.Part((time, event) => {
             if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
-                sampler.triggerAttackRelease(note.key, note.duration, time);
+                sampler.triggerAttackRelease(event.note.key, event.note.duration, time);
             }
             
             Tone.Draw.schedule(() => {
-                setHighlightedKeys(current => [...current, note.key]);
+                setHighlightedKeys(current => [...current, event.note.key]);
             }, time);
             
-            const releaseTime = time + Tone.Time(note.duration).toSeconds() * 0.9;
+            const releaseTime = time + Tone.Time(event.note.duration).toSeconds() * 0.9;
             Tone.Draw.schedule(() => {
-                 setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
+                 setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== event.note.key));
             }, releaseTime);
 
         }, noteEvents).start(0);
@@ -300,5 +294,3 @@ export default function ComposePage() {
     </div>
   );
 }
-
-    
