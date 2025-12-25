@@ -5,7 +5,7 @@ import { useCallback, useState, useEffect } from "react";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
 import { getSampler } from "@/lib/samplers";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 const notes = ["C", "D", "E", "F", "G", "A", "B", "C"];
 const colors = [
@@ -27,6 +27,8 @@ interface XylophoneProps {
     disabled?: boolean;
 }
 
+type LoadingState = 'loading' | 'ready' | 'error';
+
 export default function Xylophone({
     octaves = 1,
     startOctave = 4,
@@ -35,21 +37,39 @@ export default function Xylophone({
     disabled = false,
 }: XylophoneProps) {
     const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [loadingState, setLoadingState] = useState<LoadingState>('loading');
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
 
     useEffect(() => {
-        getSampler('xylophone').then(loadedSampler => {
-            setSampler(loadedSampler);
-            setIsLoading(false);
-        });
+        let isMounted = true;
+        setLoadingState('loading');
+
+        getSampler('xylophone')
+            .then(loadedSampler => {
+                if (isMounted) {
+                    setSampler(loadedSampler);
+                    setLoadingState('ready');
+                }
+            })
+            .catch(error => {
+                console.error("Failed to load xylophone sampler:", error);
+                if (isMounted) {
+                    setLoadingState('error');
+                }
+            });
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const playNote = useCallback(async (note: string, octave: number) => {
-        if (!sampler || disabled || isLoading || sampler.disposed) return;
+        if (loadingState !== 'ready' || !sampler || disabled || sampler.disposed) return;
+        
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
+
         const fullNote = `${note}${octave}`;
         if ('triggerAttackRelease' in sampler) {
             sampler.triggerAttackRelease(fullNote, "8n", Tone.now());
@@ -63,7 +83,7 @@ export default function Xylophone({
                 return newSet;
             });
         }, 200);
-    }, [disabled, onNotePlay, sampler, isLoading]);
+    }, [disabled, onNotePlay, sampler, loadingState]);
     
     const xylophoneKeys = Array.from({ length: octaves }, (_, i) => i + startOctave)
         .flatMap(octave => notes.map((note, index) => {
@@ -71,11 +91,21 @@ export default function Xylophone({
             return { note, octave: finalOctave, color: colors[index % colors.length] }
         }));
 
-    if (isLoading) {
+    if (loadingState === 'loading') {
         return (
             <div className="flex flex-col items-center justify-center min-h-[300px] text-center bg-muted rounded-lg w-full">
                 <Loader2 className="h-8 w-8 animate-spin" />
                 <p className="mt-4 text-muted-foreground capitalize">Loading Xylophone Samples...</p>
+            </div>
+        );
+    }
+
+    if (loadingState === 'error') {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[300px] text-center bg-destructive/20 text-destructive-foreground rounded-lg w-full">
+                <AlertTriangle className="h-8 w-8" />
+                <p className="mt-4 font-semibold">Failed to load instrument</p>
+                <p className="text-sm text-destructive-foreground/80">Please try refreshing the page.</p>
             </div>
         );
     }
@@ -96,7 +126,7 @@ export default function Xylophone({
                                 "relative cursor-pointer transition-all duration-100 flex items-center justify-center h-12 rounded-md border-2 border-black/50 text-white font-bold shadow-md",
                                 color,
                                 isHighlighted ? "scale-105 border-white shadow-lg shadow-white/50" : "hover:scale-[1.02]",
-                                (disabled || isLoading) && "opacity-60 cursor-not-allowed"
+                                (disabled || loadingState !== 'ready') && "opacity-60 cursor-not-allowed"
                             )}
                             style={{ width: `${barLength}%`, marginLeft: `${(100 - barLength) / 2}%` }}
                         >
