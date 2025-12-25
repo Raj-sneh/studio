@@ -71,7 +71,7 @@ export default function ComposePage() {
   }, [mode]);
   
   useEffect(() => {
-    if (generatedNotes.length === 0) return;
+    if (!generatedNotes.length) return;
 
     let isMounted = true;
     setMode('loadingInstrument');
@@ -85,8 +85,6 @@ export default function ComposePage() {
               title: "Melody Generated!",
               description: `Your new melody is ready to be played on the ${currentInstrument}.`,
           });
-        } else {
-          newSampler.dispose();
         }
       })
       .catch(error => {
@@ -106,8 +104,8 @@ export default function ComposePage() {
       stopPlayback();
       if (samplerRef.current && !samplerRef.current.disposed) {
         samplerRef.current.dispose();
-        samplerRef.current = null;
       }
+      samplerRef.current = null;
     };
   }, [generatedNotes, currentInstrument, toast, stopPlayback]);
 
@@ -152,11 +150,6 @@ export default function ComposePage() {
   
   const playMelody = useCallback(async () => {
     if (!samplerRef.current || samplerRef.current.disposed || generatedNotes.length === 0 || mode !== 'idle') {
-      toast({
-        title: "Cannot play melody",
-        description: "The instrument is not ready or a melody hasn't been generated.",
-        variant: "destructive"
-      });
       return;
     }
     
@@ -168,29 +161,30 @@ export default function ComposePage() {
         const noteEvents = generatedNotes.map(note => {
             return {
                 time: note.time,
-                note: note,
+                note: note.key,
+                duration: note.duration
             };
         });
 
         partRef.current = new Tone.Part((time, event) => {
             if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
-                sampler.triggerAttackRelease(event.note.key, event.note.duration, time);
+                sampler.triggerAttackRelease(event.note, event.duration, time);
             }
             
             Tone.Draw.schedule(() => {
-                setHighlightedKeys(current => [...current, event.note.key]);
+                setHighlightedKeys(current => [...current, event.note]);
             }, time);
             
-            const releaseTime = time + Tone.Time(event.note.duration).toSeconds() * 0.9;
+            const releaseTime = time + Tone.Time(event.duration).toSeconds() * 0.9;
             Tone.Draw.schedule(() => {
-                 setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== event.note.key));
+                 setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== event.note));
             }, releaseTime);
 
         }, noteEvents).start(0);
 
         if (generatedNotes.length > 0) {
-            const lastNote = generatedNotes.reduce((prev, curr) => (prev.time > curr.time ? prev : curr));
-            const totalDuration = lastNote.time + Tone.Time(lastNote.duration).toSeconds();
+            const lastNote = [...generatedNotes].sort((a, b) => (a.time + Tone.Time(a.duration).toSeconds()) - (b.time + Tone.Time(b.duration).toSeconds())).pop();
+            const totalDuration = lastNote ? lastNote.time + Tone.Time(lastNote.duration).toSeconds() : 0;
             
             if (partRef.current) {
               partRef.current.loop = false;

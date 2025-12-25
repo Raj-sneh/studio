@@ -63,7 +63,7 @@ const generateMelodyPrompt = ai.definePrompt({
 4.  **Generate Original Melodies Otherwise:** If the prompt is a general description (e.g., "a happy, upbeat tune", "a sad, slow melody"), create a short, original melody that fits the description. This melody should be between 8 and 16 notes long.
 5.  **Ensure Musical Coherence:** All melodies, whether transcribed or original, must be musically coherent and pleasing to the ear.
 
-User prompt: {{{prompt}}}
+User prompt: {{prompt}}
 `,
 });
 
