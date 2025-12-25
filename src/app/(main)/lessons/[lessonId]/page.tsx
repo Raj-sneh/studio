@@ -108,6 +108,8 @@ export default function LessonPage() {
     stopPlayback();
     setMode("demo");
     const sampler = samplerRef.current;
+
+    const noteEvents = notesToPlay.map(note => [note.time, note]);
     
     partRef.current = new Tone.Part((time, note) => {
         if ('triggerAttackRelease' in sampler) {
@@ -117,7 +119,7 @@ export default function LessonPage() {
         Tone.Draw.schedule(() => setHighlightedKeys(current => [...current, note.key]), time);
         const releaseTime = time + Tone.Time(note.duration).toSeconds() * 0.9;
         Tone.Draw.schedule(() => setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key)), releaseTime);
-    }, notesToPlay).start(0);
+    }, noteEvents).start(0);
 
     const lastNote = notesToPlay[notesToPlay.length - 1];
     const totalDuration = lastNote.time + Tone.Time(lastNote.duration).toSeconds();
