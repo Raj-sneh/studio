@@ -74,7 +74,14 @@ export default function ComposePage() {
 
   useEffect(() => {
     isMountedRef.current = true;
-    // Cleanup on unmount
+    
+    // Load initial instrument silently
+    getSampler(currentInstrument).then(sampler => {
+        if (isMountedRef.current) {
+            samplerRef.current = sampler;
+        }
+    });
+
     return () => {
       isMountedRef.current = false;
       stopPlayback();
@@ -82,7 +89,7 @@ export default function ComposePage() {
         samplerRef.current.dispose();
       }
     };
-  }, [stopPlayback]);
+  }, []);
   
   useEffect(() => {
     let active = true;
@@ -121,7 +128,7 @@ export default function ComposePage() {
     return () => {
         active = false;
     }
-  }, [currentInstrument, toast]);
+  }, [currentInstrument]);
 
 
   const handleGenerate = async () => {
@@ -205,7 +212,12 @@ export default function ComposePage() {
 
         }, noteEvents).start(0);
         
-        const lastNote = noteEvents[noteEvents.length - 1];
+        const lastNote = noteEvents.reduce((last, current) => {
+            const lastTime = Tone.Time(last.time).toSeconds() + Tone.Time(last.duration).toSeconds();
+            const currentTime = Tone.Time(current.time).toSeconds() + Tone.Time(current.duration).toSeconds();
+            return currentTime > lastTime ? current : last;
+        }, noteEvents[0]);
+
         if (lastNote) {
             const totalDuration = Tone.Time(lastNote.time).toSeconds() + Tone.Time(lastNote.duration).toSeconds();
             
@@ -214,8 +226,7 @@ export default function ComposePage() {
 
             Tone.Transport.scheduleOnce(() => {
                 if (isMountedRef.current) {
-                  setMode('idle');
-                  setHighlightedKeys([]);
+                  stopPlayback();
                 }
             }, `+${totalDuration + 0.5}`);
         } else {
