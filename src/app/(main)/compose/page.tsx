@@ -144,9 +144,7 @@ export default function ComposePage() {
         description: 'An unexpected error occurred while generating the melody. Please try again.',
       });
     } finally {
-        if (mode === 'generating') {
-            setMode('idle');
-        }
+        setMode('idle');
     }
   };
   
@@ -253,7 +251,7 @@ export default function ComposePage() {
         </CardContent>
       </Card>
       
-      {(generatedNotes.length > 0) && (
+      {(mode === 'generating' || generatedNotes.length > 0) && (
         <Card>
             <CardHeader>
                 <CardTitle>Your AI-Generated Melody</CardTitle>
