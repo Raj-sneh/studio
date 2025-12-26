@@ -25,7 +25,7 @@ const GenerateMelodyOutputSchema = z.object({
     z.object({
       key: z.string().describe("A musical note in scientific pitch notation, e.g., 'C4', 'F#5'."),
       duration: z.string().describe("The duration of the note in Tone.js notation, e.g., '4n' for a quarter note, '8n' for an eighth note."),
-      time: z.number().describe('The time in seconds from the start of the sequence when the note should be played.'),
+      time: z.string().describe("The time from the start of the sequence when the note should be played, in Tone.js transport time notation (e.g., '0:0:0' for the beginning, '0:1:0' for the first beat)."),
     })
   ).describe('An array of 8 to 16 musical notes that form the generated melody. If you cannot fulfill the request, return an empty array.'),
 });

@@ -2,7 +2,7 @@
 export type Note = {
   key: string; // e.g., 'C4'
   duration: string; // Tone.js duration, e.g., '8n', '4n'
-  time: number; // time in seconds from the start of the sequence
+  time: string; // Tone.js time, e.g. '0:0:1'
 };
 
 export type Instrument = 'piano' | 'guitar' | 'drums' | 'flute' | 'violin' | 'saxophone' | 'xylophone';

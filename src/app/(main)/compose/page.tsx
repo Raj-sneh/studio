@@ -57,26 +57,6 @@ export default function ComposePage() {
   const partRef = useRef<Tone.Part | null>(null);
   const isMountedRef = useRef(true);
 
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-      // Stop playback and dispose resources when component unmounts
-      if (Tone.Transport.state === 'started') {
-        Tone.Transport.stop();
-        Tone.Transport.cancel(0);
-      }
-      if (partRef.current) {
-        partRef.current.dispose();
-        partRef.current = null;
-      }
-      if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
-        samplerRef.current.dispose();
-        samplerRef.current = null;
-      }
-    };
-  }, []);
-  
   const stopPlayback = useCallback(() => {
     if (Tone.Transport.state === 'started') {
       Tone.Transport.stop();
@@ -91,8 +71,23 @@ export default function ComposePage() {
       setMode("idle");
     }
   }, [mode]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    // Cleanup function
+    return () => {
+      isMountedRef.current = false;
+      stopPlayback(); // Use the memoized stopPlayback
+      if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
+        samplerRef.current.dispose();
+        samplerRef.current = null;
+      }
+    };
+  }, [stopPlayback]);
   
   useEffect(() => {
+    let active = true;
     async function loadInstrument() {
       if (!isMountedRef.current) return;
       
@@ -101,7 +96,7 @@ export default function ComposePage() {
 
       try {
           const sampler = await getSampler(currentInstrument);
-          if (isMountedRef.current) {
+          if (active && isMountedRef.current) {
               if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
                   samplerRef.current.dispose();
               }
@@ -113,7 +108,7 @@ export default function ComposePage() {
               }
           }
       } catch (error) {
-          if (isMountedRef.current) {
+          if (active && isMountedRef.current) {
               console.error(`Failed to load ${currentInstrument}`, error);
               toast({
                   title: "Instrument Error",
@@ -126,7 +121,11 @@ export default function ComposePage() {
     }
 
     loadInstrument();
-  }, [currentInstrument, toast]);
+
+    return () => {
+        active = false;
+    }
+  }, [currentInstrument, toast, stopPlayback]);
 
 
   const handleGenerate = async () => {
@@ -141,6 +140,8 @@ export default function ComposePage() {
     try {
       const result = await generateMelody({ prompt });
       
+      if (!isMountedRef.current) return;
+
       if (!result || !result.notes || result.notes.length === 0) {
           toast({
               variant: "destructive",
@@ -157,11 +158,13 @@ export default function ComposePage() {
       });
     } catch (error) {
       console.error('Melody generation failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Generation Failed',
-        description: 'An unexpected error occurred while generating the melody. Please try again.',
-      });
+      if (isMountedRef.current) {
+        toast({
+          variant: 'destructive',
+          title: 'Generation Failed',
+          description: 'An unexpected error occurred while generating the melody. Please try again.',
+        });
+      }
     } finally {
         if (isMountedRef.current) {
             setMode('idle');
@@ -196,19 +199,18 @@ export default function ComposePage() {
             }
             
             Tone.Draw.schedule(() => {
-                setHighlightedKeys(current => [...current, event.note]);
+                if (isMountedRef.current) setHighlightedKeys(current => [...current, event.note]);
             }, time);
             
             const releaseTime = time + Tone.Time(event.duration).toSeconds() * 0.9;
             Tone.Draw.schedule(() => {
-                 setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== event.note));
+                 if (isMountedRef.current) setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== event.note));
             }, releaseTime);
 
         }, noteEvents).start(0);
 
         if (generatedNotes.length > 0) {
-            const lastNote = [...generatedNotes].sort((a, b) => (a.time + Tone.Time(a.duration).toSeconds()) - (b.time + Tone.Time(b.duration).toSeconds())).pop();
-            const totalDuration = lastNote ? lastNote.time + Tone.Time(lastNote.duration).toSeconds() : 0;
+            const totalDuration = Tone.Transport.loopEnd;
             
             partRef.current.loop = false;
             
@@ -219,7 +221,7 @@ export default function ComposePage() {
                   setMode('idle');
                   setHighlightedKeys([]);
                 }
-            }, totalDuration + 0.5);
+            }, `+${totalDuration + 0.5}`);
         } else {
             if (isMountedRef.current) {
               setMode('idle');
@@ -228,12 +230,12 @@ export default function ComposePage() {
 
     } catch (error) {
         console.error("Playback failed:", error);
-        toast({
-            title: "Playback Failed",
-            description: "Could not play the melody. Please try generating it again.",
-            variant: "destructive"
-        });
         if (isMountedRef.current) {
+          toast({
+              title: "Playback Failed",
+              description: "Could not play the melody. Please try generating it again.",
+              variant: "destructive"
+          });
           setMode("idle");
         }
     }

@@ -122,7 +122,7 @@ export default function LessonPage() {
     }, noteEvents).start(0);
 
     const lastNote = notesToPlay[notesToPlay.length - 1];
-    const totalDuration = lastNote.time + Tone.Time(lastNote.duration).toSeconds();
+    const totalDuration = Tone.Time(lastNote.time).toSeconds() + Tone.Time(lastNote.duration).toSeconds();
     partRef.current.loop = false;
     
     await Tone.start();
@@ -195,7 +195,8 @@ export default function LessonPage() {
 
   const handleNotePlay = useCallback((note: string, duration: string) => {
     if (mode === 'recording') {
-        const time = (Date.now() - recordingStartTime) / 1000;
+        const timeInSeconds = (Date.now() - recordingStartTime) / 1000;
+        const time = `0:0:${timeInSeconds.toFixed(2)}`;
         setUserRecording(prev => [...prev, { key: note, duration, time }]);
     }
   }, [mode, recordingStartTime]);
