@@ -48,7 +48,7 @@ type Mode = 'idle' | 'generating' | 'playing' | 'loadingInstrument';
 export default function ComposePage() {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
-  const [mode, setMode] = useState<Mode>('loadingInstrument');
+  const [mode, setMode] = useState<Mode>('idle');
   const [generatedNotes, setGeneratedNotes] = useState<Note[]>([]);
   const [currentInstrument, setCurrentInstrument] = useState<Instrument>('piano');
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
@@ -144,8 +144,7 @@ export default function ComposePage() {
         description: 'An unexpected error occurred while generating the melody. Please try again.',
       });
     } finally {
-        // Only set to idle if it was in generating state, to avoid race conditions with other state changes
-        setMode(currentMode => (currentMode === 'generating' ? 'idle' : currentMode));
+        setMode('idle');
     }
   };
   
@@ -253,7 +252,7 @@ export default function ComposePage() {
         </CardContent>
       </Card>
       
-      {(generatedNotes.length > 0 || mode === 'generating' || mode === 'loadingInstrument') && (
+      {(generatedNotes.length > 0 || mode === 'generating') && (
         <Card>
             <CardHeader>
                 <CardTitle>Your AI-Generated Melody</CardTitle>
