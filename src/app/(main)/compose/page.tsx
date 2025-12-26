@@ -144,9 +144,10 @@ export default function ComposePage() {
         description: 'An unexpected error occurred while generating the melody. Please try again.',
       });
     } finally {
-        if (mode === 'generating') {
-          setMode('idle');
-        }
+      // This ensures we always leave the generating state, even on error
+      if (mode === 'generating') {
+        setMode('idle');
+      }
     }
   };
   

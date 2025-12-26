@@ -52,7 +52,7 @@ const generateMelodyPrompt = ai.definePrompt({
   3.  **LENGTH:** The melody MUST be between 8 and 16 notes long.
   4.  **FAILURE CASE:** If you cannot recognize the song or fulfill the request for any reason, you MUST return a JSON object with an empty "notes" array: \`{"notes": []}\`. Do not explain why.
 
-  User prompt: {{prompt}}
+  User prompt: {{{prompt}}}
 `,
 });
 
