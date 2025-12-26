@@ -56,6 +56,7 @@ export default function ComposePage() {
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
   const isMountedRef = useRef(true);
+  const isInitialLoadRef = useRef(true);
 
   const stopPlayback = useCallback(() => {
     if (Tone.Transport.state === 'started') {
@@ -74,14 +75,11 @@ export default function ComposePage() {
 
   useEffect(() => {
     isMountedRef.current = true;
-    
-    // Cleanup function
     return () => {
       isMountedRef.current = false;
-      stopPlayback(); // Use the memoized stopPlayback
+      stopPlayback();
       if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
         samplerRef.current.dispose();
-        samplerRef.current = null;
       }
     };
   }, [stopPlayback]);
@@ -91,7 +89,10 @@ export default function ComposePage() {
     async function loadInstrument() {
       if (!isMountedRef.current) return;
       
-      setMode('loadingInstrument');
+      if (!isInitialLoadRef.current) {
+        setMode('loadingInstrument');
+      }
+      
       stopPlayback();
 
       try {
@@ -101,11 +102,11 @@ export default function ComposePage() {
                   samplerRef.current.dispose();
               }
               samplerRef.current = sampler;
-              setMode('idle');
-          } else {
-               if (sampler && 'dispose' in sampler && !sampler.disposed) {
-                  sampler.dispose();
+              if (!isInitialLoadRef.current) {
+                setMode('idle');
               }
+          } else if (sampler && 'dispose' in sampler && !sampler.disposed) {
+              sampler.dispose();
           }
       } catch (error) {
           if (active && isMountedRef.current) {
@@ -115,8 +116,14 @@ export default function ComposePage() {
                   description: `Could not load the ${currentInstrument}. Please try another instrument or refresh.`,
                   variant: 'destructive',
               });
-              setMode('idle');
+              if (!isInitialLoadRef.current) {
+                setMode('idle');
+              }
           }
+      } finally {
+        if (isInitialLoadRef.current) {
+            isInitialLoadRef.current = false;
+        }
       }
     }
 
@@ -125,7 +132,7 @@ export default function ComposePage() {
     return () => {
         active = false;
     }
-  }, [currentInstrument, toast, stopPlayback]);
+  }, [currentInstrument]);
 
 
   const handleGenerate = async () => {
@@ -239,7 +246,7 @@ export default function ComposePage() {
           setMode("idle");
         }
     }
-  }, [generatedNotes, mode, toast]);
+  }, [generatedNotes, mode, toast, stopPlayback]);
   
   const isBusy = mode === 'generating' || mode === 'loadingInstrument';
   const InstrumentComponent = instrumentComponents[currentInstrument];
