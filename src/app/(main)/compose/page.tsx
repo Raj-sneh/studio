@@ -57,7 +57,7 @@ export default function ComposePage() {
   const stopPlayback = useCallback(() => {
     if (Tone.Transport.state === 'started') {
       Tone.Transport.stop();
-      Tone.Transport.cancel();
+      Tone.Transport.cancel(0);
     }
     if (partRef.current) {
       partRef.current.stop(0);
@@ -113,9 +113,10 @@ export default function ComposePage() {
       stopPlayback();
       if (samplerRef.current && !samplerRef.current.disposed) {
         samplerRef.current.dispose();
+        samplerRef.current = null;
       }
     };
-  }, [generatedNotes, currentInstrument]);
+  }, [generatedNotes, currentInstrument, toast, stopPlayback]);
 
 
   const handleGenerate = async () => {
@@ -130,7 +131,7 @@ export default function ComposePage() {
     try {
       const result = await generateMelody({ prompt });
       
-      if (!result || !result.notes || result.notes.length === 0) {
+      if (!result || !result.notes || result.notes.length === 0 || !result.instrument) {
         toast({
             variant: "destructive",
             title: "Could not generate melody",
@@ -166,6 +167,7 @@ export default function ComposePage() {
     setMode('playing');
 
     try {
+        await Tone.start();
         const sampler = samplerRef.current;
         const noteEvents = generatedNotes.map(note => {
             return {
@@ -200,7 +202,6 @@ export default function ComposePage() {
             
             partRef.current.loop = false;
             
-            await Tone.start();
             Tone.Transport.start();
 
             // Schedule the stop event after the entire melody has finished playing
