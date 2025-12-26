@@ -106,7 +106,7 @@ export default function ComposePage() {
         isMounted = false;
         stopPlayback();
     };
-}, [currentInstrument]);
+}, [currentInstrument, toast, stopPlayback]);
 
 
   const handleGenerate = async () => {
