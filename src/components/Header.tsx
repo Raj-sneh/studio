@@ -16,12 +16,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import MonogramLogo from "@/components/icons/MonogramLogo";
 import { cn } from "@/lib/utils";
-import { Music, LayoutDashboard, LogOut, User as UserIcon, Wand2 } from "lucide-react";
+import { Music, BookOpen, LogOut, User as UserIcon, Wand2 } from "lucide-react";
 
 const navLinks = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/practice", label: "Practice", icon: Music },
+  { href: "/lessons", label: "Learn", icon: BookOpen },
   { href: "/compose", label: "Magic", icon: Wand2 },
+  { href: "/practice", label: "Practice", icon: Music },
 ];
 
 export default function Header() {
@@ -53,7 +53,7 @@ export default function Header() {
                 href={href}
                 className={cn(
                   "flex items-center gap-2 transition-colors hover:text-primary",
-                   pathname === href ? "text-primary" : "text-muted-foreground"
+                   pathname.startsWith(href) && href !== '/' ? "text-primary" : pathname === href ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 {typeof Icon === 'string' ? <span className="text-xs font-bold bg-primary text-primary-foreground rounded-sm px-1 py-0.5">AI</span> : <Icon className="h-4 w-4" />}
