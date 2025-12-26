@@ -82,14 +82,12 @@ export default function ComposePage() {
         try {
             const sampler = await getSampler(currentInstrument);
             if (isMounted) {
-                // Safely dispose of the old sampler if it exists
                 if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
                     samplerRef.current.dispose();
                 }
                 samplerRef.current = sampler;
                 setMode('idle');
             } else {
-                // If component unmounted during load, dispose the new sampler
                 if (sampler && 'dispose' in sampler && !sampler.disposed) {
                     sampler.dispose();
                 }
@@ -111,14 +109,13 @@ export default function ComposePage() {
 
     return () => {
         isMounted = false;
-        // This cleanup runs when the component unmounts OR before the effect runs again.
         stopPlayback();
         if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
             samplerRef.current.dispose();
             samplerRef.current = null;
         }
     };
-}, [currentInstrument, toast, stopPlayback]);
+  }, [currentInstrument, toast, stopPlayback]);
 
 
   const handleGenerate = async () => {
@@ -311,3 +308,5 @@ export default function ComposePage() {
     </div>
   );
 }
+
+    
