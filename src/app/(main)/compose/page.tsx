@@ -75,37 +75,38 @@ export default function ComposePage() {
   useEffect(() => {
     let isMounted = true;
     
-    const loadInstrument = async () => {
-      setMode('loadingInstrument');
-      try {
-        const newSampler = await getSampler(currentInstrument);
-        if (isMounted) {
-          if (samplerRef.current && !samplerRef.current.disposed) {
-            samplerRef.current.dispose();
-          }
-          samplerRef.current = newSampler;
-          setMode('idle');
+    async function loadInstrument() {
+        if (!isMounted) return;
+        setMode('loadingInstrument');
+        try {
+            const sampler = await getSampler(currentInstrument);
+            if (isMounted) {
+                if (samplerRef.current && !samplerRef.current.disposed) {
+                    samplerRef.current.dispose();
+                }
+                samplerRef.current = sampler;
+                setMode('idle');
+            }
+        } catch (error) {
+            if (isMounted) {
+                console.error(`Failed to load ${currentInstrument}`, error);
+                toast({
+                    title: "Instrument Error",
+                    description: `Could not load the ${currentInstrument}. Please try another instrument or refresh.`,
+                    variant: 'destructive',
+                });
+                setMode('idle');
+            }
         }
-      } catch (error) {
-        if (isMounted) {
-          console.error('Failed to load instrument:', error);
-          toast({
-            variant: 'destructive',
-            title: 'Instrument Failed to Load',
-            description: `Could not load samples for the ${currentInstrument}. Please try again.`
-          });
-          setMode('idle');
-        }
-      }
-    };
-    
+    }
+
     loadInstrument();
 
     return () => {
-      isMounted = false;
-      stopPlayback();
+        isMounted = false;
+        stopPlayback();
     };
-  }, [currentInstrument, toast, stopPlayback]);
+}, [currentInstrument]);
 
 
   const handleGenerate = async () => {
