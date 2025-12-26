@@ -65,4 +65,22 @@ export const lessons: Lesson[] = [
       { key: 'A4', duration: '2n', time: 4 },
     ],
   },
+  {
+    id: 'sa-re-ga-ma-piano',
+    title: 'Sa Re Ga Ma Scale',
+    instrument: 'piano',
+    difficulty: 'Beginner',
+    tempo: 120,
+    imageId: 'sa-re-ga-ma-lesson',
+    notes: [
+      { key: 'C4', duration: '4n', time: 0 },
+      { key: 'D4', duration: '4n', time: 0.5 },
+      { key: 'E4', duration: '4n', time: 1 },
+      { key: 'F4', duration: '4n', time: 1.5 },
+      { key: 'G4', duration: '4n', time: 2 },
+      { key: 'A4', duration: '4n', time: 2.5 },
+      { key: 'B4', duration: '4n', time: 3 },
+      { key: 'C5', duration: '2n', time: 3.5 },
+    ],
+  },
 ];

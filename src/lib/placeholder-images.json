@@ -35,6 +35,12 @@
       "description": "A colorful cartoon illustration of a wise owl wearing a graduation cap, pointing to a chalkboard with musical notes.",
       "imageUrl": "https://images.unsplash.com/photo-1606232525524-8254885829b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYXJ0b29uJTIwb3dsJTIwdGVhY2hlcnxlbnwwfHx8fDE3NjYzMDIyMjN8MA&ixlib=rb-4.0.3&q=80&w=1080",
       "imageHint": "cartoon teacher"
+    },
+    {
+      "id": "sa-re-ga-ma-lesson",
+      "description": "A colorful cartoon illustration representing Indian classical music, with traditional instruments and musical notes.",
+      "imageUrl": "https://images.unsplash.com/photo-1621840815973-356193791338?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBjbGFzc2ljYWwlMjBtdXNpYyUyMGNhcnRvb258ZW58MHx8fHwxNzY2MzA3MDUyfDA&ixlib=rb-4.0.3&q=80&w=1080",
+      "imageHint": "indian music"
     }
   ]
 }
