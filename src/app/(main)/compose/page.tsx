@@ -89,7 +89,7 @@ export default function ComposePage() {
         samplerRef.current.dispose();
       }
     };
-  }, []);
+  }, []); // Empty array, runs only on mount/unmount
   
   useEffect(() => {
     let active = true;
@@ -128,7 +128,7 @@ export default function ComposePage() {
     return () => {
         active = false;
     }
-  }, [currentInstrument]);
+  }, [currentInstrument]); // Re-run only when currentInstrument changes
 
 
   const handleGenerate = async () => {
