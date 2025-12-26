@@ -11,6 +11,8 @@ import { generateMelody } from '@/ai/flows/generate-melody-flow';
 import type { Note, Instrument } from '@/types';
 import { getSampler } from '@/lib/samplers';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 const Piano = lazy(() => import('@/components/Piano'));
 const Guitar = lazy(() => import('@/components/Guitar'));
@@ -89,10 +91,12 @@ export default function ComposePage() {
           }
           samplerRef.current = newSampler;
           setMode('idle');
-          toast({
-              title: "Melody Generated!",
-              description: `Your new melody is ready to be played on the ${currentInstrument}.`,
-          });
+          if (mode !== 'generating') {
+            toast({
+                title: "Instrument Changed!",
+                description: `Ready to play on the ${currentInstrument}.`,
+            });
+          }
         }
       })
       .catch(error => {
@@ -116,7 +120,7 @@ export default function ComposePage() {
         samplerRef.current = null;
       }
     };
-  }, [generatedNotes, currentInstrument, toast, stopPlayback]);
+  }, [generatedNotes, currentInstrument, toast, stopPlayback, mode]);
 
 
   const handleGenerate = async () => {
@@ -131,7 +135,7 @@ export default function ComposePage() {
     try {
       const result = await generateMelody({ prompt });
       
-      if (!result || !result.notes || result.notes.length === 0 || !result.instrument) {
+      if (!result || !result.notes || result.notes.length === 0) {
         toast({
             variant: "destructive",
             title: "Could not generate melody",
@@ -141,11 +145,12 @@ export default function ComposePage() {
         return;
       }
       
-      const newInstrument = result.instrument && instrumentComponents[result.instrument] ? result.instrument : 'piano';
-      
-      // Setting instrument and notes will trigger the useEffect to load the sampler
-      setCurrentInstrument(newInstrument);
       setGeneratedNotes(result.notes);
+      toast({
+        title: "Melody Generated!",
+        description: `Your new melody is ready to be played.`,
+      });
+      // The useEffect will handle loading the instrument and setting the mode
       
     } catch (error) {
       console.error('Melody generation failed:', error);
@@ -229,7 +234,7 @@ export default function ComposePage() {
   const getCardDescription = () => {
     if (mode === 'generating') return 'The AI is composing your melody...';
     if (mode === 'loadingInstrument') return `Loading ${currentInstrument} samples...`;
-    if (generatedNotes.length > 0) return `Press play to hear the result on the ${currentInstrument}.`;
+    if (generatedNotes.length > 0) return `Press play to hear the result.`;
     return 'Your generated melody will appear here.';
   };
 
@@ -249,7 +254,7 @@ export default function ComposePage() {
         <CardHeader>
           <CardTitle>Describe Your Melody</CardTitle>
           <CardDescription>
-            Ask for a song like "play the theme from Titanic" or describe a mood like "a happy, fast-paced piano tune".
+            Ask for a song like "play Sa Re Ga Ma Pa" or describe a mood like "a happy, fast-paced piano tune".
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -276,17 +281,29 @@ export default function ComposePage() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                 {mode !== 'playing' ? (
-                     <Button onClick={playMelody} disabled={isBusy || mode === 'playing' || generatedNotes.length === 0} size="lg" className="w-full">
-                        <Play className="mr-2 h-5 w-5"/>
-                        Play Melody
-                    </Button>
-                 ) : (
-                    <Button onClick={stopPlayback} size="lg" className="w-full" variant="destructive">
-                        <Square className="mr-2 h-5 w-5"/>
-                        Stop
-                    </Button>
-                 )}
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     {mode !== 'playing' ? (
+                         <Button onClick={playMelody} disabled={isBusy || mode === 'playing' || generatedNotes.length === 0} size="lg" className="w-full">
+                            <Play className="mr-2 h-5 w-5"/>
+                            Play Melody
+                        </Button>
+                     ) : (
+                        <Button onClick={stopPlayback} size="lg" className="w-full" variant="destructive">
+                            <Square className="mr-2 h-5 w-5"/>
+                            Stop
+                        </Button>
+                     )}
+                     <Select value={currentInstrument} onValueChange={(val) => setCurrentInstrument(val as Instrument)} disabled={isBusy}>
+                        <SelectTrigger className="h-11">
+                            <SelectValue placeholder="Select Instrument" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {Object.keys(instrumentComponents).map(inst => (
+                                <SelectItem key={inst} value={inst} className="capitalize">{inst}</SelectItem>
+                            ))}
+                        </SelectContent>
+                     </Select>
+                 </div>
                  <div className="min-h-[200px] flex items-center justify-center">
                     {isBusy ? <InstrumentLoader instrument={currentInstrument} /> : (
                         <Suspense fallback={<InstrumentLoader instrument={currentInstrument} />}>

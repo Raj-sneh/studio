@@ -21,8 +21,6 @@ const GenerateMelodyInputSchema = z.object({
 export type GenerateMelodyInput = z.infer<typeof GenerateMelodyInputSchema>;
 
 const GenerateMelodyOutputSchema = z.object({
-  instrument: z.enum(['piano', 'guitar', 'violin', 'flute', 'saxophone', 'xylophone', 'drums'])
-    .describe("The best instrument to play this melody. For example, a rock song might be best on 'guitar', a classical piece on 'violin' or 'piano'."),
   notes: z.array(
     z.object({
       key: z.string().describe('e.g., C4'),
@@ -44,24 +42,15 @@ const generateMelodyPrompt = ai.definePrompt({
   name: 'generateMelodyPrompt',
   input: {schema: GenerateMelodyInputSchema},
   output: {schema: GenerateMelodyOutputSchema},
-  prompt: `You are an expert, creative, and helpful composer and musician with perfect pitch. Your primary task is to create a melody based on the user's prompt.
-
-- The output must be a JSON object containing an array of note objects and the most appropriate instrument.
-- Each note object must have 'key' (e.g., 'C4'), 'duration' (e.g., '8n'), and 'time' (in seconds).
+  prompt: `You are an expert, creative, and helpful composer and musician with perfect pitch. Your task is to create a melody based on the user's prompt.
 
 **CRITICAL INSTRUCTIONS:**
 
-1.  **Prioritize Accuracy for Known Songs:** If the user asks for a specific, known song (e.g., "play titanic theme", "kal ho naa ho", "twinkle twinkle", or provides lyrics), your absolute priority is to generate a **highly accurate and recognizable** version of that song's main melody. The melody should be between 8 and 16 notes.
-2.  **Handle Unrecognized Songs:** If you do not recognize the song, or if the request is ambiguous, state that you do not know the song and offer to create something original in a similar style. In this case, generate a short, original melody that fits the described mood.
-3.  **Choose the Best Instrument:** Based on the user's prompt, select the most suitable instrument.
-    - **Default to Piano:** For most general requests (e.g., "a happy tune", "a sad song"), 'piano' is an excellent and safe choice.
-    - **Contextual Choices:** Select other instruments only when they are a clear fit. For example:
-        - A rock song like 'Stairway to Heaven' should be 'guitar'.
-        - 'My Heart Will Go On' could be 'flute' or 'violin'.
-        - A simple nursery rhyme is a good fit for 'xylophone'.
-    - **Avoid Overusing Xylophone:** Do not default to 'xylophone' for complex or general prompts. It is a specialized instrument.
-4.  **Generate Original Melodies Otherwise:** If the prompt is a general description (e.g., "a happy, upbeat tune", "a sad, slow melody"), create a short, original melody that fits the description. This melody should be between 8 and 16 notes long.
-5.  **Ensure Musical Coherence:** All melodies, whether transcribed or original, must be musically coherent and pleasing to the ear.
+1.  **ACCURACY IS PRIORITY:** If the user asks for a specific, known song (e.g., "Sa Re Ga Ma Pa", "twinkle twinkle", lyrics), your absolute priority is to generate a highly accurate and recognizable version of that song's main melody. The melody must be between 8 and 16 notes.
+2.  **ORIGINAL MELODIES:** If the prompt is a general description (e.g., "a happy, upbeat tune"), create a short, original melody that fits the description. This melody should also be between 8 and 16 notes long.
+3.  **JSON OUTPUT ONLY:** The output must be ONLY the JSON object containing the array of note objects. Each note object must have 'key' (e.g., 'C4'), 'duration' (e.g., '8n'), and 'time' (in seconds).
+4.  **COHERENCE:** All melodies must be musically coherent and pleasing.
+5.  **UNRECOGNIZED SONGS:** If you do not recognize a song, state that you do not know it and create a short, original melody in a similar style.
 
 User prompt: {{prompt}}
 `,
