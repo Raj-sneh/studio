@@ -48,14 +48,14 @@ type Mode = 'idle' | 'generating' | 'playing' | 'loadingInstrument';
 export default function ComposePage() {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
-  const [mode, setMode] = useState<Mode>('idle');
+  const [mode, setMode] = useState<Mode>('loadingInstrument');
   const [generatedNotes, setGeneratedNotes] = useState<Note[]>([]);
   const [currentInstrument, setCurrentInstrument] = useState<Instrument>('piano');
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
-  const initialRender = useRef(true);
+  const isInitialRender = useRef(true);
 
   const stopPlayback = useCallback(() => {
     if (Tone.Transport.state === 'started') {
@@ -75,9 +75,11 @@ export default function ComposePage() {
   useEffect(() => {
     // This effect ensures the initial instrument is loaded without blocking the UI
     let isActive = true;
+    setMode('loadingInstrument');
     getSampler('piano').then(sampler => {
         if (isActive) {
             samplerRef.current = sampler;
+            setMode('idle');
         } else {
              if (sampler && 'dispose' in sampler && !sampler.disposed) {
                 sampler.dispose();
@@ -95,11 +97,11 @@ export default function ComposePage() {
   }, [stopPlayback]); 
   
   useEffect(() => {
-    let active = true;
     // This effect runs when the user changes the instrument
+    let active = true;
+
     async function loadInstrument() {
       if (currentInstrument === 'piano' && samplerRef.current && !samplerRef.current.disposed) {
-          // If piano is already loaded, do nothing
           const currentSamplerType = (samplerRef.current.name === 'Sampler') ? 'piano' : 'synth';
           if(currentSamplerType === currentInstrument) return;
       }
@@ -132,8 +134,8 @@ export default function ComposePage() {
     }
 
     // Don't run on initial render
-    if (initialRender.current) {
-        initialRender.current = false;
+    if (isInitialRender.current) {
+        isInitialRender.current = false;
     } else {
         loadInstrument();
     }
@@ -348,3 +350,5 @@ export default function ComposePage() {
     </div>
   );
 }
+
+    
