@@ -74,13 +74,12 @@ export default function ComposePage() {
   
   useEffect(() => {
     // This effect handles loading the instrument when the notes or instrument change.
-    if (generatedNotes.length === 0) return;
-
     let isMounted = true;
-    setMode('loadingInstrument');
     
     // Stop any ongoing playback before loading a new instrument.
     stopPlayback();
+    
+    setMode('loadingInstrument');
     
     getSampler(currentInstrument)
       .then(newSampler => {
@@ -91,7 +90,7 @@ export default function ComposePage() {
           }
           samplerRef.current = newSampler;
           setMode('idle');
-          if (mode !== 'generating') {
+          if (generatedNotes.length > 0) {
             toast({
                 title: "Instrument Changed!",
                 description: `Ready to play on the ${currentInstrument}.`,
@@ -120,7 +119,7 @@ export default function ComposePage() {
         samplerRef.current = null;
       }
     };
-  }, [generatedNotes, currentInstrument, toast, stopPlayback, mode]);
+  }, [currentInstrument, toast, stopPlayback]);
 
 
   const handleGenerate = async () => {
@@ -150,7 +149,8 @@ export default function ComposePage() {
         title: "Melody Generated!",
         description: `Your new melody is ready to be played.`,
       });
-      // The useEffect will handle loading the instrument and setting the mode
+      // The useEffect will handle setting the mode
+      setMode('idle');
       
     } catch (error) {
       console.error('Melody generation failed:', error);
