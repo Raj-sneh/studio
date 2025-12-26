@@ -2,15 +2,45 @@
   "placeholderImages": [
     {
       "id": "dashboard-practice",
-      "description": "A vibrant and colorful cartoon illustration of various musical notes, instruments, and symbols, creating a lively and energetic scene.",
-      "imageUrl": "https://images.unsplash.com/photo-1511379938547-c1f69419868d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMG5vdGVzJTIwY29sb3JmdWx8ZW58MHx8fHwxNzE2NTYyMzMzfDA&ixlib=rb-4.0.3&q=80&w=1080",
-      "imageHint": "colorful music"
+      "description": "A person practicing a musical instrument.",
+      "imageUrl": "https://images.unsplash.com/photo-1759426080881-a48d26d02c57?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxtdXNpYyUyMHByYWN0aWNlfGVufDB8fHx8MTc2Njc2ODQwM3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "music practice"
     },
     {
       "id": "dashboard-magic",
-      "description": "A colorful cartoon illustration of a robot interacting with musical notes, representing an AI music teacher.",
-      "imageUrl": "https://images.unsplash.com/photo-1589254065909-b7086229d092?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYXJ0b29uJTIwcm9ib3QlMjBtdXNpY3xlbnwwfHx8fDE3MTg5ODg5OTR8MA&ixlib=rb-4.0.3&q=80&w=1080",
-      "imageHint": "music ai"
+      "description": "A magical, AI-themed musical composition.",
+      "imageUrl": "https://images.unsplash.com/photo-1559456864-f86db9fe2203?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxBSSUyMG11c2ljfGVufDB8fHx8MTc2Njc2ODQwM3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "AI music"
+    },
+    {
+      "id": "dashboard-learn",
+      "description": "A person learning to play an instrument from a screen.",
+      "imageUrl": "https://images.unsplash.com/photo-1519076976365-9c64dbd98317?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMGxlc3NvbnxlbnwwfHx8fDE3NjY3Njg0MDJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "music lesson"
+    },
+    {
+      "id": "lesson-twinkle-twinkle",
+      "description": "A starry night sky.",
+      "imageUrl": "https://images.unsplash.com/photo-1616712134411-6b6ae89bc3ba?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzdGFycnklMjBuaWdodHxlbnwwfHx8fDE3NjY2OTMwMTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "starry night"
+    },
+    {
+      "id": "lesson-ode-to-joy",
+      "description": "A joyful, celebratory scene.",
+      "imageUrl": "https://images.unsplash.com/photo-1604452824399-0da61251ce3e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxqb3lmdWwlMjBjZWxlYnJhdGlvbnxlbnwwfHx8fDE3NjY3Njg0MDN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "joyful celebration"
+    },
+    {
+      "id": "lesson-happy-birthday",
+      "description": "A birthday cake with candles.",
+      "imageUrl": "https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxiaXJ0aGRheSUyMGNha2V8ZW58MHx8fHwxNzY2NjQ5NTQ3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "birthday cake"
+    },
+    {
+      "id": "lesson-fur-elise",
+      "description": "A vintage piano in a classic room.",
+      "imageUrl": "https://images.unsplash.com/photo-1597724369756-2d3c491b24d2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx2aW50YWdlJTIwcGlhbm98ZW58MHx8fHwxNzY2NjkzMDE0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vintage piano"
     }
   ]
 }
