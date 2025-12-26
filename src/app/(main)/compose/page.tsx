@@ -48,7 +48,7 @@ type Mode = 'idle' | 'generating' | 'playing' | 'loadingInstrument';
 export default function ComposePage() {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
-  const [mode, setMode] = useState<Mode>('idle');
+  const [mode, setMode] = useState<Mode>('loadingInstrument');
   const [generatedNotes, setGeneratedNotes] = useState<Note[]>([]);
   const [currentInstrument, setCurrentInstrument] = useState<Instrument>('piano');
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
@@ -74,7 +74,6 @@ export default function ComposePage() {
   
   useEffect(() => {
     let isMounted = true;
-    stopPlayback();
     setMode('loadingInstrument');
 
     getSampler(currentInstrument)
@@ -101,12 +100,13 @@ export default function ComposePage() {
 
     return () => {
       isMounted = false;
+      stopPlayback();
     };
-  }, [currentInstrument]);
+  }, [currentInstrument, toast, stopPlayback]);
 
 
   const handleGenerate = async () => {
-    if (!prompt.trim() || mode === 'generating') {
+    if (!prompt.trim() || mode === 'generating' || mode === 'loadingInstrument') {
       return;
     }
     
@@ -132,8 +132,6 @@ export default function ComposePage() {
         title: "Melody Generated!",
         description: `Your new melody is ready to be played.`,
       });
-      setMode('idle');
-      
     } catch (error) {
       console.error('Melody generation failed:', error);
       toast({
@@ -141,7 +139,10 @@ export default function ComposePage() {
         title: 'Generation Failed',
         description: 'An unexpected error occurred while generating the melody. Please try again.',
       });
-      setMode('idle');
+    } finally {
+        if (mode === 'generating') {
+            setMode('idle');
+        }
     }
   };
   
@@ -150,7 +151,6 @@ export default function ComposePage() {
       return;
     }
     
-    stopPlayback();
     setMode('playing');
 
     try {
@@ -244,7 +244,7 @@ export default function ComposePage() {
             disabled={isBusy}
           />
           <Button onClick={handleGenerate} disabled={isBusy || !prompt.trim()} size="lg" className="w-full">
-            {isBusy ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2 h-5 w-5" />}
+            {mode === 'generating' ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2 h-5 w-5" />}
             {mode === 'generating' ? 'Generating...' : (mode === 'loadingInstrument' ? 'Loading...' : 'Generate Melody')}
           </Button>
         </CardContent>
@@ -271,7 +271,7 @@ export default function ComposePage() {
                             Stop
                         </Button>
                      )}
-                     <Select value={currentInstrument} onValueChange={(val) => setCurrentInstrument(val as Instrument)} disabled={isBusy}>
+                     <Select value={currentInstrument} onValueChange={(val) => setCurrentInstrument(val as Instrument)} disabled={isBusy || mode === 'playing'}>
                         <SelectTrigger className="h-11">
                             <SelectValue placeholder="Select Instrument" />
                         </SelectTrigger>
