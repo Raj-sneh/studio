@@ -55,7 +55,7 @@ export default function ComposePage() {
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
-
+  
   const stopPlayback = useCallback(() => {
     if (Tone.Transport.state === 'started') {
       Tone.Transport.stop();
@@ -77,8 +77,18 @@ export default function ComposePage() {
     async function loadInstrument() {
         if (!isMounted) return;
         setMode('loadingInstrument');
-        stopPlayback();
         
+        // Stop any ongoing playback before loading new instrument
+        if (Tone.Transport.state === 'started') {
+            Tone.Transport.stop();
+            Tone.Transport.cancel(0);
+        }
+        if (partRef.current) {
+            partRef.current.dispose();
+            partRef.current = null;
+        }
+        setHighlightedKeys([]);
+
         try {
             const sampler = await getSampler(currentInstrument);
             if (isMounted) {
@@ -88,7 +98,7 @@ export default function ComposePage() {
                 samplerRef.current = sampler;
                 setMode('idle');
             } else {
-                if (sampler && 'dispose' in sampler && !sampler.disposed) {
+                 if (sampler && 'dispose' in sampler && !sampler.disposed) {
                     sampler.dispose();
                 }
             }
@@ -109,13 +119,20 @@ export default function ComposePage() {
 
     return () => {
         isMounted = false;
-        stopPlayback();
+        if (Tone.Transport.state === 'started') {
+            Tone.Transport.stop();
+            Tone.Transport.cancel(0);
+        }
+        if (partRef.current) {
+            partRef.current.dispose();
+            partRef.current = null;
+        }
         if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
             samplerRef.current.dispose();
             samplerRef.current = null;
         }
     };
-  }, [currentInstrument, toast, stopPlayback]);
+  }, [currentInstrument]);
 
 
   const handleGenerate = async () => {
@@ -308,5 +325,3 @@ export default function ComposePage() {
     </div>
   );
 }
-
-    
