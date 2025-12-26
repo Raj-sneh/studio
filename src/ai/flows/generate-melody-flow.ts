@@ -63,11 +63,17 @@ const generateMelodyFlow = ai.defineFlow(
     outputSchema: GenerateMelodyOutputSchema,
   },
   async input => {
-    const {output} = await generateMelodyPrompt(input);
-    // If the model output is somehow null or undefined, return an empty array to prevent crashes.
-    if (!output) {
-      return { notes: [] };
+    const llmResponse = await generateMelodyPrompt(input);
+    const output = llmResponse.output;
+
+    // Validate the output from the LLM. If it's invalid or null, return a safe, empty response.
+    const validation = GenerateMelodyOutputSchema.safeParse(output);
+    if (validation.success) {
+      return validation.data;
     }
-    return output;
+    
+    // If validation fails, return the guaranteed safe default.
+    console.error("Melody generation returned invalid data:", validation.error);
+    return { notes: [] };
   }
 );

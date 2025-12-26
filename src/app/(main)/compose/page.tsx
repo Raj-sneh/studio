@@ -76,7 +76,7 @@ export default function ComposePage() {
     isMountedRef.current = true;
     
     // Load initial instrument silently
-    getSampler(currentInstrument).then(sampler => {
+    getSampler('piano').then(sampler => {
         if (isMountedRef.current) {
             samplerRef.current = sampler;
         }
@@ -89,12 +89,12 @@ export default function ComposePage() {
         samplerRef.current.dispose();
       }
     };
-  }, []); // Empty array, runs only on mount/unmount
+  }, [stopPlayback]); 
   
   useEffect(() => {
     let active = true;
     async function loadInstrument() {
-      if (!isMountedRef.current) return;
+      if (!isMountedRef.current || currentInstrument === 'piano') return;
       
       setMode('loadingInstrument');
       stopPlayback();
@@ -128,7 +128,7 @@ export default function ComposePage() {
     return () => {
         active = false;
     }
-  }, [currentInstrument]); // Re-run only when currentInstrument changes
+  }, [currentInstrument, stopPlayback, toast]);
 
 
   const handleGenerate = async () => {
@@ -151,14 +151,13 @@ export default function ComposePage() {
               title: "Could not generate melody",
               description: "The AI could not create a melody from your prompt. Try being more specific or ask for a different song.",
           });
-          setMode('idle');
-          return;
+      } else {
+          setGeneratedNotes(result.notes);
+          toast({
+            title: "Melody Generated!",
+            description: `Your new melody is ready to be played.`,
+          });
       }
-      setGeneratedNotes(result.notes);
-      toast({
-        title: "Melody Generated!",
-        description: `Your new melody is ready to be played.`,
-      });
     } catch (error) {
       console.error('Melody generation failed:', error);
       if (isMountedRef.current) {
