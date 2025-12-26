@@ -77,15 +77,22 @@ export default function ComposePage() {
     async function loadInstrument() {
         if (!isMounted) return;
         setMode('loadingInstrument');
-        stopPlayback(); // Stop any playback before loading a new instrument
+        stopPlayback();
+        
         try {
             const sampler = await getSampler(currentInstrument);
             if (isMounted) {
-                if (samplerRef.current && !samplerRef.current.disposed) {
+                // Safely dispose of the old sampler if it exists
+                if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
                     samplerRef.current.dispose();
                 }
                 samplerRef.current = sampler;
                 setMode('idle');
+            } else {
+                // If component unmounted during load, dispose the new sampler
+                if (sampler && 'dispose' in sampler && !sampler.disposed) {
+                    sampler.dispose();
+                }
             }
         } catch (error) {
             if (isMounted) {
@@ -104,7 +111,12 @@ export default function ComposePage() {
 
     return () => {
         isMounted = false;
+        // This cleanup runs when the component unmounts OR before the effect runs again.
         stopPlayback();
+        if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
+            samplerRef.current.dispose();
+            samplerRef.current = null;
+        }
     };
 }, [currentInstrument, toast, stopPlayback]);
 
@@ -130,7 +142,6 @@ export default function ComposePage() {
           setMode('idle');
           return;
       }
-
       setGeneratedNotes(result.notes);
       toast({
         title: "Melody Generated!",
@@ -159,18 +170,15 @@ export default function ComposePage() {
         await Tone.start();
         const sampler = samplerRef.current;
         
-        // Clean up previous part if it exists
         if (partRef.current) {
             partRef.current.dispose();
         }
 
-        const noteEvents = generatedNotes.map(note => {
-            return {
-                time: note.time,
-                note: note.key,
-                duration: note.duration
-            };
-        });
+        const noteEvents = generatedNotes.map(note => ({
+            time: note.time,
+            note: note.key,
+            duration: note.duration
+        }));
 
         partRef.current = new Tone.Part((time, event) => {
             if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
@@ -258,7 +266,7 @@ export default function ComposePage() {
         </CardContent>
       </Card>
       
-      {(mode === 'generating' || generatedNotes.length > 0 || mode === 'playing' || mode === 'loadingInstrument') && (
+      {(mode === 'generating' || generatedNotes.length > 0 || mode === 'playing') && (
         <Card>
             <CardHeader>
                 <CardTitle>Your AI-Generated Melody</CardTitle>
