@@ -113,7 +113,7 @@ export default function ComposePage() {
     if (!prompt.trim() || mode === 'generating' || mode === 'loadingInstrument') {
       return;
     }
-    
+
     stopPlayback();
     setMode('generating');
     setGeneratedNotes([]);
@@ -122,15 +122,15 @@ export default function ComposePage() {
       const result = await generateMelody({ prompt });
       
       if (!result || !result.notes || result.notes.length === 0) {
-        toast({
-            variant: "destructive",
-            title: "Could not generate melody",
-            description: "The AI could not create a melody from your prompt. Try being more specific or ask for a different song.",
-        });
-        setMode('idle');
-        return;
+          toast({
+              variant: "destructive",
+              title: "Could not generate melody",
+              description: "The AI could not create a melody from your prompt. Try being more specific or ask for a different song.",
+          });
+          setMode('idle');
+          return;
       }
-      
+
       setGeneratedNotes(result.notes);
       toast({
         title: "Melody Generated!",
@@ -144,10 +144,9 @@ export default function ComposePage() {
         description: 'An unexpected error occurred while generating the melody. Please try again.',
       });
     } finally {
-      // This ensures we always leave the generating state, even on error
-      if (mode === 'generating') {
-        setMode('idle');
-      }
+        if (mode === 'generating') {
+            setMode('idle');
+        }
     }
   };
   
@@ -249,7 +248,7 @@ export default function ComposePage() {
           />
           <Button onClick={handleGenerate} disabled={isBusy || !prompt.trim()} size="lg" className="w-full">
             {mode === 'generating' ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2 h-5 w-5" />}
-            {mode === 'generating' ? 'Generating...' : (mode === 'loadingInstrument' ? 'Loading...' : 'Generate Melody')}
+            {mode === 'generating' ? 'Generating...' : 'Generate Melody'}
           </Button>
         </CardContent>
       </Card>
