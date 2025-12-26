@@ -11,8 +11,6 @@ import { flagContentForReview } from "@/ai/flows/flag-content-for-review";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useUser } from '@/firebase';
 import { getSampler } from "@/lib/samplers";
-import { useAudioRecorder } from "@/hooks/use-audio-recorder";
-import { transcribeAudio } from "@/ai/flows/transcribe-audio-flow";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Play, Square, Mic, Send, Flag, Bot, Loader2, Star, Trophy, Target, Sparkles, ChevronLeft, Ear, Music } from "lucide-react";
+import { Play, Square, Mic, Send, Flag, Bot, Loader2, Star, Trophy, Target, Sparkles, ChevronLeft, Music } from "lucide-react";
 
 const Piano = lazy(() => import("@/components/Piano"));
 
@@ -32,7 +30,7 @@ type AnalysisResult = {
   strengths: string;
   weaknesses: string;
 } | null;
-type Mode = "idle" | "demo" | "recording" | "analyzing" | "result" | "listening";
+type Mode = "idle" | "demo" | "recording" | "analyzing" | "result";
 
 function InstrumentLoader() {
     return (
@@ -48,7 +46,6 @@ export default function LessonPage() {
   const params = useParams();
   const { toast } = useToast();
   const { user } = useUser();
-  const { isRecording: isMicRecording, startRecording: startMicRecording, stopRecording: stopMicRecording } = useAudioRecorder();
   
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [mode, setMode] = useState<Mode>("idle");
@@ -96,11 +93,8 @@ export default function LessonPage() {
 
     return () => {
       stopPlayback();
-      if (isMicRecording) {
-        stopMicRecording();
-      }
     };
-  }, [params.lessonId, router, isMicRecording, stopMicRecording, stopPlayback]);
+  }, [params.lessonId, router, stopPlayback]);
 
   const playNotes = useCallback(async (notesToPlay: NoteType[]) => {
     if (!samplerRef.current || samplerRef.current.disposed || notesToPlay.length === 0) return;
@@ -145,53 +139,6 @@ export default function LessonPage() {
     setRecordingStartTime(Date.now());
     setMode("recording");
   }, [isInstrumentReady]);
-
-  const startListening = async () => {
-    setMode("listening");
-    setUserRecording([]);
-    await startMicRecording();
-  };
-
-  const stopListeningAndAnalyze = async () => {
-    const audioBlob = await stopMicRecording();
-    if (!audioBlob || !lesson) {
-        setMode("idle");
-        return;
-    }
-
-    setMode("analyzing");
-
-    try {
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = async () => {
-            const base64Audio = reader.result as string;
-            const transcriptionResult = await transcribeAudio({ audioDataUri: base64Audio, instrument: 'piano' });
-            
-            setUserRecording(transcriptionResult.notes);
-            const recordedNoteNames = transcriptionResult.notes.map(n => n.key);
-            const expectedNoteNames = lesson.notes.map(n => n.key);
-
-            const analysis = await analyzeUserPerformance({
-                recordedNotes: recordedNoteNames,
-                expectedNotes: expectedNoteNames,
-                instrument: lesson.instrument,
-            });
-
-            setAnalysisResult(analysis);
-            setMode("result");
-        };
-    } catch(error) {
-        console.error("AI analysis failed:", error);
-        toast({
-            title: "Analysis Failed",
-            description: "Could not get feedback from the AI teacher. Please try again.",
-            variant: "destructive",
-        });
-        setMode("idle");
-    }
-  };
-
 
   const handleNotePlay = useCallback((note: string, duration: string) => {
     if (mode === 'recording') {
@@ -273,7 +220,6 @@ export default function LessonPage() {
       case 'idle': return "Ready when you are. Start with a demo or your turn.";
       case 'demo': return "Listen and watch the demo.";
       case 'recording': return `Your turn! Play the notes on the virtual piano.`;
-      case 'listening': return "Listening to your playing via microphone...";
       case 'analyzing': return "AI Teacher is analyzing your performance...";
       case 'result': return "Here's your feedback!";
       default: return "";
@@ -336,7 +282,7 @@ export default function LessonPage() {
           </div>
           
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <Button onClick={playDemo} disabled={isUIDisabled || mode === 'demo'} size="lg">
               {mode === 'demo' ? <Square className="mr-2 h-5 w-5" /> : <Play className="mr-2 h-5 w-5"/>}
               {mode === 'demo' ? "Stop" : "Demo"}
@@ -350,15 +296,6 @@ export default function LessonPage() {
               <Button onClick={stopRecordingAndAnalyze} size="lg" variant="destructive">
                 <Square className="mr-2 h-5 w-5"/> Finish & Analyze
               </Button>
-            )}
-             {mode !== 'listening' ? (
-              <Button onClick={startListening} disabled={isUIDisabled} size="lg" variant="outline">
-                <Mic className="mr-2 h-5 w-5"/> Listen & Learn
-              </Button>
-            ) : (
-                <Button onClick={stopListeningAndAnalyze} size="lg" variant="destructive">
-                    <Square className="mr-2 h-5 w-5" /> Stop & Analyze
-                </Button>
             )}
           </div>
         </CardContent>
