@@ -23,11 +23,11 @@ export type GenerateMelodyInput = z.infer<typeof GenerateMelodyInputSchema>;
 const GenerateMelodyOutputSchema = z.object({
   notes: z.array(
     z.object({
-      key: z.string().describe('e.g., C4'),
-      duration: z.string().describe("Tone.js duration, e.g., '8n', '4n'"),
-      time: z.number().describe('Time in seconds from the start of the sequence.'),
+      key: z.string().describe("A musical note in scientific pitch notation, e.g., 'C4', 'F#5'."),
+      duration: z.string().describe("The duration of the note in Tone.js notation, e.g., '4n' for a quarter note, '8n' for an eighth note."),
+      time: z.number().describe('The time in seconds from the start of the sequence when the note should be played.'),
     })
-  ).describe('An array of generated notes that form a melody.'),
+  ).describe('An array of 8 to 16 musical notes that form the generated melody. If you cannot fulfill the request, return an empty array.'),
 });
 export type GenerateMelodyOutput = z.infer<typeof GenerateMelodyOutputSchema>;
 
@@ -42,17 +42,17 @@ const generateMelodyPrompt = ai.definePrompt({
   name: 'generateMelodyPrompt',
   input: {schema: GenerateMelodyInputSchema},
   output: {schema: GenerateMelodyOutputSchema},
-  prompt: `You are an expert, creative, and helpful composer and musician with perfect pitch. Your task is to create a melody based on the user's prompt.
+  prompt: `You are an expert composer who ONLY responds in the requested JSON format.
 
-**CRITICAL INSTRUCTIONS:**
+  **CRITICAL INSTRUCTIONS:**
+  1.  **JSON ONLY:** Your entire response MUST be the JSON object defined in the output schema. Do not include any other text, markdown, or commentary.
+  2.  **MELODY GENERATION:** Create a melody based on the user's prompt.
+      - If the user asks for a known song, generate an accurate and recognizable main melody.
+      - If the user describes a mood, create a short, original melody that fits the description.
+  3.  **LENGTH:** The melody MUST be between 8 and 16 notes long.
+  4.  **FAILURE CASE:** If you cannot recognize the song or fulfill the request for any reason, you MUST return a JSON object with an empty "notes" array: \`{"notes": []}\`. Do not explain why.
 
-1.  **ACCURACY IS PRIORITY:** If the user asks for a specific, known song (e.g., "Sa Re Ga Ma Pa", "twinkle twinkle", lyrics), your absolute priority is to generate a highly accurate and recognizable version of that song's main melody. The melody must be between 8 and 16 notes.
-2.  **ORIGINAL MELODIES:** If the prompt is a general description (e.g., "a happy, upbeat tune"), create a short, original melody that fits the description. This melody should also be between 8 and 16 notes long.
-3.  **JSON OUTPUT ONLY:** The output must be ONLY the JSON object containing the array of note objects. Each note object must have 'key' (e.g., 'C4'), 'duration' (e.g., '8n'), and 'time' (in seconds).
-4.  **COHERENCE:** All melodies must be musically coherent and pleasing.
-5.  **UNRECOGNIZED SONGS:** If you do not recognize a song, state that you do not know it and create a short, original melody in a similar style.
-
-User prompt: {{prompt}}
+  User prompt: {{prompt}}
 `,
 });
 
@@ -64,6 +64,10 @@ const generateMelodyFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await generateMelodyPrompt(input);
-    return output!;
+    // If the model output is somehow null or undefined, return an empty array to prevent crashes.
+    if (!output) {
+      return { notes: [] };
+    }
+    return output;
   }
 );

@@ -125,7 +125,7 @@ export default function ComposePage() {
         toast({
             variant: "destructive",
             title: "Could not generate melody",
-            description: "The AI could not create a melody from your prompt. Try being more specific.",
+            description: "The AI could not create a melody from your prompt. Try being more specific or ask for a different song.",
         });
         setMode('idle');
         return;
@@ -144,7 +144,9 @@ export default function ComposePage() {
         description: 'An unexpected error occurred while generating the melody. Please try again.',
       });
     } finally {
-        setMode('idle');
+        if (mode === 'generating') {
+          setMode('idle');
+        }
     }
   };
   
@@ -213,7 +215,6 @@ export default function ComposePage() {
 
   const getCardDescription = () => {
     if (mode === 'generating') return 'The AI is composing your melody...';
-    if (mode === 'loadingInstrument') return `Loading ${currentInstrument} samples...`;
     if (generatedNotes.length > 0) return `Press play to hear the result.`;
     return 'Your generated melody will appear here.';
   };
@@ -252,7 +253,7 @@ export default function ComposePage() {
         </CardContent>
       </Card>
       
-      {(generatedNotes.length > 0 || mode === 'generating') && (
+      {(mode === 'generating' || generatedNotes.length > 0) && (
         <Card>
             <CardHeader>
                 <CardTitle>Your AI-Generated Melody</CardTitle>
