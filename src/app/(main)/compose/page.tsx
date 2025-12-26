@@ -55,6 +55,7 @@ export default function ComposePage() {
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
+  const initialRender = useRef(true);
 
   const stopPlayback = useCallback(() => {
     if (Tone.Transport.state === 'started') {
@@ -91,7 +92,7 @@ export default function ComposePage() {
             samplerRef.current.dispose();
         }
     };
-  }, []); // Empty dependency array means this runs only once on mount
+  }, [stopPlayback]); 
   
   useEffect(() => {
     let active = true;
@@ -131,7 +132,6 @@ export default function ComposePage() {
     }
 
     // Don't run on initial render
-    const initialRender = useRef(true);
     if (initialRender.current) {
         initialRender.current = false;
     } else {
