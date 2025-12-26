@@ -62,7 +62,6 @@ export default function ComposePage() {
       Tone.Transport.cancel(0);
     }
     if (partRef.current) {
-      partRef.current.stop(0);
       partRef.current.dispose();
       partRef.current = null;
     }
@@ -78,6 +77,7 @@ export default function ComposePage() {
     async function loadInstrument() {
         if (!isMounted) return;
         setMode('loadingInstrument');
+        stopPlayback(); // Stop any playback before loading a new instrument
         try {
             const sampler = await getSampler(currentInstrument);
             if (isMounted) {
@@ -158,6 +158,12 @@ export default function ComposePage() {
     try {
         await Tone.start();
         const sampler = samplerRef.current;
+        
+        // Clean up previous part if it exists
+        if (partRef.current) {
+            partRef.current.dispose();
+        }
+
         const noteEvents = generatedNotes.map(note => {
             return {
                 time: note.time,
@@ -191,10 +197,11 @@ export default function ComposePage() {
             Tone.Transport.start();
 
             Tone.Transport.scheduleOnce(() => {
-                stopPlayback();
+                setMode('idle');
+                setHighlightedKeys([]);
             }, totalDuration + 0.5);
         } else {
-            stopPlayback();
+            setMode('idle');
         }
 
     } catch (error) {
@@ -206,7 +213,7 @@ export default function ComposePage() {
         });
         setMode("idle");
     }
-  }, [generatedNotes, mode, stopPlayback, toast]);
+  }, [generatedNotes, mode, toast]);
   
   const isBusy = mode === 'generating' || mode === 'loadingInstrument';
   const InstrumentComponent = instrumentComponents[currentInstrument];
@@ -251,7 +258,7 @@ export default function ComposePage() {
         </CardContent>
       </Card>
       
-      {(mode === 'generating' || generatedNotes.length > 0) && (
+      {(mode === 'generating' || generatedNotes.length > 0 || mode === 'playing' || mode === 'loadingInstrument') && (
         <Card>
             <CardHeader>
                 <CardTitle>Your AI-Generated Melody</CardTitle>
