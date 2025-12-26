@@ -56,7 +56,6 @@ export default function ComposePage() {
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
   const isMountedRef = useRef(true);
-  const isInitialLoadRef = useRef(true);
 
   const stopPlayback = useCallback(() => {
     if (Tone.Transport.state === 'started') {
@@ -75,6 +74,7 @@ export default function ComposePage() {
 
   useEffect(() => {
     isMountedRef.current = true;
+    // Cleanup on unmount
     return () => {
       isMountedRef.current = false;
       stopPlayback();
@@ -89,10 +89,7 @@ export default function ComposePage() {
     async function loadInstrument() {
       if (!isMountedRef.current) return;
       
-      if (!isInitialLoadRef.current) {
-        setMode('loadingInstrument');
-      }
-      
+      setMode('loadingInstrument');
       stopPlayback();
 
       try {
@@ -102,9 +99,7 @@ export default function ComposePage() {
                   samplerRef.current.dispose();
               }
               samplerRef.current = sampler;
-              if (!isInitialLoadRef.current) {
-                setMode('idle');
-              }
+              setMode('idle');
           } else if (sampler && 'dispose' in sampler && !sampler.disposed) {
               sampler.dispose();
           }
@@ -116,14 +111,8 @@ export default function ComposePage() {
                   description: `Could not load the ${currentInstrument}. Please try another instrument or refresh.`,
                   variant: 'destructive',
               });
-              if (!isInitialLoadRef.current) {
-                setMode('idle');
-              }
+              setMode('idle');
           }
-      } finally {
-        if (isInitialLoadRef.current) {
-            isInitialLoadRef.current = false;
-        }
       }
     }
 
@@ -132,7 +121,7 @@ export default function ComposePage() {
     return () => {
         active = false;
     }
-  }, [currentInstrument]);
+  }, [currentInstrument, toast]);
 
 
   const handleGenerate = async () => {
@@ -215,12 +204,12 @@ export default function ComposePage() {
             }, releaseTime);
 
         }, noteEvents).start(0);
-
-        if (generatedNotes.length > 0) {
-            const totalDuration = Tone.Transport.loopEnd;
+        
+        const lastNote = noteEvents[noteEvents.length - 1];
+        if (lastNote) {
+            const totalDuration = Tone.Time(lastNote.time).toSeconds() + Tone.Time(lastNote.duration).toSeconds();
             
             partRef.current.loop = false;
-            
             Tone.Transport.start();
 
             Tone.Transport.scheduleOnce(() => {
@@ -230,7 +219,7 @@ export default function ComposePage() {
                 }
             }, `+${totalDuration + 0.5}`);
         } else {
-            if (isMountedRef.current) {
+             if (isMountedRef.current) {
               setMode('idle');
             }
         }
