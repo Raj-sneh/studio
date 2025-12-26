@@ -254,7 +254,7 @@ export default function ComposePage() {
         </CardContent>
       </Card>
       
-      {(mode === 'generating' || generatedNotes.length > 0) && (
+      {(generatedNotes.length > 0) && (
         <Card>
             <CardHeader>
                 <CardTitle>Your AI-Generated Melody</CardTitle>
