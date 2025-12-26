@@ -16,10 +16,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import MonogramLogo from "@/components/icons/MonogramLogo";
 import { cn } from "@/lib/utils";
-import { Music, BookOpen, LogOut, User as UserIcon, Wand2 } from "lucide-react";
+import { Music, LogOut, User as UserIcon, Wand2 } from "lucide-react";
 
 const navLinks = [
-  { href: "/lessons", label: "Learn", icon: BookOpen },
   { href: "/compose", label: "Magic", icon: Wand2 },
   { href: "/practice", label: "Practice", icon: Music },
 ];

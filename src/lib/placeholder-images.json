@@ -11,36 +11,6 @@
       "description": "A colorful cartoon illustration of a robot interacting with musical notes, representing an AI music teacher.",
       "imageUrl": "https://images.unsplash.com/photo-1589254065909-b7086229d092?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYXJ0b29uJTIwcm9ib3QlMjBtdXNpY3xlbnwwfHx8fDE3MTg5ODg5OTR8MA&ixlib=rb-4.0.3&q=80&w=1080",
       "imageHint": "music ai"
-    },
-    {
-      "id": "twinkle-twinkle-lesson",
-      "description": "A cartoon illustration of a twinkling star in a night sky with musical notes.",
-      "imageUrl": "https://images.unsplash.com/photo-1608232239212-6fa67c135264?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjYXJ0b29uJTIwc3RhcnxlbnwwfHx8fDE3NjYyMzI5Njh8MA&ixlib=rb-4.0.3&q=80&w=1080",
-      "imageHint": "cartoon star"
-    },
-    {
-      "id": "kal-ho-naa-ho-lesson",
-      "description": "A stylized cartoon illustration of a heart with musical notes, representing a romantic Bollywood song.",
-      "imageUrl": "https://images.unsplash.com/photo-1518622393894-35ba34857473?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxib2xseXdvb2QlMjBsb3ZlJTIwc29uZ3xlbnwwfHx8fDE3NjYzMDI5MTN8MA&ixlib=rb-4.0.3&q=80&w=1080",
-      "imageHint": "bollywood love"
-    },
-    {
-      "id": "titanic-lesson",
-      "description": "A cartoon illustration of a majestic ship on the ocean at sunset, with musical notes in the sky.",
-      "imageUrl": "https://images.unsplash.com/photo-1611403565363-536968ign321?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxoaXN0b3JpYyUyMHNoaXAlMjBjYXJ0b29ufGVufDB8fHx8MTc2NjMwMjg4MXww&ixlib=rb-4.0.3&q=80&w=1080",
-      "imageHint": "historic ship"
-    },
-    {
-      "id": "dashboard-learn",
-      "description": "A colorful cartoon illustration of a wise owl wearing a graduation cap, pointing to a chalkboard with musical notes.",
-      "imageUrl": "https://images.unsplash.com/photo-1606232525524-8254885829b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYXJ0b29uJTIwb3dsJTIwdGVhY2hlcnxlbnwwfHx8fDE3NjYzMDIyMjN8MA&ixlib=rb-4.0.3&q=80&w=1080",
-      "imageHint": "cartoon teacher"
-    },
-    {
-      "id": "sa-re-ga-ma-lesson",
-      "description": "A colorful cartoon illustration representing Indian classical music, with traditional instruments and musical notes.",
-      "imageUrl": "https://images.unsplash.com/photo-1621840815973-356193791338?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBjbGFzc2ljYWwlMjBtdXNpYyUyMGNhcnRvb258ZW58MHx8fHwxNzY2MzA3MDUyfDA&ixlib=rb-4.0.3&q=80&w=1080",
-      "imageHint": "indian music"
     }
   ]
 }
