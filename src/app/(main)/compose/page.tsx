@@ -71,14 +71,22 @@ export default function ComposePage() {
   }, [mode]);
   
   useEffect(() => {
+    // This effect handles loading the instrument when the notes or instrument change.
     if (generatedNotes.length === 0) return;
 
     let isMounted = true;
     setMode('loadingInstrument');
     
+    // Stop any ongoing playback before loading a new instrument.
+    stopPlayback();
+    
     getSampler(currentInstrument)
       .then(newSampler => {
         if (isMounted) {
+          // Dispose of the old sampler before assigning the new one.
+          if (samplerRef.current && !samplerRef.current.disposed) {
+            samplerRef.current.dispose();
+          }
           samplerRef.current = newSampler;
           setMode('idle');
           toast({
@@ -101,12 +109,13 @@ export default function ComposePage() {
 
     return () => {
       isMounted = false;
+      // Comprehensive cleanup
       stopPlayback();
       if (samplerRef.current && !samplerRef.current.disposed) {
         samplerRef.current.dispose();
       }
     };
-  }, [generatedNotes, currentInstrument, toast, stopPlayback]);
+  }, [generatedNotes, currentInstrument]);
 
 
   const handleGenerate = async () => {
@@ -133,6 +142,7 @@ export default function ComposePage() {
       
       const newInstrument = result.instrument && instrumentComponents[result.instrument] ? result.instrument : 'piano';
       
+      // Setting instrument and notes will trigger the useEffect to load the sampler
       setCurrentInstrument(newInstrument);
       setGeneratedNotes(result.notes);
       
@@ -152,7 +162,7 @@ export default function ComposePage() {
       return;
     }
     
-    stopPlayback();
+    stopPlayback(); // Ensure clean state before playing
     setMode('playing');
 
     try {
@@ -170,10 +180,12 @@ export default function ComposePage() {
                 sampler.triggerAttackRelease(event.note, event.duration, time);
             }
             
+            // Schedule highlighting to start with the note
             Tone.Draw.schedule(() => {
                 setHighlightedKeys(current => [...current, event.note]);
             }, time);
             
+            // Schedule de-highlighting just before the note ends
             const releaseTime = time + Tone.Time(event.duration).toSeconds() * 0.9;
             Tone.Draw.schedule(() => {
                  setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== event.note));
@@ -182,21 +194,21 @@ export default function ComposePage() {
         }, noteEvents).start(0);
 
         if (generatedNotes.length > 0) {
+            // Correctly calculate the total duration of the melody
             const lastNote = [...generatedNotes].sort((a, b) => (a.time + Tone.Time(a.duration).toSeconds()) - (b.time + Tone.Time(b.duration).toSeconds())).pop();
             const totalDuration = lastNote ? lastNote.time + Tone.Time(lastNote.duration).toSeconds() : 0;
             
-            if (partRef.current) {
-              partRef.current.loop = false;
-            }
+            partRef.current.loop = false;
             
             await Tone.start();
             Tone.Transport.start();
 
+            // Schedule the stop event after the entire melody has finished playing
             Tone.Transport.scheduleOnce(() => {
                 stopPlayback();
             }, totalDuration + 0.5);
         } else {
-            stopPlayback();
+            stopPlayback(); // Stop immediately if there are no notes
         }
 
     } catch (error) {
