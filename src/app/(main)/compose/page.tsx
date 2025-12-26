@@ -55,6 +55,27 @@ export default function ComposePage() {
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      // Stop playback and dispose resources when component unmounts
+      if (Tone.Transport.state === 'started') {
+        Tone.Transport.stop();
+        Tone.Transport.cancel(0);
+      }
+      if (partRef.current) {
+        partRef.current.dispose();
+        partRef.current = null;
+      }
+      if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
+        samplerRef.current.dispose();
+        samplerRef.current = null;
+      }
+    };
+  }, []);
   
   const stopPlayback = useCallback(() => {
     if (Tone.Transport.state === 'started') {
@@ -72,67 +93,40 @@ export default function ComposePage() {
   }, [mode]);
   
   useEffect(() => {
-    let isMounted = true;
-    
     async function loadInstrument() {
-        if (!isMounted) return;
-        setMode('loadingInstrument');
-        
-        // Stop any ongoing playback before loading new instrument
-        if (Tone.Transport.state === 'started') {
-            Tone.Transport.stop();
-            Tone.Transport.cancel(0);
-        }
-        if (partRef.current) {
-            partRef.current.dispose();
-            partRef.current = null;
-        }
-        setHighlightedKeys([]);
+      if (!isMountedRef.current) return;
+      
+      setMode('loadingInstrument');
+      stopPlayback();
 
-        try {
-            const sampler = await getSampler(currentInstrument);
-            if (isMounted) {
-                if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
-                    samplerRef.current.dispose();
-                }
-                samplerRef.current = sampler;
-                setMode('idle');
-            } else {
-                 if (sampler && 'dispose' in sampler && !sampler.disposed) {
-                    sampler.dispose();
-                }
-            }
-        } catch (error) {
-            if (isMounted) {
-                console.error(`Failed to load ${currentInstrument}`, error);
-                toast({
-                    title: "Instrument Error",
-                    description: `Could not load the ${currentInstrument}. Please try another instrument or refresh.`,
-                    variant: 'destructive',
-                });
-                setMode('idle');
-            }
-        }
+      try {
+          const sampler = await getSampler(currentInstrument);
+          if (isMountedRef.current) {
+              if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
+                  samplerRef.current.dispose();
+              }
+              samplerRef.current = sampler;
+              setMode('idle');
+          } else {
+               if (sampler && 'dispose' in sampler && !sampler.disposed) {
+                  sampler.dispose();
+              }
+          }
+      } catch (error) {
+          if (isMountedRef.current) {
+              console.error(`Failed to load ${currentInstrument}`, error);
+              toast({
+                  title: "Instrument Error",
+                  description: `Could not load the ${currentInstrument}. Please try another instrument or refresh.`,
+                  variant: 'destructive',
+              });
+              setMode('idle');
+          }
+      }
     }
 
     loadInstrument();
-
-    return () => {
-        isMounted = false;
-        if (Tone.Transport.state === 'started') {
-            Tone.Transport.stop();
-            Tone.Transport.cancel(0);
-        }
-        if (partRef.current) {
-            partRef.current.dispose();
-            partRef.current = null;
-        }
-        if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
-            samplerRef.current.dispose();
-            samplerRef.current = null;
-        }
-    };
-  }, [currentInstrument]);
+  }, [currentInstrument, toast]);
 
 
   const handleGenerate = async () => {
@@ -169,7 +163,9 @@ export default function ComposePage() {
         description: 'An unexpected error occurred while generating the melody. Please try again.',
       });
     } finally {
-        setMode('idle');
+        if (isMountedRef.current) {
+            setMode('idle');
+        }
     }
   };
   
@@ -219,11 +215,15 @@ export default function ComposePage() {
             Tone.Transport.start();
 
             Tone.Transport.scheduleOnce(() => {
-                setMode('idle');
-                setHighlightedKeys([]);
+                if (isMountedRef.current) {
+                  setMode('idle');
+                  setHighlightedKeys([]);
+                }
             }, totalDuration + 0.5);
         } else {
-            setMode('idle');
+            if (isMountedRef.current) {
+              setMode('idle');
+            }
         }
 
     } catch (error) {
@@ -233,7 +233,9 @@ export default function ComposePage() {
             description: "Could not play the melody. Please try generating it again.",
             variant: "destructive"
         });
-        setMode("idle");
+        if (isMountedRef.current) {
+          setMode("idle");
+        }
     }
   }, [generatedNotes, mode, toast]);
   
@@ -280,7 +282,7 @@ export default function ComposePage() {
         </CardContent>
       </Card>
       
-      {(mode === 'generating' || generatedNotes.length > 0 || mode === 'playing') && (
+      {generatedNotes.length > 0 && mode !== 'generating' && (
         <Card>
             <CardHeader>
                 <CardTitle>Your AI-Generated Melody</CardTitle>
