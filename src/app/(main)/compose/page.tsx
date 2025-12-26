@@ -73,29 +73,18 @@ export default function ComposePage() {
   }, [mode]);
   
   useEffect(() => {
-    // This effect handles loading the instrument when the notes or instrument change.
     let isMounted = true;
-    
-    // Stop any ongoing playback before loading a new instrument.
     stopPlayback();
-    
     setMode('loadingInstrument');
-    
+
     getSampler(currentInstrument)
       .then(newSampler => {
         if (isMounted) {
-          // Dispose of the old sampler before assigning the new one.
           if (samplerRef.current && !samplerRef.current.disposed) {
             samplerRef.current.dispose();
           }
           samplerRef.current = newSampler;
           setMode('idle');
-          if (generatedNotes.length > 0) {
-            toast({
-                title: "Instrument Changed!",
-                description: `Ready to play on the ${currentInstrument}.`,
-            });
-          }
         }
       })
       .catch(error => {
@@ -112,14 +101,8 @@ export default function ComposePage() {
 
     return () => {
       isMounted = false;
-      // Comprehensive cleanup
-      stopPlayback();
-      if (samplerRef.current && !samplerRef.current.disposed) {
-        samplerRef.current.dispose();
-        samplerRef.current = null;
-      }
     };
-  }, [currentInstrument, toast, stopPlayback]);
+  }, [currentInstrument]);
 
 
   const handleGenerate = async () => {
@@ -149,7 +132,6 @@ export default function ComposePage() {
         title: "Melody Generated!",
         description: `Your new melody is ready to be played.`,
       });
-      // The useEffect will handle setting the mode
       setMode('idle');
       
     } catch (error) {
@@ -168,7 +150,7 @@ export default function ComposePage() {
       return;
     }
     
-    stopPlayback(); // Ensure clean state before playing
+    stopPlayback();
     setMode('playing');
 
     try {
@@ -187,12 +169,10 @@ export default function ComposePage() {
                 sampler.triggerAttackRelease(event.note, event.duration, time);
             }
             
-            // Schedule highlighting to start with the note
             Tone.Draw.schedule(() => {
                 setHighlightedKeys(current => [...current, event.note]);
             }, time);
             
-            // Schedule de-highlighting just before the note ends
             const releaseTime = time + Tone.Time(event.duration).toSeconds() * 0.9;
             Tone.Draw.schedule(() => {
                  setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== event.note));
@@ -201,7 +181,6 @@ export default function ComposePage() {
         }, noteEvents).start(0);
 
         if (generatedNotes.length > 0) {
-            // Correctly calculate the total duration of the melody
             const lastNote = [...generatedNotes].sort((a, b) => (a.time + Tone.Time(a.duration).toSeconds()) - (b.time + Tone.Time(b.duration).toSeconds())).pop();
             const totalDuration = lastNote ? lastNote.time + Tone.Time(lastNote.duration).toSeconds() : 0;
             
@@ -209,12 +188,11 @@ export default function ComposePage() {
             
             Tone.Transport.start();
 
-            // Schedule the stop event after the entire melody has finished playing
             Tone.Transport.scheduleOnce(() => {
                 stopPlayback();
             }, totalDuration + 0.5);
         } else {
-            stopPlayback(); // Stop immediately if there are no notes
+            stopPlayback();
         }
 
     } catch (error) {
@@ -305,7 +283,7 @@ export default function ComposePage() {
                      </Select>
                  </div>
                  <div className="min-h-[200px] flex items-center justify-center">
-                    {isBusy ? <InstrumentLoader instrument={currentInstrument} /> : (
+                    {mode === 'loadingInstrument' ? <InstrumentLoader instrument={currentInstrument} /> : (
                         <Suspense fallback={<InstrumentLoader instrument={currentInstrument} />}>
                             {InstrumentComponent ? <InstrumentComponent highlightedKeys={highlightedKeys} disabled={true} /> : <p>Could not load instrument.</p>}
                         </Suspense>
