@@ -72,23 +72,36 @@ export default function ComposePage() {
   }, [mode]);
 
   useEffect(() => {
-    // Load initial instrument silently
+    // This effect ensures the initial instrument is loaded without blocking the UI
+    let isActive = true;
     getSampler('piano').then(sampler => {
-        samplerRef.current = sampler;
+        if (isActive) {
+            samplerRef.current = sampler;
+        } else {
+             if (sampler && 'dispose' in sampler && !sampler.disposed) {
+                sampler.dispose();
+            }
+        }
     });
 
     return () => {
-      stopPlayback();
-      if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
-        samplerRef.current.dispose();
-      }
+        isActive = false;
+        stopPlayback();
+        if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
+            samplerRef.current.dispose();
+        }
     };
-  }, [stopPlayback]); 
+  }, []); // Empty dependency array means this runs only once on mount
   
   useEffect(() => {
     let active = true;
+    // This effect runs when the user changes the instrument
     async function loadInstrument() {
-      if (currentInstrument === 'piano' && samplerRef.current) return;
+      if (currentInstrument === 'piano' && samplerRef.current && !samplerRef.current.disposed) {
+          // If piano is already loaded, do nothing
+          const currentSamplerType = (samplerRef.current.name === 'Sampler') ? 'piano' : 'synth';
+          if(currentSamplerType === currentInstrument) return;
+      }
 
       setMode('loadingInstrument');
       stopPlayback();
@@ -117,8 +130,11 @@ export default function ComposePage() {
       }
     }
 
-    // Don't run on initial render if the piano is already loading
-    if (document.readyState === "complete" || currentInstrument !== 'piano') {
+    // Don't run on initial render
+    const initialRender = useRef(true);
+    if (initialRender.current) {
+        initialRender.current = false;
+    } else {
         loadInstrument();
     }
 
@@ -126,7 +142,7 @@ export default function ComposePage() {
     return () => {
         active = false;
     }
-  }, [currentInstrument]);
+  }, [currentInstrument, toast, stopPlayback]);
 
 
   const handleGenerate = async () => {
@@ -141,7 +157,17 @@ export default function ComposePage() {
     try {
       const result = await generateMelody({ prompt });
       
-      if (!result || !result.notes || result.notes.length === 0) {
+      const parsedNotes = result.notesString
+        .split(',')
+        .map(n => n.trim())
+        .filter(n => n)
+        .map((noteKey, index) => ({
+            key: noteKey,
+            duration: '4n', // Assign a default duration
+            time: `0:${index / 2}:${(index % 2) * 2}` // Simple time calculation
+        }));
+
+      if (parsedNotes.length === 0) {
           toast({
               variant: "destructive",
               title: "Could not generate melody",
@@ -149,7 +175,7 @@ export default function ComposePage() {
           });
           setGeneratedNotes([]);
       } else {
-          setGeneratedNotes(result.notes);
+          setGeneratedNotes(parsedNotes);
           toast({
             title: "Melody Generated!",
             description: `Your new melody is ready to be played.`,
