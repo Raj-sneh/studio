@@ -74,10 +74,11 @@ export default function ComposePage() {
   
   useEffect(() => {
     let isMounted = true;
-    setMode('loadingInstrument');
-
-    getSampler(currentInstrument)
-      .then(newSampler => {
+    
+    const loadInstrument = async () => {
+      setMode('loadingInstrument');
+      try {
+        const newSampler = await getSampler(currentInstrument);
         if (isMounted) {
           if (samplerRef.current && !samplerRef.current.disposed) {
             samplerRef.current.dispose();
@@ -85,18 +86,20 @@ export default function ComposePage() {
           samplerRef.current = newSampler;
           setMode('idle');
         }
-      })
-      .catch(error => {
-          if(isMounted) {
-              console.error('Failed to load instrument:', error);
-              toast({
-                  variant: 'destructive',
-                  title: 'Instrument Failed to Load',
-                  description: `Could not load samples for the ${currentInstrument}. Please try again.`
-              });
-              setMode('idle');
-          }
-      });
+      } catch (error) {
+        if (isMounted) {
+          console.error('Failed to load instrument:', error);
+          toast({
+            variant: 'destructive',
+            title: 'Instrument Failed to Load',
+            description: `Could not load samples for the ${currentInstrument}. Please try again.`
+          });
+          setMode('idle');
+        }
+      }
+    };
+    
+    loadInstrument();
 
     return () => {
       isMounted = false;
@@ -140,9 +143,8 @@ export default function ComposePage() {
         description: 'An unexpected error occurred while generating the melody. Please try again.',
       });
     } finally {
-        if (mode === 'generating') {
-            setMode('idle');
-        }
+        // Only set to idle if it was in generating state, to avoid race conditions with other state changes
+        setMode(currentMode => (currentMode === 'generating' ? 'idle' : currentMode));
     }
   };
   
