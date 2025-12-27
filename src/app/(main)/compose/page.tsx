@@ -233,7 +233,11 @@ export default function ComposePage() {
             disabled={!isUIReady}
           />
           <Button onClick={handleGenerate} disabled={!isUIReady || !prompt.trim()} size="lg" className="w-full">
-            {mode === 'generating' ? <Loader2 className="animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
+            {mode === 'generating' ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <Sparkles className="mr-2 h-5 w-5" />
+            )}
             {mode === 'generating' ? 'Generating...' : 'Generate Melody'}
           </Button>
         </CardContent>
