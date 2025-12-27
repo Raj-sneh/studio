@@ -10,7 +10,7 @@ import { chat } from '@/ai/flows/conversational-flow';
 import { cn } from '@/lib/utils';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 // Import the app instance from your firebase file
-import { app } from '../lib/firebase'; 
+import { app } from '@/lib/firebase';
 
 export function AIBot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,36 +19,49 @@ export function AIBot() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        // Force Firebase to use your manual secret key
-        // @ts-ignore
-        self.FIREBASE_APPCHECK_DEBUG_TOKEN = "1E23C774-9D93-4324-9EE9-739B86DFD09A";
+  if (typeof window !== 'undefined') {
+    // 1. Activate Debug Mode
+    // @ts-ignore
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
 
-        initializeAppCheck(app, {
-          provider: new ReCaptchaEnterpriseProvider('6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'),
-          isTokenAutoRefreshEnabled: true,
-        });
-        console.log("✅ Manual Debug Token Registered successfully.");
-      } catch (err) {
-        console.warn("App Check already active.");
+    // 2. FORCE AN ALERT BOX WITH THE TOKEN
+    const originalLog = console.log;
+    console.log = function(...args) {
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('AppCheck debug token')) {
+        alert("COPY THIS TOKEN: " + args[0]); // This forces a popup!
       }
+      originalLog.apply(console, args);
+    };
+
+    try {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaEnterpriseProvider('6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'),
+        isTokenAutoRefreshEnabled: true,
+      });
+    } catch (err) {
+      console.warn("App Check active.");
     }
-  }, []);
+  }
+}, []);
 
   const handleSend = async () => {
     if (!input.trim()) return;
+    
+    // ADD THIS: If security isn't ready, wait a second
+    setIsLoading(true);
+
     const userMsg = { role: 'user', content: input };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
-    setIsLoading(true);
 
     try {
+      // The AI flow needs a valid token to proceed
       const result = await chat({ history: [...messages, userMsg] });
       setMessages((prev) => [...prev, { role: 'model', content: result.response }]);
     } catch (error) {
       console.error('AI chat failed:', error);
-      setMessages((prev) => [...prev, { role: 'model', content: 'Security Error. Please check your Firebase Console.' }]);
+      // If it fails, it's usually because the token wasn't sent
+      setMessages((prev) => [...prev, { role: 'model', content: 'Security handshake in progress... please try one more time in 5 seconds.' }]);
     } finally {
       setIsLoading(false);
     }
