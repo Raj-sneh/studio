@@ -63,7 +63,7 @@ export default function ComposePage() {
           samplerRef.current = sampler;
           setIsInstrumentReady(true);
           // *** TEST CODE: Load the sargam notes automatically ***
-          setGeneratedNotes(sargamNotes);
+          // setGeneratedNotes(sargamNotes);
         }
       } catch (error) {
         console.error("Failed to load instrument:", error);
@@ -115,11 +115,11 @@ export default function ComposePage() {
             variant: "destructive",
         });
       }
-    } catch (error) {
-      console.error('Melody generation failed:', error);
+    } catch (error: any) {
+      console.error('An error occurred during melody generation:', error);
       toast({
         title: 'Generation Failed',
-        description: 'An error occurred while generating the melody. Please try again.',
+        description: error.message || 'An unknown error occurred. Please check the console (F12) for more details.',
         variant: 'destructive',
       });
     } finally {
