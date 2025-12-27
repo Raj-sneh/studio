@@ -55,8 +55,7 @@ export default function ComposePage() {
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
-  const isInitialRender = useRef(true);
-
+  
   const stopPlayback = useCallback(() => {
     if (Tone.Transport.state === 'started') {
       Tone.Transport.stop();
@@ -71,80 +70,53 @@ export default function ComposePage() {
       setMode("idle");
     }
   }, [mode]);
-
-  useEffect(() => {
-    // This effect ensures the initial instrument is loaded without blocking the UI
-    let isActive = true;
-    setMode('loadingInstrument');
-    getSampler('piano').then(sampler => {
-        if (isActive) {
-            samplerRef.current = sampler;
-            setMode('idle');
-        } else {
-             if (sampler && 'dispose' in sampler && !sampler.disposed) {
-                sampler.dispose();
-            }
-        }
-    });
-
-    return () => {
-        isActive = false;
-        stopPlayback();
-        if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
-            samplerRef.current.dispose();
-        }
-    };
-  }, [stopPlayback]); 
   
+  // This effect manages loading and switching instruments.
   useEffect(() => {
-    // This effect runs when the user changes the instrument
-    let active = true;
-
+    let isActive = true;
+    
     async function loadInstrument() {
-      if (currentInstrument === 'piano' && samplerRef.current && !samplerRef.current.disposed) {
-          const currentSamplerType = (samplerRef.current.name === 'Sampler') ? 'piano' : 'synth';
-          if(currentSamplerType === currentInstrument) return;
-      }
-
       setMode('loadingInstrument');
       stopPlayback();
 
       try {
-          const sampler = await getSampler(currentInstrument);
-          if (active) {
-              if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
-                  samplerRef.current.dispose();
-              }
-              samplerRef.current = sampler;
-              setMode('idle');
-          } else if (sampler && 'dispose' in sampler && !sampler.disposed) {
-              sampler.dispose();
+        const sampler = await getSampler(currentInstrument);
+        if (isActive) {
+          // Dispose the old sampler if it exists
+          if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
+            samplerRef.current.dispose();
           }
+          samplerRef.current = sampler;
+          setMode('idle');
+        } else {
+          // If component unmounted or instrument changed again, dispose the sampler we just loaded
+          if (sampler && 'dispose' in sampler && !sampler.disposed) {
+            sampler.dispose();
+          }
+        }
       } catch (error) {
-          if (active) {
-              console.error(`Failed to load ${currentInstrument}`, error);
-              toast({
-                  title: "Instrument Error",
-                  description: `Could not load the ${currentInstrument}. Please try another instrument or refresh.`,
-                  variant: 'destructive',
-              });
-              setMode('idle');
-          }
+        if (isActive) {
+          console.error(`Failed to load ${currentInstrument}`, error);
+          toast({
+            title: "Instrument Error",
+            description: `Could not load the ${currentInstrument}. Please try again.`,
+            variant: 'destructive',
+          });
+          setMode('idle'); // Go to idle even on error
+        }
       }
     }
 
-    // Don't run on initial render
-    if (isInitialRender.current) {
-        isInitialRender.current = false;
-    } else {
-        loadInstrument();
-    }
-
+    loadInstrument();
 
     return () => {
-        active = false;
-    }
-  }, [currentInstrument, toast, stopPlayback]);
+      isActive = false;
+      // Cleanup on unmount
+      if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
+        samplerRef.current.dispose();
+      }
+    };
+  }, [currentInstrument, stopPlayback, toast]);
 
 
   const handleGenerate = async () => {
@@ -350,5 +322,3 @@ export default function ComposePage() {
     </div>
   );
 }
-
-    
