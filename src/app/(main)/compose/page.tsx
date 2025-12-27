@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useCallback, useRef, Suspense, lazy, useEffect } from 'react';
@@ -54,7 +53,7 @@ export default function ComposePage() {
       }
       Tone.Transport.cancel();
     };
-  }, [isInstrumentReady]);
+  }, []); // Empty dependency array ensures this runs only once
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
