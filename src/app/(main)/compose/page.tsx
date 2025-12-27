@@ -116,7 +116,9 @@ export default function ComposePage() {
     }));
     
     const part = new Tone.Part((time, event) => {
-        sampler.triggerAttackRelease(event.note, event.duration, time);
+        if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
+          sampler.triggerAttackRelease(event.note, event.duration, time);
+        }
         Tone.Draw.schedule(() => {
             setHighlightedKeys(current => [...current, event.note]);
         }, time);
@@ -219,7 +221,7 @@ export default function ComposePage() {
         </Card>
       )}
 
-      {!isInstrumentReady && (
+      {!isInstrumentReady && mode !== 'generating' && (
         <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50">
             <InstrumentLoader />
         </div>
