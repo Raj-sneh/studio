@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback, useRef, Suspense, lazy, useEffect } from 'react';
+import { useState, useCallback, useRef, Suspense, lazy } from 'react';
 import * as Tone from 'tone';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,11 +48,10 @@ type Mode = 'idle' | 'generating' | 'playing' | 'loadingInstrument';
 export default function ComposePage() {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
-  const [mode, setMode] = useState<Mode>('idle');
+  const [mode, setMode] = useState<Mode>('loadingInstrument');
   const [generatedNotes, setGeneratedNotes] = useState<Note[]>([]);
   const [currentInstrument, setCurrentInstrument] = useState<Instrument>('piano');
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
-  const [isReady, setIsReady] = useState(false);
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
@@ -72,83 +71,35 @@ export default function ComposePage() {
     }
   }, [mode]);
   
-  // This effect handles the INITIAL loading of the default instrument.
-  useEffect(() => {
-    let isActive = true;
-    
-    async function loadInitialInstrument() {
-        try {
-            const sampler = await getSampler('piano'); // Always load piano first
-            if (isActive) {
-                samplerRef.current = sampler;
-                setIsReady(true);
-            }
-        } catch (error) {
-            if (isActive) {
-                console.error(`Failed to load initial instrument`, error);
-                toast({
-                    title: "Instrument Error",
-                    description: `Could not load the default instrument. Please refresh the page.`,
-                    variant: 'destructive',
-                });
-            }
-        }
-    }
+  const loadInstrument = useCallback(async (instrument: Instrument) => {
+    setMode('loadingInstrument');
+    stopPlayback();
 
-    loadInitialInstrument();
-
-    return () => {
-      isActive = false;
-      // Cleanup on unmount
-      if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
-        samplerRef.current.dispose();
-      }
-    };
-  }, [toast]); // This effect runs only once on mount
-
-  // This effect manages SWITCHING instruments AFTER the initial load.
-  useEffect(() => {
-    if (!isReady || currentInstrument === 'piano') return; // Don't run on initial load
-
-    let isActive = true;
-    
-    async function switchInstrument() {
-      setMode('loadingInstrument');
-      stopPlayback();
-
-      try {
-        const sampler = await getSampler(currentInstrument);
-        if (isActive) {
-          if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
+    try {
+        const sampler = await getSampler(instrument);
+        if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
             samplerRef.current.dispose();
-          }
-          samplerRef.current = sampler;
-          setMode('idle');
-        } else {
-          if (sampler && 'dispose' in sampler && !sampler.disposed) {
-            sampler.dispose();
-          }
         }
-      } catch (error) {
-        if (isActive) {
-          console.error(`Failed to load ${currentInstrument}`, error);
-          toast({
+        samplerRef.current = sampler;
+        setMode('idle');
+    } catch (error) {
+        console.error(`Failed to load ${instrument}`, error);
+        toast({
             title: "Instrument Error",
-            description: `Could not load the ${currentInstrument}. Please try again.`,
+            description: `Could not load the ${instrument}. Please try again.`,
             variant: 'destructive',
-          });
-          setMode('idle');
-        }
-      }
+        });
+        setMode('idle'); // Revert to idle on error
     }
+  }, [stopPlayback, toast]);
 
-    switchInstrument();
+  // Initial load
+  useRef(loadInstrument(currentInstrument));
 
-    return () => {
-      isActive = false;
-    };
-  }, [currentInstrument, isReady, stopPlayback, toast]);
-
+  const handleInstrumentChange = (newInstrument: Instrument) => {
+    setCurrentInstrument(newInstrument);
+    loadInstrument(newInstrument);
+  }
 
   const handleGenerate = async () => {
     if (!prompt.trim() || mode === 'generating' || mode === 'loadingInstrument') {
@@ -265,7 +216,7 @@ export default function ComposePage() {
     }
   }, [generatedNotes, mode, toast, stopPlayback]);
   
-  const isBusy = !isReady || mode === 'generating' || mode === 'loadingInstrument';
+  const isBusy = mode === 'generating' || mode === 'loadingInstrument';
   const InstrumentComponent = instrumentComponents[currentInstrument];
 
   const getCardDescription = () => {
@@ -273,15 +224,6 @@ export default function ComposePage() {
     if (generatedNotes.length > 0) return `Press play to hear the result.`;
     return 'Your generated melody will appear here.';
   };
-
-  if (!isReady) {
-    return (
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] p-4 bg-background">
-            <Loader2 className="animate-spin h-12 w-12 text-primary" />
-            <p className="mt-4 text-muted-foreground">Warming up the Composer...</p>
-        </div>
-    )
-  }
 
   return (
     <div className="space-y-8">
@@ -338,7 +280,7 @@ export default function ComposePage() {
                             Stop
                         </Button>
                      )}
-                     <Select value={currentInstrument} onValueChange={(val) => setCurrentInstrument(val as Instrument)} disabled={isBusy || mode === 'playing'}>
+                     <Select value={currentInstrument} onValueChange={(val) => handleInstrumentChange(val as Instrument)} disabled={isBusy || mode === 'playing'}>
                         <SelectTrigger className="h-11">
                             <SelectValue placeholder="Select Instrument" />
                         </SelectTrigger>
@@ -362,5 +304,3 @@ export default function ComposePage() {
     </div>
   );
 }
-
-    
