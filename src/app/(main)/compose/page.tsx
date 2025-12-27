@@ -62,8 +62,6 @@ export default function ComposePage() {
         if (active) {
           samplerRef.current = sampler;
           setIsInstrumentReady(true);
-          // *** TEST CODE: Load the sargam notes automatically ***
-          // setGeneratedNotes(sargamNotes);
         }
       } catch (error) {
         console.error("Failed to load instrument:", error);
@@ -99,6 +97,7 @@ export default function ComposePage() {
     }
     setMode('generating');
     setGeneratedNotes([]);
+    setGeneratedNotes(sargamNotes);
 
     try {
       const result = await generateMelody({ prompt });
