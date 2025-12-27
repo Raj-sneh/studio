@@ -71,37 +71,79 @@ export default function ComposePage() {
     }
   }, [mode]);
   
-  const loadInstrument = useCallback(async (instrument: Instrument) => {
-    setMode('loadingInstrument');
-    stopPlayback();
-
-    try {
-        const sampler = await getSampler(instrument);
-        if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
-            samplerRef.current.dispose();
-        }
-        samplerRef.current = sampler;
-        setMode('idle');
-    } catch (error) {
-        console.error(`Failed to load ${instrument}`, error);
-        toast({
-            title: "Instrument Error",
-            description: `Could not load the ${instrument}. Please try again.`,
-            variant: 'destructive',
-        });
-        setMode('idle'); // Revert to idle on error
-    }
-  }, [stopPlayback, toast]);
-
-  // Initial load
+  // Effect for initial instrument load
   useEffect(() => {
-    loadInstrument(currentInstrument);
+    let isMounted = true;
+    const loadInitialInstrument = async () => {
+        setMode('loadingInstrument');
+        try {
+            const sampler = await getSampler('piano');
+            if (isMounted) {
+                samplerRef.current = sampler;
+                setMode('idle');
+            }
+        } catch (error) {
+            console.error(`Failed to load initial instrument`, error);
+            if (isMounted) {
+                toast({
+                    title: "Instrument Error",
+                    description: `Could not load the piano. Please refresh the page.`,
+                    variant: 'destructive',
+                });
+                setMode('idle');
+            }
+        }
+    };
+    
+    loadInitialInstrument();
+    
+    return () => {
+        isMounted = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  // Effect for changing instruments
+  useEffect(() => {
+    if (mode === 'idle' && samplerRef.current && currentInstrument) {
+        let isMounted = true;
+        const loadNewInstrument = async () => {
+            setMode('loadingInstrument');
+            stopPlayback();
+            try {
+                const sampler = await getSampler(currentInstrument);
+                if (isMounted) {
+                    if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
+                        samplerRef.current.dispose();
+                    }
+                    samplerRef.current = sampler;
+                    setMode('idle');
+                }
+            } catch (error) {
+                console.error(`Failed to load ${currentInstrument}`, error);
+                if (isMounted) {
+                    toast({
+                        title: "Instrument Error",
+                        description: `Could not load the ${currentInstrument}. Please try again.`,
+                        variant: 'destructive',
+                    });
+                    setMode('idle'); // Revert to idle on error
+                }
+            }
+        };
+        // Avoid reloading the initial instrument
+        if (samplerRef.current.name !== currentInstrument) {
+            loadNewInstrument();
+        }
+
+        return () => {
+            isMounted = false;
+        };
+    }
+  }, [currentInstrument, stopPlayback, toast]); // Reruns when currentInstrument changes
 
   const handleInstrumentChange = (newInstrument: Instrument) => {
     setCurrentInstrument(newInstrument);
-    loadInstrument(newInstrument);
   }
 
   const handleGenerate = async () => {
@@ -307,3 +349,5 @@ export default function ComposePage() {
     </div>
   );
 }
+
+    
