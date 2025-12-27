@@ -24,6 +24,19 @@ function InstrumentLoader() {
 
 type Mode = 'idle' | 'generating' | 'playing';
 
+// The notes for "Sa Re Ga Ma Pa Dha Ni Sa"
+const sargamNotes: Note[] = [
+  { key: 'C4', duration: '4n', time: '0:0:0' },
+  { key: 'D4', duration: '4n', time: '0:1:0' },
+  { key: 'E4', duration: '4n', time: '0:2:0' },
+  { key: 'F4', duration: '4n', time: '0:3:0' },
+  { key: 'G4', duration: '4n', time: '1:0:0' },
+  { key: 'A4', duration: '4n', time: '1:1:0' },
+  { key: 'B4', duration: '4n', time: '1:2:0' },
+  { key: 'C5', duration: '2n', time: '1:3:0' },
+];
+
+
 export default function ComposePage() {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
@@ -49,6 +62,8 @@ export default function ComposePage() {
         if (active) {
           samplerRef.current = sampler;
           setIsInstrumentReady(true);
+          // *** TEST CODE: Load the sargam notes automatically ***
+          setGeneratedNotes(sargamNotes);
         }
       } catch (error) {
         console.error("Failed to load instrument:", error);
