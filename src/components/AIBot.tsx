@@ -8,41 +8,30 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { chat } from '@/ai/flows/conversational-flow';
 import { cn } from '@/lib/utils';
-
-// SECURITY IMPORTS
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
-// This relative path fixes the 'module not found' error
-import { app } from '@/lib/firebase'; 
+// Import the app instance from your firebase file
+import { app } from '../lib/firebase'; 
 
 export function AIBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // 1. Activate Debug Mode
-      // @ts-ignore
-      self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-  
-      // 2. FORCE AN ALERT BOX WITH THE TOKEN
-      const originalLog = console.log;
-      console.log = function(...args) {
-        if (args[0] && typeof args[0] === 'string' && args[0].includes('AppCheck debug token')) {
-          alert("COPY THIS TOKEN: " + args[0]); // This forces a popup!
-        }
-        originalLog.apply(console, args);
-      };
-  
       try {
+        // Force Firebase to use your manual secret key
+        // @ts-ignore
+        self.FIREBASE_APPCHECK_DEBUG_TOKEN = "1E23C774-9D93-4324-9EE9-739B86DFD09A";
+
         initializeAppCheck(app, {
           provider: new ReCaptchaEnterpriseProvider('6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'),
           isTokenAutoRefreshEnabled: true,
         });
+        console.log("✅ Manual Debug Token Registered successfully.");
       } catch (err) {
-        console.warn("App Check active.");
+        console.warn("App Check already active.");
       }
     }
   }, []);
@@ -59,55 +48,42 @@ export function AIBot() {
       setMessages((prev) => [...prev, { role: 'model', content: result.response }]);
     } catch (error) {
       console.error('AI chat failed:', error);
-      setMessages((prev) => [...prev, { role: 'model', content: 'Security Error: Please register Debug Token in Firebase.' }]);
+      setMessages((prev) => [...prev, { role: 'model', content: 'Security Error. Please check your Firebase Console.' }]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!isOpen) {
-    return (
-      <Button onClick={() => setIsOpen(true)} className="fixed bottom-4 right-4 rounded-full w-16 h-16 shadow-lg z-50">
-        <Bot className="h-8 w-8" />
-      </Button>
-    );
-  }
+  if (!isOpen) return (
+    <Button onClick={() => setIsOpen(true)} className="fixed bottom-4 right-4 rounded-full w-16 h-16 shadow-lg">
+      <Bot className="h-8 w-8" />
+    </Button>
+  );
 
   return (
-    <Card className="fixed bottom-4 right-4 w-80 h-[28rem] shadow-2xl flex flex-col z-50">
-      <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Bot className="h-6 w-6 text-primary" />Socio AI
-        </CardTitle>
-        <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-          <X className="h-4 w-4" />
-        </Button>
+    <Card className="fixed bottom-4 right-4 w-80 h-[28rem] shadow-2xl flex flex-col z-50 text-black">
+      <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-white">
+        <CardTitle className="text-lg flex items-center gap-2"><Bot className="h-6 w-6 text-primary" />Socio AI</CardTitle>
+        <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}><X className="h-4 w-4" /></Button>
       </CardHeader>
-      <CardContent className="p-0 flex-1 overflow-hidden">
+      <CardContent className="p-0 flex-1 bg-white">
         <ScrollArea className="h-full p-4">
           <div className="space-y-4">
             {messages.map((m, i) => (
               <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-                <div className={cn('p-3 rounded-lg max-w-[80%] text-sm break-words', m.role === 'user' ? 'bg-primary text-white' : 'bg-muted')}>
+                <div className={cn('p-3 rounded-lg max-w-[80%] text-sm', m.role === 'user' ? 'bg-primary text-white' : 'bg-muted')}>
                   {m.content}
                 </div>
               </div>
             ))}
-            {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
           </div>
         </ScrollArea>
       </CardContent>
-      <CardFooter className="p-2 border-t">
+      <CardFooter className="p-2 border-t bg-white">
         <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex w-full items-center gap-2">
-          <Input 
-            value={input} 
-            onChange={(e) => setInput(e.target.value)} 
-            placeholder="Type a message..." 
-            disabled={isLoading}
-          />
-          <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
-            <Send className="h-4 w-4" />
-          </Button>
+          <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask Socio AI..." disabled={isLoading} />
+          <Button type="submit" size="icon" disabled={isLoading}><Send className="h-4 w-4" /></Button>
         </form>
       </CardFooter>
     </Card>
