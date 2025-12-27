@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback, useRef, Suspense, lazy } from 'react';
+import { useState, useCallback, useRef, Suspense, lazy, useEffect } from 'react';
 import * as Tone from 'tone';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -94,7 +94,10 @@ export default function ComposePage() {
   }, [stopPlayback, toast]);
 
   // Initial load
-  useRef(loadInstrument(currentInstrument));
+  useEffect(() => {
+    loadInstrument(currentInstrument);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleInstrumentChange = (newInstrument: Instrument) => {
     setCurrentInstrument(newInstrument);
