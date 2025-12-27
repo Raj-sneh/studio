@@ -79,7 +79,7 @@ export const getSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.
                 const sampler = new Tone.Sampler({
                     urls: samplerUrls[instrument],
                     baseUrl: baseUrlMap[instrument],
-                    release: 1,
+                    release: instrument === 'piano' ? 1.5 : 1, // Enhanced release for piano
                     onload: () => {
                         samplerCache.set(instrument, sampler);
                         resolve(sampler);
