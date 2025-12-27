@@ -47,33 +47,16 @@ const generateMelodyFlow = ai.defineFlow(
   async input => {
     try {
       const { output } = await ai.generate({
-        prompt: `You are an expert composer who ONLY responds in the requested JSON format.
+        prompt: `You are an expert composer who ONLY responds in the requested JSON format. Your goal is to create a short melody based on the user's request.
 
         **CRITICAL INSTRUCTIONS:**
-        1.  **JSON ONLY:** Your entire response MUST be the JSON object defined in the output schema.
-        2.  **NOTE ARRAY:** Create a melody based on the user's prompt and return it as an array of Note objects in the "notes" field.
-        3.  **NOTE FORMAT:** Each note object must have 'key', 'duration', and 'time'. Use scientific pitch notation for 'key' (e.g., C4) and Tone.js format for 'duration' ('8n') and 'time' ('0:0:2').
-        4.  **LENGTH:** The melody MUST be between 8 and 16 notes long.
-        5.  **FAILURE CASE:** If you cannot recognize the song or fulfill the request for any reason, you MUST return a JSON object with an empty "notes" array: \`{"notes": []}\`. Do not explain why.
-        6.  **EXAMPLE:** If the user asks for "Twinkle Twinkle Little Star", you should generate these exact notes:
-            [
-              { "key": "C4", "duration": "4n", "time": "0:0:0" },
-              { "key": "C4", "duration": "4n", "time": "0:1:0" },
-              { "key": "G4", "duration": "4n", "time": "0:2:0" },
-              { "key": "G4", "duration": "4n", "time": "0:3:0" },
-              { "key": "A4", "duration": "4n", "time": "1:0:0" },
-              { "key": "A4", "duration": "4n", "time": "1:1:0" },
-              { "key": "G4", "duration": "2n", "time": "1:2:0" },
-              { "key": "F4", "duration": "4n", "time": "2:0:0" },
-              { "key": "F4", "duration": "4n", "time": "2:1:0" },
-              { "key": "E4", "duration": "4n", "time": "2:2:0" },
-              { "key": "E4", "duration": "4n", "time": "2:3:0" },
-              { "key": "D4", "duration": "4n", "time": "3:0:0" },
-              { "key": "D4", "duration": "4n", "time": "3:1:0" },
-              { "key": "C4", "duration": "2n", "time": "3:2:0" }
-            ]
+        1.  **JSON ONLY:** Your entire response MUST be the JSON object defined in the output schema. Do not include any other text, markdown, or explanations.
+        2.  **NOTE ARRAY:** Analyze the user's prompt (which could be a famous song or a description) and create a melody. Return it as an array of Note objects in the "notes" field.
+        3.  **NOTE FORMAT:** Each note object must have 'key', 'duration', and 'time'. Use scientific pitch notation for 'key' (e.g., C4) and Tone.js format for 'duration' (e.g., '8n') and 'time' (e.g., '0:0:2').
+        4.  **MELODY LENGTH:** The generated melody MUST be between 8 and 16 notes long.
+        5.  **FAILURE CASE:** If you cannot recognize the song or fulfill the request for any reason, you MUST return a JSON object with an empty "notes" array: \`{"notes": []}\`. Do not provide an explanation.
       
-        User prompt: ${input.prompt}
+        User prompt: "${input.prompt}"
         `,
         output: {
           schema: GenerateMelodyOutputSchema,
