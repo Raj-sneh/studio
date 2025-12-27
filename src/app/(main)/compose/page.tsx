@@ -8,186 +8,86 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Play, Sparkles, Square, Wand2 } from 'lucide-react';
 import { generateMelody } from '@/ai/flows/generate-melody-flow';
-import type { Note, Instrument } from '@/types';
-import { getSampler } from '@/lib/samplers';
+import type { Note } from '@/types';
+import { getSampler, allSamplersLoaded } from '@/lib/samplers';
 import { useToast } from '@/hooks/use-toast';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
 
 const Piano = lazy(() => import('@/components/Piano'));
-const Guitar = lazy(() => import('@/components/Guitar'));
-const Flute = lazy(() => import('@/components/Flute'));
-const Saxophone = lazy(() => import('@/components/Saxophone'));
-const Violin = lazy(() => import('@/components/Violin'));
-const Xylophone = lazy(() => import('@/components/Xylophone'));
-const DrumPad = lazy(() => import('@/components/DrumPad'));
 
-function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
+function InstrumentLoader() {
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center min-h-[200px]">
+    <div className="flex flex-col items-center justify-center h-full text-center">
       <Loader2 className="h-8 w-8 animate-spin" />
-      <p className="mt-4 text-muted-foreground capitalize">
-        {instrument ? `Loading ${instrument} Samples...` : 'Warming up the instruments...'}
-      </p>
+      <p className="mt-4 text-muted-foreground">Loading Instrument...</p>
     </div>
   );
 }
 
-const instrumentComponents: Record<Instrument, React.ElementType> = {
-    piano: Piano,
-    guitar: Guitar,
-    flute: Flute,
-    saxophone: Saxophone,
-    violin: Violin,
-    xylophone: Xylophone,
-    drums: DrumPad,
-}
-
-type Mode = 'idle' | 'generating' | 'playing' | 'loadingInstrument';
+type Mode = 'idle' | 'generating' | 'playing';
 
 export default function ComposePage() {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
-  const [mode, setMode] = useState<Mode>('loadingInstrument');
+  const [mode, setMode] = useState<Mode>('idle');
   const [generatedNotes, setGeneratedNotes] = useState<Note[]>([]);
-  const [currentInstrument, setCurrentInstrument] = useState<Instrument>('piano');
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
+  const [isInstrumentReady, setIsInstrumentReady] = useState(false);
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
-  const partRef = useRef<Tone.Part | null>(null);
-  
-  const stopPlayback = useCallback(() => {
-    if (Tone.Transport.state === 'started') {
-      Tone.Transport.stop();
-      Tone.Transport.cancel(0);
-    }
-    if (partRef.current) {
-      partRef.current.dispose();
-      partRef.current = null;
-    }
-    setHighlightedKeys([]);
-    if (mode === 'playing') {
-      setMode("idle");
-    }
-  }, [mode]);
-  
-  // Effect for initial instrument load
+  const noteTimeoutIds = useRef<NodeJS.Timeout[]>([]);
+
   useEffect(() => {
-    let isMounted = true;
-    const loadInitialInstrument = async () => {
-        setMode('loadingInstrument');
-        try {
-            const sampler = await getSampler('piano');
-            if (isMounted) {
-                samplerRef.current = sampler;
-                setMode('idle');
-            }
-        } catch (error) {
-            console.error(`Failed to load initial instrument`, error);
-            if (isMounted) {
-                toast({
-                    title: "Instrument Error",
-                    description: `Could not load the piano. Please refresh the page.`,
-                    variant: 'destructive',
-                });
-                setMode('idle');
-            }
-        }
+    const loadAudio = async () => {
+      setIsInstrumentReady(false);
+      await Tone.start();
+      samplerRef.current = await getSampler('piano');
+      await allSamplersLoaded();
+      setIsInstrumentReady(true);
     };
-    
-    loadInitialInstrument();
-    
+    loadAudio();
+
     return () => {
-        isMounted = false;
+      noteTimeoutIds.current.forEach(clearTimeout);
+      if (Tone.Transport.state === 'started') {
+        Tone.Transport.stop();
+      }
+      Tone.Transport.cancel();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array ensures this runs only once on mount
-
-  // Effect for changing instruments
-  useEffect(() => {
-    if (mode === 'idle' && samplerRef.current && currentInstrument) {
-        let isMounted = true;
-        const loadNewInstrument = async () => {
-            setMode('loadingInstrument');
-            stopPlayback();
-            try {
-                const sampler = await getSampler(currentInstrument);
-                if (isMounted) {
-                    if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
-                        samplerRef.current.dispose();
-                    }
-                    samplerRef.current = sampler;
-                    setMode('idle');
-                }
-            } catch (error) {
-                console.error(`Failed to load ${currentInstrument}`, error);
-                if (isMounted) {
-                    toast({
-                        title: "Instrument Error",
-                        description: `Could not load the ${currentInstrument}. Please try again.`,
-                        variant: 'destructive',
-                    });
-                    setMode('idle'); // Revert to idle on error
-                }
-            }
-        };
-        // Avoid reloading the initial instrument
-        if (samplerRef.current.name !== currentInstrument) {
-            loadNewInstrument();
-        }
-
-        return () => {
-            isMounted = false;
-        };
-    }
-  }, [currentInstrument, stopPlayback, toast]); // Reruns when currentInstrument changes
-
-  const handleInstrumentChange = (newInstrument: Instrument) => {
-    setCurrentInstrument(newInstrument);
-  }
+  }, []);
 
   const handleGenerate = async () => {
-    if (!prompt.trim() || mode === 'generating' || mode === 'loadingInstrument') {
+    if (!prompt.trim()) {
+      toast({
+        title: 'Prompt is empty',
+        description: 'Please describe the melody you want to create.',
+        variant: 'destructive',
+      });
       return;
     }
-
-    stopPlayback();
     setMode('generating');
     setGeneratedNotes([]);
 
     try {
       const result = await generateMelody({ prompt });
-      
-      const parsedNotes = result.notesString
-        .split(',')
-        .map(n => n.trim())
-        .filter(n => n)
-        .map((noteKey, index) => ({
-            key: noteKey,
-            duration: '4n', // Assign a default duration
-            time: `0:${index / 2}:${(index % 2) * 2}` // Simple time calculation
-        }));
-
-      if (parsedNotes.length === 0) {
-          toast({
-              variant: "destructive",
-              title: "Could not generate melody",
-              description: "The AI could not create a melody from your prompt. Try being more specific or ask for a different song.",
-          });
-          setGeneratedNotes([]);
-      } else {
-          setGeneratedNotes(parsedNotes);
-          toast({
+      if (result.notes && result.notes.length > 0) {
+        setGeneratedNotes(result.notes);
+        toast({
             title: "Melody Generated!",
-            description: `Your new melody is ready to be played.`,
-          });
+            description: "Your new melody is ready to be played.",
+        });
+      } else {
+        toast({
+            title: "Could not generate melody",
+            description: "The AI could not create a melody from your prompt. Try being more specific.",
+            variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Melody generation failed:', error);
       toast({
-        variant: 'destructive',
         title: 'Generation Failed',
-        description: 'An unexpected error occurred while generating the melody. Please try again.',
+        description: 'An error occurred while generating the melody. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setMode('idle');
@@ -195,80 +95,68 @@ export default function ComposePage() {
   };
   
   const playMelody = useCallback(async () => {
-    if (!samplerRef.current || samplerRef.current.disposed || generatedNotes.length === 0 || mode !== 'idle') {
-      return;
-    }
-    
+    if (!samplerRef.current || generatedNotes.length === 0 || samplerRef.current.disposed) return;
     setMode('playing');
 
-    try {
-        await Tone.start();
-        const sampler = samplerRef.current;
-        
-        if (partRef.current) {
-            partRef.current.dispose();
-        }
-
-        const noteEvents = generatedNotes.map(note => ({
-            time: note.time,
-            note: note.key,
-            duration: note.duration
-        }));
-
-        partRef.current = new Tone.Part((time, event) => {
-            if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
-                sampler.triggerAttackRelease(event.note, event.duration, time);
-            }
-            
-            Tone.Draw.schedule(() => {
-                setHighlightedKeys(current => [...current, event.note]);
-            }, time);
-            
-            const releaseTime = time + Tone.Time(event.duration).toSeconds() * 0.9;
-            Tone.Draw.schedule(() => {
-                 setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== event.note));
-            }, releaseTime);
-
-        }, noteEvents).start(0);
-        
-        const lastNote = noteEvents.reduce((last, current) => {
-            const lastTime = Tone.Time(last.time).toSeconds() + Tone.Time(last.duration).toSeconds();
-            const currentTime = Tone.Time(current.time).toSeconds() + Tone.Time(current.duration).toSeconds();
-            return currentTime > lastTime ? current : last;
-        }, noteEvents[0]);
-
-        if (lastNote) {
-            const totalDuration = Tone.Time(lastNote.time).toSeconds() + Tone.Time(lastNote.duration).toSeconds();
-            
-            partRef.current.loop = false;
-            Tone.Transport.start();
-
-            Tone.Transport.scheduleOnce(() => {
-                stopPlayback();
-            }, `+${totalDuration + 0.5}`);
-        } else {
-            setMode('idle');
-        }
-
-    } catch (error) {
-        console.error("Playback failed:", error);
-        toast({
-            title: "Playback Failed",
-            description: "Could not play the melody. Please try generating it again.",
-            variant: "destructive"
-        });
-        setMode("idle");
+    noteTimeoutIds.current.forEach(clearTimeout);
+    noteTimeoutIds.current = [];
+    setHighlightedKeys([]);
+    
+    if (Tone.Transport.state === 'started') {
+        Tone.Transport.stop();
+        Tone.Transport.cancel();
     }
-  }, [generatedNotes, mode, toast, stopPlayback]);
-  
-  const isBusy = mode === 'generating' || mode === 'loadingInstrument';
-  const InstrumentComponent = instrumentComponents[currentInstrument];
+    
+    const sampler = samplerRef.current;
+    
+    const noteEvents = generatedNotes.map(note => ({
+        time: note.time,
+        note: note.key,
+        duration: note.duration,
+    }));
+    
+    const part = new Tone.Part((time, event) => {
+        sampler.triggerAttackRelease(event.note, event.duration, time);
+        Tone.Draw.schedule(() => {
+            setHighlightedKeys(current => [...current, event.note]);
+        }, time);
+        const releaseTime = time + Tone.Time(event.duration).toSeconds() * 0.9;
+        Tone.Draw.schedule(() => {
+            setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== event.note));
+        }, releaseTime);
+    }, noteEvents).start(0);
 
-  const getCardDescription = () => {
-    if (mode === 'generating') return 'The AI is composing your melody...';
-    if (generatedNotes.length > 0) return `Press play to hear the result.`;
-    return 'Your generated melody will appear here.';
+    const totalDuration = generatedNotes.reduce((max, note) => {
+        const endTime = Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds();
+        return Math.max(max, endTime);
+    }, 0);
+    
+    Tone.Transport.start();
+
+    const timeoutId = setTimeout(() => {
+        setMode('idle');
+        part.dispose();
+    }, totalDuration * 1000 + 500);
+
+    noteTimeoutIds.current.push(timeoutId);
+    
+  }, [generatedNotes]);
+
+  const stopPlayback = () => {
+    noteTimeoutIds.current.forEach(clearTimeout);
+    noteTimeoutIds.current = [];
+    setHighlightedKeys([]);
+    if (Tone.Transport.state === 'started') {
+        Tone.Transport.stop();
+        Tone.Transport.cancel();
+    }
+    if(samplerRef.current && 'releaseAll' in samplerRef.current) {
+        samplerRef.current.releaseAll();
+    }
+    setMode("idle");
   };
+  
+  const isUIReady = isInstrumentReady && mode !== 'generating';
 
   return (
     <div className="space-y-8">
@@ -286,68 +174,56 @@ export default function ComposePage() {
         <CardHeader>
           <CardTitle>Describe Your Melody</CardTitle>
           <CardDescription>
-            Ask for a song like "play Sa Re Ga Ma Pa" or describe a mood like "a happy, fast-paced piano tune".
+            Use descriptive words like "a happy, fast-paced piano tune" or "a slow, sad melody in a minor key".
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g., a simple and cheerful nursery rhyme..."
+            placeholder="e.g., A simple and cheerful nursery rhyme..."
             className="min-h-[100px]"
-            disabled={isBusy}
+            disabled={!isUIReady}
           />
-          <Button onClick={handleGenerate} disabled={isBusy || !prompt.trim()} size="lg" className="w-full">
-            {mode === 'generating' ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2 h-5 w-5" />}
+          <Button onClick={handleGenerate} disabled={!isUIReady || !prompt.trim()} size="lg" className="w-full">
+            {mode === 'generating' ? <Loader2 className="animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
             {mode === 'generating' ? 'Generating...' : 'Generate Melody'}
           </Button>
         </CardContent>
       </Card>
       
-      {generatedNotes.length > 0 && mode !== 'generating' && (
+      {generatedNotes.length > 0 && (
         <Card>
             <CardHeader>
                 <CardTitle>Your AI-Generated Melody</CardTitle>
-                <CardDescription>
-                  {getCardDescription()}
-                </CardDescription>
+                <CardDescription>Press play to hear the result, or see it on the piano below.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                     {mode !== 'playing' ? (
-                         <Button onClick={playMelody} disabled={isBusy || mode === 'playing' || generatedNotes.length === 0} size="lg" className="w-full">
-                            <Play className="mr-2 h-5 w-5"/>
-                            Play Melody
-                        </Button>
-                     ) : (
-                        <Button onClick={stopPlayback} size="lg" className="w-full" variant="destructive">
-                            <Square className="mr-2 h-5 w-5"/>
-                            Stop
-                        </Button>
-                     )}
-                     <Select value={currentInstrument} onValueChange={(val) => handleInstrumentChange(val as Instrument)} disabled={isBusy || mode === 'playing'}>
-                        <SelectTrigger className="h-11">
-                            <SelectValue placeholder="Select Instrument" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {Object.keys(instrumentComponents).map(inst => (
-                                <SelectItem key={inst} value={inst} className="capitalize">{inst}</SelectItem>
-                            ))}
-                        </SelectContent>
-                     </Select>
-                 </div>
-                 <div className="min-h-[200px] flex items-center justify-center">
-                    {mode === 'loadingInstrument' ? <InstrumentLoader instrument={currentInstrument} /> : (
-                        <Suspense fallback={<InstrumentLoader instrument={currentInstrument} />}>
-                            {InstrumentComponent ? <InstrumentComponent highlightedKeys={highlightedKeys} disabled={true} /> : <p>Could not load instrument.</p>}
-                        </Suspense>
-                    )}
+                 {mode !== 'playing' ? (
+                     <Button onClick={playMelody} disabled={!isUIReady} size="lg" className="w-full">
+                        <Play className="mr-2 h-5 w-5"/>
+                        Play Melody
+                    </Button>
+                 ) : (
+                    <Button onClick={stopPlayback} size="lg" className="w-full" variant="destructive">
+                        <Square className="mr-2 h-5 w-5"/>
+                        Stop
+                    </Button>
+                 )}
+                 <div className="min-h-[200px]">
+                    <Suspense fallback={<InstrumentLoader />}>
+                        <Piano highlightedKeys={highlightedKeys} disabled={true} />
+                    </Suspense>
                 </div>
             </CardContent>
         </Card>
       )}
+
+      {!isInstrumentReady && (
+        <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50">
+            <InstrumentLoader />
+        </div>
+      )}
     </div>
   );
 }
-
-    

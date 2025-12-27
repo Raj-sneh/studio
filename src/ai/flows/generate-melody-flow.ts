@@ -4,10 +4,8 @@
 /**
  * @fileOverview This file defines the Genkit flow for generating a melody based on a user prompt.
  *
- * This new version simplifies the AI's task significantly. The AI is now only responsible
- * for generating a comma-separated string of musical notes. The TypeScript code then
- * parses this string into the structured Note array required by the application.
- * This approach is more robust and less prone to AI formatting errors.
+ * The AI is responsible for generating a structured array of Note objects.
+ * This approach provides a more reliable and structured output compared to parsing a string.
  *
  * @interface GenerateMelodyInput - Defines the input schema for the generateMelody function.
  * @interface GenerateMelodyOutput - Defines the output schema for the generateMelody function.
@@ -16,14 +14,21 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import type { Note } from '@/types';
 
 const GenerateMelodyInputSchema = z.object({
   prompt: z.string().describe('A text description of the melody to generate. e.g., "a happy, upbeat tune" or "play the theme from titanic"'),
 });
 export type GenerateMelodyInput = z.infer<typeof GenerateMelodyInputSchema>;
 
+const NoteSchema = z.object({
+  key: z.string().describe('e.g., C4'),
+  duration: z.string().describe("Tone.js duration, e.g., '8n', '4n'"),
+  time: z.string().describe("Tone.js time, e.g., '0:0:1'"),
+});
+
 const GenerateMelodyOutputSchema = z.object({
-  notesString: z.string().describe('A comma-separated string of 8 to 16 musical notes in scientific pitch notation (e.g., "C4, G4, A4, G4"). If you cannot fulfill the request, you MUST return an empty string.'),
+  notes: z.array(NoteSchema).describe('An array of 8 to 16 musical note objects. If you cannot fulfill the request, you MUST return an empty array.'),
 });
 export type GenerateMelodyOutput = z.infer<typeof GenerateMelodyOutputSchema>;
 
@@ -47,10 +52,10 @@ const generateMelodyFlow = ai.defineFlow(
 
         **CRITICAL INSTRUCTIONS:**
         1.  **JSON ONLY:** Your entire response MUST be the JSON object defined in the output schema.
-        2.  **NOTE STRING:** Create a melody based on the user's prompt and return it as a single, comma-separated string in the "notesString" field.
-        3.  **FORMAT:** Use scientific pitch notation (e.g., C4, F#5, Ab3).
+        2.  **NOTE ARRAY:** Create a melody based on the user's prompt and return it as an array of Note objects in the "notes" field.
+        3.  **NOTE FORMAT:** Each note object must have 'key', 'duration', and 'time'. Use scientific pitch notation for 'key' (e.g., C4) and Tone.js format for 'duration' ('8n') and 'time' ('0:0:2').
         4.  **LENGTH:** The melody MUST be between 8 and 16 notes long.
-        5.  **FAILURE CASE:** If you cannot recognize the song or fulfill the request for any reason, you MUST return a JSON object with an empty "notesString": \`{"notesString": ""}\`. Do not explain why.
+        5.  **FAILURE CASE:** If you cannot recognize the song or fulfill the request for any reason, you MUST return a JSON object with an empty "notes" array: \`{"notes": []}\`. Do not explain why.
       
         User prompt: ${input.prompt}
         `,
@@ -65,14 +70,12 @@ const generateMelodyFlow = ai.defineFlow(
         return validation.data;
       }
       
-      // If validation fails, return the guaranteed safe default.
       console.error("Melody generation returned invalid data:", validation.error);
-      return { notesString: '' };
+      return { notes: [] };
 
     } catch (error) {
       console.error("Error during AI generation in generateMelodyFlow:", error);
-      // If the AI generation itself throws an error, catch it and return a safe, empty response.
-      return { notesString: '' };
+      return { notes: [] };
     }
   }
 );
