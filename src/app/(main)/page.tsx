@@ -34,6 +34,7 @@ export default function DashboardPage() {
                   height={375}
                   data-ai-hint={magicImage.imageHint}
                   className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                  priority
                 />
               </div>
             )}
@@ -68,6 +69,7 @@ export default function DashboardPage() {
                   height={375}
                   data-ai-hint={practiceImage.imageHint}
                   className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                  priority
                 />
               </div>
             )}
