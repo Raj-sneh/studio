@@ -23,10 +23,13 @@ export function AIBot() {
 
   // REVEAL DEBUG TOKEN IN THE UI
   useEffect(() => {
+    // This effect should only run once, so the dependency array is empty.
+    // It's safe because `app` is a stable module import.
     if (typeof window !== 'undefined') {
       try {
         setMessages([{ role: 'model', content: 'Revealing Debug Token...' }]);
         // This line makes the secret token show up in your Web Console
+        // and now, also in the chat UI.
         // @ts-ignore
         self.FIREBASE_APPCHECK_DEBUG_TOKEN = (token) => {
            setMessages((prev) => [...prev, { role: 'model', content: `Debug Token: ${token}` }]);
@@ -40,9 +43,10 @@ export function AIBot() {
         console.log("✅ App Check Security initialized successfully.");
       } catch (err) {
         console.warn("App Check already active or failed to load.");
-        setMessages((prev) => [...prev, { role: 'model', content: 'App Check already active or failed to load.' }]);
+        setMessages((prev) => [...prev, { role: 'model', content: 'App Check already active or failed to load. Check console for details.' }]);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSend = async () => {
