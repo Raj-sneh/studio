@@ -28,6 +28,7 @@ export function AIBot() {
         // This line makes the secret token show up in your Web Console
         // @ts-ignore
         self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+        console.log("DEBUG_MODE_ACTIVE");
 
         initializeAppCheck(app, {
           provider: new ReCaptchaEnterpriseProvider('6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'),
