@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, BookOpen, Music, Wand2 } from "lucide-react";
+import { ArrowRight, Music, Wand2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
@@ -12,7 +12,6 @@ import { AIBot } from "@/components/AIBot";
 export default function DashboardPage() {
   const practiceImage = PlaceHolderImages.find(img => img.id === 'dashboard-practice');
   const magicImage = PlaceHolderImages.find(img => img.id === 'dashboard-magic');
-  const learnImage = PlaceHolderImages.find(img => img.id === 'dashboard-learn');
 
   return (
     <div className="space-y-8">
@@ -22,7 +21,7 @@ export default function DashboardPage() {
         <p className="mt-2 text-lg text-muted-foreground">The AI-powered music learning companion.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Magic Composer */}
         <Card className="overflow-hidden group hover:border-primary transition-all duration-300 transform hover:-translate-y-1">
           <CardHeader className="p-0">
@@ -52,40 +51,6 @@ export default function DashboardPage() {
             <Link href="/compose">
               <Button className="w-full">
                 Create with AI <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        {/* Learn a Song */}
-        <Card className="overflow-hidden group hover:border-primary transition-all duration-300 transform hover:-translate-y-1">
-          <CardHeader className="p-0">
-            {learnImage && (
-              <div className="aspect-[16/10] overflow-hidden">
-                <Image
-                  src={learnImage.imageUrl}
-                  alt={learnImage.description}
-                  width={600}
-                  height={375}
-                  data-ai-hint={learnImage.imageHint}
-                  className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-                />
-              </div>
-            )}
-            <div className="p-6">
-              <CardTitle className="font-headline text-2xl flex items-center gap-2">
-                <BookOpen className="text-accent" />
-                Learn a Song
-              </CardTitle>
-              <CardDescription className="pt-2">
-                Follow guided lessons and get real-time feedback from your AI teacher.
-              </CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6 pt-0">
-            <Link href="/lessons">
-              <Button className="w-full" variant="secondary">
-                Browse Lessons <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </CardContent>
