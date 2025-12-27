@@ -48,10 +48,11 @@ type Mode = 'idle' | 'generating' | 'playing' | 'loadingInstrument';
 export default function ComposePage() {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
-  const [mode, setMode] = useState<Mode>('loadingInstrument');
+  const [mode, setMode] = useState<Mode>('idle');
   const [generatedNotes, setGeneratedNotes] = useState<Note[]>([]);
   const [currentInstrument, setCurrentInstrument] = useState<Instrument>('piano');
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
+  const [isReady, setIsReady] = useState(false);
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
@@ -71,25 +72,59 @@ export default function ComposePage() {
     }
   }, [mode]);
   
-  // This effect manages loading and switching instruments.
+  // This effect handles the INITIAL loading of the default instrument.
   useEffect(() => {
     let isActive = true;
     
-    async function loadInstrument() {
+    async function loadInitialInstrument() {
+        try {
+            const sampler = await getSampler('piano'); // Always load piano first
+            if (isActive) {
+                samplerRef.current = sampler;
+                setIsReady(true);
+            }
+        } catch (error) {
+            if (isActive) {
+                console.error(`Failed to load initial instrument`, error);
+                toast({
+                    title: "Instrument Error",
+                    description: `Could not load the default instrument. Please refresh the page.`,
+                    variant: 'destructive',
+                });
+            }
+        }
+    }
+
+    loadInitialInstrument();
+
+    return () => {
+      isActive = false;
+      // Cleanup on unmount
+      if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
+        samplerRef.current.dispose();
+      }
+    };
+  }, [toast]); // This effect runs only once on mount
+
+  // This effect manages SWITCHING instruments AFTER the initial load.
+  useEffect(() => {
+    if (!isReady || currentInstrument === 'piano') return; // Don't run on initial load
+
+    let isActive = true;
+    
+    async function switchInstrument() {
       setMode('loadingInstrument');
       stopPlayback();
 
       try {
         const sampler = await getSampler(currentInstrument);
         if (isActive) {
-          // Dispose the old sampler if it exists
           if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
             samplerRef.current.dispose();
           }
           samplerRef.current = sampler;
           setMode('idle');
         } else {
-          // If component unmounted or instrument changed again, dispose the sampler we just loaded
           if (sampler && 'dispose' in sampler && !sampler.disposed) {
             sampler.dispose();
           }
@@ -102,21 +137,17 @@ export default function ComposePage() {
             description: `Could not load the ${currentInstrument}. Please try again.`,
             variant: 'destructive',
           });
-          setMode('idle'); // Go to idle even on error
+          setMode('idle');
         }
       }
     }
 
-    loadInstrument();
+    switchInstrument();
 
     return () => {
       isActive = false;
-      // Cleanup on unmount
-      if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
-        samplerRef.current.dispose();
-      }
     };
-  }, [currentInstrument, stopPlayback, toast]);
+  }, [currentInstrument, isReady, stopPlayback, toast]);
 
 
   const handleGenerate = async () => {
@@ -234,7 +265,7 @@ export default function ComposePage() {
     }
   }, [generatedNotes, mode, toast, stopPlayback]);
   
-  const isBusy = mode === 'generating' || mode === 'loadingInstrument';
+  const isBusy = !isReady || mode === 'generating' || mode === 'loadingInstrument';
   const InstrumentComponent = instrumentComponents[currentInstrument];
 
   const getCardDescription = () => {
@@ -242,6 +273,15 @@ export default function ComposePage() {
     if (generatedNotes.length > 0) return `Press play to hear the result.`;
     return 'Your generated melody will appear here.';
   };
+
+  if (!isReady) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] p-4 bg-background">
+            <Loader2 className="animate-spin h-12 w-12 text-primary" />
+            <p className="mt-4 text-muted-foreground">Warming up the Composer...</p>
+        </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -322,3 +362,5 @@ export default function ComposePage() {
     </div>
   );
 }
+
+    
