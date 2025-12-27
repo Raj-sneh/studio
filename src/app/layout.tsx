@@ -1,4 +1,3 @@
-import '@/lib/firebase'; // This runs your App Check activation code
 import { Poppins, Roboto } from 'next/font/google';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
