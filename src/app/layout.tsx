@@ -1,10 +1,11 @@
-import type { Metadata } from 'next';
+import '@/lib/firebase'; // This runs your App Check activation code
 import { Poppins, Roboto } from 'next/font/google';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 import { AppStateProvider } from '@/app/app-state-provider';
 import { cn } from '@/lib/utils';
+import type { Metadata } from 'next';
 
 const fontHeadline = Poppins({
   subsets: ['latin'],
