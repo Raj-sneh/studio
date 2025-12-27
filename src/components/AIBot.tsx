@@ -1,6 +1,10 @@
 
 'use client';
 
+// Add these at the very top with your other imports
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
+import { useFirebaseApp } from '@/firebase'; // Import your initialized Firebase app
+
 import { useEffect, useState, useRef } from 'react';
 import { Bot, Send, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,11 +24,28 @@ const GREETING_KEY = 'socio_ai_greeted';
 
 export function AIBot() {
   const { user } = useUser();
+  const firebaseApp = useFirebaseApp();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (firebaseApp) {
+      // IMPORTANT: Replace with your actual ReCaptcha Enterprise Site Key from the Firebase Console
+      const enterpriseSiteKey = '6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE';
+      try {
+        initializeAppCheck(firebaseApp, {
+          provider: new ReCaptchaEnterpriseProvider(enterpriseSiteKey),
+          isTokenAutoRefreshEnabled: true,
+        });
+        console.log("Firebase App Check initialized in AIBot.");
+      } catch (error) {
+        console.error("Firebase App Check initialization failed in AIBot:", error);
+      }
+    }
+  }, [firebaseApp]);
 
   useEffect(() => {
     const hasBeenGreeted = localStorage.getItem(GREETING_KEY);
