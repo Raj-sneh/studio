@@ -299,7 +299,7 @@ export default function LessonPage() {
   };
 
   const InstrumentComponent = instrumentComponents[lesson.instrument];
-    const isUIDisabled = mode !== 'idle' || !isInstrumentReady;
+  const isUIDisabled = mode !== 'idle' || !isInstrumentReady;
   
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
