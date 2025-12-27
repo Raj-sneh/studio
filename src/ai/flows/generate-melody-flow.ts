@@ -55,6 +55,23 @@ const generateMelodyFlow = ai.defineFlow(
         3.  **NOTE FORMAT:** Each note object must have 'key', 'duration', and 'time'. Use scientific pitch notation for 'key' (e.g., C4) and Tone.js format for 'duration' ('8n') and 'time' ('0:0:2').
         4.  **LENGTH:** The melody MUST be between 8 and 16 notes long.
         5.  **FAILURE CASE:** If you cannot recognize the song or fulfill the request for any reason, you MUST return a JSON object with an empty "notes" array: \`{"notes": []}\`. Do not explain why.
+        6.  **EXAMPLE:** If the user asks for "Twinkle Twinkle Little Star", you should generate these exact notes:
+            [
+              { "key": "C4", "duration": "4n", "time": "0:0:0" },
+              { "key": "C4", "duration": "4n", "time": "0:1:0" },
+              { "key": "G4", "duration": "4n", "time": "0:2:0" },
+              { "key": "G4", "duration": "4n", "time": "0:3:0" },
+              { "key": "A4", "duration": "4n", "time": "1:0:0" },
+              { "key": "A4", "duration": "4n", "time": "1:1:0" },
+              { "key": "G4", "duration": "2n", "time": "1:2:0" },
+              { "key": "F4", "duration": "4n", "time": "2:0:0" },
+              { "key": "F4", "duration": "4n", "time": "2:1:0" },
+              { "key": "E4", "duration": "4n", "time": "2:2:0" },
+              { "key": "E4", "duration": "4n", "time": "2:3:0" },
+              { "key": "D4", "duration": "4n", "time": "3:0:0" },
+              { "key": "D4", "duration": "4n", "time": "3:1:0" },
+              { "key": "C4", "duration": "2n", "time": "3:2:0" }
+            ]
       
         User prompt: ${input.prompt}
         `,
