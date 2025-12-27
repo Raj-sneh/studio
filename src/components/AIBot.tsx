@@ -21,32 +21,30 @@ export function AIBot() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // REVEAL DEBUG TOKEN IN THE UI
   useEffect(() => {
-    // This effect should only run once, so the dependency array is empty.
-    // It's safe because `app` is a stable module import.
     if (typeof window !== 'undefined') {
+      // 1. Activate Debug Mode
+      // @ts-ignore
+      self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  
+      // 2. FORCE AN ALERT BOX WITH THE TOKEN
+      const originalLog = console.log;
+      console.log = function(...args) {
+        if (args[0] && typeof args[0] === 'string' && args[0].includes('AppCheck debug token')) {
+          alert("COPY THIS TOKEN: " + args[0]); // This forces a popup!
+        }
+        originalLog.apply(console, args);
+      };
+  
       try {
-        setMessages([{ role: 'model', content: 'Revealing Debug Token...' }]);
-        // This line makes the secret token show up in your Web Console
-        // and now, also in the chat UI.
-        // @ts-ignore
-        self.FIREBASE_APPCHECK_DEBUG_TOKEN = (token) => {
-           setMessages((prev) => [...prev, { role: 'model', content: `Debug Token: ${token}` }]);
-        };
-        console.log("Checking for debug token...");
-
         initializeAppCheck(app, {
           provider: new ReCaptchaEnterpriseProvider('6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'),
           isTokenAutoRefreshEnabled: true,
         });
-        console.log("✅ App Check Security initialized successfully.");
       } catch (err) {
-        console.warn("App Check already active or failed to load.");
-        setMessages((prev) => [...prev, { role: 'model', content: 'App Check already active or failed to load. Check console for details.' }]);
+        console.warn("App Check active.");
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSend = async () => {
