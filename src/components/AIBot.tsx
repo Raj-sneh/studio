@@ -21,14 +21,17 @@ export function AIBot() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // INITIALIZE APP CHECK & REVEAL DEBUG TOKEN
+  // REVEAL DEBUG TOKEN IN THE UI
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
+        setMessages([{ role: 'model', content: 'Revealing Debug Token...' }]);
         // This line makes the secret token show up in your Web Console
         // @ts-ignore
-        self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-        console.log("DEBUG_MODE_ACTIVE");
+        self.FIREBASE_APPCHECK_DEBUG_TOKEN = (token) => {
+           setMessages((prev) => [...prev, { role: 'model', content: `Debug Token: ${token}` }]);
+        };
+        console.log("Checking for debug token...");
 
         initializeAppCheck(app, {
           provider: new ReCaptchaEnterpriseProvider('6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'),
@@ -37,6 +40,7 @@ export function AIBot() {
         console.log("✅ App Check Security initialized successfully.");
       } catch (err) {
         console.warn("App Check already active or failed to load.");
+        setMessages((prev) => [...prev, { role: 'model', content: 'App Check already active or failed to load.' }]);
       }
     }
   }, []);
@@ -82,7 +86,7 @@ export function AIBot() {
           <div className="space-y-4">
             {messages.map((m, i) => (
               <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-                <div className={cn('p-3 rounded-lg max-w-[80%] text-sm', m.role === 'user' ? 'bg-primary text-white' : 'bg-muted')}>
+                <div className={cn('p-3 rounded-lg max-w-[80%] text-sm break-words', m.role === 'user' ? 'bg-primary text-white' : 'bg-muted')}>
                   {m.content}
                 </div>
               </div>
