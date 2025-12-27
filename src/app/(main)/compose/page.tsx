@@ -33,27 +33,31 @@ export default function ComposePage() {
   const [isInstrumentReady, setIsInstrumentReady] = useState(false);
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
-  const noteTimeoutIds = useRef<NodeJS.Timeout[]>([]);
+  const partRef = useRef<Tone.Part | null>(null);
 
   useEffect(() => {
+    let active = true;
     const loadAudio = async () => {
-      if (isInstrumentReady) return;
       setIsInstrumentReady(false);
       await Tone.start();
-      samplerRef.current = await getSampler('piano');
-      await allSamplersLoaded();
-      setIsInstrumentReady(true);
+      getSampler('piano').then(sampler => {
+        if (active) {
+            samplerRef.current = sampler;
+            setIsInstrumentReady(true);
+        }
+      });
     };
     loadAudio();
 
     return () => {
-      noteTimeoutIds.current.forEach(clearTimeout);
+      active = false;
+      partRef.current?.dispose();
       if (Tone.Transport.state === 'started') {
         Tone.Transport.stop();
+        Tone.Transport.cancel();
       }
-      Tone.Transport.cancel();
     };
-  }, []); // Empty dependency array ensures this runs only once
+  }, []);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -98,14 +102,12 @@ export default function ComposePage() {
     if (!samplerRef.current || generatedNotes.length === 0 || samplerRef.current.disposed) return;
     setMode('playing');
 
-    noteTimeoutIds.current.forEach(clearTimeout);
-    noteTimeoutIds.current = [];
-    setHighlightedKeys([]);
-    
     if (Tone.Transport.state === 'started') {
         Tone.Transport.stop();
         Tone.Transport.cancel();
     }
+    partRef.current?.dispose();
+    setHighlightedKeys([]);
     
     const sampler = samplerRef.current;
     
@@ -115,10 +117,11 @@ export default function ComposePage() {
         duration: note.duration,
     }));
     
-    const part = new Tone.Part((time, event) => {
+    partRef.current = new Tone.Part((time, event) => {
         if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
           sampler.triggerAttackRelease(event.note, event.duration, time);
         }
+        // Schedule visual feedback with Tone.Draw
         Tone.Draw.schedule(() => {
             setHighlightedKeys(current => [...current, event.note]);
         }, time);
@@ -135,23 +138,21 @@ export default function ComposePage() {
     
     Tone.Transport.start();
 
-    const timeoutId = setTimeout(() => {
+    // Schedule the state change at the end of the transport
+    Tone.Transport.scheduleOnce(() => {
         setMode('idle');
-        part.dispose();
-    }, totalDuration * 1000 + 500);
-
-    noteTimeoutIds.current.push(timeoutId);
+        setHighlightedKeys([]);
+    }, `+${totalDuration + 0.5}`);
     
   }, [generatedNotes]);
 
   const stopPlayback = () => {
-    noteTimeoutIds.current.forEach(clearTimeout);
-    noteTimeoutIds.current = [];
     setHighlightedKeys([]);
     if (Tone.Transport.state === 'started') {
         Tone.Transport.stop();
         Tone.Transport.cancel();
     }
+    partRef.current?.dispose();
     if(samplerRef.current && 'releaseAll' in samplerRef.current) {
         samplerRef.current.releaseAll();
     }
