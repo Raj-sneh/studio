@@ -38,6 +38,7 @@ export default function ComposePage() {
 
   useEffect(() => {
     const loadAudio = async () => {
+      if (isInstrumentReady) return;
       setIsInstrumentReady(false);
       await Tone.start();
       samplerRef.current = await getSampler('piano');
@@ -53,7 +54,7 @@ export default function ComposePage() {
       }
       Tone.Transport.cancel();
     };
-  }, []);
+  }, [isInstrumentReady]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
