@@ -69,7 +69,7 @@ export function AIBot() {
 
   if (!isOpen) {
     return (
-      <Button onClick={() => setIsOpen(true)} className="fixed bottom-4 right-4 rounded-full w-16 h-16 shadow-lg">
+      <Button onClick={() => setIsOpen(true)} className="fixed bottom-4 right-4 rounded-full w-16 h-16 shadow-lg z-50">
         <Bot className="h-8 w-8" />
       </Button>
     );
