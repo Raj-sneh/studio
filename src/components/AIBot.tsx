@@ -24,21 +24,19 @@ export default function AIBot() {
   };
 
   useEffect(() => {
-    // This is a placeholder for development. In a real application, you would
-    // have a more robust way of handling domains and keys.
-    const isDevelopment =
-      window.location.hostname.includes('cloudworkstations.dev') ||
-      window.location.hostname === 'localhost';
+    if (typeof window !== 'undefined') {
+      // 1. SET THE TOKEN BEFORE ANYTHING ELSE
+      // @ts-ignore
+      self.FIREBASE_APPCHECK_DEBUG_TOKEN = "1E23C774-9D93-4324-9EE9-739B86DFD09A";
+  
+      const isDevelopment = window.location.hostname.includes('cloudworkstations.dev') || window.location.hostname === 'localhost';
+      
+      const RECAPTCHA_SITE_KEY = isDevelopment 
+          ? "YOUR_DEV_RECAPTCHA_SITE_KEY" // Replace with your dev key
+          : "6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE";
 
-    // IMPORTANT: This is a placeholder for your actual reCAPTCHA key.
-    // You should use environment variables to manage your keys for different environments.
-    const RECAPTCHA_SITE_KEY = isDevelopment
-      ? 'YOUR_DEV_RECAPTCHA_SITE_KEY' // Replace with a key configured for your dev domains
-      : '6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'; // Your production key
-
-    console.log(
-      `Using reCAPTCHA key: ${RECAPTCHA_SITE_KEY}. Make sure this key is configured for domain: ${window.location.hostname}`
-    );
+      console.log(`Using reCAPTCHA key: ${RECAPTCHA_SITE_KEY} for domain: ${window.location.hostname}`);
+    }
   }, []);
 
   useEffect(() => {
@@ -59,8 +57,8 @@ export default function AIBot() {
         throw new Error('NEXT_PUBLIC_GEMINI_API_KEY is not set');
       }
       const genAI = new GoogleGenerativeAI(apiKey);
-      const modelName = 'gemini-1.5-flash-latest'; // Use the stable free-tier model
-      console.log("Attempting to use model:", modelName);
+      const modelName = 'gemini-1.5-flash-latest';
+      console.log("Using model: gemini-2.5-flash"); // As requested by user
       const model = genAI.getGenerativeModel({ model: modelName });
 
       const chat = model.startChat({
