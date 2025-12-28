@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { chat } from '@/ai/flows/conversational-flow';
 import { cn } from '@/lib/utils';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
-import { app } from '@/lib/firebase';
+import { app } from '../lib/firebase';
 
 export function AIBot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -20,14 +20,20 @@ export function AIBot() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // 1. SET THE TOKEN BEFORE ANYTHING ELSE
       // @ts-ignore
       self.FIREBASE_APPCHECK_DEBUG_TOKEN = "1E23C774-9D93-4324-9EE9-739B86DFD09A";
-  
+      
+      const isDevelopment = window.location.hostname.includes('cloudworkstations.dev') || window.location.hostname === 'localhost';
+
+      // IMPORTANT: Replace this with a key configured for your development domains.
+      // You can create a new key in the Google Cloud Console for reCAPTCHA Enterprise.
+      const RECAPTCHA_SITE_KEY = isDevelopment 
+        ? "6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE" // Using the same key, but ensure your dev domain is allowed.
+        : "YOUR_PRODUCTION_RECAPTCHA_SITE_KEY"; // Placeholder for production key
+
       try {
-        // 2. Initialize App Check
         initializeAppCheck(app, {
-          provider: new ReCaptchaEnterpriseProvider('6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'),
+          provider: new ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY),
           isTokenAutoRefreshEnabled: true,
         });
         console.log("✅ Security Handshake Ready");
@@ -47,12 +53,10 @@ export function AIBot() {
     setInput('');
 
     try {
-      // The AI flow needs a valid token to proceed
       const result = await chat({ history: [...messages, userMsg] });
       setMessages((prev) => [...prev, { role: 'model', content: result.response }]);
     } catch (error) {
       console.error('AI chat failed:', error);
-      // If it fails, it's usually because the token wasn't sent
       setMessages((prev) => [...prev, { role: 'model', content: 'Security handshake in progress... please try one more time in 5 seconds.' }]);
     } finally {
       setIsLoading(false);
