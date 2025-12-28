@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bot, Send, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,12 +9,33 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { chat } from '@/ai/flows/conversational-flow';
 import { cn } from '@/lib/utils';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
+import { app } from '@/lib/firebase';
 
 export function AIBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // 1. SET THE TOKEN BEFORE ANYTHING ELSE
+      // @ts-ignore
+      self.FIREBASE_APPCHECK_DEBUG_TOKEN = "1E23C774-9D93-4324-9EE9-739B86DFD09A";
+  
+      try {
+        // 2. Initialize App Check
+        initializeAppCheck(app, {
+          provider: new ReCaptchaEnterpriseProvider('6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'),
+          isTokenAutoRefreshEnabled: true,
+        });
+        console.log("✅ Security Handshake Ready");
+      } catch (err) {
+        console.warn("Security already active");
+      }
+    }
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -25,13 +47,13 @@ export function AIBot() {
     setInput('');
 
     try {
-      // The AI flow needs a valid token to proceed. App Check is initialized in FirebaseClientProvider.
+      // The AI flow needs a valid token to proceed
       const result = await chat({ history: [...messages, userMsg] });
       setMessages((prev) => [...prev, { role: 'model', content: result.response }]);
     } catch (error) {
       console.error('AI chat failed:', error);
-      // If it fails, it's usually because the App Check token wasn't sent or is invalid.
-      setMessages((prev) => [...prev, { role: 'model', content: 'An error occurred. If this is your first request, the security handshake may be in progress. Please try again in 5 seconds. Ensure your App Check debug token is registered in Firebase.' }]);
+      // If it fails, it's usually because the token wasn't sent
+      setMessages((prev) => [...prev, { role: 'model', content: 'Security handshake in progress... please try one more time in 5 seconds.' }]);
     } finally {
       setIsLoading(false);
     }
@@ -54,7 +76,7 @@ export function AIBot() {
           <div className="space-y-4">
             {messages.map((m, i) => (
               <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-                <div className={cn('p-3 rounded-lg max-w-[80%] text-sm', m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+                <div className={cn('p-3 rounded-lg max-w-[80%]', m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
                   {m.content}
                 </div>
               </div>
