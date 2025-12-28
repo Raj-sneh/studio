@@ -37,6 +37,7 @@ export default function DashboardPage() {
                   width={400}
                   height={200}
                   className="rounded-md object-cover w-full h-48"
+                  priority
                 />
               }
             </CardContent>

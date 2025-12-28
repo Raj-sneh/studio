@@ -70,7 +70,7 @@ export const LESSONS: Lesson[] = [
         { key: 'D4', time: '1:3:0', duration: '4n' },
         { key: 'C4', time: '2:0:0', duration: '4n' },
         { key: 'G4', time: '2:1:0', duration: '4n' },
-        { key_is: 'F4', key: 'F4', time: '2:2:0', duration: '2n' },
+        { key: 'F4', time: '2:2:0', duration: '2n' },
         { key: 'C4', time: '3:0:0', duration: '8n' },
         { key: 'C4', time: '3:0:2', duration: '4n' },
         { key: 'C5', time: '3:1:0', duration: '4n' },

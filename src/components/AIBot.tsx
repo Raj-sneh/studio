@@ -24,7 +24,21 @@ export default function AIBot() {
   };
 
   useEffect(() => {
-    console.log('✅ Socio AI Active');
+    // This is a placeholder for development. In a real application, you would
+    // have a more robust way of handling domains and keys.
+    const isDevelopment =
+      window.location.hostname.includes('cloudworkstations.dev') ||
+      window.location.hostname === 'localhost';
+
+    // IMPORTANT: This is a placeholder for your actual reCAPTCHA key.
+    // You should use environment variables to manage your keys for different environments.
+    const RECAPTCHA_SITE_KEY = isDevelopment
+      ? 'YOUR_DEV_RECAPTCHA_SITE_KEY' // Replace with a key configured for your dev domains
+      : '6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'; // Your production key
+
+    console.log(
+      `Using reCAPTCHA key: ${RECAPTCHA_SITE_KEY}. Make sure this key is configured for domain: ${window.location.hostname}`
+    );
   }, []);
 
   useEffect(() => {
@@ -45,8 +59,8 @@ export default function AIBot() {
         throw new Error('NEXT_PUBLIC_GEMINI_API_KEY is not set');
       }
       const genAI = new GoogleGenerativeAI(apiKey);
-      const modelName = 'gemini-1.5-flash';
-      console.log("Model set to:", modelName);
+      const modelName = 'gemini-1.5-flash-latest'; // Use the stable free-tier model
+      console.log("Attempting to use model:", modelName);
       const model = genAI.getGenerativeModel({ model: modelName });
 
       const chat = model.startChat({
@@ -62,8 +76,8 @@ export default function AIBot() {
 
       setMessages((prev) => [...prev, { role: 'model', content: text }]);
     } catch (error) {
-      console.error('AI chat failed:', error);
-      setMessages((prev) => [...prev, { role: 'model', content: 'An error occurred. Please check the console for details.' }]);
+      console.error('AI chat failed. Full error details:', error);
+      setMessages((prev) => [...prev, { role: 'model', content: 'An error occurred. Please check the browser console for details.' }]);
     } finally {
       setIsLoading(false);
     }
