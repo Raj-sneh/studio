@@ -44,6 +44,7 @@ const analyzePerformancePrompt = ai.definePrompt({
   name: 'analyzePerformancePrompt',
   input: { schema: AnalyzePerformanceInputSchema },
   output: { schema: AnalyzePerformanceOutputSchema },
+  model: 'googleai/gemini-1.5-flash-latest',
 
   prompt: `You are an AI music teacher. Your goal is to provide encouraging and helpful feedback to a student learning a song.
 
