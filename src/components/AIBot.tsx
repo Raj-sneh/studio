@@ -9,8 +9,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { chat } from '@/ai/flows/conversational-flow';
 import { cn } from '@/lib/utils';
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
-// Import the app instance from your firebase file
-import { app } from '@/lib/firebase';
+// This relative path fixes the 'module not found' error
+import { app } from '../lib/firebase';
 
 export function AIBot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,30 +19,30 @@ export function AIBot() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-  if (typeof window !== 'undefined') {
-    // 1. Activate Debug Mode
-    // @ts-ignore
-    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-
-    // 2. FORCE AN ALERT BOX WITH THE TOKEN
-    const originalLog = console.log;
-    console.log = function(...args) {
-      if (args[0] && typeof args[0] === 'string' && args[0].includes('AppCheck debug token')) {
-        alert("COPY THIS TOKEN: " + args[0]); // This forces a popup!
+    if (typeof window !== 'undefined') {
+      // 1. Activate Debug Mode
+      // @ts-ignore
+      self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  
+      // 2. FORCE AN ALERT BOX WITH THE TOKEN
+      const originalLog = console.log;
+      console.log = function(...args) {
+        if (args[0] && typeof args[0] === 'string' && args[0].includes('AppCheck debug token')) {
+          alert("COPY THIS TOKEN: " + args[0]); // This forces a popup!
+        }
+        originalLog.apply(console, args);
+      };
+  
+      try {
+        initializeAppCheck(app, {
+          provider: new ReCaptchaEnterpriseProvider('6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'),
+          isTokenAutoRefreshEnabled: true,
+        });
+      } catch (err) {
+        console.warn("App Check active.");
       }
-      originalLog.apply(console, args);
-    };
-
-    try {
-      initializeAppCheck(app, {
-        provider: new ReCaptchaEnterpriseProvider('6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'),
-        isTokenAutoRefreshEnabled: true,
-      });
-    } catch (err) {
-      console.warn("App Check active.");
     }
-  }
-}, []);
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -74,17 +74,17 @@ export function AIBot() {
   );
 
   return (
-    <Card className="fixed bottom-4 right-4 w-80 h-[28rem] shadow-2xl flex flex-col z-50 text-black">
-      <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-white">
+    <Card className="fixed bottom-4 right-4 w-80 h-[28rem] shadow-2xl flex flex-col z-50">
+      <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-card">
         <CardTitle className="text-lg flex items-center gap-2"><Bot className="h-6 w-6 text-primary" />Socio AI</CardTitle>
         <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}><X className="h-4 w-4" /></Button>
       </CardHeader>
-      <CardContent className="p-0 flex-1 bg-white">
+      <CardContent className="p-0 flex-1 bg-card">
         <ScrollArea className="h-full p-4">
           <div className="space-y-4">
             {messages.map((m, i) => (
               <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
-                <div className={cn('p-3 rounded-lg max-w-[80%] text-sm', m.role === 'user' ? 'bg-primary text-white' : 'bg-muted')}>
+                <div className={cn('p-3 rounded-lg max-w-[80%] text-sm', m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
                   {m.content}
                 </div>
               </div>
@@ -93,7 +93,7 @@ export function AIBot() {
           </div>
         </ScrollArea>
       </CardContent>
-      <CardFooter className="p-2 border-t bg-white">
+      <CardFooter className="p-2 border-t bg-card">
         <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex w-full items-center gap-2">
           <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask Socio AI..." disabled={isLoading} />
           <Button type="submit" size="icon" disabled={isLoading}><Send className="h-4 w-4" /></Button>
