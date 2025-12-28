@@ -17,6 +17,22 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
 
   useEffect(() => {
     if (typeof window !== 'undefined' && firebaseServices.firebaseApp) {
+      
+      // FOR DEBUGGING ON LOCALHOST:
+      // 1. Activate Debug Mode for App Check
+      // @ts-ignore
+      self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      console.log("App Check debug mode activated.");
+
+      // 2. Intercept console logs to find and alert the debug token.
+      const originalLog = console.log;
+      console.log = function(...args) {
+        if (args[0] && typeof args[0] === 'string' && args[0].includes('AppCheck debug token')) {
+          alert("COPY THIS TOKEN (then add to Firebase Console > App Check): " + args[0]);
+        }
+        originalLog.apply(console, args);
+      };
+
       // IMPORTANT: Replace with your actual ReCaptcha Enterprise Site Key
       const enterpriseSiteKey = '6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE';
       
@@ -27,7 +43,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
         });
         console.log("Firebase App Check initialized successfully.");
       } catch (error) {
-        console.error("Firebase App Check initialization failed:", error);
+        console.warn("Firebase App Check may have already been initialized.", error);
       }
     }
   }, [firebaseServices.firebaseApp]);

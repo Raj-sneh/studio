@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Bot, Send, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,9 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { chat } from '@/ai/flows/conversational-flow';
 import { cn } from '@/lib/utils';
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
-// This relative path fixes the 'module not found' error
-import { app } from '../lib/firebase';
 
 export function AIBot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,36 +15,9 @@ export function AIBot() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // 1. Activate Debug Mode
-      // @ts-ignore
-      self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-  
-      // 2. FORCE AN ALERT BOX WITH THE TOKEN
-      const originalLog = console.log;
-      console.log = function(...args) {
-        if (args[0] && typeof args[0] === 'string' && args[0].includes('AppCheck debug token')) {
-          alert("COPY THIS TOKEN: " + args[0]); // This forces a popup!
-        }
-        originalLog.apply(console, args);
-      };
-  
-      try {
-        initializeAppCheck(app, {
-          provider: new ReCaptchaEnterpriseProvider('6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'),
-          isTokenAutoRefreshEnabled: true,
-        });
-      } catch (err) {
-        console.warn("App Check active.");
-      }
-    }
-  }, []);
-
   const handleSend = async () => {
     if (!input.trim()) return;
     
-    // ADD THIS: If security isn't ready, wait a second
     setIsLoading(true);
 
     const userMsg = { role: 'user', content: input };
@@ -55,13 +25,13 @@ export function AIBot() {
     setInput('');
 
     try {
-      // The AI flow needs a valid token to proceed
+      // The AI flow needs a valid token to proceed. App Check is initialized in FirebaseClientProvider.
       const result = await chat({ history: [...messages, userMsg] });
       setMessages((prev) => [...prev, { role: 'model', content: result.response }]);
     } catch (error) {
       console.error('AI chat failed:', error);
-      // If it fails, it's usually because the token wasn't sent
-      setMessages((prev) => [...prev, { role: 'model', content: 'Security handshake in progress... please try one more time in 5 seconds.' }]);
+      // If it fails, it's usually because the App Check token wasn't sent or is invalid.
+      setMessages((prev) => [...prev, { role: 'model', content: 'An error occurred. If this is your first request, the security handshake may be in progress. Please try again in 5 seconds. Ensure your App Check debug token is registered in Firebase.' }]);
     } finally {
       setIsLoading(false);
     }
