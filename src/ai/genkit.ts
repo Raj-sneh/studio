@@ -3,7 +3,7 @@ import {googleAI} from '@genkit-ai/google-genai';
 import {firebaseConfig} from '@/firebase/config';
 
 export const ai = genkit({
-  plugins: [googleAI({ apiVersion: 'v1beta' })],
-  model: 'gemini-2.0-flash',
+  plugins: [googleAI({ apiVersion: 'v1' })],
+  model: 'gemini-1.5-flash-latest',
   projectId: firebaseConfig.projectId,
 });

@@ -5,7 +5,9 @@ import { Bot, X, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { chat } from '@/ai/flows/conversational-flow';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
+import { app } from '../lib/firebase';
 
 export type Message = {
   role: 'user' | 'model';
@@ -25,17 +27,15 @@ export default function AIBot() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // 1. SET THE TOKEN BEFORE ANYTHING ELSE
-      // @ts-ignore
-      self.FIREBASE_APPCHECK_DEBUG_TOKEN = "1E23C774-9D93-4324-9EE9-739B86DFD09A";
-  
-      const isDevelopment = window.location.hostname.includes('cloudworkstations.dev') || window.location.hostname === 'localhost';
-      
-      const RECAPTCHA_SITE_KEY = isDevelopment 
-          ? "YOUR_DEV_RECAPTCHA_SITE_KEY" // Replace with your dev key
-          : "6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE";
-
-      console.log(`Using reCAPTCHA key: ${RECAPTCHA_SITE_KEY} for domain: ${window.location.hostname}`);
+      try {
+        initializeAppCheck(app, {
+          provider: new ReCaptchaEnterpriseProvider('6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'),
+          isTokenAutoRefreshEnabled: true,
+        });
+        console.log("✅ App Check Initialized");
+      } catch (err) {
+        console.warn("App Check already initialized or failed.");
+      }
     }
   }, []);
 
@@ -45,37 +45,21 @@ export default function AIBot() {
 
   const handleSend = async () => {
     if (!input.trim()) return;
+    
+    setIsLoading(true);
 
     const userMsg: Message = { role: 'user', content: input };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
-    setIsLoading(true);
 
     try {
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      if (!apiKey) {
-        throw new Error('NEXT_PUBLIC_GEMINI_API_KEY is not set');
-      }
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const modelName = 'gemini-1.5-flash-latest';
-      console.log("Using model: gemini-2.5-flash"); // As requested by user
-      const model = genAI.getGenerativeModel({ model: modelName });
-
-      const chat = model.startChat({
-        history: messages.map(msg => ({
-          role: msg.role,
-          parts: [{ text: msg.content }],
-        })),
-      });
-
-      const result = await chat.sendMessage(input);
-      const response = await result.response;
-      const text = response.text();
-
-      setMessages((prev) => [...prev, { role: 'model', content: text }]);
+      // The AI flow needs a valid token to proceed
+      const result = await chat({ history: [...messages, userMsg] });
+      setMessages((prev) => [...prev, { role: 'model', content: result.response }]);
     } catch (error) {
-      console.error('AI chat failed. Full error details:', error);
-      setMessages((prev) => [...prev, { role: 'model', content: 'An error occurred. Please check the browser console for details.' }]);
+      console.error('AI chat failed:', error);
+      // If it fails, it's usually because the token wasn't sent
+      setMessages((prev) => [...prev, { role: 'model', content: 'Security handshake in progress... please try one more time in 5 seconds.' }]);
     } finally {
       setIsLoading(false);
     }
