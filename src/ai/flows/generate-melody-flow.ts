@@ -1,3 +1,4 @@
+
 'use server';
 
 import {ai} from '@/ai/genkit';
@@ -39,7 +40,7 @@ const generateMelodyPrompt = ai.definePrompt({
   - 'duration' is the length (e.g., '4n' for a quarter note, '8n' for an eighth note).
   - 'time' is the start time in 'bar:quarter:sixteenth' format (e.g., '0:2:0').
 
-  IMPORTANT: If you cannot recognize the song or fulfill the request, return an empty "notes" array.
+  IMPORTANT: If you cannot recognize the song or fulfill the request, you must return an empty "notes" array.
       
   User prompt: "{{prompt}}"`,
 });
@@ -49,7 +50,6 @@ const generateMelodyFlow = ai.defineFlow(
     name: 'generateMelodyFlow',
     inputSchema: GenerateMelodyInputSchema,
     outputSchema: GenerateMelodyOutputSchema,
-    requireAppCheck: true,
   },
   async input => {
     try {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
@@ -86,7 +87,7 @@ export default function ComposePage() {
 
     try {
       const result = await generateMelody({ prompt });
-      if (result && result.notes && result.notes.length > 0) {
+      if (result && Array.isArray(result.notes) && result.notes.length > 0) {
         setGeneratedNotes(result.notes);
         toast({
             title: "Melody Generated!",
@@ -103,7 +104,7 @@ export default function ComposePage() {
       console.error('An error occurred during melody generation:', error);
       toast({
         title: 'Generation Failed',
-        description: error.message || 'An unknown error occurred. Please check the console (F12) for more details.',
+        description: error.message || 'An unknown error occurred. Please check the console for details.',
         variant: 'destructive',
       });
     } finally {
