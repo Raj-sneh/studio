@@ -26,18 +26,32 @@ export default function AIBot() {
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (isOpen && typeof window !== 'undefined') {
       try {
+        const isDevelopment = window.location.hostname === 'localhost';
+        
+        const siteKey = isDevelopment 
+          ? process.env.NEXT_PUBLIC_RECAPTCHA_DEV_SITE_KEY 
+          : process.env.NEXT_PUBLIC_RECAPTCHA_PROD_SITE_KEY;
+
+        if (!siteKey || siteKey.includes('PASTE_YOUR_DEV_RECAPTCHA_KEY_HERE')) {
+            if (isDevelopment) {
+                console.warn("⚠️ App Check: Development reCAPTCHA key is missing. Please add NEXT_PUBLIC_RECAPTCHA_DEV_SITE_KEY to your .env.local file.");
+            }
+            return;
+        }
+        
         initializeAppCheck(app, {
-          provider: new ReCaptchaEnterpriseProvider('6LdceDgsAAAAAG2u3dQNEXT6p7aUdIy1xgRoJmHE'),
+          provider: new ReCaptchaEnterpriseProvider(siteKey),
           isTokenAutoRefreshEnabled: true,
         });
         console.log("✅ App Check Initialized");
+
       } catch (err) {
-        console.warn("App Check already initialized or failed.");
+        console.warn("App Check already initialized or failed to initialize.");
       }
     }
-  }, []);
+  }, [isOpen]);
 
   useEffect(() => {
     scrollToBottom();
@@ -53,17 +67,13 @@ export default function AIBot() {
     setInput('');
 
     try {
-      // The AI flow needs a valid token to proceed
       const result = await chat({ 
-        history: [...messages, userMsg],
-        model: 'gemini-1.5-flash-latest'
+        history: [...messages, userMsg]
       });
-      console.log("SUCCESS: Using Gemini 1.5 Flash-Latest")
       setMessages((prev) => [...prev, { role: 'model', content: result.response }]);
     } catch (error) {
       console.error('AI chat failed:', error);
-      // If it fails, it's usually because the token wasn't sent
-      setMessages((prev) => [...prev, { role: 'model', content: 'Security handshake in progress... please try one more time in 5 seconds.' }]);
+      setMessages((prev) => [...prev, { role: 'model', content: 'Security handshake in progress. Please ensure you have configured your development reCAPTCHA key and try again in 5 seconds.' }]);
     } finally {
       setIsLoading(false);
     }
