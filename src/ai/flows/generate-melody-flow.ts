@@ -54,21 +54,15 @@ const generateMelodyFlow = ai.defineFlow(
   async input => {
     try {
       const { output } = await generateMelodyPrompt(input);
-
-      if (output) {
-        const validation = GenerateMelodyOutputSchema.safeParse(output);
-        if (validation.success) {
-          // Ensure we don't return an empty object if notes array is missing
-          if (validation.data.notes) {
-            return validation.data;
-          }
-        }
-        console.error("Melody generation returned invalid data:", validation.error);
+      // The definePrompt with an output schema will handle parsing and validation.
+      // If output exists and has notes, return it. Otherwise, return an empty array.
+      if (output?.notes) {
+        return output;
       }
       return { notes: [] };
-
     } catch (error) {
       console.error("Error during AI generation in generateMelodyFlow:", error);
+      // In case of any error during generation, return an empty array to prevent crashes.
       return { notes: [] };
     }
   }
