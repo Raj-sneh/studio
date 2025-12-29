@@ -1,16 +1,4 @@
-
 'use server';
-
-/**
- * @fileOverview This file defines the Genkit flow for generating a melody based on a user prompt.
- *
- * The AI is responsible for generating a structured array of Note objects.
- * This approach provides a more reliable and structured output compared to parsing a string.
- *
- * @interface GenerateMelodyInput - Defines the input schema for the generateMelody function.
- * @interface GenerateMelodyOutput - Defines the output schema for the generateMelody function.
- * @function generateMelody - The main exported function that triggers the flow.
- */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
@@ -38,38 +26,37 @@ export async function generateMelody(
   return generateMelodyFlow(input);
 }
 
+const generateMelodyPrompt = ai.definePrompt({
+  name: 'generateMelodyPrompt',
+  input: { schema: GenerateMelodyInputSchema },
+  output: { schema: GenerateMelodyOutputSchema },
+  prompt: `You are an expert composer. Your goal is to create a short melody of 8-16 notes based on the user's request.
+  
+  Analyze the user's prompt (which could be a famous song or a description) and create a melody. Return it as an array of Note objects.
+
+  IMPORTANT: If you cannot recognize the song or fulfill the request, return an empty "notes" array.
+      
+  User prompt: "{{prompt}}"`,
+});
+
 const generateMelodyFlow = ai.defineFlow(
   {
     name: 'generateMelodyFlow',
     inputSchema: GenerateMelodyInputSchema,
     outputSchema: GenerateMelodyOutputSchema,
+    requireAppCheck: true,
   },
   async input => {
     try {
-      const { output } = await ai.generate({
-        prompt: `You are an expert composer who ONLY responds in the requested JSON format. Your goal is to create a short melody based on the user's request.
+      const { output } = await generateMelodyPrompt(input);
 
-        **CRITICAL INSTRUCTIONS:**
-        1.  **JSON ONLY:** Your entire response MUST be the JSON object defined in the output schema. Do not include any other text, markdown, or explanations.
-        2.  **NOTE ARRAY:** Analyze the user's prompt (which could be a famous song or a description) and create a melody. Return it as an array of Note objects in the "notes" field.
-        3.  **NOTE FORMAT:** Each note object must have 'key', 'duration', and 'time'. Use scientific pitch notation for 'key' (e.g., C4) and Tone.js format for 'duration' (e.g., '8n') and 'time' (e.g., '0:0:2').
-        4.  **MELODY LENGTH:** The generated melody MUST be between 8 and 16 notes long.
-        5.  **FAILURE CASE:** If you cannot recognize the song or fulfill the request for any reason, you MUST return a JSON object with an empty "notes" array: \`{"notes": []}\`. Do not provide an explanation.
-      
-        User prompt: "${input.prompt}"
-        `,
-        output: {
-          schema: GenerateMelodyOutputSchema,
-        },
-      });
-
-      // Final validation to ensure the output is safe.
-      const validation = GenerateMelodyOutputSchema.safeParse(output);
-      if (validation.success) {
-        return validation.data;
+      if (output) {
+        const validation = GenerateMelodyOutputSchema.safeParse(output);
+        if (validation.success) {
+          return validation.data;
+        }
+        console.error("Melody generation returned invalid data:", validation.error);
       }
-      
-      console.error("Melody generation returned invalid data:", validation.error);
       return { notes: [] };
 
     } catch (error) {

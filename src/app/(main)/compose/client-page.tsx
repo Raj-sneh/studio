@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback, useRef, Suspense, lazy, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import * as Tone from 'tone';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,8 +12,6 @@ import type { Note } from '@/types';
 import { getSampler } from '@/lib/samplers';
 import { useToast } from '@/hooks/use-toast';
 
-const Piano = lazy(() => import('@/components/Piano'));
-
 function InstrumentLoader() {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center">
@@ -21,6 +20,11 @@ function InstrumentLoader() {
     </div>
   );
 }
+
+const Piano = dynamic(() => import('@/components/Piano'), {
+    ssr: false,
+    loading: () => <InstrumentLoader />
+});
 
 type Mode = 'idle' | 'generating' | 'playing';
 
@@ -35,15 +39,11 @@ export default function ComposePage() {
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
 
-  // This useEffect hook runs only once on mount to initialize the instrument.
-  // It is the correct and stable way to handle asynchronous setup.
   useEffect(() => {
     let active = true;
     const loadAudio = async () => {
-      // Set loading state for the UI
       setIsInstrumentReady(false);
       try {
-        // Start Tone.js context and get the piano sampler
         await Tone.start();
         const sampler = await getSampler('piano');
         if (active) {
@@ -64,14 +64,13 @@ export default function ComposePage() {
 
     return () => {
       active = false;
-      // Clean up Tone.js resources on unmount
       partRef.current?.dispose();
       if (Tone.Transport.state === 'started') {
         Tone.Transport.stop();
         Tone.Transport.cancel();
       }
     };
-  }, [toast]); // Dependency array includes toast to satisfy the linter, but it's stable.
+  }, [toast]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -112,14 +111,12 @@ export default function ComposePage() {
     }
   };
   
-  // This function uses Tone.Part for reliable scheduling, fixing the previous re-render bugs.
   const playMelody = useCallback(() => {
     if (!samplerRef.current || generatedNotes.length === 0 || samplerRef.current.disposed) {
       return;
     }
     setMode('playing');
     
-    // Ensure any previous playback is stopped and cleaned up
     if (Tone.Transport.state === 'started') {
         Tone.Transport.stop();
         Tone.Transport.cancel();
@@ -129,27 +126,21 @@ export default function ComposePage() {
     
     const sampler = samplerRef.current;
     
-    // Map the notes into a format that Tone.Part understands
     const noteEvents = generatedNotes.map(note => ({
         time: note.time,
         note: note.key,
         duration: note.duration,
     }));
     
-    // Create a new Tone.Part. This is the correct way to schedule a sequence of notes.
     partRef.current = new Tone.Part((time, event) => {
-      // Play the audio note
       if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
         sampler.triggerAttackRelease(event.note, event.duration, time);
       }
       
-      // Schedule the UI update (highlighting) to sync with the audio context time.
-      // This prevents React re-renders from interfering with audio.
       Tone.Draw.schedule(() => {
         setHighlightedKeys(current => [...current, event.note]);
       }, time);
 
-      // Schedule the key to be un-highlighted just before it ends
       const releaseTime = time + Tone.Time(event.duration).toSeconds() * 0.95;
       Tone.Draw.schedule(() => {
         setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== event.note));
@@ -157,7 +148,6 @@ export default function ComposePage() {
 
     }, noteEvents).start(0);
 
-    // Calculate the total duration of the melody to schedule the stop event
     const totalDuration = noteEvents.reduce((max, note) => {
         const endTime = Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds();
         return Math.max(max, endTime);
@@ -165,11 +155,10 @@ export default function ComposePage() {
     
     Tone.Transport.start();
 
-    // Schedule the UI to return to 'idle' state after the melody has finished playing.
     Tone.Transport.scheduleOnce(() => {
         setMode('idle');
         setHighlightedKeys([]);
-    }, totalDuration + 0.2); // Add a small buffer
+    }, totalDuration + 0.2);
     
   }, [generatedNotes]);
 
@@ -180,14 +169,12 @@ export default function ComposePage() {
         Tone.Transport.cancel();
     }
     partRef.current?.dispose();
-    // Ensure any "stuck" notes are released immediately
     if(samplerRef.current && 'releaseAll' in samplerRef.current) {
         samplerRef.current.releaseAll();
     }
     setMode("idle");
   };
   
-  // UI is ready only when the instrument is loaded and we are not in the middle of generating.
   const isUIReady = isInstrumentReady && mode !== 'generating';
 
   return (
@@ -247,15 +234,12 @@ export default function ComposePage() {
                     </Button>
                  )}
                  <div className="min-h-[200px] flex items-center justify-center">
-                    <Suspense fallback={<InstrumentLoader />}>
-                        <Piano highlightedKeys={highlightedKeys} disabled={true} />
-                    </Suspense>
+                    <Piano highlightedKeys={highlightedKeys} disabled={true} />
                 </div>
             </CardContent>
         </Card>
       )}
 
-      {/* Show a full-page loader only during the initial instrument setup */}
       {!isInstrumentReady && (
         <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50">
             <InstrumentLoader />

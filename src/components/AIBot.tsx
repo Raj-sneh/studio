@@ -54,7 +54,11 @@ export default function AIBot() {
 
     try {
       // The AI flow needs a valid token to proceed
-      const result = await chat({ history: [...messages, userMsg] });
+      const result = await chat({ 
+        history: [...messages, userMsg],
+        model: 'gemini-1.5-flash-latest'
+      });
+      console.log("SUCCESS: Using Gemini 1.5 Flash-Latest")
       setMessages((prev) => [...prev, { role: 'model', content: result.response }]);
     } catch (error) {
       console.error('AI chat failed:', error);

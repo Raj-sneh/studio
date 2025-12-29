@@ -37,9 +37,9 @@ const samplerUrls: Record<string, Record<string, string>> = {
 const baseUrlMap: Record<string, string> = {
     piano: 'https://tonejs.github.io/audio/salamander/',
     guitar: 'https://tonejs.github.io/audio/guitar-acoustic/',
-    flute: 'https://tonejs.github.io/audio/flute/',
-    saxophone: 'https://tonejs.github.io/audio/saxophone/',
-    violin: 'https://tonejs.github.io/audio/violin/',
+    flute: '/vsda/',
+    saxophone: '/vsda/',
+    violin: '/vsda/',
     xylophone: 'https://tonejs.github.io/audio/xylophone/',
     drums: 'https://tonejs.github.io/audio/drum-samples/CR78/'
 }
