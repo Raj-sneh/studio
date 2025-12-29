@@ -16,7 +16,7 @@ const NoteSchema = z.object({
 });
 
 const GenerateMelodyOutputSchema = z.object({
-  notes: z.array(NoteSchema).describe('An array of 8 to 16 musical note objects. If you cannot fulfill the request, you MUST return an empty array.'),
+  notes: z.array(NoteSchema).describe('An array of 8 to 16 musical note objects. If the user request is unclear, create a simple, pleasant melody.'),
 });
 export type GenerateMelodyOutput = z.infer<typeof GenerateMelodyOutputSchema>;
 
@@ -32,17 +32,16 @@ const generateMelodyPrompt = ai.definePrompt({
   input: { schema: GenerateMelodyInputSchema },
   output: { schema: GenerateMelodyOutputSchema },
   model: 'googleai/gemini-1.5-flash-latest',
-  prompt: `You are an expert composer. Your goal is to create a short melody of 8-16 notes based on the user's request.
-  
-  Analyze the user's prompt (which could be a famous song or a description) and create a melody. Return it as an array of Note objects.
-  Each note object must have a 'key', 'duration', and 'time' in Tone.js format.
-  - 'key' is the musical note (e.g., 'C4', 'F#5').
-  - 'duration' is the length (e.g., '4n' for a quarter note, '8n' for an eighth note).
-  - 'time' is the start time in 'bar:quarter:sixteenth' format (e.g., '0:2:0').
+  prompt: `You are an expert music composer. Your task is to generate a short melody of 8-16 notes based on the user's prompt.
 
-  IMPORTANT: If you cannot recognize the song or fulfill the request, you must return an empty "notes" array.
-      
-  User prompt: "{{prompt}}"`,
+The output must be a JSON object containing a 'notes' array. Each object in the array represents a musical note and must have three properties in Tone.js format:
+- 'key': The musical note and octave (e.g., 'C4', 'F#5').
+- 'duration': The length of the note (e.g., '4n' for a quarter note, '8n' for an eighth note).
+- 'time': The start time of the note in 'bar:quarter:sixteenth' format (e.g., '0:2:0').
+
+Analyze the user's prompt, which might describe a mood, style, or a famous song. Always do your best to create a melody that fits the request. If the prompt is vague or you don't recognize a song, create a simple, pleasant, and original melody.
+
+User prompt: "{{prompt}}"`,
 });
 
 const generateMelodyFlow = ai.defineFlow(
@@ -55,13 +54,14 @@ const generateMelodyFlow = ai.defineFlow(
     try {
       const { output } = await generateMelodyPrompt(input);
       // The definePrompt with an output schema will handle parsing and validation.
-      // If output exists and has notes, return it. Otherwise, return an empty array.
+      // If output exists and has notes, return it.
       if (output?.notes) {
         return output;
       }
+      // As a fallback, return an empty array if notes are missing.
       return { notes: [] };
     } catch (error) {
-      console.error("Error during AI generation in generateMelodyFlow:", error);
+      console.error("Error in generateMelodyFlow:", error);
       // In case of any error during generation, return an empty array to prevent crashes.
       return { notes: [] };
     }

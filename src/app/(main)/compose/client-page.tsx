@@ -87,6 +87,7 @@ export default function ComposePage() {
 
     try {
       const result = await generateMelody({ prompt });
+      console.log("AI Result:", result); // Diagnostic log
       if (result && Array.isArray(result.notes) && result.notes.length > 0) {
         setGeneratedNotes(result.notes);
         toast({
