@@ -30,9 +30,14 @@ const generateMelodyPrompt = ai.definePrompt({
   name: 'generateMelodyPrompt',
   input: { schema: GenerateMelodyInputSchema },
   output: { schema: GenerateMelodyOutputSchema },
+  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an expert composer. Your goal is to create a short melody of 8-16 notes based on the user's request.
   
   Analyze the user's prompt (which could be a famous song or a description) and create a melody. Return it as an array of Note objects.
+  Each note object must have a 'key', 'duration', and 'time' in Tone.js format.
+  - 'key' is the musical note (e.g., 'C4', 'F#5').
+  - 'duration' is the length (e.g., '4n' for a quarter note, '8n' for an eighth note).
+  - 'time' is the start time in 'bar:quarter:sixteenth' format (e.g., '0:2:0').
 
   IMPORTANT: If you cannot recognize the song or fulfill the request, return an empty "notes" array.
       
@@ -53,7 +58,10 @@ const generateMelodyFlow = ai.defineFlow(
       if (output) {
         const validation = GenerateMelodyOutputSchema.safeParse(output);
         if (validation.success) {
-          return validation.data;
+          // Ensure we don't return an empty object if notes array is missing
+          if (validation.data.notes) {
+            return validation.data;
+          }
         }
         console.error("Melody generation returned invalid data:", validation.error);
       }
