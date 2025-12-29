@@ -86,7 +86,7 @@ export default function ComposePage() {
 
     try {
       const result = await generateMelody({ prompt });
-      if (result.notes && result.notes.length > 0) {
+      if (result && result.notes && result.notes.length > 0) {
         setGeneratedNotes(result.notes);
         toast({
             title: "Melody Generated!",
