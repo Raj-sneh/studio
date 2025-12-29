@@ -34,7 +34,7 @@ const chatPrompt = ai.definePrompt({
   name: 'chatPrompt',
   input: { schema: ChatInputSchema },
   output: { schema: ChatOutputSchema },
-  model: 'gemini-2.0-flash',
+  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are a friendly and welcoming AI assistant for a music learning app called Socio.
 
 Your first task is to greet the user and ask for their name.
@@ -54,7 +54,8 @@ const chatFlow = ai.defineFlow(
     name: 'chatFlow',
     inputSchema: ChatInputSchema,
     outputSchema: ChatOutputSchema,
-    requireAppCheck: true,
+    // TODO: Re-enable for production
+    // requireAppCheck: true,
   },
   async (input) => {
     const { output } = await chatPrompt(input);

@@ -6,8 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { chat } from '@/ai/flows/conversational-flow';
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
-import { app } from '../lib/firebase';
 
 export type Message = {
   role: 'user' | 'model';
@@ -24,34 +22,6 @@ export default function AIBot() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
-  useEffect(() => {
-    if (isOpen && typeof window !== 'undefined') {
-      try {
-        const isDevelopment = window.location.hostname === 'localhost';
-        
-        const siteKey = isDevelopment 
-          ? process.env.NEXT_PUBLIC_RECAPTCHA_DEV_SITE_KEY 
-          : process.env.NEXT_PUBLIC_RECAPTCHA_PROD_SITE_KEY;
-
-        if (!siteKey || siteKey.includes('PASTE_YOUR_DEV_RECAPTCHA_KEY_HERE')) {
-            if (isDevelopment) {
-                console.warn("⚠️ App Check: Development reCAPTCHA key is missing. Please add NEXT_PUBLIC_RECAPTCHA_DEV_SITE_KEY to your .env.local file.");
-            }
-            return;
-        }
-        
-        initializeAppCheck(app, {
-          provider: new ReCaptchaEnterpriseProvider(siteKey),
-          isTokenAutoRefreshEnabled: true,
-        });
-        console.log("✅ App Check Initialized");
-
-      } catch (err) {
-        console.warn("App Check already initialized or failed to initialize.");
-      }
-    }
-  }, [isOpen]);
 
   useEffect(() => {
     scrollToBottom();

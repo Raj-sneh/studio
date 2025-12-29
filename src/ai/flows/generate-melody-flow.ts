@@ -32,14 +32,14 @@ const generateMelodyPrompt = ai.definePrompt({
   input: { schema: GenerateMelodyInputSchema },
   output: { schema: GenerateMelodyOutputSchema },
   model: 'googleai/gemini-1.5-flash-latest',
-  prompt: `You are an expert music composer. Your task is to generate a short melody of 8-16 notes based on the user's prompt.
+  prompt: `You are an expert music composer. Your task is to generate a short melody of 8-16 notes based on the user\'s prompt.
 
 The output must be a JSON object containing a 'notes' array. Each object in the array represents a musical note and must have three properties in Tone.js format:
 - 'key': The musical note and octave (e.g., 'C4', 'F#5').
 - 'duration': The length of the note (e.g., '4n' for a quarter note, '8n' for an eighth note).
 - 'time': The start time of the note in 'bar:quarter:sixteenth' format (e.g., '0:2:0').
 
-Analyze the user's prompt, which might describe a mood, style, or a famous song. Always do your best to create a melody that fits the request. If the prompt is vague or you don't recognize a song, create a simple, pleasant, and original melody.
+Analyze the user\'s prompt, which might describe a mood, style, or a famous song. Always do your best to create a melody that fits the request. If the prompt is vague or you don\'t recognize a song, create a simple, pleasant, and original melody.
 
 User prompt: "{{prompt}}"`,
 });
@@ -50,19 +50,33 @@ const generateMelodyFlow = ai.defineFlow(
     inputSchema: GenerateMelodyInputSchema,
     outputSchema: GenerateMelodyOutputSchema,
   },
-  async input => {
+  async (input) => {
     try {
-      const { output } = await generateMelodyPrompt(input);
-      // The definePrompt with an output schema will handle parsing and validation.
-      // If output exists and has notes, return it.
-      if (output?.notes) {
+      const result = await generateMelodyPrompt(input);
+
+      // Defensively check for the result and the output property.
+      if (!result || !result.output) {
+        console.warn(
+          'Melody generation returned no result or output. Returning empty notes.'
+        );
+        return { notes: [] };
+      }
+
+      const { output } = result;
+
+      // Defensively check if notes is an array.
+      if (output.notes && Array.isArray(output.notes)) {
         return output;
       }
-      // As a fallback, return an empty array if notes are missing.
+
+      // If notes are missing or not an array, return an empty array.
+      console.warn(
+        'Melody generation output is missing a `notes` array. Returning empty notes.'
+      );
       return { notes: [] };
     } catch (error) {
-      console.error("Error in generateMelodyFlow:", error);
-      // In case of any error during generation, return an empty array to prevent crashes.
+      console.error('Error in generateMelodyFlow:', error);
+      // In case of any other error, return empty notes to prevent crashes.
       return { notes: [] };
     }
   }

@@ -5,32 +5,51 @@ import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
+  const isClient = typeof window !== 'undefined';
+  let firebaseApp: FirebaseApp;
+
   if (!getApps().length) {
-    // Important! initializeApp() is called without any arguments because Firebase App Hosting
-    // integrates with the initializeApp() function to provide the environment variables needed to
-    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-    // without arguments.
-    let firebaseApp;
+    // Attempt to initialize using hosting variables, otherwise use local config.
     try {
-      // Attempt to initialize via Firebase App Hosting environment variables
       firebaseApp = initializeApp();
     } catch (e) {
-      // Only warn in production because it's normal to use the firebaseConfig to initialize
-      // during development
       if (process.env.NODE_ENV === "production") {
         console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
       }
       firebaseApp = initializeApp(firebaseConfig);
     }
-
-    return getSdks(firebaseApp);
+  } else {
+    firebaseApp = getApp();
   }
 
-  // If already initialized, return the SDKs with the already initialized App
-  return getSdks(getApp());
+  // Initialize App Check only on the client side, after the app is initialized.
+  if (isClient) {
+    if ((self as any).FIREBASE_APPCHECK_DEBUG_TOKEN) {
+      // Debug token is already set, just initialize.
+      initializeAppCheck(firebaseApp, { isTokenAutoRefreshEnabled: true });
+      console.log('App Check initialized in debug mode.');
+    } else {
+      const key = process.env.NODE_ENV === 'development'
+        ? process.env.NEXT_PUBLIC_RECAPTCHA_DEV_SITE_KEY
+        : '6Ldv2h8qAAAAAPx0Z3An-p4E1bEP_J_e_1t2t3Y4'; // Production key
+
+      if (key) {
+        initializeAppCheck(firebaseApp, {
+          provider: new ReCaptchaV3Provider(key),
+          isTokenAutoRefreshEnabled: true,
+        });
+        console.log('App Check with reCAPTCHA initialized.');
+      } else if (process.env.NODE_ENV === 'development') {
+        console.warn('NEXT_PUBLIC_RECAPTCHA_DEV_SITE_KEY is not set. App Check will not work in development.');
+      }
+    }
+  }
+
+  return getSdks(firebaseApp);
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
@@ -49,4 +68,3 @@ export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
-    

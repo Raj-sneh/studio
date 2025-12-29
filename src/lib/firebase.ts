@@ -1,15 +1,21 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import { firebaseConfig } from "@/firebase/config";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCBQfoKhWruhQs2Zb1wIcRBKNb7Fki4A74",
-  authDomain: "studio-4164192500-df01a.firebaseapp.com",
-  projectId: "studio-4164192500-df01a",
-  storageBucket: "studio-4164192500-df01a.appspot.com",
-  messagingSenderId: "1098670846663",
-  appId: "1:1098670846663:web:0f5e1f0e8f0a1e0d"
-};
-
-// Export 'app' so the AIBot can use it
+// Initialize Firebase app
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+
+if (typeof window !== 'undefined') {
+  // Set debug token for development environments
+  if (process.env.NEXT_PUBLIC_APP_CHECK_DEBUG_TOKEN) {
+    (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_APP_CHECK_DEBUG_TOKEN;
+  }
+
+  // Initialize App Check with the correct provider
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider('6Lcw_8cqAAAAABz3uVlD_M4D7J_n8W6G9-QYvE2'), // Replace with your actual Site Key
+    isTokenAutoRefreshEnabled: true
+  });
+}
 
 export default app;

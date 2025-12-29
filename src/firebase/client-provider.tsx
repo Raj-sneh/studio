@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useMemo, type ReactNode, useEffect } from 'react';
+import React, { useMemo, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
 
@@ -10,16 +10,12 @@ interface FirebaseClientProviderProps {
 }
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
+  // useMemo ensures Firebase is only initialized once per client session.
   const firebaseServices = useMemo(() => {
-    // Initialize Firebase on the client side, once per component mount.
     return initializeFirebase();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, []); // Empty dependency array is critical here.
 
-  useEffect(() => {
-    // This useEffect is now empty, as App Check initialization has been
-    // moved to AIBot.tsx to ensure it runs with the hardcoded debug token.
-  }, [firebaseServices.firebaseApp]);
-
+  // The FirebaseProvider now receives guaranteed-to-be-initialized services.
   return (
     <FirebaseProvider
       firebaseApp={firebaseServices.firebaseApp}
