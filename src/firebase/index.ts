@@ -12,41 +12,27 @@ export function initializeFirebase() {
   const isClient = typeof window !== 'undefined';
   let firebaseApp: FirebaseApp;
 
+  // Initialize Firebase App
   if (!getApps().length) {
-    // Attempt to initialize using hosting variables, otherwise use local config.
-    try {
-      firebaseApp = initializeApp();
-    } catch (e) {
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
-      firebaseApp = initializeApp(firebaseConfig);
-    }
+    firebaseApp = initializeApp(firebaseConfig);
   } else {
     firebaseApp = getApp();
   }
 
-  // Initialize App Check only on the client side, after the app is initialized.
+  // Initialize App Check on the client side
   if (isClient) {
-    if ((self as any).FIREBASE_APPCHECK_DEBUG_TOKEN) {
-      // Debug token is already set, just initialize.
-      initializeAppCheck(firebaseApp, { isTokenAutoRefreshEnabled: true });
-      console.log('App Check initialized in debug mode.');
-    } else {
-      const key = process.env.NODE_ENV === 'development'
-        ? process.env.NEXT_PUBLIC_RECAPTCHA_DEV_SITE_KEY
-        : '6Ldv2h8qAAAAAPx0Z3An-p4E1bEP_J_e_1t2t3Y4'; // Production key
-
-      if (key) {
-        initializeAppCheck(firebaseApp, {
-          provider: new ReCaptchaV3Provider(key),
-          isTokenAutoRefreshEnabled: true,
-        });
-        console.log('App Check with reCAPTCHA initialized.');
-      } else if (process.env.NODE_ENV === 'development') {
-        console.warn('NEXT_PUBLIC_RECAPTCHA_DEV_SITE_KEY is not set. App Check will not work in development.');
-      }
+    // This allows you to set a debug token in the browser console
+    // self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    if (process.env.NEXT_PUBLIC_APP_CHECK_DEBUG_TOKEN) {
+      (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_APP_CHECK_DEBUG_TOKEN;
     }
+
+    initializeAppCheck(firebaseApp, {
+      provider: new ReCaptchaV3Provider(
+        process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? '6Ldv2h8qAAAAAPx0Z3An-p4E1bEP_J_e_1t2t3Y4' // Fallback to a placeholder
+      ),
+      isTokenAutoRefreshEnabled: true,
+    });
   }
 
   return getSdks(firebaseApp);

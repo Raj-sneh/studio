@@ -10,12 +10,11 @@ interface FirebaseClientProviderProps {
 }
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-  // useMemo ensures Firebase is only initialized once per client session.
+  // initializeFirebase now handles App Check, so we just need to call it once.
   const firebaseServices = useMemo(() => {
     return initializeFirebase();
-  }, []); // Empty dependency array is critical here.
+  }, []); // Empty dependency array ensures this runs only once.
 
-  // The FirebaseProvider now receives guaranteed-to-be-initialized services.
   return (
     <FirebaseProvider
       firebaseApp={firebaseServices.firebaseApp}
