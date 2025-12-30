@@ -27,9 +27,14 @@ export function initializeFirebase() {
       (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_APP_CHECK_DEBUG_TOKEN;
     }
 
+    const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+    if (!recaptchaSiteKey) {
+        console.warn("NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set. App Check may not work correctly. Using a placeholder key.");
+    }
+
     initializeAppCheck(firebaseApp, {
       provider: new ReCaptchaV3Provider(
-        process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? '6Ldv2h8qAAAAAPx0Z3An-p4E1bEP_J_e_1t2t3Y4' // Fallback to a placeholder
+        recaptchaSiteKey || '6Le_88cqAAAAAP0g_9R1t4G5e23z1s2v5q7A6b3C' // A known placeholder
       ),
       isTokenAutoRefreshEnabled: true,
     });
