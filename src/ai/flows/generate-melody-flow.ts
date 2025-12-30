@@ -27,14 +27,18 @@ export async function generateMelody(
   return generateMelodyFlow(input);
 }
 
+// MODIFIED: Removed the output schema to prevent automatic JSON mode, which is causing the API error.
+// The prompt is updated to ensure it still returns valid JSON.
 const generateMelodyPrompt = ai.definePrompt({
   name: 'generateMelodyPrompt',
   input: { schema: GenerateMelodyInputSchema },
-  output: { schema: GenerateMelodyOutputSchema },
+  // output: { schema: GenerateMelodyOutputSchema }, // <--- REMOVED to prevent sending incompatible params
   model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are an expert music composer. Your task is to generate a short melody of 8-16 notes based on the user\'s prompt.
 
-The output must be a JSON object containing a 'notes' array. Each object in the array represents a musical note and must have three properties in Tone.js format:
+You MUST reply with ONLY a valid JSON object that conforms to the following structure. Do NOT wrap the JSON in markdown backticks or add any other explanatory text.
+
+The JSON object must contain a 'notes' array. Each object in the array represents a musical note and must have three properties in Tone.js format:
 - 'key': The musical note and octave (e.g., 'C4', 'F#5').
 - 'duration': The length of the note (e.g., '4n' for a quarter note, '8n' for an eighth note).
 - 'time': The start time of the note in 'bar:quarter:sixteenth' format (e.g., '0:2:0').
@@ -44,6 +48,7 @@ Analyze the user\'s prompt, which might describe a mood, style, or a famous song
 User prompt: "{{prompt}}"`,
 });
 
+// MODIFIED: This flow now manually parses the string output from the model.
 const generateMelodyFlow = ai.defineFlow(
   {
     name: 'generateMelodyFlow',
@@ -53,26 +58,24 @@ const generateMelodyFlow = ai.defineFlow(
   async (input) => {
     try {
       const result = await generateMelodyPrompt(input);
+      const llmOutput = result.output() as string;
 
-      // Defensively check for the result and the output property.
-      if (!result || !result.output) {
-        console.warn(
-          'Melody generation returned no result or output. Returning empty notes.'
-        );
+      if (!llmOutput) {
+        console.warn('Melody generation returned no output. Returning empty notes.');
         return { notes: [] };
       }
 
-      const { output } = result;
+      // The model sometimes wraps the JSON in markdown backticks.
+      const cleanedJsonString = llmOutput.replace(/^```json\n/, '').replace(/\n```$/, '');
+      
+      const parsed = JSON.parse(cleanedJsonString);
+      const validatedOutput = GenerateMelodyOutputSchema.parse(parsed);
 
-      // Defensively check if notes is an array.
-      if (output.notes && Array.isArray(output.notes)) {
-        return output;
+      if (validatedOutput.notes && Array.isArray(validatedOutput.notes)) {
+        return validatedOutput;
       }
 
-      // If notes are missing or not an array, return an empty array.
-      console.warn(
-        'Melody generation output is missing a `notes` array. Returning empty notes.'
-      );
+      console.warn('Melody generation output is missing a `notes` array. Returning empty notes.');
       return { notes: [] };
     } catch (error) {
       console.error('Error in generateMelodyFlow:', error);

@@ -1,6 +1,7 @@
+
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
-import { firebaseConfig } from '@/firebase/config';
+import 'dotenv/config';
 
 // Explicitly get the API key from environment variables.
 const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -15,11 +16,11 @@ if (!geminiApiKey) {
 export const ai = genkit({
   plugins: [
     googleAI({
-      apiVersion: 'v1', 
-      // Use the explicitly retrieved key.
+      apiVersion: 'v1',
       apiKey: geminiApiKey,
     })
   ],
-  model: 'gemini-1.5-flash', 
-  projectId: firebaseConfig.projectId,
+  model: 'gemini-1.5-flash',
+  // Set the project ID directly to avoid import issues.
+  projectId: 'studio-4164192500-5d49e',
 });
