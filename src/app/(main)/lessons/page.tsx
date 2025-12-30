@@ -26,8 +26,7 @@ export default function LessonsPage() {
         {LESSONS.map((lesson) => {
           const image = PlaceHolderImages.find((img) => img.id === lesson.imageId);
           return (
-            <Link href={`/lessons/${lesson.id}`} key={lesson.id} legacyBehavior>
-              <a className="block group">
+            <Link href={`/lessons/${lesson.id}`} key={lesson.id} className="block group">
                 <Card className="overflow-hidden h-full flex flex-col hover:border-primary transition-all duration-300 transform hover:-translate-y-1">
                   <CardHeader className="p-0">
                     {image && (
@@ -57,7 +56,6 @@ export default function LessonsPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </a>
             </Link>
           );
         })}

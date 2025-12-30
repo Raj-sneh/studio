@@ -1,8 +1,8 @@
 
 'use server';
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const GenerateMelodyInputSchema = z.object({
   prompt: z.string().describe('A text description of the melody to generate. e.g., "a happy, upbeat tune" or "play the theme from titanic"'),
@@ -20,21 +20,17 @@ const GenerateMelodyOutputSchema = z.object({
 });
 export type GenerateMelodyOutput = z.infer<typeof GenerateMelodyOutputSchema>;
 
-
 export async function generateMelody(
   input: GenerateMelodyInput
 ): Promise<GenerateMelodyOutput> {
   return generateMelodyFlow(input);
 }
 
-// MODIFIED: Removed the output schema to prevent automatic JSON mode, which is causing the API error.
-// The prompt is updated to ensure it still returns valid JSON.
 const generateMelodyPrompt = ai.definePrompt({
   name: 'generateMelodyPrompt',
   input: { schema: GenerateMelodyInputSchema },
-  // output: { schema: GenerateMelodyOutputSchema }, // <--- REMOVED to prevent sending incompatible params
   model: 'googleai/gemini-1.5-flash-latest',
-  prompt: `You are an expert music composer. Your task is to generate a short melody of 8-16 notes based on the user\'s prompt.
+  prompt: `You are an expert music composer. Your task is to generate a short melody of 8-16 notes based on the user's prompt.
 
 You MUST reply with ONLY a valid JSON object that conforms to the following structure. Do NOT wrap the JSON in markdown backticks or add any other explanatory text.
 
@@ -43,12 +39,12 @@ The JSON object must contain a 'notes' array. Each object in the array represent
 - 'duration': The length of the note (e.g., '4n' for a quarter note, '8n' for an eighth note).
 - 'time': The start time of the note in 'bar:quarter:sixteenth' format (e.g., '0:2:0').
 
-Analyze the user\'s prompt, which might describe a mood, style, or a famous song. Always do your best to create a melody that fits the request. If the prompt is vague or you don\'t recognize a song, create a simple, pleasant, and original melody.
+Analyze the user's prompt, which might describe a mood, style, or a famous song. Always do your best to create a melody that fits the request. If the prompt is vague or you don't recognize a song, create a simple, pleasant, and original melody.
 
 User prompt: "{{prompt}}"`,
 });
 
-// MODIFIED: This flow now manually parses the string output from the model.
+// This function now robustly extracts the JSON from the model's output.
 const generateMelodyFlow = ai.defineFlow(
   {
     name: 'generateMelodyFlow',
@@ -65,10 +61,18 @@ const generateMelodyFlow = ai.defineFlow(
         return { notes: [] };
       }
 
-      // The model sometimes wraps the JSON in markdown backticks.
-      const cleanedJsonString = llmOutput.replace(/^```json\n/, '').replace(/\n```$/, '');
+      // Find the start and end of the JSON object in the string.
+      const startIndex = llmOutput.indexOf('{');
+      const endIndex = llmOutput.lastIndexOf('}');
+
+      if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+        console.warn('Could not find a valid JSON object in the model output.');
+        return { notes: [] };
+      }
+
+      const jsonString = llmOutput.substring(startIndex, endIndex + 1);
       
-      const parsed = JSON.parse(cleanedJsonString);
+      const parsed = JSON.parse(jsonString);
       const validatedOutput = GenerateMelodyOutputSchema.parse(parsed);
 
       if (validatedOutput.notes && Array.isArray(validatedOutput.notes)) {
@@ -79,7 +83,6 @@ const generateMelodyFlow = ai.defineFlow(
       return { notes: [] };
     } catch (error) {
       console.error('Error in generateMelodyFlow:', error);
-      // In case of any other error, return empty notes to prevent crashes.
       return { notes: [] };
     }
   }
