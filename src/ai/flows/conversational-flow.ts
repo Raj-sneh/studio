@@ -33,7 +33,6 @@ export async function chat(input: ChatInput): Promise<ChatOutput> {
 const chatPrompt = ai.definePrompt({
   name: 'chatPrompt',
   input: { schema: ChatInputSchema },
-  // output: { schema: ChatOutputSchema }, // <--- REMOVED
   model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are a friendly and welcoming AI assistant for a music learning app called Socio.
 
@@ -62,7 +61,7 @@ const chatFlow = ai.defineFlow(
   async (input) => {
     try {
       const result = await chatPrompt(input);
-      const llmOutput = result.output() as string;
+      const llmOutput = result.text;
 
       if (!llmOutput) {
         return { response: 'Sorry, I had trouble thinking of a response.' };

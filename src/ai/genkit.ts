@@ -20,7 +20,5 @@ export const ai = genkit({
       apiKey: geminiApiKey,
     })
   ],
-  model: 'gemini-1.5-flash',
-  // Set the project ID directly to avoid import issues.
-  projectId: 'studio-4164192500-5d49e',
 });
+
