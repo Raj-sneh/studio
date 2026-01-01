@@ -9,7 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const ChatHistorySchema = z.object({
   role: z.enum(['user', 'model']),
@@ -33,7 +33,6 @@ export async function chat(input: ChatInput): Promise<ChatOutput> {
 const chatPrompt = ai.definePrompt({
   name: 'chatPrompt',
   input: { schema: ChatInputSchema },
-  model: 'googleai/gemini-1.5-flash-latest',
   prompt: `You are a friendly and welcoming AI assistant for a music learning app called Socio.
 
 Your first task is to greet the user and ask for their name.
@@ -55,8 +54,6 @@ const chatFlow = ai.defineFlow(
     name: 'chatFlow',
     inputSchema: ChatInputSchema,
     outputSchema: ChatOutputSchema,
-    // TODO: Re-enable for production
-    // requireAppCheck: true,
   },
   async (input) => {
     try {

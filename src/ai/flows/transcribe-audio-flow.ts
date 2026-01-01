@@ -6,8 +6,7 @@
  * This file contains a server action and should only export async functions.
  */
 import {ai} from '@/ai/genkit';
-import {googleAI} from '@genkit-ai/google-genai';
-import {z} from 'genkit';
+import {z} from 'zod';
 import type {Instrument, Note} from '@/types';
 
 const TranscribeAudioInputSchema = z.object({
@@ -62,9 +61,7 @@ const transcribeAudioFlow = ai.defineFlow(
     outputSchema: TranscribeAudioOutputSchema,
   },
   async (input) => {
-    const {output} = await transcribeAudioPrompt(input, {
-      model: googleAI.model('gemini-1.5-flash-latest'),
-    });
+    const {output} = await transcribeAudioPrompt(input);
     return output!;
   }
 );
