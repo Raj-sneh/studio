@@ -7,7 +7,7 @@
  * - ChatInput - The input type for the chat function.
  * - ChatOutput - The return type for the chat function.
  */
-
+import 'dotenv/config';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
