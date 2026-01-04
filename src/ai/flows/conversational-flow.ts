@@ -55,18 +55,7 @@ const chatFlow = ai.defineFlow(
     outputSchema: ChatOutputSchema,
   },
   async (input) => {
-    try {
-      const { output } = await chatPrompt(input);
-
-      if (!output) {
-        return { response: 'Sorry, I had trouble thinking of a response.' };
-      }
-      
-      return output;
-
-    } catch (error) {
-      console.error("Error in chatFlow:", error);
-      return { response: "Apologies, I encountered an issue and can't chat right now." };
-    }
+    const { output } = await chatPrompt(input);
+    return output!;
   }
 );

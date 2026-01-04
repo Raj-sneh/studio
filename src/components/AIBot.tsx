@@ -43,7 +43,6 @@ export default function AIBot() {
       setMessages((prev) => [...prev, { role: 'model', content: result.response }]);
     } catch (error) {
       console.error('AI chat failed:', error);
-      // MODIFIED: This error message is now more accurate.
       setMessages((prev) => [...prev, { role: 'model', content: 'The AI chat feature has encountered an error. This is most likely because the GEMINI_API_KEY has not been configured correctly in the .env.local file.' }]);
     } finally {
       setIsLoading(false);
