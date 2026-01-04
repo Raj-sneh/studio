@@ -11,13 +11,18 @@ if (process.env.NODE_ENV !== 'production' && !process.env.GEMINI_API_KEY) {
   );
 }
 
+const geminiApiKey =
+  process.env.NODE_ENV === 'production'
+    ? 'GEMINI_API_KEY' // In production, use the secret name
+    : process.env.GEMINI_API_KEY; // In development, use the value from .env.local
+
 export const ai = genkit({
   plugins: [
     firebase(),
     googleAI({
       // The API key is sourced from the GEMINI_API_KEY secret in production.
       // In local development, it uses the value from .env.local.
-      apiKey: process.env.GEMINI_API_KEY,
+      apiKey: geminiApiKey,
     }),
   ],
   // Log to the Firebase console in production
