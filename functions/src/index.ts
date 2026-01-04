@@ -6,6 +6,20 @@
  *
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
+import 'dotenv/config';
+import { defineSecret } from 'firebase-functions/params';
 
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
+// Define the GEMINI_API_KEY secret
+defineSecret('GEMINI_API_KEY');
+
+// This is a trick to ensure that the files in the `ai` directory are
+// included in the build. It does not actually do anything.
+(async () => {
+    try {
+        await import('../../src/ai/dev.js');
+    } catch (e) {
+        // do nothing
+    }
+})();
+
+export * from '@genkit-ai/firebase/functions';
