@@ -21,5 +21,3 @@ defineSecret('GEMINI_API_KEY');
         // do nothing
     }
 })();
-
-export * from '@genkit-ai/firebase/functions';
