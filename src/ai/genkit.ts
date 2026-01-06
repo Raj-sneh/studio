@@ -1,7 +1,6 @@
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import 'dotenv/config';
-import { firebase } from '@genkit-ai/firebase';
 
 // Log a warning if the API key is not found in local development.
 // In a deployed environment, Genkit will use the secret manager.
@@ -18,7 +17,6 @@ const geminiApiKey =
 
 export const ai = genkit({
   plugins: [
-    firebase(),
     googleAI({
       // The API key is sourced from the GEMINI_API_KEY secret in production.
       // In local development, it uses the value from an environment variable.
@@ -27,7 +25,7 @@ export const ai = genkit({
   ],
   // Log to the Firebase console in production
   // and to the console in development.
-  logSinker: 'firebase',
+  logSinker: process.env.NODE_ENV === 'production' ? 'firebase' : 'stdout',
   // In production, we need to use a real flow state store.
-  flowStateStore: 'firebase',
+  flowStateStore: process.env.NODE_ENV === 'production' ? 'firebase' : 'memory',
 });
