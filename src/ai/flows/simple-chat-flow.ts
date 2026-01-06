@@ -32,7 +32,7 @@ const simpleChatFlow = ai.defineFlow(
     },
     async (input) => {
       const llmResponse = await ai.generate({
-        model: 'googleai/gemini-2.5-flash',
+        model: 'openai/gpt-4o-mini',
         prompt: input.prompt,
       });
   

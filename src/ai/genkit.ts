@@ -1,22 +1,15 @@
 import { genkit, type Plugin } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
-import { firebase } from "@genkit-ai/firebase";
+import { openai } from 'openai';
 import 'dotenv/config';
 
-const geminiApiKey = process.env.GEMINI_API_KEY || 'GEMINI_API_KEY';
+const openAIKey = process.env.OPENAI_API_KEY || 'your_api_key_here';
 
 const plugins: Plugin<any>[] = [
-  googleAI({
-    apiKey: geminiApiKey,
+  openai({
+    apiKey: openAIKey,
   }),
 ];
 
-if (process.env.NODE_ENV === 'production') {
-  plugins.push(firebase());
-}
-
 export const ai = genkit({
   plugins,
-  logSinker: process.env.NODE_ENV === 'production' ? 'firebase' : undefined,
-  flowStateStore: process.env.NODE_ENV === 'production' ? 'firebase' : undefined,
 });
