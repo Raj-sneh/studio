@@ -23,9 +23,4 @@ export const ai = genkit({
       apiKey: geminiApiKey,
     }),
   ],
-  // Log to the Firebase console in production
-  // and to the console in development.
-  logSinker: process.env.NODE_ENV === 'production' ? 'firebase' : 'stdout',
-  // In production, we need to use a real flow state store.
-  flowStateStore: process.env.NODE_ENV === 'production' ? 'firebase' : 'memory',
 });
