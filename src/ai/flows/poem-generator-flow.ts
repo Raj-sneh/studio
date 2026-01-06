@@ -31,7 +31,7 @@ const poemGeneratorFlow = ai.defineFlow(
     },
     async (input) => {
       const llmResponse = await ai.generate({
-        model: 'openai/gpt-4o-mini',
+        model: 'gemini-1.5-flash-latest',
         prompt: `You are a poet. Write a short, four-line poem about the following topic: ${input.topic}`,
       });
   
