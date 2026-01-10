@@ -1,9 +1,6 @@
 import { genkit, type Plugin } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
-import { defineSecret } from 'firebase-functions/params';
 import 'dotenv/config';
-
-defineSecret('GEMINI_API_KEY');
 
 const plugins: Plugin<any>[] = [];
 
