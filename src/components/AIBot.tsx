@@ -29,24 +29,20 @@ export default function AIBot() {
 
   const handleSend = async () => {
     if (!input.trim()) return;
-    
-    setIsLoading(true);
 
     const userMsg: Message = { role: 'user', content: input };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
+    setIsLoading(true);
 
-    try {
-      const result = await chat({ 
-        history: [...messages, userMsg]
-      });
-      setMessages((prev) => [...prev, { role: 'model', content: result.response }]);
-    } catch (error) {
-      console.error('AI chat failed:', error);
-      setMessages((prev) => [...prev, { role: 'model', content: 'The AI chat feature has encountered an error. This is most likely because the GEMINI_API_KEY has not been configured correctly in the .env.local file.' }]);
-    } finally {
+    // Simulate AI "thinking" and then give the canned response.
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'model', content: 'i am in developing stage' },
+      ]);
       setIsLoading(false);
-    }
+    }, 500);
   };
 
   if (!isOpen) return (
