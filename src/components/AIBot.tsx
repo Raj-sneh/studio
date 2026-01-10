@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -36,10 +37,10 @@ export default function AIBot() {
     setInput('');
     setIsLoading(true);
 
-    let botResponse = 'i am in developing stage';
+    let botResponse = 'I am in developing stage.';
 
     if (userMessage.toLowerCase().includes('who is your developer')) {
-        botResponse = 'sneh kumar verma can you tell him to develop me faster';
+        botResponse = 'my developer is sneh kumar verma';
     }
     
     // Simulate AI "thinking" and then give the canned response.
