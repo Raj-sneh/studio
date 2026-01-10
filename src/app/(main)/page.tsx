@@ -7,7 +7,6 @@ import { ArrowRight, Music, Wand2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import AIBot from "@/components/AIBot";
 
 export default function DashboardPage() {
   const practiceImage = PlaceHolderImages.find(img => img.id === 'dashboard-practice');
@@ -15,7 +14,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <AIBot />
       <div className="text-center">
         <h1 className="font-headline text-4xl font-bold tracking-tight">Welcome to Socio</h1>
         <p className="mt-2 text-lg text-muted-foreground">The AI-powered music learning companion.</p>
