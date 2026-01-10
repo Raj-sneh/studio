@@ -37,7 +37,7 @@ export default function AIBot() {
     setInput('');
     setIsLoading(true);
 
-    let botResponse = 'I am in developing stage.';
+    let botResponse = 'I am still in my development phase, but I will be able to assist you with more features soon. Thank you for your patience!';
 
     if (userMessage.toLowerCase().includes('who is your developer')) {
         botResponse = 'my developer is sneh kumar verma';
