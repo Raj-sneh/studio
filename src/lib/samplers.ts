@@ -8,19 +8,19 @@ const loadingPromises = new Map<Instrument, Promise<Tone.Sampler | Tone.Synth>>(
 
 const samplerUrls: Record<string, Record<string, string>> = {
     piano: {
-        A1: "A1.mp3", C2: "C2.mp3", "D#2": "Ds2.mp3", "F#2": "Fs2.mp3", A2: "A2.mp3", 
-        C3: "C3.mp3", "D#3": "Ds3.mp3", "F#3": "Fs3.mp3", A3: "A3.mp3", C4: "C4.mp3"
+        A1: "A1.mp3", C2: "C2.mp3", "D#2": "DS2.mp3", "F#2": "FS2.mp3", A2: "A2.mp3", 
+        C3: "C3.mp3", "D#3": "DS3.mp3", "F#3": "FS3.mp3", A3: "A3.mp3", C4: "C4.mp3"
     },
     guitar: {
-        'F#2': 'Fs2.mp3', 'G#2': 'Gs2.mp3', A2: 'A2.mp3', B2: 'B2.mp3', 'C#3': 'Cs3.mp3', D3: 'D3.mp3', 'D#3': 'Ds3.mp3', E3: 'E3.mp3',
-        'F#3': 'Fs3.mp3', 'G#3': 'Gs3.mp3', A3: 'A3.mp3', B3: 'B3.mp3', 'C#4': 'Cs4.mp3', D4: 'D4.mp3', 'D#4': 'Ds4.mp3', E4: 'E4.mp3',
-        'F#4': 'Fs4.mp3', 'G#4': 'Gs4.mp3', A4: 'A4.mp3',
+        'F#2': 'FS2.mp3', 'G#2': 'GS2.mp3', A2: 'A2.mp3', B2: 'B2.mp3', 'C#3': 'CS3.mp3', D3: 'D3.mp3', 'D#3': 'DS3.mp3', E3: 'E3.mp3',
+        'F#3': 'FS3.mp3', 'G#3': 'GS3.mp3', A3: 'A3.mp3', B3: 'B3.mp3', 'C#4': 'CS4.mp3', D4: 'D4.mp3', 'D#4': 'DS4.mp3', E4: 'E4.mp3',
+        'F#4': 'FS4.mp3', 'G#4': 'GS4.mp3', A4: 'A4.mp3',
     },
     flute: {
         A4: "A4.mp3", C4: "C4.mp3", E5: "E5.mp3", A5: "A5.mp3"
     },
     saxophone: {
-        'A#3': 'As3.mp3', C4: 'C4.mp3', D5: 'D5.mp3', 'F#4': 'Fs4.mp3'
+        'A#3': 'AS3.mp3', C4: 'C4.mp3', D5: 'D5.mp3', 'F#4': 'FS4.mp3'
     },
     violin: {
         A3: "A3.mp3", C4: "C4.mp3", E4: "E4.mp3", G4: "G4.mp3",
@@ -30,9 +30,9 @@ const samplerUrls: Record<string, Record<string, string>> = {
         C4: "C4.mp3", G4: "G4.mp3", C5: "C5.mp3", G5: "G5.mp3"
     },
     drums: {
-        C1: 'C1.mp3', D1: 'D1.mp3', E1: 'E1.mp3', F1: 'F1.mp3', 
-        G1: 'G1.mp3', A1: 'A1.mp3', B1: 'B1.mp3', C2: 'C2.mp3', 
-        D2: 'D2.mp3', E2: 'E2.mp3', F2: 'F2.mp3', G2: 'G2.mp3'
+        C1: 'kick.mp3', D1: 'snare.mp3', E1: 'clave.mp3', F1: 'cowbell.mp3', 
+        G1: 'hihat.mp3', A1: 'tom1.mp3', B1: 'tom2.mp3', C2: 'tom3.mp3', 
+        D2: 'cowbell.mp3', E2: 'cymbal.mp3', F2: 'ride.mp3', G2: 'maracas.mp3'
     }
 };
 
