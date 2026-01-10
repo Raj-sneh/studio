@@ -21,7 +21,7 @@ const fontBody = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: 'Socio - AI Music Teacher',
+  title: 'Sargam - AI Music Teacher',
   description: 'Learn music with your AI-powered teacher.',
 };
 
@@ -47,3 +47,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

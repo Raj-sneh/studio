@@ -34,7 +34,7 @@ const chatPrompt = ai.definePrompt({
   name: 'chatPrompt',
   input: { schema: ChatInputSchema },
   output: { schema: ChatOutputSchema },
-  prompt: `You are a friendly and welcoming AI assistant for a music learning app called Socio.
+  prompt: `You are a friendly and welcoming AI assistant for a music learning app called Sargam.
 
 Your first task is to greet the user and ask for their name.
 Once they provide their name, greet them personally (e.g., "Hey, [Name]! How are you?").
@@ -59,3 +59,5 @@ const chatFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

@@ -42,7 +42,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         ) : (
           <>
             <Loader2 className="animate-spin h-12 w-12 text-primary" />
-            <p className="mt-4 text-muted-foreground">Loading Socio...</p>
+            <p className="mt-4 text-muted-foreground">Loading Sargam...</p>
           </>
         )}
       </div>
@@ -51,3 +51,5 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   
   return <>{children}</>;
 }
+
+    
