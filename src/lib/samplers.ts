@@ -12,9 +12,11 @@ const samplerUrls: Record<string, Record<string, string>> = {
         C3: "C3.mp3", "D#3": "DS3.mp3", "F#3": "FS3.mp3", A3: "A3.mp3", C4: "C4.mp3"
     },
     guitar: {
-        'F#2': 'FS2.mp3', 'G#2': 'GS2.mp3', A2: 'A2.mp3', B2: 'B2.mp3', 'C#3': 'CS3.mp3', D3: 'D3.mp3', 'D#3': 'DS3.mp3', E3: 'E3.mp3',
-        'F#3': 'FS3.mp3', 'G#3': 'GS3.mp3', A3: 'A3.mp3', B3: 'B3.mp3', 'C#4': 'CS4.mp3', D4: 'D4.mp3', 'D#4': 'DS4.mp3', E4: 'E4.mp3',
-        'F#4': 'FS4.mp3', 'G#4': 'GS4.mp3', A4: 'A4.mp3',
+        "F#2": "FS2.mp3", "G#2": "GS2.mp3", A2: "A2.mp3", B2: "B2.mp3", 
+        "C#3": "CS3.mp3", D3: "D3.mp3", "D#3": "DS3.mp3", E3: "E3.mp3",
+        "F#3": "FS3.mp3", "G#3": "GS3.mp3", A3: "A3.mp3", B3: "B3.mp3", 
+        "C#4": "CS4.mp3", D4: "D4.mp3", "D#4": "DS4.mp3", E4: "E4.mp3",
+        "F#4": "FS4.mp3", "G#4": "GS4.mp3", A4: "A4.mp3",
     },
     flute: {
         A4: "A4.mp3", C4: "C4.mp3", E5: "E5.mp3", A5: "A5.mp3"
