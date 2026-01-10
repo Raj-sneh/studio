@@ -1,5 +1,4 @@
 import Header from "@/components/Header";
-import AIBot from "@/components/AIBot";
 
 export default function MainLayout({
   children,
@@ -10,7 +9,6 @@ export default function MainLayout({
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8">{children}</main>
-      <AIBot />
     </div>
   );
 }
