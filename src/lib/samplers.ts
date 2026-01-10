@@ -54,7 +54,7 @@ const samplerUrls: Record<string, Record<string, string>> = {
     drums: {
         C1: 'kick.mp3',
         D1: 'snare.mp3',
-        E1: 'clap.mp3',
+        E1: 'shaker.mp3', // Replaced 'clap.mp3' with 'shaker.mp3'
         F1: 'hh.mp3', // Closed Hi-Hat
         G1: 'hho.mp3', // Open Hi-Hat
         A1: 'tom1.mp3',
