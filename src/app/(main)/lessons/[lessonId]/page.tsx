@@ -23,20 +23,10 @@ import { transcribeAudio } from '@/ai/flows/transcribe-audio-flow';
 
 const Piano = lazy(() => import('@/components/Piano'));
 const Guitar = lazy(() => import('@/components/Guitar'));
-const Flute = lazy(() => import('@/components/Flute'));
-const Saxophone = lazy(() => import('@/components/Saxophone'));
-const Violin = lazy(() => import('@/components/Violin'));
-const Xylophone = lazy(() => import('@/components/Xylophone'));
-const DrumPad = lazy(() => import('@/components/DrumPad'));
 
 const instrumentComponents: Record<Instrument, React.ElementType> = {
     piano: Piano,
     guitar: Guitar,
-    flute: Flute,
-    saxophone: Saxophone,
-    violin: Violin,
-    xylophone: Xylophone,
-    drums: DrumPad,
 };
 
 type Mode = 'idle' | 'demo' | 'playing' | 'listening' | 'analyzing' | 'feedback';
@@ -424,4 +414,3 @@ export default function LessonPage() {
     </div>
   );
 }
-

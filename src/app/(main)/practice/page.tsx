@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, lazy, Suspense, useCallback, useEffect } from 'react';
-import { Loader2, Music4, History, Play, Pause, Square } from 'lucide-react';
+import { useState, lazy, Suspense, useCallback } from 'react';
+import { Loader2, Music4, History, Play } from 'lucide-react';
 import * as Tone from 'tone';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,11 +13,6 @@ import { getSampler } from '@/lib/samplers';
 
 const Piano = lazy(() => import('@/components/Piano'));
 const Guitar = lazy(() => import('@/components/Guitar'));
-const Flute = lazy(() => import('@/components/Flute'));
-const Saxophone = lazy(() => import('@/components/Saxophone'));
-const Violin = lazy(() => import('@/components/Violin'));
-const Xylophone = lazy(() => import('@/components/Xylophone'));
-const DrumPad = lazy(() => import('@/components/DrumPad'));
 
 type RecordedNote = {
   note: string;
@@ -26,24 +21,14 @@ type RecordedNote = {
   duration: string;
 };
 
-const instruments: Instrument[] = ['piano', 'guitar', 'drums', 'flute', 'violin', 'saxophone', 'xylophone'];
+const instruments: Instrument[] = ['piano', 'guitar'];
 const instrumentComponents: Record<Instrument, React.ElementType> = {
   piano: Piano,
   guitar: Guitar,
-  drums: DrumPad,
-  flute: Flute,
-  violin: Violin,
-  saxophone: Saxophone,
-  xylophone: Xylophone,
 };
 const instrumentDescriptions: Record<Instrument, string> = {
   piano: 'Use your mouse or keyboard to play the classic piano.',
   guitar: 'Strum chords or pick individual notes on the acoustic guitar.',
-  drums: 'Tap the pads to create a beat with this classic drum machine.',
-  flute: 'A beautiful woodwind instrument. Use an external app or a real instrument for practice.',
-  violin: 'A fretless wonder! Use an external app or a real instrument for practice.',
-  saxophone: 'A soulful reed instrument. Use an external app or a real instrument for practice.',
-  xylophone: 'Play a colorful and bright percussion instrument.',
 };
 
 function InstrumentLoader({ instrument }: { instrument: Instrument }) {
@@ -63,7 +48,7 @@ export default function PracticePage() {
 
   const handleNotePlay = (note: string) => {
     if (isRecording) {
-      const duration = note.includes(' ') ? '1n' : '8n';
+      const duration = '8n'; // Simplified duration for free play
       setRecordedNotes((prev) => [
         ...prev,
         { note, time: Date.now() - startTime, instrument: activeInstrument, duration },
@@ -114,7 +99,7 @@ export default function PracticePage() {
         className="w-full"
         onValueChange={(val) => setActiveInstrument(val as Instrument)}
       >
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
+        <TabsList className="grid w-full grid-cols-2">
           {instruments.map((inst) => (
             <TabsTrigger key={inst} value={inst} className="capitalize">
               {inst}
@@ -159,11 +144,11 @@ export default function PracticePage() {
             <div className="flex items-center gap-2">
               <Button onClick={toggleRecording} variant={isRecording ? 'destructive' : 'secondary'}>
                 {isRecording ? (
-                  <Square className="mr-2 h-4 w-4" />
+                  <span className="flex items-center">Stop</span>
                 ) : (
                   <div className="h-4 w-4 mr-2 rounded-full bg-red-500" />
                 )}
-                {isRecording ? 'Stop' : 'Record'}
+                {isRecording ? '' : 'Record'}
               </Button>
               <Button onClick={playRecording} disabled={isRecording || recordedNotes.length === 0}>
                  <Play className="mr-2 h-4 w-4" />

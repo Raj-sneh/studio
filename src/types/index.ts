@@ -5,7 +5,7 @@ export type Note = {
   time: string; // Tone.js time, e.g. '0:0:1'
 };
 
-export type Instrument = 'piano' | 'guitar' | 'drums' | 'flute' | 'violin' | 'saxophone' | 'xylophone';
+export type Instrument = 'piano' | 'guitar';
 
 export type Lesson = {
   id: string;
