@@ -30,16 +30,23 @@ export default function AIBot() {
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const userMsg: Message = { role: 'user', content: input };
+    const userMessage = input.trim();
+    const userMsg: Message = { role: 'user', content: userMessage };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setIsLoading(true);
 
+    let botResponse = 'i am in developing stage';
+
+    if (userMessage.toLowerCase().includes('who is your developer')) {
+        botResponse = 'sneh kumar verma can you tell him to develop me faster';
+    }
+    
     // Simulate AI "thinking" and then give the canned response.
     setTimeout(() => {
       setMessages((prev) => [
         ...prev,
-        { role: 'model', content: 'i am in developing stage' },
+        { role: 'model', content: botResponse },
       ]);
       setIsLoading(false);
     }, 500);
