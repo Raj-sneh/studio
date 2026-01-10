@@ -143,12 +143,12 @@ export default function PracticePage() {
             </div>
             <div className="flex items-center gap-2">
               <Button onClick={toggleRecording} variant={isRecording ? 'destructive' : 'secondary'}>
-                {isRecording ? (
-                  <span className="flex items-center">Stop</span>
-                ) : (
-                  <div className="h-4 w-4 mr-2 rounded-full bg-red-500" />
+                {isRecording ? 'Stop' : (
+                  <div className="flex items-center">
+                    <div className="h-4 w-4 mr-2 rounded-full bg-red-500" />
+                    Record
+                  </div>
                 )}
-                {isRecording ? '' : 'Record'}
               </Button>
               <Button onClick={playRecording} disabled={isRecording || recordedNotes.length === 0}>
                  <Play className="mr-2 h-4 w-4" />

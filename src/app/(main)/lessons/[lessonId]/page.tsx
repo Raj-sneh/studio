@@ -288,7 +288,7 @@ export default function LessonPage() {
     );
   };
 
-  const InstrumentComponent = instrumentComponents[lesson.instrument];
+  const InstrumentComponent = instrumentComponents[lesson.instrument] || null;
   const isUIDisabled = mode !== 'idle' || !isInstrumentReady;
   
   return (
@@ -377,7 +377,7 @@ export default function LessonPage() {
         {/* Right Column: Instrument UI */}
         <div className="md:col-span-2">
           <Card className="h-full flex items-center justify-center p-4">
-            {!isInstrumentReady ? (
+            {!isInstrumentReady || !InstrumentComponent ? (
               <InstrumentLoader instrument={lesson.instrument} />
             ) : (
               <Suspense fallback={<InstrumentLoader instrument={lesson.instrument} />}>
