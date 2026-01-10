@@ -12,9 +12,7 @@ const samplerUrls: Record<string, Record<string, string>> = {
         C3: "C3.mp3", "D#3": "Ds3.mp3", "F#3": "Fs3.mp3", A3: "A3.mp3", C4: "C4.mp3"
     },
     guitar: {
-        A2: "A2.mp3", C3: "C3.mp3", E3: "E3.mp3", "G#3": "Gs3.mp3",
-        A3: "A3.mp3", C4: "C4.mp3", E4: "E4.mp3", "G#4": "Gs4.mp3",
-        A4: "A4.mp3", C5: "C5.mp3",
+        A3: "A3.mp3", C4: "C4.mp3", E4: "E4.mp3", G4: "G4.mp3"
     },
     flute: {
         A4: "A4.mp3", C4: "C4.mp3", E5: "E5.mp3", A5: "A5.mp3"
@@ -36,7 +34,7 @@ const samplerUrls: Record<string, Record<string, string>> = {
 
 const baseUrlMap: Record<string, string> = {
     piano: 'https://tonejs.github.io/audio/salamander/',
-    guitar: 'https://tonejs.github.io/audio/guitar-acoustic/',
+    guitar: '/vsda/',
     flute: '/vsda/',
     saxophone: '/vsda/',
     violin: '/vsda/',
