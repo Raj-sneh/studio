@@ -55,8 +55,8 @@ const samplerUrls: Record<string, Record<string, string>> = {
         C1: 'kick.mp3',
         D1: 'snare.mp3',
         E1: 'clave.mp3',
-        F1: 'cowbell.mp3', // Replaced non-existent hh.mp3
-        G1: 'hho.mp3', // Open Hi-Hat
+        F1: 'cowbell.mp3',
+        G1: 'hho.mp3',
         A1: 'tom1.mp3',
         B1: 'tom2.mp3',
         C2: 'tom3.mp3',
