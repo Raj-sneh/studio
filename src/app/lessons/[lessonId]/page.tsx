@@ -10,11 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, Play, Square, Mic, Music, AlertCircle, Info, ChevronLeft, User, Bot, MicOff } from 'lucide-react';
+import { Loader2, Play, AlertCircle, ChevronLeft, User } from 'lucide-react';
 import { LESSONS } from '@/lib/lessons';
 import type { Note, Instrument } from '@/types';
-import { getSampler } from '@/lib/samplers';
 import { useToast } from '@/hooks/use-toast';
 
 const Piano = lazy(() => import('@/components/Piano'));
@@ -83,17 +81,23 @@ export default function LessonPage() {
 
     const loadInstruments = async () => {
         try {
-            // No longer need to load freeplay sampler here
-            const playback = new Tone.Sampler({
-                urls: {
-                    C4: "C4.mp3",
-                    "D#4": "Ds4.mp3",
-                    "F#4": "Fs4.mp3",
-                    A4: "A4.mp3",
-                },
+            const samplerFactory = () => new Tone.Sampler({
+                urls: { C4: "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3", A4: "A4.mp3" },
                 release: 1,
                 baseUrl: "https://tonejs.github.io/audio/salamander/",
             }).toDestination();
+            
+            let playback: Tone.Sampler;
+
+            if (lesson.instrument === 'piano') {
+                playback = samplerFactory();
+            } else if (lesson.instrument === 'guitar') {
+                 // For now, let's use a synth for guitar demo to avoid loading issues.
+                 // In a real app, you'd load guitar samples.
+                 playback = new Tone.Sampler().toDestination(); // Placeholder
+            } else {
+                 playback = new Tone.Sampler().toDestination(); // Placeholder for drums etc.
+            }
             
             await Tone.loaded();
 
@@ -118,7 +122,7 @@ export default function LessonPage() {
       stopAllActivity();
       playbackSamplerRef.current?.dispose();
     };
-  }, [lesson.instrument, stopAllActivity, toast]);
+  }, [lesson.instrument, stopAllActivity, toast, lesson]);
   
   const playDemo = useCallback(async () => {
     if (!isInstrumentReady || !playbackSamplerRef.current || playbackSamplerRef.current.disposed) return;
@@ -132,6 +136,7 @@ export default function LessonPage() {
 
     const events = lesson.notes.flatMap(note => {
         if (Array.isArray(note.key)) {
+            // For chords, we can decide how to handle them. Let's play them together.
             return note.key.map(k => ({ time: note.time, key: k, duration: note.duration }));
         }
         return { time: note.time, key: note.key, duration: note.duration };
@@ -183,13 +188,10 @@ export default function LessonPage() {
   const handleNotePlay = (noteKey: string) => {
     if (mode !== 'playing') return;
     const time = Tone.Transport.seconds.toFixed(2);
-    // This function now only records the note, it does not play audio.
     setUserPlayedNotes(prev => [...prev, { key: noteKey, duration: '8n', time: `0:0:${time}` }]);
   };
 
   const handleReport = async (reason: string) => {
-    // In a real app, this would likely be wired to a backend service.
-    // For now, we just show a toast.
     toast({ title: 'Report Submitted', description: 'Thank you for your feedback. We will review this lesson.' });
     setIsReportMenuOpen(false);
   };
@@ -212,7 +214,6 @@ export default function LessonPage() {
       </Button>
 
       <div className="grid md:grid-cols-3 gap-6 flex-1">
-        {/* Left Column: Lesson Info & Controls */}
         <div className="md:col-span-1 space-y-6 flex flex-col">
           <Card>
             <CardHeader>
@@ -229,7 +230,7 @@ export default function LessonPage() {
           <Card>
               <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                      <Music className="text-primary"/>
+                      <Play className="text-primary"/>
                       Lesson Controls
                   </CardTitle>
                   <CardDescription>
@@ -260,7 +261,6 @@ export default function LessonPage() {
           </Button>
         </div>
 
-        {/* Right Column: Instrument UI */}
         <div className="md:col-span-2">
           <Card className="h-full flex items-center justify-center p-4">
             {!isInstrumentReady || !InstrumentComponent ? (

@@ -4,7 +4,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
-import { getSampler } from "@/lib/samplers";
 import { Loader2 } from "lucide-react";
 
 const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -29,7 +28,7 @@ export default function Piano({
     highlightedKeys = [],
     disabled = false,
 }: PianoProps) {
-    const samplerRef = useRef<Tone.Synth | null>(null);
+    const samplerRef = useRef<Tone.Sampler | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [currentOctave, setCurrentOctave] = useState(3);
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
@@ -37,13 +36,29 @@ export default function Piano({
     useEffect(() => {
         let isMounted = true;
         const loadSampler = async () => {
-            // Use getSampler which now returns a polyphonic synth for piano
-            const loadedSampler = new Tone.PolySynth(Tone.Synth).toDestination();
-            if (isMounted) {
-                samplerRef.current = loadedSampler;
-                setIsLoading(false);
-            } else {
-                loadedSampler.dispose();
+            try {
+                const sampler = new Tone.Sampler({
+                    urls: {
+                        C4: "C4.mp3",
+                        "D#4": "Ds4.mp3",
+                        "F#4": "Fs4.mp3",
+                        A4: "A4.mp3",
+                    },
+                    release: 1,
+                    baseUrl: "https://tonejs.github.io/audio/salamander/",
+                }).toDestination();
+                
+                await Tone.loaded();
+
+                if (isMounted) {
+                    samplerRef.current = sampler;
+                    setIsLoading(false);
+                } else {
+                    sampler.dispose();
+                }
+            } catch (error) {
+                console.error("Failed to load piano sampler", error);
+                if (isMounted) setIsLoading(false); // Stop loading on error
             }
         };
         
@@ -61,26 +76,21 @@ export default function Piano({
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
-
-        samplerRef.current.triggerAttack(fullNote, Tone.now());
-
+        
+        samplerRef.current.triggerAttack(fullNote);
         onNotePlay?.(fullNote);
         setPressedKeys(prev => new Set(prev).add(fullNote));
     }, [disabled, onNotePlay, isLoading]);
 
     const stopNote = useCallback((fullNote: string) => {
-        if (!fullNote || !samplerRef.current || samplerRef.current.disposed) {
-            return;
-        }
+        if (!fullNote || !samplerRef.current || samplerRef.current.disposed) return;
+
+        samplerRef.current.triggerRelease(fullNote);
 
         setPressedKeys(prev => {
-            if (prev.has(fullNote)) {
-                samplerRef.current!.triggerRelease(fullNote);
-                const newSet = new Set(prev);
-                newSet.delete(fullNote);
-                return newSet;
-            }
-            return prev;
+            const newSet = new Set(prev);
+            newSet.delete(fullNote);
+            return newSet;
         });
     }, []);
     
@@ -102,7 +112,6 @@ export default function Piano({
             
             const fullNote = getNoteFromKey(event.key);
             if (fullNote) {
-                 // Check if key is already pressed before playing
                 setPressedKeys(prev => {
                     if (!prev.has(fullNote)) {
                         playNote(fullNote);
