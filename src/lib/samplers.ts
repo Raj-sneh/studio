@@ -4,8 +4,8 @@ import type { Instrument } from '@/types';
 import { firebaseConfig } from '@/firebase/config';
 
 // Centralized cache for loaded samplers
-const samplerCache = new Map<Instrument, Tone.Sampler | Tone.Synth>();
-const loadingPromises = new Map<Instrument, Promise<Tone.Sampler | Tone.Synth>>();
+const samplerCache = new Map<Instrument, Tone.Sampler | Tone.Synth | Tone.PluckSynth>();
+const loadingPromises = new Map<Instrument, Promise<Tone.Sampler | Tone.Synth | Tone.PluckSynth>>();
 
 const samplerUrls: Record<string, Record<string, string>> = {
     piano: {
@@ -17,22 +17,7 @@ const samplerUrls: Record<string, Record<string, string>> = {
         A6: 'A6.mp3',
     },
     guitar: {
-        'E2': 'E2.mp3',
-        'G2': 'G2.mp3',
-        'A2': 'A2.mp3',
-        'B2': 'B2.mp3',
-        'C3': 'C3.mp3',
-        'D3': 'D3.mp3',
-        'E3': 'E3.mp3',
-        'F3': 'F3.mp3',
-        'G3': 'G3.mp3',
-        'A3': 'A3.mp3',
-        'B3': 'B3.mp3',
-        'C4': 'C4.mp3',
-        'D4': 'D4.mp3',
-        'E4': 'E4.mp3',
-        'F#4': 'Fsharp4.mp3',
-        'G#3': 'Gsharp3.mp3'
+        // This is no longer used, as guitar is now a synth.
     },
     drums: {
         // This is no longer used, as drums are now a synth.
@@ -41,7 +26,7 @@ const samplerUrls: Record<string, Record<string, string>> = {
 
 const baseUrlMap: Record<string, string> = {
     piano: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_grand_piano-mp3/',
-    guitar: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_guitar_nylon-mp3/',
+    guitar: '', // Not used for synth
     drums: '', // Not used for synth
 }
 
@@ -51,7 +36,7 @@ const baseUrlMap: Record<string, string> = {
  * @param instrument The instrument to create or retrieve.
  * @returns A promise that resolves with the Tone.Sampler or Tone.Synth instance.
  */
-export const getSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.Synth> => {
+export const getSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.Synth | Tone.PluckSynth> => {
     // Return cached sampler if it exists and is not disposed
     const cachedSampler = samplerCache.get(instrument);
     if (cachedSampler && !cachedSampler.disposed) {
@@ -64,7 +49,7 @@ export const getSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.
     }
 
     // Create a new loading promise
-    const loadingPromise = new Promise<Tone.Sampler | Tone.Synth>((resolve, reject) => {
+    const loadingPromise = new Promise<Tone.Sampler | Tone.Synth | Tone.PluckSynth>((resolve, reject) => {
         if (typeof window === 'undefined') {
             // Mock sampler for server-side rendering
             const mockSampler = {
@@ -83,7 +68,6 @@ export const getSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.
 
         if (instrument === 'drums') {
             // This will be handled by the DrumKit component's internal synths
-            // but we can resolve with a silent dummy object to prevent errors elsewhere.
             const mockSynth = {
                 triggerAttackRelease: () => {},
                 dispose: () => {},
@@ -92,6 +76,13 @@ export const getSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.
             samplerCache.set(instrument, mockSynth);
             loadingPromises.delete(instrument);
             return resolve(mockSynth);
+        }
+        
+        if (instrument === 'guitar') {
+            const synth = new Tone.PluckSynth().toDestination();
+            samplerCache.set(instrument, synth);
+            loadingPromises.delete(instrument);
+            return resolve(synth);
         }
 
         const hasUrls = samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0;

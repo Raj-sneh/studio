@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import * as Tone from 'tone';
 import { getSampler } from '@/lib/samplers';
 import { cn } from '@/lib/utils';
@@ -38,34 +38,37 @@ const chordNames = Object.keys(chords);
 
 
 export default function Guitar({ onNotePlay, disabled = false, highlightedKeys = [] }: GuitarProps) {
-  const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
+  const synthRef = useRef<Tone.PluckSynth | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [vibratingString, setVibratingString] = useState<number | null>(null);
   const [selectedChord, setSelectedChord] = useState<string>('G');
 
   useEffect(() => {
-    getSampler('guitar').then(loadedSampler => {
-      setSampler(loadedSampler);
+    getSampler('guitar').then(loadedSynth => {
+      synthRef.current = loadedSynth as Tone.PluckSynth;
       setIsLoading(false);
     });
+    
+    return () => {
+        synthRef.current?.dispose();
+    }
   }, []);
 
   const playNote = useCallback((stringIndex: number) => {
-    if (!sampler || disabled || isLoading || sampler.disposed) return;
+    if (!synthRef.current || disabled || isLoading || synthRef.current.disposed) return;
     
     const note = chords[selectedChord][stringIndex];
     
     // If the note is null for a given chord, don't play anything (muted string)
     if (!note) return;
+    
+    synthRef.current.triggerAttack(note, Tone.now());
 
-    if (sampler && 'triggerAttackRelease' in sampler) {
-        sampler.triggerAttackRelease(note, '1n', Tone.now());
-    }
     onNotePlay?.(note);
 
     setVibratingString(stringIndex);
     setTimeout(() => setVibratingString(null), 300);
-  }, [sampler, disabled, isLoading, onNotePlay, selectedChord]);
+  }, [disabled, isLoading, onNotePlay, selectedChord]);
 
   const selectChord = (chordName: string) => {
     if (disabled || isLoading) return;
@@ -76,7 +79,7 @@ export default function Guitar({ onNotePlay, disabled = false, highlightedKeys =
     return (
         <div className="flex flex-col items-center justify-center min-h-[300px] text-center bg-muted rounded-lg w-full">
             <Loader2 className="h-8 w-8 animate-spin" />
-            <p className="mt-4 text-muted-foreground capitalize">Loading Guitar Samples...</p>
+            <p className="mt-4 text-muted-foreground capitalize">Loading Guitar Synth...</p>
         </div>
     );
   }
