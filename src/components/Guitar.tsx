@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -63,11 +64,7 @@ export default function Guitar({ onNotePlay, disabled = false, highlightedKeys =
     <div className="w-full max-w-4xl mx-auto p-4 bg-gradient-to-b from-[#2a1a0e] to-[#1c1108] rounded-2xl shadow-lg border border-yellow-900/50 select-none">
       {/* Headstock Area */}
       <div className="bg-gradient-to-r from-yellow-900/80 via-yellow-800/70 to-yellow-900/80 p-3 rounded-t-lg shadow-inner-lg mb-2">
-        <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-                <button className="w-8 h-8 rounded-full bg-slate-800 border border-slate-600 shadow-md flex items-center justify-center text-white">▶</button>
-                <button className="w-8 h-8 rounded-full bg-slate-800 border border-slate-600 shadow-md flex items-center justify-center"><div className="w-4 h-4 rounded-full bg-red-600"></div></button>
-            </div>
+        <div className="flex justify-end items-center">
             <div className="flex gap-1.5">
                 {chords.map((chord, i) => (
                     <button key={i} className="px-4 py-1.5 bg-slate-900/80 text-white font-sans font-semibold rounded-md border border-slate-700/80 shadow-sm hover:bg-slate-800 transition-colors">
