@@ -23,9 +23,7 @@ export default function AIBot() {
     const { user } = useUser();
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [messages, setMessages] = useState<Message[]>([
-        { role: 'bot', content: "Hello! How can I help you with your musical journey today?" }
-    ]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const scrollAreaRef = useRef<HTMLDivElement>(null);
 
