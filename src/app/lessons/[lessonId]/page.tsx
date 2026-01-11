@@ -142,6 +142,7 @@ export default function LessonPage() {
             synth = playbackSamplerRef.current;
         } else {
             needsDisposal = true;
+            // Correctly initialize PolySynth and set its voice
             const polySynth = new Tone.PolySynth().toDestination();
             if (lesson.instrument === 'guitar') {
                 polySynth.set({ voice: Tone.PluckSynth });
@@ -150,7 +151,7 @@ export default function LessonPage() {
             }
             synth = polySynth;
         }
-
+        
       const events = lesson.notes.flatMap(note => {
           const keys = Array.isArray(note.key) ? note.key : [note.key];
           return keys.map(k => ({ time: note.time, key: k, duration: note.duration }));
