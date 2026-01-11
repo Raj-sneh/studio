@@ -59,7 +59,8 @@ export default function LessonPage() {
   const [isReportMenuOpen, setIsReportMenuOpen] = useState(false);
   const [micPermissionError, setMicPermissionError] = useState(false);
   
-  const samplerRef = useRef<Tone.Sampler | Tone.Synth | Tone.PluckSynth | null>(null);
+  const freePlaySamplerRef = useRef<Tone.Synth | Tone.PluckSynth | null>(null);
+  const playbackSamplerRef = useRef<Tone.Sampler | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
 
   useEffect(() => {
@@ -82,8 +83,11 @@ export default function LessonPage() {
     if (isRecording) {
       stopRecording();
     }
-    if(samplerRef.current && 'releaseAll' in samplerRef.current) {
-        samplerRef.current.releaseAll();
+    if(freePlaySamplerRef.current && 'releaseAll' in freePlaySamplerRef.current) {
+        (freePlaySamplerRef.current as any).releaseAll();
+    }
+     if(playbackSamplerRef.current && 'releaseAll' in playbackSamplerRef.current) {
+        playbackSamplerRef.current.releaseAll();
     }
   }, [isRecording, stopRecording]);
 
@@ -92,36 +96,67 @@ export default function LessonPage() {
     setIsInstrumentReady(false);
     stopAllActivity();
 
-    getSampler(lesson.instrument).then(sampler => {
-      if (active) {
-        if (samplerRef.current && 'dispose' in samplerRef.current && !samplerRef.current.disposed) {
-          samplerRef.current.dispose();
+    const loadInstruments = async () => {
+        try {
+            const freeplay = await getSampler(lesson.instrument);
+            const playback = new Tone.Sampler({
+                urls: {
+                    C4: "C4.mp3",
+                    "D#4": "Ds4.mp3",
+                    "F#4": "Fs4.mp3",
+                    A4: "A4.mp3",
+                },
+                release: 1,
+                baseUrl: "https://tonejs.github.io/audio/salamander/",
+            }).toDestination();
+            
+            await Tone.loaded();
+
+            if (active) {
+                freePlaySamplerRef.current = freeplay;
+                playbackSamplerRef.current = playback;
+                setIsInstrumentReady(true);
+            }
+        } catch (err) {
+            console.error("Failed to load instruments", err);
+             toast({
+                title: "Instrument loading failed",
+                description: "Could not load sounds for lesson playback.",
+                variant: "destructive"
+            });
         }
-        samplerRef.current = sampler;
-        setIsInstrumentReady(true);
-      }
-    });
+    };
+    
+    loadInstruments();
 
     return () => {
       active = false;
       stopAllActivity();
+      freePlaySamplerRef.current?.dispose();
+      playbackSamplerRef.current?.dispose();
     };
-  }, [lesson.instrument, stopAllActivity]);
+  }, [lesson.instrument, stopAllActivity, toast]);
   
   const playDemo = useCallback(async () => {
-    if (!isInstrumentReady || !samplerRef.current || samplerRef.current.disposed) return;
+    if (!isInstrumentReady || !playbackSamplerRef.current || playbackSamplerRef.current.disposed) return;
     
     stopAllActivity();
     setMode('demo');
     setUserPlayedNotes([]);
     await Tone.start();
     
-    const sampler = samplerRef.current;
+    const sampler = playbackSamplerRef.current;
+
+    const events = lesson.notes.map(note => {
+        return {
+            time: note.time,
+            key: note.key,
+            duration: note.duration,
+        };
+    });
 
     partRef.current = new Tone.Part((time, event) => {
-        if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
-          sampler.triggerAttackRelease(event.key, event.duration, time);
-        }
+        sampler.triggerAttackRelease(event.key, event.duration, time);
         
         const keysToHighlight = Array.isArray(event.key) ? event.key : [event.key];
         
@@ -134,7 +169,7 @@ export default function LessonPage() {
             setHighlightedKeys(currentKeys => currentKeys.filter(k => !keysToHighlight.includes(k)));
         }, releaseTime);
 
-    }, lesson.notes.map(n => ({ time: n.time, key: n.key, duration: n.duration }))).start(0);
+    }, events).start(0);
 
     let maxTime = 0;
     lesson.notes.forEach(note => {
@@ -164,6 +199,11 @@ export default function LessonPage() {
   const handleNotePlay = (noteKey: string) => {
     if (mode !== 'playing') return;
     const time = Tone.Transport.seconds.toFixed(2);
+    
+    if (freePlaySamplerRef.current && 'triggerAttackRelease' in freePlaySamplerRef.current) {
+        freePlaySamplerRef.current.triggerAttackRelease(noteKey, '8n');
+    }
+
     setUserPlayedNotes(prev => [...prev, { key: noteKey, duration: '8n', time: `0:0:${time}` }]);
   };
 

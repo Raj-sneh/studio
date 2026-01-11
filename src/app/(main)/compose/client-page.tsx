@@ -37,7 +37,7 @@ export default function ComposePage() {
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
   const [isInstrumentReady, setIsInstrumentReady] = useState(false);
   
-  const samplerRef = useRef<Tone.Sampler | Tone.Synth | Tone.PluckSynth | null>(null);
+  const samplerRef = useRef<Tone.Sampler | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
 
   const stopPlayback = useCallback(() => {
@@ -59,7 +59,18 @@ export default function ComposePage() {
       setIsInstrumentReady(false);
       try {
         await Tone.start();
-        const sampler = await getSampler('piano');
+        const sampler = new Tone.Sampler({
+            urls: {
+                C4: "C4.mp3",
+                "D#4": "Ds4.mp3",
+                "F#4": "Fs4.mp3",
+                A4: "A4.mp3",
+            },
+            release: 1,
+            baseUrl: "https://tonejs.github.io/audio/salamander/",
+        }).toDestination();
+        
+        await Tone.loaded();
         if (active) {
           samplerRef.current = sampler;
           setIsInstrumentReady(true);
@@ -79,6 +90,7 @@ export default function ComposePage() {
     return () => {
       active = false;
       stopPlayback();
+      samplerRef.current?.dispose();
     };
   }, [toast, stopPlayback]);
 
@@ -131,12 +143,14 @@ export default function ComposePage() {
     
     const sampler = samplerRef.current;
     
-    let maxTime = 0;
+    const events = generatedNotes.map(note => ({
+        time: note.time,
+        key: note.key,
+        duration: note.duration
+    }));
 
     partRef.current = new Tone.Part((time, event) => {
-      if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
-        sampler.triggerAttackRelease(event.key, event.duration, time);
-      }
+      sampler.triggerAttackRelease(event.key, event.duration, time);
       
       const keysToHighlight = Array.isArray(event.key) ? event.key : [event.key];
       
@@ -149,8 +163,9 @@ export default function ComposePage() {
           setHighlightedKeys(currentKeys => currentKeys.filter(k => !keysToHighlight.includes(k)));
       }, releaseTime);
 
-    }, generatedNotes.map(n => ({ time: n.time, key: n.key, duration: n.duration }))).start(0);
+    }, events).start(0);
 
+    let maxTime = 0;
     generatedNotes.forEach(note => {
         const endTime = Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds();
         if (endTime > maxTime) {

@@ -3,8 +3,8 @@ import * as Tone from 'tone';
 import type { Instrument } from '@/types';
 
 // Centralized cache for loaded samplers
-const samplerCache = new Map<Instrument, Tone.PolySynth | Tone.Synth | Tone.PluckSynth>();
-const loadingPromises = new Map<Instrument, Promise<Tone.PolySynth | Tone.Synth | Tone.PluckSynth>>();
+const samplerCache = new Map<Instrument, Tone.Synth | Tone.PluckSynth>();
+const loadingPromises = new Map<Instrument, Promise<Tone.Synth | Tone.PluckSynth>>();
 
 /**
  * Creates or retrieves a cached Tone.js instrument.
@@ -12,7 +12,7 @@ const loadingPromises = new Map<Instrument, Promise<Tone.PolySynth | Tone.Synth 
  * @param instrument The instrument to create or retrieve.
  * @returns A promise that resolves with the Tone.js instrument instance.
  */
-export const getSampler = (instrument: Instrument): Promise<Tone.PolySynth | Tone.Synth | Tone.PluckSynth> => {
+export const getSampler = (instrument: Instrument): Promise<Tone.Synth | Tone.PluckSynth> => {
     // Return cached sampler if it exists and is not disposed
     const cachedSampler = samplerCache.get(instrument);
     if (cachedSampler && !cachedSampler.disposed) {
@@ -25,7 +25,7 @@ export const getSampler = (instrument: Instrument): Promise<Tone.PolySynth | Ton
     }
 
     // Create a new loading promise
-    const loadingPromise = new Promise<Tone.PolySynth | Tone.Synth | Tone.PluckSynth>((resolve, reject) => {
+    const loadingPromise = new Promise<Tone.Synth | Tone.PluckSynth>((resolve, reject) => {
         if (typeof window === 'undefined') {
             // Mock sampler for server-side rendering
             const mockSampler = {
@@ -35,13 +35,13 @@ export const getSampler = (instrument: Instrument): Promise<Tone.PolySynth | Ton
                 releaseAll: () => {},
                 dispose: () => {},
                 disposed: true,
-            } as unknown as Tone.PolySynth;
+            } as unknown as Tone.Synth;
             samplerCache.set(instrument, mockSampler);
             return resolve(mockSampler);
         }
 
         try {
-            let newInstrument: Tone.PolySynth | Tone.Synth | Tone.PluckSynth;
+            let newInstrument: Tone.Synth | Tone.PluckSynth;
 
             if (instrument === 'drums') {
                 // The DrumKit component handles its own synths, so we provide a mock-like object.
@@ -50,7 +50,6 @@ export const getSampler = (instrument: Instrument): Promise<Tone.PolySynth | Ton
                     dispose: () => {},
                     disposed: false,
                 } as unknown as Tone.Synth;
-                // Since this is not a PolySynth, we'll cast to any to satisfy the cache type
                 samplerCache.set(instrument, mockSynth as any);
                 loadingPromises.delete(instrument);
                 return resolve(mockSynth);
