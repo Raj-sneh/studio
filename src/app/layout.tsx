@@ -5,6 +5,7 @@ import { FirebaseClientProvider } from '@/firebase';
 import { AppStateProvider } from '@/app/app-state-provider';
 import { cn } from '@/lib/utils';
 import type { Metadata } from 'next';
+import Header from "@/components/Header";
 
 const fontHeadline = Poppins({
   subsets: ['latin'],
@@ -36,7 +37,10 @@ export default function RootLayout({
       <body className={cn("font-body antialiased min-h-screen bg-background", fontHeadline.variable, fontBody.variable)}>
         <FirebaseClientProvider>
           <AppStateProvider>
-            {children}
+            <div className="flex flex-col min-h-screen">
+              <Header />
+              <main className="flex-1 container mx-auto px-4 py-8">{children}</main>
+            </div>
           </AppStateProvider>
         </FirebaseClientProvider>
         <Toaster />

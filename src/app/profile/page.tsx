@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -9,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User as UserIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import { useFirebase } from '@/firebase/provider';
 
 function ProfileSkeleton() {
   return (
