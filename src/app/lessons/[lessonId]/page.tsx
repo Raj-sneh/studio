@@ -134,63 +134,63 @@ export default function LessonPage() {
     let needsDisposal = false;
 
     try {
-        if (lesson.instrument === 'piano') {
-            if (!playbackSamplerRef.current || playbackSamplerRef.current.disposed) {
-                toast({ title: "Piano sampler not ready", description: "Please wait a moment for the piano sounds to load." });
-                return;
-            }
-            synth = playbackSamplerRef.current;
-        } else {
-            // Use PolySynth for guitar and drums to handle chords/simultaneous notes
-            if (lesson.instrument === 'guitar') {
-                synth = new Tone.PolySynth(Tone.PluckSynth).toDestination();
-            } else { // drums
-                synth = new Tone.PolySynth(Tone.MembraneSynth).toDestination();
-            }
-            needsDisposal = true;
+      if (lesson.instrument === 'piano') {
+        if (!playbackSamplerRef.current || playbackSamplerRef.current.disposed) {
+            toast({ title: "Piano sampler not ready", description: "Please wait a moment for the piano sounds to load." });
+            return;
         }
+        synth = playbackSamplerRef.current;
+      } else {
+        // Use PolySynth for guitar and drums to handle chords/simultaneous notes
+        needsDisposal = true;
+        if (lesson.instrument === 'guitar') {
+          synth = new Tone.PolySynth(Tone.PluckSynth).toDestination();
+        } else { // drums
+          synth = new Tone.PolySynth(Tone.MembraneSynth).toDestination();
+        }
+      }
 
-        const events = lesson.notes.flatMap(note => {
-            const keys = Array.isArray(note.key) ? note.key : [note.key];
-            return keys.map(k => ({ time: note.time, key: k, duration: note.duration }));
-        });
+      const events = lesson.notes.flatMap(note => {
+          const keys = Array.isArray(note.key) ? note.key : [note.key];
+          return keys.map(k => ({ time: note.time, key: k, duration: note.duration }));
+      });
 
-        partRef.current = new Tone.Part((time, event) => {
-            if (synth && 'triggerAttackRelease' in synth && !synth.disposed) {
-              synth.triggerAttackRelease(event.key, event.duration, time);
-            }
-            
-            const keysToHighlight = Array.isArray(event.key) ? event.key : [event.key];
-            
-            Tone.Draw.schedule(() => {
-                setHighlightedKeys(current => [...current, ...keysToHighlight]);
-            }, time);
-            
-            const releaseTime = time + Tone.Time(event.duration).toSeconds() * 0.9;
-            Tone.Draw.schedule(() => {
-                setHighlightedKeys(currentKeys => currentKeys.filter(k => !keysToHighlight.includes(k)));
-            }, releaseTime);
-
-        }, events).start(0);
-
-        let maxTime = 0;
-        lesson.notes.forEach(note => {
-            const endTime = Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds();
-            if (endTime > maxTime) {
-                maxTime = endTime;
-            }
-        });
-        
-        Tone.Transport.bpm.value = lesson.tempo;
-        Tone.Transport.start();
-
-        Tone.Transport.scheduleOnce(() => {
-          setMode('idle');
-          setHighlightedKeys([]);
-          if (needsDisposal && synth) {
-              synth.dispose();
+      partRef.current = new Tone.Part((time, event) => {
+          if (synth && 'triggerAttackRelease' in synth && !synth.disposed) {
+            synth.triggerAttackRelease(event.key, event.duration, time);
           }
-        }, maxTime + 0.5);
+          
+          const keysToHighlight = Array.isArray(event.key) ? event.key : [event.key];
+          
+          Tone.Draw.schedule(() => {
+              setHighlightedKeys(current => [...current, ...keysToHighlight]);
+          }, time);
+          
+          const releaseTime = time + Tone.Time(event.duration).toSeconds() * 0.9;
+          Tone.Draw.schedule(() => {
+              setHighlightedKeys(currentKeys => currentKeys.filter(k => !keysToHighlight.includes(k)));
+          }, releaseTime);
+
+      }, events).start(0);
+
+      let maxTime = 0;
+      lesson.notes.forEach(note => {
+          const endTime = Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds();
+          if (endTime > maxTime) {
+              maxTime = endTime;
+          }
+      });
+      
+      Tone.Transport.bpm.value = lesson.tempo;
+      Tone.Transport.start();
+
+      Tone.Transport.scheduleOnce(() => {
+        setMode('idle');
+        setHighlightedKeys([]);
+        if (needsDisposal && synth) {
+            synth.dispose();
+        }
+      }, maxTime + 0.5);
     } catch (error) {
         console.error("Error during demo playback:", error);
         toast({ title: "Playback Error", description: "Could not play the demo.", variant: "destructive" });
@@ -398,7 +398,7 @@ export default function LessonPage() {
             <DialogDescription>
               Why are you reporting this lesson? Your feedback helps us keep the community safe.
             </DialogDescription>
-          </Header>
+          </DialogHeader>
           <div className="space-y-2">
             <Button variant="outline" className="w-full justify-start" onClick={() => handleReport('Inappropriate Content')}>Inappropriate Content</Button>
             <Button variant="outline" className="w-full justify-start" onClick={() => handleReport('Incorrect Notes')}>Notes are Incorrect</Button>
