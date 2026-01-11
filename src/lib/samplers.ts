@@ -35,21 +35,21 @@ const samplerUrls: Record<string, Record<string, string>> = {
         'G#3': 'Gs3.mp3'
     },
     drums: {
-        'C#4': 'crash.mp3',
-        'E4': 'ride.mp3',
-        'F#3': 'hihat.mp3',
-        'G3': 'tom1.mp3',
-        'F3': 'tom2.mp3',
-        'B2': 'tom3.mp3',
-        'C3': 'kick.mp3',
-        'D3': 'snare.mp3',
+        'C#4': 'A1.mp3',
+        'E4': 'A2.mp3',
+        'F#3': 'A3.mp3',
+        'G3': 'A4.mp3',
+        'F3': 'A5.mp3',
+        'B2': 'A6.mp3',
+        'C3': 'C2.mp3',
+        'D3': 'C3.mp3',
     }
 };
 
 const baseUrlMap: Record<string, string> = {
     piano: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_grand_piano-mp3/',
     guitar: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_guitar_nylon-mp3/',
-    drums: `https://storage.googleapis.com/${firebaseConfig.projectId}.appspot.com/samples/drums/`,
+    drums: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_grand_piano-mp3/',
 }
 
 /**
