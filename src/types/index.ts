@@ -1,6 +1,6 @@
 
 export type Note = {
-  key: string; // e.g., 'C4'
+  key: string | string[]; // e.g., 'C4' or ['C4', 'E4', 'G4'] for a chord
   duration: string; // Tone.js duration, e.g., '8n', '4n'
   time: string; // Tone.js time, e.g. '0:0:1'
 };

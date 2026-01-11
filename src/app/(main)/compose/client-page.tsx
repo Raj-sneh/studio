@@ -37,7 +37,7 @@ export default function ComposePage() {
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
   const [isInstrumentReady, setIsInstrumentReady] = useState(false);
   
-  const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
+  const samplerRef = useRef<Tone.Sampler | Tone.Synth | Tone.PluckSynth | null>(null);
   const scheduledEventsRef = useRef<number[]>([]);
 
   const stopPlayback = useCallback(() => {
@@ -147,13 +147,15 @@ export default function ComposePage() {
                 sampler.triggerAttackRelease(note.key, duration, time);
             }
             
+            const keysToHighlight = Array.isArray(note.key) ? note.key : [note.key];
+            
             Tone.Draw.schedule(() => {
-                setHighlightedKeys(current => [...current, note.key]);
+                setHighlightedKeys(current => [...current, ...keysToHighlight]);
             }, time);
             
             const releaseTime = time + duration * 0.95;
             Tone.Draw.schedule(() => {
-                setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
+                setHighlightedKeys(currentKeys => currentKeys.filter(k => !keysToHighlight.includes(k)));
             }, releaseTime);
         }, note.time);
         scheduledEventsRef.current.push(eventId);

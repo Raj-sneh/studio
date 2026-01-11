@@ -27,6 +27,7 @@ const Guitar = lazy(() => import('@/components/Guitar'));
 const instrumentComponents: Record<Instrument, React.ElementType> = {
     piano: Piano,
     guitar: Guitar,
+    drums: lazy(() => import('@/components/DrumKit')),
 };
 
 type Mode = 'idle' | 'demo' | 'playing' | 'listening' | 'analyzing' | 'feedback';
@@ -58,7 +59,7 @@ export default function LessonPage() {
   const [isReportMenuOpen, setIsReportMenuOpen] = useState(false);
   const [micPermissionError, setMicPermissionError] = useState(false);
   
-  const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
+  const samplerRef = useRef<Tone.Sampler | Tone.Synth | Tone.PluckSynth | null>(null);
   const scheduledEventsRef = useRef<number[]>([]);
 
   useEffect(() => {
@@ -81,6 +82,10 @@ export default function LessonPage() {
     setHighlightedKeys([]);
     if (isRecording) {
       stopRecording();
+    }
+    // Also release any held notes on the sampler
+    if(samplerRef.current && 'releaseAll' in samplerRef.current) {
+        samplerRef.current.releaseAll();
     }
   }, [isRecording, stopRecording]);
 
@@ -114,7 +119,6 @@ export default function LessonPage() {
     await Tone.start();
     
     const sampler = samplerRef.current;
-    
     let maxTime = 0;
 
     lesson.notes.forEach(note => {
@@ -127,16 +131,19 @@ export default function LessonPage() {
 
         const eventId = Tone.Transport.scheduleOnce(time => {
             if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
+                // `key` can be a string or an array of strings (for chords)
                 sampler.triggerAttackRelease(note.key, duration, time);
             }
             
+            const keysToHighlight = Array.isArray(note.key) ? note.key : [note.key];
+
             Tone.Draw.schedule(() => {
-                setHighlightedKeys(current => [...current, note.key]);
+                setHighlightedKeys(current => [...current, ...keysToHighlight]);
             }, time);
             
             const releaseTime = time + duration * 0.9;
             Tone.Draw.schedule(() => {
-                setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
+                setHighlightedKeys(currentKeys => currentKeys.filter(k => !keysToHighlight.includes(k)));
             }, releaseTime);
         }, note.time);
         scheduledEventsRef.current.push(eventId);
@@ -227,7 +234,7 @@ export default function LessonPage() {
 
             const result = await analyzeUserPerformance({
                 lessonNotes: lesson.notes,
-                userNotes: transcriptionResult.notes,
+                userNotes: transcriptionResult.notes.map(n => ({...n, time: `0:0:${n.time}`})),
             });
             setFeedback(result);
             setMode('feedback');
@@ -297,7 +304,7 @@ export default function LessonPage() {
   };
 
   const InstrumentComponent = instrumentComponents[lesson.instrument] || null;
-  const isUIDisabled = mode !== 'idle' || !isInstrumentReady;
+  const isUIDisabled = mode !== 'idle' && mode !== 'playing' || !isInstrumentReady;
   
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
