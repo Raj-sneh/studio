@@ -38,7 +38,21 @@ export default function ComposePage() {
   const [isInstrumentReady, setIsInstrumentReady] = useState(false);
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
-  const partRef = useRef<Tone.Part | null>(null);
+  const scheduledEventsRef = useRef<number[]>([]);
+
+  const stopPlayback = useCallback(() => {
+    if (Tone.Transport.state === 'started') {
+        Tone.Transport.stop();
+        Tone.Transport.cancel();
+    }
+    scheduledEventsRef.current.forEach(id => Tone.Transport.clear(id));
+    scheduledEventsRef.current = [];
+    setHighlightedKeys([]);
+    if(samplerRef.current && 'releaseAll' in samplerRef.current) {
+        samplerRef.current.releaseAll();
+    }
+    setMode("idle");
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -65,13 +79,9 @@ export default function ComposePage() {
 
     return () => {
       active = false;
-      partRef.current?.dispose();
-      if (Tone.Transport.state === 'started') {
-        Tone.Transport.stop();
-        Tone.Transport.cancel();
-      }
+      stopPlayback();
     };
-  }, [toast]);
+  }, [toast, stopPlayback]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -117,65 +127,47 @@ export default function ComposePage() {
     if (!samplerRef.current || generatedNotes.length === 0 || samplerRef.current.disposed) {
       return;
     }
+    stopPlayback();
     setMode('playing');
-    
-    if (Tone.Transport.state === 'started') {
-        Tone.Transport.stop();
-        Tone.Transport.cancel();
-    }
-    partRef.current?.dispose();
-    setHighlightedKeys([]);
     
     const sampler = samplerRef.current;
     
-    const noteEvents = generatedNotes.map(note => ({
-        time: note.time,
-        note: note.key,
-        duration: note.duration,
-    }));
-    
-    partRef.current = new Tone.Part((time, event) => {
-      if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
-        sampler.triggerAttackRelease(event.note, event.duration, time);
-      }
-      
-      Tone.Draw.schedule(() => {
-        setHighlightedKeys(current => [...current, event.note]);
-      }, time);
+    let maxTime = 0;
 
-      const releaseTime = time + Tone.Time(event.duration).toSeconds() * 0.95;
-      Tone.Draw.schedule(() => {
-        setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== event.note));
-      }, releaseTime);
+    generatedNotes.forEach(note => {
+        const startTime = Tone.Time(note.time).toSeconds();
+        const duration = Tone.Time(note.duration).toSeconds();
+        const endTime = startTime + duration;
+        if (endTime > maxTime) {
+            maxTime = endTime;
+        }
 
-    }, noteEvents).start(0);
-
-    const totalDuration = noteEvents.reduce((max, note) => {
-        const endTime = Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds();
-        return Math.max(max, endTime);
-    }, 0);
+        const eventId = Tone.Transport.scheduleOnce(time => {
+            if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
+                sampler.triggerAttackRelease(note.key, duration, time);
+            }
+            
+            Tone.Draw.schedule(() => {
+                setHighlightedKeys(current => [...current, note.key]);
+            }, time);
+            
+            const releaseTime = time + duration * 0.95;
+            Tone.Draw.schedule(() => {
+                setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
+            }, releaseTime);
+        }, note.time);
+        scheduledEventsRef.current.push(eventId);
+    });
     
     Tone.Transport.start();
 
-    Tone.Transport.scheduleOnce(() => {
+    const endEventId = Tone.Transport.scheduleOnce(() => {
         setMode('idle');
         setHighlightedKeys([]);
-    }, totalDuration + 0.2);
+    }, maxTime + 0.2);
+    scheduledEventsRef.current.push(endEventId);
     
-  }, [generatedNotes]);
-
-  const stopPlayback = () => {
-    setHighlightedKeys([]);
-    if (Tone.Transport.state === 'started') {
-        Tone.Transport.stop();
-        Tone.Transport.cancel();
-    }
-    partRef.current?.dispose();
-    if(samplerRef.current && 'releaseAll' in samplerRef.current) {
-        samplerRef.current.releaseAll();
-    }
-    setMode("idle");
-  };
+  }, [generatedNotes, stopPlayback]);
   
   const isUIReady = isInstrumentReady && mode !== 'generating';
 

@@ -59,7 +59,7 @@ export default function LessonPage() {
   const [micPermissionError, setMicPermissionError] = useState(false);
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
-  const partRef = useRef<Tone.Part | null>(null);
+  const scheduledEventsRef = useRef<number[]>([]);
 
   useEffect(() => {
     const lessonId = params.lessonId as string;
@@ -73,10 +73,11 @@ export default function LessonPage() {
 
   const stopAllActivity = useCallback(() => {
     if (Tone.Transport.state === 'started') {
-      Tone.Transport.stop();
-      Tone.Transport.cancel(0);
+        Tone.Transport.stop();
+        Tone.Transport.cancel();
     }
-    partRef.current?.dispose();
+    scheduledEventsRef.current.forEach(id => Tone.Transport.clear(id));
+    scheduledEventsRef.current = [];
     setHighlightedKeys([]);
     if (isRecording) {
       stopRecording();
@@ -114,37 +115,42 @@ export default function LessonPage() {
     
     const sampler = samplerRef.current;
     
-    const noteEvents = lesson.notes.map(note => ({
-      time: note.time,
-      note: note.key,
-      duration: note.duration,
-    }));
+    let maxTime = 0;
 
-    partRef.current = new Tone.Part((time, event) => {
-      if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
-        sampler.triggerAttackRelease(event.note, event.duration, time);
-      }
-      Tone.Draw.schedule(() => {
-        setHighlightedKeys(current => [...current, event.note]);
-      }, time);
-      const releaseTime = time + Tone.Time(event.duration).toSeconds() * 0.9;
-      Tone.Draw.schedule(() => {
-        setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== event.note));
-      }, releaseTime);
-    }, noteEvents).start(0);
+    lesson.notes.forEach(note => {
+        const startTime = Tone.Time(note.time).toSeconds();
+        const duration = Tone.Time(note.duration).toSeconds();
+        const endTime = startTime + duration;
+        if (endTime > maxTime) {
+            maxTime = endTime;
+        }
+
+        const eventId = Tone.Transport.scheduleOnce(time => {
+            if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
+                sampler.triggerAttackRelease(note.key, duration, time);
+            }
+            
+            Tone.Draw.schedule(() => {
+                setHighlightedKeys(current => [...current, note.key]);
+            }, time);
+            
+            const releaseTime = time + duration * 0.9;
+            Tone.Draw.schedule(() => {
+                setHighlightedKeys(currentKeys => currentKeys.filter(k => k !== note.key));
+            }, releaseTime);
+        }, note.time);
+        scheduledEventsRef.current.push(eventId);
+    });
 
     Tone.Transport.bpm.value = lesson.tempo;
     Tone.Transport.start();
 
-    const totalDuration = lesson.notes.reduce((max, note) => {
-        const endTime = Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds();
-        return Math.max(max, endTime);
-    }, 0);
-
-    Tone.Transport.scheduleOnce(() => {
+    const endEventId = Tone.Transport.scheduleOnce(() => {
       setMode('idle');
       setHighlightedKeys([]);
-    }, `+${totalDuration + 0.5}`);
+    }, maxTime + 0.5);
+    scheduledEventsRef.current.push(endEventId);
+
   }, [isInstrumentReady, lesson, stopAllActivity]);
 
 
