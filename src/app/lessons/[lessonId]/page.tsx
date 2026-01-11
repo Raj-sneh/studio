@@ -139,12 +139,11 @@ export default function LessonPage() {
     if (lesson.instrument === 'piano') {
         synth = playbackSamplerRef.current!;
     } else {
-        // Use PolySynth for guitar and drums to handle chords/simultaneous notes
-        if (lesson.instrument === 'guitar') {
-            synth = new Tone.PolySynth(Tone.PluckSynth).toDestination();
-        } else { // drums
-            synth = new Tone.PolySynth(Tone.MembraneSynth).toDestination();
-        }
+      if (lesson.instrument === 'guitar') {
+        synth = new Tone.PolySynth(Tone.PluckSynth).toDestination();
+      } else { // drums
+        synth = new Tone.PolySynth(Tone.MembraneSynth).toDestination();
+      }
     }
 
     const events = lesson.notes.flatMap(note => {
@@ -395,5 +394,3 @@ export default function LessonPage() {
     </div>
   );
 }
-
-    
