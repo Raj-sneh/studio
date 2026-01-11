@@ -141,12 +141,12 @@ export default function LessonPage() {
         }
         synth = playbackSamplerRef.current;
       } else {
-        // Use PolySynth for guitar and drums to handle chords/simultaneous notes
         needsDisposal = true;
+        // Use PolySynth for guitar and drums to handle chords/simultaneous notes
         if (lesson.instrument === 'guitar') {
-          synth = new Tone.PolySynth(Tone.PluckSynth).toDestination();
+            synth = new Tone.PolySynth(Tone.PluckSynth).toDestination();
         } else { // drums
-          synth = new Tone.PolySynth(Tone.MembraneSynth).toDestination();
+            synth = new Tone.PolySynth(Tone.MembraneSynth).toDestination();
         }
       }
 
@@ -413,3 +413,5 @@ export default function LessonPage() {
     </div>
   );
 }
+
+    
