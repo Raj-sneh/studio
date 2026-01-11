@@ -79,12 +79,9 @@ export default function LessonPage() {
     setIsInstrumentReady(false); 
     stopAllActivity();
     
-    // This loads the high-quality sampler for piano demos.
-    // Other instruments use synths created on-the-fly for demos.
     const loadSampler = async () => {
         if (lesson.instrument === 'piano') {
              try {
-                // Dispose of previous sampler if it exists
                 playbackSamplerRef.current?.dispose();
 
                 const sampler = new Tone.Sampler({
@@ -213,9 +210,8 @@ export default function LessonPage() {
     }));
 
     userPlayedNotes.forEach(playedNote => {
-        // Find the closest lesson note in time
         const closestLessonNote = lessonNoteEvents.reduce((closest, current) => {
-            const playedTime = playedNote.time as number; // time is already a number here
+            const playedTime = parseFloat(playedNote.time as string);
             const timeDiff = Math.abs(playedTime - current.time);
             if (timeDiff < closest.diff) {
                 return { diff: timeDiff, note: current };
@@ -384,7 +380,7 @@ export default function LessonPage() {
             <DialogDescription>
               Why are you reporting this lesson? Your feedback helps us keep the community safe.
             </DialogDescription>
-          </DialogHeader>
+          </Header>
           <div className="space-y-2">
             <Button variant="outline" className="w-full justify-start" onClick={() => handleReport('Inappropriate Content')}>Inappropriate Content</Button>
             <Button variant="outline" className="w-full justify-start" onClick={() => handleReport('Incorrect Notes')}>Notes are Incorrect</Button>
@@ -399,3 +395,5 @@ export default function LessonPage() {
     </div>
   );
 }
+
+    
