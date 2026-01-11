@@ -84,22 +84,22 @@ export default function DrumKit({ onNotePlay, disabled = false }: DrumKitProps) 
   }
 
   return (
-    <div className="w-full max-w-md mx-auto p-2 select-none">
-        <div className="grid grid-cols-4 gap-2">
+    <div className="w-full max-w-[280px] mx-auto p-1 select-none">
+        <div className="grid grid-cols-4 gap-1.5">
             {drumPads.map(({ note, name, key, Icon, style }) => (
                 <button
                     key={note}
                     onClick={() => playNote(note)}
                     disabled={disabled || isLoading}
                     className={cn(
-                        "relative flex flex-col items-center justify-center aspect-square rounded-lg border-2 bg-card text-card-foreground shadow-md transition-all duration-100 ease-in-out hover:bg-accent hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed",
+                        "relative flex flex-col items-center justify-center aspect-square rounded-md border-2 bg-card text-card-foreground shadow-sm transition-all duration-100 ease-in-out hover:bg-accent hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed",
                         pressedPad === note ? 'bg-primary border-primary-foreground scale-95' : 'border-border',
                         style
                     )}
                 >
-                    <Icon className="h-5 w-5" />
-                    <span className="text-[10px] font-semibold mt-1">{name}</span>
-                    <kbd className="absolute bottom-1 right-1 text-[9px] font-mono bg-muted text-muted-foreground rounded px-1 py-0.5">{key.toUpperCase()}</kbd>
+                    <Icon className="h-4 w-4" />
+                    <span className="text-[8px] font-semibold mt-0.5">{name}</span>
+                    <kbd className="absolute bottom-0.5 right-0.5 text-[8px] font-mono bg-muted text-muted-foreground rounded px-0.5 py-0.25">{key.toUpperCase()}</kbd>
                 </button>
             ))}
         </div>

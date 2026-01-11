@@ -37,7 +37,7 @@ const samplerUrls: Record<string, Record<string, string>> = {
     drums: {
         'C#2': 'crash.mp3',
         'E2': 'ride.mp3',
-        'F#1': 'hihat-closed.mp3',
+        'F#1': 'hihat.mp3',
         'G1': 'tom1.mp3',
         'F1': 'tom2.mp3',
         'B0': 'tom3.mp3',
@@ -49,7 +49,7 @@ const samplerUrls: Record<string, Record<string, string>> = {
 const baseUrlMap: Record<string, string> = {
     piano: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_grand_piano-mp3/',
     guitar: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_guitar_nylon-mp3/',
-    drums: 'https://unpkg.com/@tonejs/examples@0.1.2/audio/salamander/',
+    drums: `https://storage.googleapis.com/${firebaseConfig.projectId}.appspot.com/samples/drums/`,
 }
 
 /**
