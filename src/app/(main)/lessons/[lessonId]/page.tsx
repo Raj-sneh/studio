@@ -10,7 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, Play, Square, Mic, Music, AlertCircle, Info, ChevronLeft, User, Bot } from 'lucide-react';
+import { Loader2, Play, Square, Mic, Music, AlertCircle, Info, ChevronLeft, User, Bot, MicOff } from 'lucide-react';
 import { LESSONS } from '@/lib/lessons';
 import type { Note, Instrument } from '@/types';
 import { getSampler } from '@/lib/samplers';
@@ -56,6 +56,7 @@ export default function LessonPage() {
   const [userPlayedNotes, setUserPlayedNotes] = useState<Note[]>([]);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [isReportMenuOpen, setIsReportMenuOpen] = useState(false);
+  const [micPermissionError, setMicPermissionError] = useState(false);
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
@@ -182,11 +183,12 @@ export default function LessonPage() {
   const startListening = async () => {
     try {
         stopAllActivity();
+        setMicPermissionError(false);
         setUserPlayedNotes([]);
         await startRecording();
         setMode('listening');
     } catch (error) {
-        // Errors are already toasted in the hook
+        setMicPermissionError(true);
         setMode('idle');
     }
   };
@@ -351,7 +353,7 @@ export default function LessonPage() {
                         Use your microphone to play along.
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     {mode !== 'listening' ? (
                         <Button onClick={startListening} disabled={isUIDisabled} className="w-full" variant="outline">
                             <Mic className="mr-2"/>
@@ -362,6 +364,15 @@ export default function LessonPage() {
                             <Square className="mr-2"/>
                             Stop & Analyze
                         </Button>
+                    )}
+                    {micPermissionError && (
+                        <Alert variant="destructive" className="mt-4">
+                            <MicOff className="h-4 w-4" />
+                            <AlertTitle>Microphone Access Denied</AlertTitle>
+                            <AlertDescription>
+                                Please enable microphone permissions in your browser settings to use this feature.
+                            </AlertDescription>
+                        </Alert>
                     )}
                 </CardContent>
             </Card>

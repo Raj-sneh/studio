@@ -38,11 +38,8 @@ export function useAudioRecorder() {
       setIsRecording(true);
     } catch (error) {
       console.error('Error accessing microphone:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Microphone Access Denied',
-        description: 'Please enable microphone permissions in your browser settings.',
-      });
+      // We will throw the error and let the component handle the UI update.
+      // The toast is now redundant as the component will show a persistent Alert.
       throw error;
     }
   }, [isRecording, toast]);
