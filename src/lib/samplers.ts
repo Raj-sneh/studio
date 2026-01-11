@@ -32,7 +32,7 @@ const samplerUrls: Record<string, Record<string, string>> = {
         'F3': 'tom2.mp3',      // Tom 2 (Mid)
         'B2': 'tom3.mp3',      // Tom 3 (Low)
         'D#3': 'clap.mp3',    // Clap
-        'G#2': 'cowbell.mp3', // Cowbell
+        'G#2': 'cowbell.wav', // Cowbell
         'A2': 'perc.mp3',      // Perc
     }
 };
