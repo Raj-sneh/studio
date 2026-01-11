@@ -41,7 +41,7 @@ export const getSampler = (instrument: Instrument): Promise<Tone.PolySynth | Ton
         }
 
         try {
-            let newInstrument: Tone.PolySynth;
+            let newInstrument: Tone.PolySynth | Tone.Synth | Tone.PluckSynth;
 
             if (instrument === 'drums') {
                 // The DrumKit component handles its own synths, so we provide a mock-like object.
