@@ -60,6 +60,9 @@ export default function Piano({
         if (!sampler || disabled || isLoading || sampler.disposed) return;
         const fullNote = `${note}${octave}`;
         
+        // Add a check to ensure fullNote is valid before proceeding
+        if (!fullNote || !note || !octave) return;
+        
         setPressedKeys(prev => {
             if (prev.has(fullNote)) {
                 if ('triggerRelease' in sampler) {
