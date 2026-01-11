@@ -10,7 +10,9 @@ const ConversationalOutputSchema = z.string();
 export async function conversationalFlow(
   prompt: z.infer<typeof ConversationalInputSchema>
 ): Promise<z.infer<typeof ConversationalOutputSchema>> {
-  if (prompt.toLowerCase().includes('who is you developer')) {
+  const lowerCasePrompt = prompt.toLowerCase();
+  
+  if (lowerCasePrompt.includes('who is your developer') || lowerCasePrompt.includes('who made you') || lowerCasePrompt.includes('developer')) {
     return 'Sneh Kumar Verma';
   }
   
