@@ -33,7 +33,6 @@ export default function Piano({
     const [isLoading, setIsLoading] = useState(true);
     const [currentOctave, setCurrentOctave] = useState(3);
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
-    const [activeMouseNote, setActiveMouseNote] = useState<string | null>(null);
 
     useEffect(() => {
         getSampler('piano').then(loadedSampler => {
@@ -45,8 +44,8 @@ export default function Piano({
         }
     }, []);
 
-    const playNote = useCallback(async (fullNote: string | null) => {
-        if (!fullNote || !samplerRef.current || disabled || isLoading || samplerRef.current.disposed) return;
+    const playNote = useCallback(async (fullNote: string) => {
+        if (!samplerRef.current || disabled || isLoading || samplerRef.current.disposed) return;
         
         if (Tone.context.state !== 'running') {
             await Tone.start();
@@ -61,20 +60,17 @@ export default function Piano({
     }, [disabled, onNotePlay, isLoading]);
 
     const stopNote = useCallback((fullNote: string | null) => {
-        if (!fullNote || !samplerRef.current || samplerRef.current.disposed) return;
+        if (!fullNote || !samplerRef.current || samplerRef.current.disposed || !pressedKeys.has(fullNote)) return;
 
         setPressedKeys(prev => {
-            if (prev.has(fullNote)) {
-                if ('triggerRelease' in samplerRef.current!) {
-                    samplerRef.current.triggerRelease(fullNote);
-                }
-                const newSet = new Set(prev);
-                newSet.delete(fullNote);
-                return newSet;
+            if ('triggerRelease' in samplerRef.current!) {
+                samplerRef.current.triggerRelease(fullNote);
             }
-            return prev;
+            const newSet = new Set(prev);
+            newSet.delete(fullNote);
+            return newSet;
         });
-    }, [disabled, isLoading]);
+    }, [pressedKeys]);
     
     useEffect(() => {
         const getNoteFromKey = (key: string) => {
@@ -93,7 +89,7 @@ export default function Piano({
             if (disabled || event.repeat || isLoading) return;
             
             const fullNote = getNoteFromKey(event.key);
-            if (fullNote) {
+            if (fullNote && !pressedKeys.has(fullNote)) {
                 playNote(fullNote);
             }
 
@@ -116,21 +112,7 @@ export default function Piano({
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [playNote, stopNote, currentOctave, disabled, isLoading]);
-
-    const handleMouseUp = () => {
-        if (activeMouseNote) {
-            stopNote(activeMouseNote);
-            setActiveMouseNote(null);
-        }
-    };
-    
-    const handleMouseLeave = () => {
-        if (activeMouseNote) {
-            stopNote(activeMouseNote);
-            setActiveMouseNote(null);
-        }
-    };
+    }, [playNote, stopNote, currentOctave, disabled, isLoading, pressedKeys]);
 
     const changeOctave = (direction: number) => {
         setCurrentOctave(prev => Math.max(1, Math.min(6, prev + direction)));
@@ -151,11 +133,7 @@ export default function Piano({
     return (
         <div className="w-full space-y-4">
             <div className="flex p-4 bg-card rounded-lg shadow-inner overflow-x-auto">
-                <div 
-                  className="flex relative select-none"
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseLeave}
-                >
+                <div className="flex relative select-none">
                     {pianoKeys.map(({ note, octave }) => {
                         const isBlack = note.includes("#");
                         const fullNote = `${note}${octave}`;
@@ -163,10 +141,9 @@ export default function Piano({
                         return (
                             <div
                                 key={fullNote}
-                                onMouseDown={() => {
-                                    playNote(fullNote);
-                                    setActiveMouseNote(fullNote);
-                                }}
+                                onMouseDown={() => playNote(fullNote)}
+                                onMouseUp={() => stopNote(fullNote)}
+                                onMouseLeave={() => stopNote(fullNote)}
                                 onTouchStart={(e) => { e.preventDefault(); playNote(fullNote); }}
                                 onTouchEnd={(e) => { e.preventDefault(); stopNote(fullNote); }}
                                 className={cn(
