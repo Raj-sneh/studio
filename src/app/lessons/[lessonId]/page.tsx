@@ -124,72 +124,82 @@ export default function LessonPage() {
         toast({ title: "Demo instrument not ready", description: "Please wait a moment for the sounds to load."});
         return;
     }
-     if (lesson.instrument === 'piano' && (!playbackSamplerRef.current || playbackSamplerRef.current.disposed)) {
-        toast({ title: "Piano sampler not ready", description: "Please wait a moment for the piano sounds to load."});
-        return;
-    }
     
     stopAllActivity();
     setMode('demo');
     setUserPlayedNotes([]);
     await Tone.start();
     
-    let synth: Tone.Sampler | Tone.PolySynth;
+    let synth: Tone.Sampler | Tone.PolySynth | null = null;
+    let needsDisposal = false;
 
-    if (lesson.instrument === 'piano') {
-        synth = playbackSamplerRef.current!;
-    } else {
-        // Use PolySynth for guitar and drums to handle chords/simultaneous notes
-        if (lesson.instrument === 'guitar') {
-            synth = new Tone.PolySynth(Tone.PluckSynth).toDestination();
-        } else { // drums
-            synth = new Tone.PolySynth(Tone.MembraneSynth).toDestination();
+    try {
+        if (lesson.instrument === 'piano') {
+            if (!playbackSamplerRef.current || playbackSamplerRef.current.disposed) {
+                toast({ title: "Piano sampler not ready", description: "Please wait a moment for the piano sounds to load." });
+                return;
+            }
+            synth = playbackSamplerRef.current;
+        } else {
+            // Use PolySynth for guitar and drums to handle chords/simultaneous notes
+            if (lesson.instrument === 'guitar') {
+                synth = new Tone.PolySynth(Tone.PluckSynth).toDestination();
+            } else { // drums
+                synth = new Tone.PolySynth(Tone.MembraneSynth).toDestination();
+            }
+            needsDisposal = true;
+        }
+
+        const events = lesson.notes.flatMap(note => {
+            const keys = Array.isArray(note.key) ? note.key : [note.key];
+            return keys.map(k => ({ time: note.time, key: k, duration: note.duration }));
+        });
+
+        partRef.current = new Tone.Part((time, event) => {
+            if (synth && 'triggerAttackRelease' in synth && !synth.disposed) {
+              synth.triggerAttackRelease(event.key, event.duration, time);
+            }
+            
+            const keysToHighlight = Array.isArray(event.key) ? event.key : [event.key];
+            
+            Tone.Draw.schedule(() => {
+                setHighlightedKeys(current => [...current, ...keysToHighlight]);
+            }, time);
+            
+            const releaseTime = time + Tone.Time(event.duration).toSeconds() * 0.9;
+            Tone.Draw.schedule(() => {
+                setHighlightedKeys(currentKeys => currentKeys.filter(k => !keysToHighlight.includes(k)));
+            }, releaseTime);
+
+        }, events).start(0);
+
+        let maxTime = 0;
+        lesson.notes.forEach(note => {
+            const endTime = Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds();
+            if (endTime > maxTime) {
+                maxTime = endTime;
+            }
+        });
+        
+        Tone.Transport.bpm.value = lesson.tempo;
+        Tone.Transport.start();
+
+        Tone.Transport.scheduleOnce(() => {
+          setMode('idle');
+          setHighlightedKeys([]);
+          if (needsDisposal && synth) {
+              synth.dispose();
+          }
+        }, maxTime + 0.5);
+    } catch (error) {
+        console.error("Error during demo playback:", error);
+        toast({ title: "Playback Error", description: "Could not play the demo.", variant: "destructive" });
+        setMode('idle');
+        if (needsDisposal && synth) {
+            synth.dispose();
         }
     }
-
-    const events = lesson.notes.flatMap(note => {
-        return { time: note.time, key: note.key, duration: note.duration };
-    });
-
-    partRef.current = new Tone.Part((time, event) => {
-        if (synth && 'triggerAttackRelease' in synth && !synth.disposed) {
-          synth.triggerAttackRelease(event.key, event.duration, time);
-        }
-        
-        const keysToHighlight = Array.isArray(event.key) ? event.key : [event.key];
-        
-        Tone.Draw.schedule(() => {
-            setHighlightedKeys(current => [...current, ...keysToHighlight]);
-        }, time);
-        
-        const releaseTime = time + Tone.Time(event.duration).toSeconds() * 0.9;
-        Tone.Draw.schedule(() => {
-            setHighlightedKeys(currentKeys => currentKeys.filter(k => !keysToHighlight.includes(k)));
-        }, releaseTime);
-
-    }, events).start(0);
-
-    let maxTime = 0;
-    lesson.notes.forEach(note => {
-        const endTime = Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds();
-        if (endTime > maxTime) {
-            maxTime = endTime;
-        }
-    });
-    
-    Tone.Transport.bpm.value = lesson.tempo;
-    Tone.Transport.start();
-
-    Tone.Transport.scheduleOnce(() => {
-      setMode('idle');
-      setHighlightedKeys([]);
-      if (lesson.instrument !== 'piano' && synth) {
-          synth.dispose();
-      }
-    }, maxTime + 0.5);
-
   }, [isInstrumentReady, lesson, stopAllActivity, toast]);
-
 
   const startPractice = () => {
     stopAllActivity();
@@ -204,35 +214,44 @@ export default function LessonPage() {
     const timeTolerance = 0.5; // seconds
     let correctNoteCount = 0;
 
-    const lessonNoteEvents = lesson.notes.map(n => ({
-        key: n.key,
-        time: Tone.Time(n.time).toSeconds(),
+    const lessonNoteEvents = lesson.notes.flatMap(n => {
+        const keys = Array.isArray(n.key) ? n.key : [n.key];
+        return keys.map(k => ({
+            key: k,
+            time: Tone.Time(n.time).toSeconds(),
+        }));
+    });
+
+    const userNoteEvents = userPlayedNotes.map(p => ({
+        key: p.key,
+        time: parseFloat(p.time as string)
     }));
+    
+    let matchedUserNotes = new Set<number>();
 
-    userPlayedNotes.forEach(playedNote => {
-        const closestLessonNote = lessonNoteEvents.reduce((closest, current) => {
-            const playedTime = parseFloat(playedNote.time as string);
-            const timeDiff = Math.abs(playedTime - current.time);
-            if (timeDiff < closest.diff) {
-                return { diff: timeDiff, note: current };
-            }
-            return closest;
-        }, { diff: Infinity, note: null as (typeof lessonNoteEvents[0] | null) });
+    lessonNoteEvents.forEach(lessonNote => {
+        let closestUserNoteIndex = -1;
+        let minDiff = timeTolerance;
 
-        if (closestLessonNote.note && closestLessonNote.diff <= timeTolerance) {
-            const lessonNoteKey = closestLessonNote.note.key;
-            if (Array.isArray(lessonNoteKey)) {
-                if (lessonNoteKey.includes(playedNote.key as string)) {
-                    correctNoteCount++;
+        userNoteEvents.forEach((userNote, index) => {
+            if (matchedUserNotes.has(index)) return;
+
+            if (userNote.key === lessonNote.key) {
+                const timeDiff = Math.abs(userNote.time - lessonNote.time);
+                if (timeDiff < minDiff) {
+                    minDiff = timeDiff;
+                    closestUserNoteIndex = index;
                 }
-            } else if (playedNote.key === lessonNoteKey) {
-                correctNoteCount++;
             }
+        });
+
+        if (closestUserNoteIndex !== -1) {
+            correctNoteCount++;
+            matchedUserNotes.add(closestUserNoteIndex);
         }
     });
     
-    const totalLessonNotes = lesson.notes.reduce((acc, note) => acc + (Array.isArray(note.key) ? note.key.length : 1), 0);
-    const scorePercentage = (correctNoteCount / totalLessonNotes) * 100;
+    const scorePercentage = (correctNoteCount / lessonNoteEvents.length) * 100;
     
     return Math.min(100, Math.max(0, Math.round(scorePercentage)));
   }, [lesson.notes, userPlayedNotes]);
@@ -263,7 +282,6 @@ export default function LessonPage() {
     if (score >= 50) return "Good effort! Keep practicing the tricky parts.";
     return "Keep trying! Practice makes perfect.";
   };
-
   
   const renderStatus = () => {
     switch (mode) {
