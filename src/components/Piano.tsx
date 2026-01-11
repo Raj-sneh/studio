@@ -22,6 +22,11 @@ interface PianoProps {
     disabled?: boolean;
 }
 
+type ActiveNote = {
+    note: string;
+    octave: number;
+} | null;
+
 export default function Piano({
     octaves = 7,
     startOctave = 1,
@@ -33,6 +38,7 @@ export default function Piano({
     const [isLoading, setIsLoading] = useState(true);
     const [currentOctave, setCurrentOctave] = useState(3);
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
+    const [activeMouseNote, setActiveMouseNote] = useState<ActiveNote>(null);
 
     useEffect(() => {
         getSampler('piano').then(loadedSampler => {
@@ -56,8 +62,8 @@ export default function Piano({
         setPressedKeys(prev => new Set(prev).add(fullNote));
     }, [disabled, onNotePlay, sampler, isLoading]);
 
-    const stopNote = useCallback((note: string, octave: number) => {
-        if (!note || typeof octave === 'undefined' || !sampler || disabled || isLoading || sampler.disposed) {
+    const stopNote = useCallback((note: string | null, octave: number | null) => {
+        if (!note || typeof octave === 'undefined' || octave === null || !sampler || disabled || isLoading || sampler.disposed) {
             return;
         }
 
@@ -113,6 +119,20 @@ export default function Piano({
         };
     }, [playNote, stopNote, currentOctave, disabled, sampler, isLoading]);
 
+    const handleMouseUp = () => {
+        if(activeMouseNote) {
+            stopNote(activeMouseNote.note, activeMouseNote.octave);
+            setActiveMouseNote(null);
+        }
+    };
+    
+    const handleMouseLeave = () => {
+        if(activeMouseNote) {
+            stopNote(activeMouseNote.note, activeMouseNote.octave);
+            setActiveMouseNote(null);
+        }
+    };
+
     const changeOctave = (direction: number) => {
         setCurrentOctave(prev => Math.max(1, Math.min(6, prev + direction)));
     };
@@ -132,7 +152,11 @@ export default function Piano({
     return (
         <div className="w-full space-y-4">
             <div className="flex p-4 bg-card rounded-lg shadow-inner overflow-x-auto">
-                <div className="flex relative select-none">
+                <div 
+                  className="flex relative select-none"
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseLeave}
+                >
                     {pianoKeys.map(({ note, octave }) => {
                         const isBlack = note.includes("#");
                         const fullNote = `${note}${octave}`;
@@ -140,9 +164,10 @@ export default function Piano({
                         return (
                             <div
                                 key={`${note}${octave}`}
-                                onMouseDown={() => playNote(note, octave)}
-                                onMouseUp={() => stopNote(note, octave)}
-                                onMouseLeave={() => stopNote(note, octave)}
+                                onMouseDown={() => {
+                                    playNote(note, octave);
+                                    setActiveMouseNote({ note, octave });
+                                }}
                                 onTouchStart={(e) => { e.preventDefault(); playNote(note, octave); }}
                                 onTouchEnd={(e) => { e.preventDefault(); stopNote(note, octave); }}
                                 className={cn(
