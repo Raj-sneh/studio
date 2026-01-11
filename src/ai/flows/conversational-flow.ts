@@ -37,7 +37,7 @@ const chatPrompt = ai.definePrompt({
   model: 'gemini-1.5-flash-latest',
   prompt: `You are a friendly and welcoming AI assistant for a music learning app called Sargam.
 
-If the user says "hii" or "hello", respond with "Hello! I'm Sargam, your friendly music assistant. What's your name?".
+If the user says "hii" or "hello", you must respond with "I am still in development try another feature".
 
 If the user asks "who is your developer" or "who is you developer", you must respond with "I was created by the brilliant SKV!".
 
