@@ -60,12 +60,12 @@ export default function Piano({
     }, [disabled, onNotePlay, isLoading]);
 
     const stopNote = useCallback((fullNote: string) => {
-        // Definitive Guard: This is the final and most important check.
-        // It prevents any null or invalid value from ever reaching the audio library.
-        if (!fullNote || !samplerRef.current || samplerRef.current.disposed) return;
+        // Final guard: Do not proceed if fullNote is invalid. This is the ultimate fix.
+        if (!fullNote || !samplerRef.current || samplerRef.current.disposed) {
+            return;
+        }
 
         setPressedKeys(prev => {
-            // Defensive Check: Only try to release the note if it's in the set.
             if (prev.has(fullNote)) {
                 if ('triggerRelease' in samplerRef.current!) {
                     samplerRef.current.triggerRelease(fullNote);
@@ -151,11 +151,7 @@ export default function Piano({
                                 onMouseUp={() => stopNote(fullNote)}
                                 onMouseLeave={() => stopNote(fullNote)}
                                 onTouchStart={(e) => { e.preventDefault(); playNote(fullNote); }}
-                                onTouchEnd={(e) => { 
-                                    e.preventDefault(); 
-                                    // Defensive call to stopNote
-                                    if (fullNote) stopNote(fullNote);
-                                }}
+                                onTouchEnd={(e) => { e.preventDefault(); stopNote(fullNote); }}
                                 className={cn(
                                     "relative cursor-pointer transition-colors duration-100 flex items-end justify-center pb-2 font-medium",
                                     isBlack
@@ -166,7 +162,7 @@ export default function Piano({
                                     (disabled || isLoading) && "opacity-60 cursor-not-allowed"
                                 )}
                             >
-                                <span className={cn("text-xs", isBlack && "text-gray-300")}>{note}</span>
+                                <span className={cn("text-xs pointer-events-none", isBlack && "text-gray-300")}>{note}</span>
                             </div>
                         );
                     })}
