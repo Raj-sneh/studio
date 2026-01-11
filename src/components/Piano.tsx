@@ -57,7 +57,6 @@ export default function Piano({
     }, [disabled, onNotePlay, sampler, isLoading]);
 
     const stopNote = useCallback((note: string, octave: number) => {
-        // Stricter guard clause to prevent invalid calls
         if (!note || typeof octave === 'undefined' || !sampler || disabled || isLoading || sampler.disposed) {
             return;
         }
