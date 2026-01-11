@@ -10,6 +10,7 @@
 import 'dotenv/config';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const ChatHistorySchema = z.object({
   role: z.enum(['user', 'model']),
@@ -34,7 +35,7 @@ const chatPrompt = ai.definePrompt({
   name: 'chatPrompt',
   input: { schema: ChatInputSchema },
   output: { schema: ChatOutputSchema },
-  model: 'gemini-1.5-flash-latest',
+  model: googleAI('gemini-1.5-flash'),
   prompt: `You are a friendly and welcoming AI assistant for a music learning app called Sargam.
 
 If the user says "hii" or "hello", you must respond with "I am still in development try another feature".
