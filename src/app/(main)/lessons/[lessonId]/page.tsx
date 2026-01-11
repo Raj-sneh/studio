@@ -139,26 +139,12 @@ export default function LessonPage() {
     
     const sampler = playbackSamplerRef.current;
 
-    // Group notes by time
-    const eventsMap = new Map<string, { key: string[], duration: string }>();
-    lesson.notes.forEach(note => {
-        const time = note.time;
-        if (!eventsMap.has(time)) {
-            eventsMap.set(time, { key: [], duration: note.duration });
-        }
-        const event = eventsMap.get(time)!;
+    const events = lesson.notes.flatMap(note => {
         if (Array.isArray(note.key)) {
-            event.key.push(...note.key);
-        } else {
-            event.key.push(note.key);
+            return note.key.map(k => ({ time: note.time, key: k, duration: note.duration }));
         }
+        return { time: note.time, key: note.key, duration: note.duration };
     });
-
-    const events = Array.from(eventsMap.entries()).map(([time, { key, duration }]) => ({
-        time,
-        key,
-        duration
-    }));
 
     partRef.current = new Tone.Part((time, event) => {
         if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
@@ -319,10 +305,10 @@ export default function LessonPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Music className="text-primary"/>
-                        Virtual Instrument
+                        Lesson Controls
                     </CardTitle>
                     <CardDescription>
-                        Use the instrument below to play.
+                        Use the controls below to learn.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -342,6 +328,28 @@ export default function LessonPage() {
                     )}
                 </CardContent>
             </Card>
+            {process.env.NODE_ENV === 'development' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bot className="text-primary" />
+                    AI Teacher
+                  </CardTitle>
+                  <CardDescription>
+                    Listen to your playing and get live feedback.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                   <Button 
+                      className="w-full"
+                      onClick={() => toast({ title: "Coming Soon!", description: "The live AI Teacher is still in development."})}
+                   >
+                     <Mic className="mr-2" />
+                     Listen & Learn
+                   </Button>
+                </CardContent>
+              </Card>
+            )}
             </>
           ) : renderFeedback()}
 
