@@ -57,11 +57,12 @@ export default function Piano({
     }, [disabled, onNotePlay, sampler, isLoading]);
 
     const stopNote = useCallback((note: string, octave: number) => {
-        if (!sampler || disabled || isLoading || sampler.disposed) return;
+        // Stricter guard clause to prevent invalid calls
+        if (!note || typeof octave === 'undefined' || !sampler || disabled || isLoading || sampler.disposed) {
+            return;
+        }
+
         const fullNote = `${note}${octave}`;
-        
-        // Add a check to ensure fullNote is valid before proceeding
-        if (!fullNote || !note || !octave) return;
         
         setPressedKeys(prev => {
             if (prev.has(fullNote)) {
