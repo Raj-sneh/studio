@@ -24,7 +24,17 @@ const strings = [
 
 const frets = Array.from({ length: 12 }, (_, i) => i);
 const fretMarkers = [3, 5, 7, 9, 12];
-const chords = ['C', 'G', 'A#', 'F', 'G#', 'C', 'Cm'];
+
+const chords: Record<string, string[]> = {
+    'C': ['C3', 'E3', 'G3'],
+    'G': ['G2', 'B2', 'D3'],
+    'A#': ['A#2', 'D3', 'F3'],
+    'F': ['F2', 'A2', 'C3'],
+    'G#': ['G#2', 'C3', 'D#3'],
+    'Cm': ['C3', 'D#3', 'G3']
+};
+const chordNames = ['C', 'G', 'A#', 'F', 'G#', 'Cm'];
+
 
 export default function Guitar({ onNotePlay, disabled = false, highlightedKeys = [] }: GuitarProps) {
   const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
@@ -50,6 +60,14 @@ export default function Guitar({ onNotePlay, disabled = false, highlightedKeys =
     setTimeout(() => setVibratingString(null), 300);
   }, [sampler, disabled, isLoading, onNotePlay]);
 
+  const playChord = useCallback((chordNotes: string[]) => {
+    if (!sampler || disabled || isLoading || sampler.disposed) return;
+
+    if (sampler && 'triggerAttackRelease' in sampler) {
+        sampler.triggerAttackRelease(chordNotes, '1n', Tone.now());
+    }
+  }, [sampler, disabled, isLoading]);
+
 
   if (isLoading) {
     return (
@@ -66,9 +84,13 @@ export default function Guitar({ onNotePlay, disabled = false, highlightedKeys =
       <div className="bg-gradient-to-r from-yellow-900/80 via-yellow-800/70 to-yellow-900/80 p-3 rounded-t-lg shadow-inner-lg mb-2">
         <div className="flex justify-end items-center">
             <div className="flex gap-1.5">
-                {chords.map((chord, i) => (
-                    <button key={i} className="px-4 py-1.5 bg-slate-900/80 text-white font-sans font-semibold rounded-md border border-slate-700/80 shadow-sm hover:bg-slate-800 transition-colors">
-                        {chord}
+                {chordNames.map((chordName) => (
+                    <button 
+                        key={chordName} 
+                        onClick={() => playChord(chords[chordName])}
+                        disabled={disabled || isLoading}
+                        className="px-4 py-1.5 bg-slate-900/80 text-white font-sans font-semibold rounded-md border border-slate-700/80 shadow-sm hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        {chordName}
                     </button>
                 ))}
             </div>
