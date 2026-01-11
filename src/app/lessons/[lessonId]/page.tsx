@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Play, AlertCircle, ChevronLeft, User } from 'lucide-react';
+import { Loader2, Play, AlertCircle, ChevronLeft, User, Star, Repeat } from 'lucide-react';
 import { LESSONS } from '@/lib/lessons';
 import type { Note, Instrument } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -23,7 +23,7 @@ const instrumentComponents: Record<Instrument, React.ElementType> = {
     drums: lazy(() => import('@/components/DrumKit')),
 };
 
-type Mode = 'idle' | 'demo' | 'playing';
+type Mode = 'idle' | 'demo' | 'playing' | 'results';
 
 function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
   return (
@@ -47,6 +47,7 @@ export default function LessonPage() {
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
   const [userPlayedNotes, setUserPlayedNotes] = useState<Note[]>([]);
   const [isReportMenuOpen, setIsReportMenuOpen] = useState(false);
+  const [score, setScore] = useState<number | null>(null);
   
   const playbackSamplerRef = useRef<Tone.Sampler | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
@@ -75,44 +76,39 @@ export default function LessonPage() {
 
   useEffect(() => {
     let active = true;
-    setIsInstrumentReady(false); // Set to false on lesson change
+    setIsInstrumentReady(false); 
     stopAllActivity();
-
-    if (lesson.instrument === 'drums' || lesson.instrument === 'guitar') {
-        setIsInstrumentReady(true);
-        return;
-    }
     
-    const loadPianoSampler = async () => {
-        try {
-            const sampler = new Tone.Sampler({
-                urls: { C4: "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3", A4: "A4.mp3" },
-                release: 1,
-                baseUrl: "https://tonejs.github.io/audio/salamander/",
-            }).toDestination();
-            
-            await Tone.loaded();
+    // The Piano component now loads its own sampler, but we keep this for the demo playback of other instruments
+    const loadSampler = async () => {
+        if (lesson.instrument === 'piano') {
+             try {
+                const sampler = new Tone.Sampler({
+                    urls: { C4: "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3", A4: "A4.mp3" },
+                    release: 1,
+                    baseUrl: "https://tonejs.github.io/audio/salamander/",
+                }).toDestination();
+                
+                await Tone.loaded();
 
-            if (active) {
-                playbackSamplerRef.current = sampler;
-                setIsInstrumentReady(true);
+                if (active) {
+                    playbackSamplerRef.current = sampler;
+                }
+            } catch (err) {
+                console.error("Failed to load instruments for demo", err);
+                 toast({
+                    title: "Instrument loading failed",
+                    description: "Could not load sounds for lesson playback.",
+                    variant: "destructive"
+                });
             }
-        } catch (err) {
-            console.error("Failed to load instruments for demo", err);
-             toast({
-                title: "Instrument loading failed",
-                description: "Could not load sounds for lesson playback.",
-                variant: "destructive"
-            });
+        }
+        if (active) {
+            setIsInstrumentReady(true);
         }
     };
     
-    // Only load the heavy sampler for piano demos
-    if (lesson.instrument === 'piano') {
-        loadPianoSampler();
-    } else {
-        setIsInstrumentReady(true);
-    }
+    loadSampler();
 
 
     return () => {
@@ -133,7 +129,7 @@ export default function LessonPage() {
     setUserPlayedNotes([]);
     await Tone.start();
     
-    let sampler: Tone.Sampler | Tone.Synth | Tone.PluckSynth;
+    let sampler: Tone.Sampler | Tone.PluckSynth | Tone.Synth;
 
     if (lesson.instrument === 'piano') {
         sampler = playbackSamplerRef.current!;
@@ -193,12 +189,44 @@ export default function LessonPage() {
   const startPractice = () => {
     stopAllActivity();
     setUserPlayedNotes([]);
+    setScore(null);
     setMode('playing');
+  };
+
+  const calculateScore = useCallback(() => {
+    if (lesson.notes.length === 0) return 0;
+    const timeTolerance = 0.5; // seconds
+    let correctNotes = 0;
+
+    const lessonNotesFlat = lesson.notes.flatMap(n => Array.isArray(n.key) ? n.key.map(k => ({ ...n, key: k })) : n);
+
+    userPlayedNotes.forEach(playedNote => {
+      const playedTime = Tone.Time(playedNote.time).toSeconds();
+      const isCorrect = lessonNotesFlat.some(lessonNote => {
+        const lessonTime = Tone.Time(lessonNote.time).toSeconds();
+        return playedNote.key === lessonNote.key && Math.abs(playedTime - lessonTime) <= timeTolerance;
+      });
+      if (isCorrect) {
+        correctNotes++;
+      }
+    });
+
+    const uniqueLessonNotes = new Set(lessonNotesFlat.map(n => n.key + '@' + n.time)).size;
+    const scorePercentage = Math.round((correctNotes / uniqueLessonNotes) * 100);
+    
+    return Math.min(100, Math.max(0, scorePercentage));
+  }, [lesson.notes, userPlayedNotes]);
+  
+  const endPractice = () => {
+    const calculatedScore = calculateScore();
+    setScore(calculatedScore);
+    setMode('results');
   };
   
   const handleNotePlay = useCallback((noteKey: string) => {
     if (mode !== 'playing') return;
-    const time = Tone.Transport.seconds.toFixed(2);
+    // The Tone.Transport.seconds might not be running, so we use performance.now for timing
+    const time = (Tone.Transport.state === 'started' ? Tone.Transport.seconds : performance.now() / 1000).toFixed(2);
     setUserPlayedNotes(prev => [...prev, { key: noteKey, duration: '8n', time: `0:0:${time}` }]);
   }, [mode]);
 
@@ -206,17 +234,27 @@ export default function LessonPage() {
     toast({ title: 'Report Submitted', description: 'Thank you for your feedback. We will review this lesson.' });
     setIsReportMenuOpen(false);
   };
+
+  const getScoreFeedback = () => {
+    if (score === null) return "";
+    if (score >= 90) return "Excellent! You're a natural!";
+    if (score >= 70) return "Great job! A little more practice and you'll be perfect.";
+    if (score >= 50) return "Good effort! Keep practicing the tricky parts.";
+    return "Keep trying! Practice makes perfect.";
+  };
+
   
   const renderStatus = () => {
     switch (mode) {
       case 'demo': return "Watch and listen to the demo...";
       case 'playing': return "It's your turn! Play the notes on the virtual instrument.";
+      case 'results': return "Here's how you did. Ready for another go?";
       default: return `Ready to learn ${lesson.title}?`;
     }
   };
   
   const InstrumentComponent = instrumentComponents[lesson.instrument] || null;
-  const isUIDisabled = mode !== 'idle' && mode !== 'playing' || !isInstrumentReady;
+  const isUIDisabled = !isInstrumentReady || (mode !== 'idle' && mode !== 'playing');
   
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -259,7 +297,7 @@ export default function LessonPage() {
                       Your Turn
                     </Button>
                   ) : (
-                    <Button onClick={() => setMode('idle')} className="w-full">
+                    <Button onClick={endPractice} className="w-full">
                       End Practice
                     </Button>
                   )}
@@ -288,6 +326,31 @@ export default function LessonPage() {
           </Card>
         </div>
       </div>
+
+       <Dialog open={mode === 'results'} onOpenChange={(isOpen) => !isOpen && setMode('idle')}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Star className="text-yellow-400" />
+              Practice Results
+            </DialogTitle>
+            <DialogDescription>
+              {getScoreFeedback()}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center p-8">
+            <p className="text-6xl font-bold text-primary">{score}%</p>
+            <p className="text-muted-foreground">Accuracy</p>
+          </div>
+          <DialogFooter className="sm:justify-between gap-2">
+             <Button variant="ghost" onClick={() => setMode('idle')}>Back to Lesson</Button>
+             <Button onClick={startPractice}>
+                <Repeat className="mr-2 h-4 w-4"/>
+                Try Again
+             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       <Dialog open={isReportMenuOpen} onOpenChange={setIsReportMenuOpen}>
         <DialogContent>
@@ -311,3 +374,4 @@ export default function LessonPage() {
     </div>
   );
 }
+
