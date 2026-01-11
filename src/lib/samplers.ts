@@ -37,7 +37,7 @@ const samplerUrls: Record<string, Record<string, string>> = {
     drums: {
         'C#4': 'crash.mp3',
         'E4': 'ride.mp3',
-        'F#3': 'hihat-closed.mp3',
+        'F#3': 'hihat.mp3',
         'G3': 'tom1.mp3',
         'F3': 'tom2.mp3',
         'B2': 'tom3.mp3',
