@@ -63,7 +63,7 @@ export default function Piano({
         setPressedKeys(prev => {
             if (prev.has(fullNote)) {
                 if ('triggerRelease' in sampler) {
-                    sampler.triggerRelease([fullNote]);
+                    sampler.triggerRelease(fullNote);
                 }
                 const newSet = new Set(prev);
                 newSet.delete(fullNote);
