@@ -59,18 +59,23 @@ export default function Piano({
         setPressedKeys(prev => new Set(prev).add(fullNote));
     }, [disabled, onNotePlay, isLoading]);
 
-    const stopNote = useCallback((fullNote: string | null) => {
-        if (!fullNote || !samplerRef.current || samplerRef.current.disposed || !pressedKeys.has(fullNote)) return;
+    const stopNote = useCallback((fullNote: string) => {
+        if (!samplerRef.current || samplerRef.current.disposed || !fullNote) return;
 
         setPressedKeys(prev => {
-            if ('triggerRelease' in samplerRef.current!) {
-                samplerRef.current.triggerRelease(fullNote);
+            // Definitive Guard: Only release the note if it's actually in the pressed set.
+            if (prev.has(fullNote)) {
+                if ('triggerRelease' in samplerRef.current!) {
+                    samplerRef.current.triggerRelease(fullNote);
+                }
+                const newSet = new Set(prev);
+                newSet.delete(fullNote);
+                return newSet;
             }
-            const newSet = new Set(prev);
-            newSet.delete(fullNote);
-            return newSet;
+            // If the note to stop isn't in the set, do nothing.
+            return prev;
         });
-    }, [pressedKeys]);
+    }, []);
     
     useEffect(() => {
         const getNoteFromKey = (key: string) => {
