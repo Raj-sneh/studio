@@ -37,7 +37,7 @@ export default function ComposePage() {
   const [isInstrumentReady, setIsInstrumentReady] = useState(false);
   const [isGenerating, startGenerationTransition] = useTransition();
   
-  const samplerRef = useRef<Tone.Sampler | null>(null);
+  const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
 
   const stopPlayback = useCallback(() => {
@@ -61,18 +61,9 @@ export default function ComposePage() {
       setIsInstrumentReady(false);
       try {
         await Tone.start();
-        const sampler = new Tone.Sampler({
-            urls: {
-                C4: "C4.mp3",
-                "D#4": "Ds4.mp3",
-                "F#4": "Fs4.mp3",
-                A4: "A4.mp3",
-            },
-            release: 1,
-            baseUrl: "https://tonejs.github.io/audio/salamander/",
-        }).toDestination();
+        const sampler = new Tone.Synth().toDestination();
         
-        await Tone.loaded();
+        // Since Synth loads instantly, no need for Tone.loaded()
         if (active) {
           samplerRef.current = sampler;
           setIsInstrumentReady(true);
@@ -81,7 +72,7 @@ export default function ComposePage() {
         console.error("Failed to load instrument:", error);
         toast({
           title: "Instrument Failed to Load",
-          description: "There was an issue loading the piano sound. Please refresh.",
+          description: "There was an issue loading the synthesizer. Please refresh.",
           variant: "destructive"
         });
       }
@@ -117,7 +108,9 @@ export default function ComposePage() {
     }));
 
     partRef.current = new Tone.Part((time, event) => {
-      sampler.triggerAttackRelease(event.key, event.duration, time);
+      if ('triggerAttackRelease' in sampler) {
+        sampler.triggerAttackRelease(event.key, event.duration, time);
+      }
       
       const keysToHighlight = Array.isArray(event.key) ? event.key : [event.key];
       
@@ -249,13 +242,17 @@ export default function ComposePage() {
       </Card>
 
       {(!isInstrumentReady || (isBusy && mode === 'generating')) && (
-        <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50">
-            <InstrumentLoader />
-            {isBusy && mode === 'generating' && <p className="mt-4 text-lg">Generating melody...</p>}
+        <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50 flex-col">
+            {isBusy && mode === 'generating' ? (
+              <>
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <p className="mt-4 text-lg">Generating melody...</p>
+              </>
+            ) : (
+              <InstrumentLoader />
+            )}
         </div>
       )}
     </div>
   );
 }
-
-    
