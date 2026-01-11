@@ -22,14 +22,14 @@ type DrumPad = {
 };
 
 const drumPads: DrumPad[] = [
-  { note: 'C#4', name: 'Crash', key: 'q', Icon: DrumIcons.CrashIcon, style: 'col-span-2' },
-  { note: 'E4', name: 'Ride', key: 'w', Icon: DrumIcons.RideIcon, style: 'col-span-2' },
-  { note: 'F#3', name: 'Hi-Hat', key: 'e', Icon: DrumIcons.HiHatClosedIcon, style: 'col-span-2' },
-  { note: 'G3', name: 'Tom 1', key: 'a', Icon: DrumIcons.Tom1Icon, style: '' },
-  { note: 'F3', name: 'Tom 2', key: 's', Icon: DrumIcons.Tom2Icon, style: '' },
-  { note: 'B2', name: 'Tom 3', key: 'd', Icon: DrumIcons.Tom3Icon, style: '' },
-  { note: 'C3', name: 'Kick', key: 'z', Icon: DrumIcons.KickIcon, style: 'col-span-2' },
-  { note: 'D3', name: 'Snare', key: 'x', Icon: DrumIcons.SnareIcon, style: 'col-span-2' },
+    { note: 'C#4', name: 'Crash', key: 'q', Icon: DrumIcons.CrashIcon, style: 'col-span-2' },
+    { note: 'E4', name: 'Ride', key: 'w', Icon: DrumIcons.RideIcon, style: 'col-span-2' },
+    { note: 'G3', name: 'Tom 1', key: 'a', Icon: DrumIcons.Tom1Icon, style: '' },
+    { note: 'F3', name: 'Tom 2', key: 's', Icon: DrumIcons.Tom2Icon, style: '' },
+    { note: 'B2', name: 'Tom 3', key: 'd', Icon: DrumIcons.Tom3Icon, style: '' },
+    { note: 'F#3', name: 'Hi-Hat', key: 'e', Icon: DrumIcons.HiHatClosedIcon, style: '' },
+    { note: 'C3', name: 'Kick', key: 'z', Icon: DrumIcons.KickIcon, style: 'col-span-2' },
+    { note: 'D3', name: 'Snare', key: 'x', Icon: DrumIcons.SnareIcon, style: 'col-span-2' },
 ];
 
 const keyMap: Record<string, string> = drumPads.reduce((acc, pad) => {
