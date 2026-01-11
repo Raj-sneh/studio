@@ -22,14 +22,14 @@ const samplerUrls: Record<string, Record<string, string>> = {
         'G3': 'G3.mp3',
     },
     drums: {
-        'C3': 'kick.wav',      // Kick
-        'D3': 'snare.wav',     // Snare
-        'F#3': 'hihat.wav',   // Hi-Hat Closed
-        'C#4': 'crash.wav',   // Crash
-        'E4': 'ride.wav',      // Ride
-        'G3': 'tom-high.wav',      // Tom 1 (High)
-        'F3': 'tom-mid.wav',      // Tom 2 (Mid)
-        'B2': 'tom-low.wav',      // Tom 3 (Low)
+        'C3': 'kick.wav',
+        'D3': 'snare.wav',
+        'F#3': 'hihat.wav',
+        'C#4': 'crash.wav',
+        'E4': 'ride.wav',
+        'G3': 'tom1.wav', // Tom 1 (High)
+        'F3': 'tom2.wav', // Tom 2 (Mid)
+        'B2': 'tom3.wav', // Tom 3 (Low)
     }
 };
 
