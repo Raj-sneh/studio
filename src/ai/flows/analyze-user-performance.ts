@@ -58,12 +58,12 @@ const analyzePerformancePrompt = ai.definePrompt({
 
     **Lesson Notes (Correct):**
     \`\`\`json
-    {{{JSON.stringify lessonNotes}}}
+    {{jsonStringify lessonNotes}}
     \`\`\`
 
     **User's Notes (Played):**
     \`\`\`json
-    {{{JSON.stringify userNotes}}}
+    {{jsonStringify userNotes}}
     \`\`\`
     `,
 });
