@@ -79,10 +79,14 @@ export default function LessonPage() {
     setIsInstrumentReady(false); 
     stopAllActivity();
     
-    // The Piano component now loads its own sampler, but we keep this for the demo playback of other instruments
+    // This loads the high-quality sampler for piano demos.
+    // Other instruments use synths created on-the-fly for demos.
     const loadSampler = async () => {
         if (lesson.instrument === 'piano') {
              try {
+                // Dispose of previous sampler if it exists
+                playbackSamplerRef.current?.dispose();
+
                 const sampler = new Tone.Sampler({
                     urls: { C4: "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3", A4: "A4.mp3" },
                     release: 1,
@@ -119,8 +123,12 @@ export default function LessonPage() {
   }, [lesson, stopAllActivity, toast]);
   
   const playDemo = useCallback(async () => {
-    if (!isInstrumentReady || (lesson.instrument === 'piano' && (!playbackSamplerRef.current || playbackSamplerRef.current.disposed))) {
+    if (!isInstrumentReady) {
         toast({ title: "Demo instrument not ready", description: "Please wait a moment for the sounds to load."});
+        return;
+    }
+     if (lesson.instrument === 'piano' && (!playbackSamplerRef.current || playbackSamplerRef.current.disposed)) {
+        toast({ title: "Piano sampler not ready", description: "Please wait a moment for the piano sounds to load."});
         return;
     }
     
@@ -129,26 +137,23 @@ export default function LessonPage() {
     setUserPlayedNotes([]);
     await Tone.start();
     
-    let sampler: Tone.Sampler | Tone.PluckSynth | Tone.Synth;
+    let synth: Tone.Sampler | Tone.PolySynth;
 
     if (lesson.instrument === 'piano') {
-        sampler = playbackSamplerRef.current!;
-    } else if (lesson.instrument === 'guitar') {
-        sampler = new Tone.PluckSynth().toDestination();
+        synth = playbackSamplerRef.current!;
     } else {
-        sampler = new Tone.Synth().toDestination(); // Fallback for drums or others
+        // Use PolySynth for guitar and drums to handle chords/simultaneous notes
+        const synthType = lesson.instrument === 'guitar' ? Tone.PluckSynth : Tone.MembraneSynth;
+        synth = new Tone.PolySynth(synthType).toDestination();
     }
 
     const events = lesson.notes.flatMap(note => {
-        if (Array.isArray(note.key)) {
-            return note.key.map(k => ({ time: note.time, key: k, duration: note.duration }));
-        }
         return { time: note.time, key: note.key, duration: note.duration };
     });
 
     partRef.current = new Tone.Part((time, event) => {
-        if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
-          sampler.triggerAttackRelease(event.key, event.duration, time);
+        if (synth && 'triggerAttackRelease' in synth && !synth.disposed) {
+          synth.triggerAttackRelease(event.key, event.duration, time);
         }
         
         const keysToHighlight = Array.isArray(event.key) ? event.key : [event.key];
@@ -179,7 +184,7 @@ export default function LessonPage() {
       setMode('idle');
       setHighlightedKeys([]);
       if (lesson.instrument !== 'piano') {
-          sampler.dispose();
+          synth.dispose();
       }
     }, maxTime + 0.5);
 
@@ -194,27 +199,43 @@ export default function LessonPage() {
   };
 
   const calculateScore = useCallback(() => {
-    if (lesson.notes.length === 0) return 0;
+    if (userPlayedNotes.length === 0 || lesson.notes.length === 0) return 0;
+    
     const timeTolerance = 0.5; // seconds
-    let correctNotes = 0;
+    let correctNoteCount = 0;
 
-    const lessonNotesFlat = lesson.notes.flatMap(n => Array.isArray(n.key) ? n.key.map(k => ({ ...n, key: k })) : n);
+    const lessonNoteEvents = lesson.notes.map(n => ({
+        key: n.key,
+        time: Tone.Time(n.time).toSeconds(),
+    }));
 
     userPlayedNotes.forEach(playedNote => {
-      const playedTime = Tone.Time(playedNote.time).toSeconds();
-      const isCorrect = lessonNotesFlat.some(lessonNote => {
-        const lessonTime = Tone.Time(lessonNote.time).toSeconds();
-        return playedNote.key === lessonNote.key && Math.abs(playedTime - lessonTime) <= timeTolerance;
-      });
-      if (isCorrect) {
-        correctNotes++;
-      }
-    });
+        // Find the closest lesson note in time
+        const closestLessonNote = lessonNoteEvents.reduce((closest, current) => {
+            const playedTime = playedNote.time as number; // time is already a number here
+            const timeDiff = Math.abs(playedTime - current.time);
+            if (timeDiff < closest.diff) {
+                return { diff: timeDiff, note: current };
+            }
+            return closest;
+        }, { diff: Infinity, note: null as (typeof lessonNoteEvents[0] | null) });
 
-    const uniqueLessonNotes = new Set(lessonNotesFlat.map(n => n.key + '@' + n.time)).size;
-    const scorePercentage = Math.round((correctNotes / uniqueLessonNotes) * 100);
+        if (closestLessonNote.note && closestLessonNote.diff <= timeTolerance) {
+            const lessonNoteKey = closestLessonNote.note.key;
+            if (Array.isArray(lessonNoteKey)) {
+                if (lessonNoteKey.includes(playedNote.key)) {
+                    correctNoteCount++;
+                }
+            } else if (playedNote.key === lessonNoteKey) {
+                correctNoteCount++;
+            }
+        }
+    });
     
-    return Math.min(100, Math.max(0, scorePercentage));
+    const totalLessonNotes = lesson.notes.reduce((acc, note) => acc + (Array.isArray(note.key) ? note.key.length : 1), 0);
+    const scorePercentage = (correctNoteCount / totalLessonNotes) * 100;
+    
+    return Math.min(100, Math.max(0, Math.round(scorePercentage)));
   }, [lesson.notes, userPlayedNotes]);
   
   const endPractice = () => {
@@ -225,9 +246,8 @@ export default function LessonPage() {
   
   const handleNotePlay = useCallback((noteKey: string) => {
     if (mode !== 'playing') return;
-    // The Tone.Transport.seconds might not be running, so we use performance.now for timing
-    const time = (Tone.Transport.state === 'started' ? Tone.Transport.seconds : performance.now() / 1000).toFixed(2);
-    setUserPlayedNotes(prev => [...prev, { key: noteKey, duration: '8n', time: `0:0:${time}` }]);
+    const time = (Tone.Transport.state === 'started' ? Tone.Transport.seconds : performance.now() / 1000);
+    setUserPlayedNotes(prev => [...prev, { key: noteKey, duration: '8n', time: time.toFixed(2) }]);
   }, [mode]);
 
   const handleReport = async (reason: string) => {
@@ -254,7 +274,7 @@ export default function LessonPage() {
   };
   
   const InstrumentComponent = instrumentComponents[lesson.instrument] || null;
-  const isUIDisabled = !isInstrumentReady || (mode !== 'idle' && mode !== 'playing');
+  const isUIDisabled = !isInstrumentReady || (mode !== 'idle' && mode !== 'results');
   
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -287,12 +307,12 @@ export default function LessonPage() {
                   </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                   <Button onClick={playDemo} disabled={isUIDisabled || mode === 'demo'} className="w-full">
+                   <Button onClick={playDemo} disabled={isUIDisabled || mode === 'demo' || mode === 'playing'} className="w-full">
                       {mode === 'demo' ? <Loader2 className="animate-spin" /> : <Play />}
                       Play Demo
                   </Button>
                   {mode !== 'playing' ? (
-                    <Button onClick={startPractice} disabled={isUIDisabled} className="w-full">
+                    <Button onClick={startPractice} disabled={isUIDisabled || mode === 'demo'} className="w-full">
                       <User className="mr-2"/>
                       Your Turn
                     </Button>
@@ -374,4 +394,3 @@ export default function LessonPage() {
     </div>
   );
 }
-
