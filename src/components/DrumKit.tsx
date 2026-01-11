@@ -29,7 +29,6 @@ const drumPads: DrumPad[] = [
   { note: 'G3', name: 'Tom 1', key: 'a', Icon: DrumIcons.Tom1Icon, style: '' },
   { note: 'F3', name: 'Tom 2', key: 's', Icon: DrumIcons.Tom2Icon, style: '' },
   { note: 'B2', name: 'Tom 3', key: 'd', Icon: DrumIcons.Tom3Icon, style: '' },
-  { note: 'D#3', name: 'Clap', key: 'f', Icon: DrumIcons.ClapIcon, style: '' },
   { note: 'C3', name: 'Kick', key: 'z', Icon: DrumIcons.KickIcon, style: 'col-span-2' },
   { note: 'D3', name: 'Snare', key: 'x', Icon: DrumIcons.SnareIcon, style: 'col-span-2' },
   { note: 'G#2', name: 'Cowbell', key: 'c', Icon: DrumIcons.CowbellIcon, style: '' },
