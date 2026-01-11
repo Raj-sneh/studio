@@ -58,6 +58,7 @@ export default function DashboardPage() {
                   priority
                 />
               }
+              <p className="text-xs text-muted-foreground text-center mt-2">The app is still developing it is for trial.</p>
             </CardContent>
           </Link>
         </Card>
