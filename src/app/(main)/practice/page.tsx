@@ -13,6 +13,7 @@ import { getSampler } from '@/lib/samplers';
 
 const Piano = lazy(() => import('@/components/Piano'));
 const Guitar = lazy(() => import('@/components/Guitar'));
+const DrumKit = lazy(() => import('@/components/DrumKit'));
 
 type RecordedNote = {
   note: string;
@@ -21,14 +22,16 @@ type RecordedNote = {
   duration: string;
 };
 
-const instruments: Instrument[] = ['piano', 'guitar'];
+const instruments: Instrument[] = ['piano', 'guitar', 'drums'];
 const instrumentComponents: Record<Instrument, React.ElementType> = {
   piano: Piano,
   guitar: Guitar,
+  drums: DrumKit,
 };
 const instrumentDescriptions: Record<Instrument, string> = {
   piano: 'Use your mouse or keyboard to play the classic piano.',
   guitar: 'Strum chords or pick individual notes on the acoustic guitar.',
+  drums: 'Use your keyboard or mouse to play the virtual drum kit.',
 };
 
 function InstrumentLoader({ instrument }: { instrument: Instrument }) {
@@ -99,7 +102,7 @@ export default function PracticePage() {
         className="w-full"
         onValueChange={(val) => setActiveInstrument(val as Instrument)}
       >
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           {instruments.map((inst) => (
             <TabsTrigger key={inst} value={inst} className="capitalize">
               {inst}

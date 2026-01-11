@@ -14,31 +14,33 @@ const samplerUrls: Record<string, Record<string, string>> = {
         A4: 'A4.mp3',
         A5: 'A5.mp3',
         A6: 'A6.mp3',
-        C1: 'C1.mp3',
-        C2: 'C2.mp3',
-        C3: 'C3.mp3',
-        C4: 'C4.mp3',
-        C5: 'C5.mp3',
-        C6: 'C6.mp3',
-        C7: 'C7.mp3',
     },
     guitar: {
         'A2': 'A2.mp3',
         'C3': 'C3.mp3',
         'E3': 'E3.mp3',
         'G3': 'G3.mp3',
-        'A3': 'A3.mp3',
-        'C4': 'C4.mp3',
-        'E4': 'E4.mp3',
-        'G4': 'G4.mp3',
-        'A4': 'A4.mp3',
-        'C5': 'C5.mp3'
     },
+    drums: {
+        'C3': 'kick.mp3',      // Kick
+        'D3': 'snare.mp3',     // Snare
+        'F#3': 'hihat.mp3',   // Hi-Hat Closed
+        'A#3': 'hihat-open.mp3',// Hi-Hat Open
+        'C#4': 'crash.mp3',   // Crash
+        'E4': 'ride.mp3',      // Ride
+        'G3': 'tom1.mp3',      // Tom 1 (High)
+        'F3': 'tom2.mp3',      // Tom 2 (Mid)
+        'B2': 'tom3.mp3',      // Tom 3 (Low)
+        'D#3': 'clap.mp3',    // Clap
+        'G#2': 'cowbell.mp3', // Cowbell
+        'A2': 'perc.mp3',      // Perc
+    }
 };
 
 const baseUrlMap: Record<string, string> = {
     piano: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_grand_piano-mp3/',
     guitar: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_guitar_nylon-mp3/',
+    drums: 'https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/drum-samples/CR78/',
 }
 
 /**
@@ -84,7 +86,7 @@ export const getSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.
                 const sampler = new Tone.Sampler({
                     urls: samplerUrls[instrument],
                     baseUrl: baseUrlMap[instrument],
-                    release: instrument === 'piano' ? 1.5 : 1,
+                    release: 1,
                     onload: () => {
                         samplerCache.set(instrument, sampler);
                         loadingPromises.delete(instrument); // Clean up promise map
