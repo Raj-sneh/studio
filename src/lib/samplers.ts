@@ -1,6 +1,7 @@
 
 import * as Tone from 'tone';
 import type { Instrument } from '@/types';
+import { firebaseConfig } from '@/firebase/config';
 
 // Centralized cache for loaded samplers
 const samplerCache = new Map<Instrument, Tone.Sampler | Tone.Synth>();
@@ -48,7 +49,7 @@ const samplerUrls: Record<string, Record<string, string>> = {
 const baseUrlMap: Record<string, string> = {
     piano: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_grand_piano-mp3/',
     guitar: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_guitar_nylon-mp3/',
-    drums: 'https://unpkg.com/@unplugged-instruments/web-instrument-engine@1.0.1/samples/drums/',
+    drums: `https://storage.googleapis.com/${firebaseConfig.projectId}.appspot.com/samples/drums/`,
 }
 
 /**
