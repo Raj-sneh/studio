@@ -131,11 +131,10 @@ export default function LessonPage() {
 
         const eventId = Tone.Transport.scheduleOnce(time => {
             if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
-                // `key` can be a string or an array of strings (for chords)
                 sampler.triggerAttackRelease(note.key, duration, time);
             }
             
-            const keysToHighlight = Array.isArray(note.key) ? note.key : [note.key];
+            const keysToHighlight = [note.key];
 
             Tone.Draw.schedule(() => {
                 setHighlightedKeys(current => [...current, ...keysToHighlight]);

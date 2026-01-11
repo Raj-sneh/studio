@@ -51,7 +51,7 @@ export const LESSONS: Lesson[] = [
       { key: 'D4', duration: '4n', time: '3:3:0' },
     ],
   },
-  {
+    {
     id: 'simple-guitar-strum',
     title: 'Simple Strumming',
     instrument: 'guitar',
@@ -59,13 +59,25 @@ export const LESSONS: Lesson[] = [
     tempo: 90,
     imageId: 'lesson-guitar-simple',
     notes: [
-      { key: ['G2', 'B2', 'D3'], duration: '2n', time: '0:0:0' },
-      { key: ['C3', 'E3', 'G3'], duration: '2n', time: '0:2:0' },
-      { key: ['G2', 'B2', 'D3'], duration: '2n', time: '1:0:0' },
-      { key: ['D3', 'F#3', 'A3'], duration: '2n', time: '1:2:0' },
+      // G Chord
+      { key: 'G2', duration: '2n', time: '0:0:0' },
+      { key: 'B2', duration: '2n', time: '0:0:0' },
+      { key: 'D3', duration: '2n', time: '0:0:0' },
+      // C Chord
+      { key: 'C3', duration: '2n', time: '0:2:0' },
+      { key: 'E3', duration: '2n', time: '0:2:0' },
+      { key: 'G3', duration: '2n', time: '0:2:0' },
+       // G Chord
+      { key: 'G2', duration: '2n', time: '1:0:0' },
+      { key: 'B2', duration: '2n', time: '1:0:0' },
+      { key: 'D3', duration: '2n', time: '1:0:0' },
+      // D Chord
+      { key: 'D3', duration: '2n', time: '1:2:0' },
+      { key: 'F#3', duration: '2n', time: '1:2:0' },
+      { key: 'A3', duration: '2n', time: '1:2:0' },
     ],
   },
-  {
+    {
     id: 'basic-rock-beat',
     title: 'Basic Rock Beat',
     instrument: 'drums',
@@ -74,14 +86,18 @@ export const LESSONS: Lesson[] = [
     imageId: 'lesson-drum-basics',
     notes: [
       // Measure 1
-      { key: ['C1', 'C2'], duration: '8n', time: '0:0:0' }, // Kick + Hi-Hat
+      { key: 'C1', duration: '8n', time: '0:0:0' }, // Kick
+      { key: 'C2', duration: '8n', time: '0:0:0' }, // Hi-Hat
       { key: 'C2', duration: '8n', time: '0:1:0' }, // Hi-Hat
-      { key: ['D2', 'C2'], duration: '8n', time: '0:2:0' }, // Snare + Hi-Hat
+      { key: 'D2', duration: '8n', time: '0:2:0' }, // Snare
+      { key: 'C2', duration: '8n', time: '0:2:0' }, // Hi-Hat
       { key: 'C2', duration: '8n', time: '0:3:0' }, // Hi-Hat
       // Measure 2
-      { key: ['C1', 'C2'], duration: '8n', time: '1:0:0' }, // Kick + Hi-Hat
+      { key: 'C1', duration: '8n', time: '1:0:0' }, // Kick
+      { key: 'C2', duration: '8n', time: '1:0:0' }, // Hi-Hat
       { key: 'C2', duration: '8n', time: '1:1:0' }, // Hi-Hat
-      { key: ['D2', 'C2'], duration: '8n', time: '1:2:0' }, // Snare + Hi-Hat
+      { key: 'D2', duration: '8n', time: '1:2:0' }, // Snare
+      { key: 'C2', duration: '8n', time: '1:2:0' }, // Hi-Hat
       { key: 'C2', duration: '8n', time: '1:3:0' }, // Hi-Hat
     ]
   },
