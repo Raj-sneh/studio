@@ -14,32 +14,32 @@ interface GuitarProps {
 }
 
 const strings = [
-    { note: 'E4', color: 'bg-slate-300' },
-    { note: 'B3', color: 'bg-slate-300' },
-    { note: 'G3', color: 'bg-slate-400' },
-    { note: 'D3', color: 'bg-slate-400' },
-    { note: 'A2', color: 'bg-slate-500' },
-    { note: 'E2', color: 'bg-slate-500' },
+    { open: 'E4', color: 'bg-slate-300' },
+    { open: 'B3', color: 'bg-slate-300' },
+    { open: 'G3', color: 'bg-slate-400' },
+    { open: 'D3', color: 'bg-slate-400' },
+    { open: 'A2', color: 'bg-slate-500' },
+    { open: 'E2', color: 'bg-slate-500' },
 ];
 
-const frets = Array.from({ length: 12 }, (_, i) => i);
 const fretMarkers = [3, 5, 7, 9, 12];
 
 const chords: Record<string, string[]> = {
-    'C': ['C3', 'E3', 'G3'],
-    'G': ['G2', 'B2', 'D3'],
-    'A#': ['A#2', 'D3', 'F3'],
-    'F': ['F2', 'A2', 'C3'],
-    'G#': ['G#2', 'C3', 'D#3'],
-    'Cm': ['C3', 'D#3', 'G3']
+    'Open': ['E4', 'B3', 'G3', 'D3', 'A2', 'E2'],
+    'C':    ['E4', 'C4', 'G3', 'E3', 'C3', 'E2'],
+    'G':    ['G4', 'B3', 'G3', 'D3', 'B2', 'G2'],
+    'Am':   ['E4', 'C4', 'A3', 'E3', 'A2', 'E2'],
+    'F':    ['F4', 'C4', 'A3', 'F3', 'C3', 'F2'],
+    'Dm':   ['F4', 'D4', 'A3', 'D3', 'A2', 'D2'],
 };
-const chordNames = ['C', 'G', 'A#', 'F', 'G#', 'Cm'];
+const chordNames = Object.keys(chords);
 
 
 export default function Guitar({ onNotePlay, disabled = false, highlightedKeys = [] }: GuitarProps) {
   const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [vibratingString, setVibratingString] = useState<number | null>(null);
+  const [selectedChord, setSelectedChord] = useState<string>('Open');
 
   useEffect(() => {
     getSampler('guitar').then(loadedSampler => {
@@ -48,8 +48,10 @@ export default function Guitar({ onNotePlay, disabled = false, highlightedKeys =
     });
   }, []);
 
-  const playNote = useCallback((note: string, stringIndex: number) => {
+  const playNote = useCallback((stringIndex: number) => {
     if (!sampler || disabled || isLoading || sampler.disposed) return;
+    
+    const note = chords[selectedChord][stringIndex] || strings[stringIndex].open;
     
     if (sampler && 'triggerAttackRelease' in sampler) {
         sampler.triggerAttackRelease(note, '1n', Tone.now());
@@ -58,16 +60,12 @@ export default function Guitar({ onNotePlay, disabled = false, highlightedKeys =
 
     setVibratingString(stringIndex);
     setTimeout(() => setVibratingString(null), 300);
-  }, [sampler, disabled, isLoading, onNotePlay]);
+  }, [sampler, disabled, isLoading, onNotePlay, selectedChord]);
 
-  const playChord = useCallback((chordNotes: string[]) => {
-    if (!sampler || disabled || isLoading || sampler.disposed) return;
-
-    if (sampler && 'triggerAttackRelease' in sampler) {
-        sampler.triggerAttackRelease(chordNotes, '1n', Tone.now());
-    }
-  }, [sampler, disabled, isLoading]);
-
+  const selectChord = (chordName: string) => {
+    if (disabled || isLoading) return;
+    setSelectedChord(chordName);
+  };
 
   if (isLoading) {
     return (
@@ -83,13 +81,17 @@ export default function Guitar({ onNotePlay, disabled = false, highlightedKeys =
       {/* Headstock Area */}
       <div className="bg-gradient-to-r from-yellow-900/80 via-yellow-800/70 to-yellow-900/80 p-3 rounded-t-lg shadow-inner-lg mb-2">
         <div className="flex justify-end items-center">
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5 flex-wrap justify-end">
                 {chordNames.map((chordName) => (
                     <button 
                         key={chordName} 
-                        onClick={() => playChord(chords[chordName])}
+                        onClick={() => selectChord(chordName)}
                         disabled={disabled || isLoading}
-                        className="px-4 py-1.5 bg-slate-900/80 text-white font-sans font-semibold rounded-md border border-slate-700/80 shadow-sm hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        className={cn(
+                            "px-4 py-1.5 bg-slate-900/80 text-white font-sans font-semibold rounded-md border border-slate-700/80 shadow-sm hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                            selectedChord === chordName && "bg-primary text-primary-foreground border-primary/50 ring-2 ring-primary"
+                        )}
+                    >
                         {chordName}
                     </button>
                 ))}
@@ -108,7 +110,7 @@ export default function Guitar({ onNotePlay, disabled = false, highlightedKeys =
           {strings.map((string, index) => (
             <div
               key={index}
-              onClick={() => playNote(string.note, index)}
+              onClick={() => playNote(index)}
               className={cn(
                 "w-full h-0.5 transition-all duration-100 ease-in-out cursor-pointer group",
                 string.color,
@@ -126,8 +128,8 @@ export default function Guitar({ onNotePlay, disabled = false, highlightedKeys =
 
         {/* Frets */}
         <div className="absolute inset-0 z-20 flex justify-between px-4 pointer-events-none">
-          {frets.map(fret => (
-            <div key={fret} className="h-full w-0.5 bg-slate-500/70" style={{ left: `${(fret / frets.length) * 100}%` }}></div>
+          {Array.from({ length: 12 }, (_, i) => i).map(fret => (
+            <div key={fret} className="h-full w-0.5 bg-slate-500/70" style={{ left: `${(fret / 12) * 100}%` }}></div>
           ))}
         </div>
         
@@ -137,7 +139,7 @@ export default function Guitar({ onNotePlay, disabled = false, highlightedKeys =
                  <div 
                     key={marker} 
                     className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-slate-400/80 rounded-full shadow-inner"
-                    style={{ left: `${((marker - 0.5) / frets.length) * 100}%` }}
+                    style={{ left: `${((marker - 0.5) / 12) * 100}%` }}
                  ></div>
             ))}
         </div>
