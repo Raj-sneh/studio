@@ -84,8 +84,8 @@ export default function DrumKit({ onNotePlay, disabled = false }: DrumKitProps) 
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-4 select-none">
-        <div className="grid grid-cols-4 gap-4">
+    <div className="w-full max-w-lg mx-auto p-2 select-none">
+        <div className="grid grid-cols-4 gap-2">
             {drumPads.map(({ note, name, key, Icon, style }) => (
                 <button
                     key={note}
@@ -97,13 +97,13 @@ export default function DrumKit({ onNotePlay, disabled = false }: DrumKitProps) 
                         style
                     )}
                 >
-                    <Icon className="h-8 w-8" />
-                    <span className="text-sm font-semibold mt-2">{name}</span>
-                    <kbd className="absolute bottom-2 right-2 text-xs font-mono bg-muted text-muted-foreground rounded px-1.5 py-0.5">{key.toUpperCase()}</kbd>
+                    <Icon className="h-6 w-6" />
+                    <span className="text-xs font-semibold mt-1">{name}</span>
+                    <kbd className="absolute bottom-1 right-1 text-[10px] font-mono bg-muted text-muted-foreground rounded px-1 py-0.5">{key.toUpperCase()}</kbd>
                 </button>
             ))}
         </div>
-         <p className="text-center text-xs text-muted-foreground mt-4">Use your keyboard to play the drums.</p>
+         <p className="text-center text-xs text-muted-foreground mt-2">Use your keyboard to play the drums.</p>
     </div>
   );
 }
