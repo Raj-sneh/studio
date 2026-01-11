@@ -60,10 +60,12 @@ export default function Piano({
     }, [disabled, onNotePlay, isLoading]);
 
     const stopNote = useCallback((fullNote: string) => {
-        if (!samplerRef.current || samplerRef.current.disposed || !fullNote) return;
+        // Definitive Guard: This is the final and most important check.
+        // It prevents any null or invalid value from ever reaching the audio library.
+        if (!fullNote || !samplerRef.current || samplerRef.current.disposed) return;
 
         setPressedKeys(prev => {
-            // Definitive Guard: Only release the note if it's actually in the pressed set.
+            // Defensive Check: Only try to release the note if it's in the set.
             if (prev.has(fullNote)) {
                 if ('triggerRelease' in samplerRef.current!) {
                     samplerRef.current.triggerRelease(fullNote);
@@ -72,7 +74,6 @@ export default function Piano({
                 newSet.delete(fullNote);
                 return newSet;
             }
-            // If the note to stop isn't in the set, do nothing.
             return prev;
         });
     }, []);
@@ -150,7 +151,11 @@ export default function Piano({
                                 onMouseUp={() => stopNote(fullNote)}
                                 onMouseLeave={() => stopNote(fullNote)}
                                 onTouchStart={(e) => { e.preventDefault(); playNote(fullNote); }}
-                                onTouchEnd={(e) => { e.preventDefault(); stopNote(fullNote); }}
+                                onTouchEnd={(e) => { 
+                                    e.preventDefault(); 
+                                    // Defensive call to stopNote
+                                    if (fullNote) stopNote(fullNote);
+                                }}
                                 className={cn(
                                     "relative cursor-pointer transition-colors duration-100 flex items-end justify-center pb-2 font-medium",
                                     isBlack
