@@ -57,9 +57,9 @@ export const getSampler = (instrument: Instrument): Promise<Tone.PolySynth | Ton
             }
             
             if (instrument === 'guitar') {
-                 newInstrument = new Tone.PolySynth(Tone.PluckSynth).toDestination();
+                 newInstrument = new Tone.PluckSynth().toDestination();
             } else { // 'piano' and any other fallback
-                 newInstrument = new Tone.PolySynth(Tone.Synth).toDestination();
+                 newInstrument = new Tone.Synth().toDestination();
             }
 
             samplerCache.set(instrument, newInstrument);
