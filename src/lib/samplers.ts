@@ -84,16 +84,16 @@ export const getSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.
         // *** GUARANTEED FIX: Use a synth for drums to avoid network errors ***
         if (instrument === 'drums') {
             const drumSynth = new Tone.MembraneSynth({
-                pitchDecay: 0.01,
-                octaves: 6,
+                pitchDecay: 0.02,
+                octaves: 8,
                 oscillator: {
                     type: 'sine',
                 },
                 envelope: {
                     attack: 0.001,
-                    decay: 0.5,
+                    decay: 0.2,
                     sustain: 0.01,
-                    release: 0.4,
+                    release: 0.8,
                     attackCurve: 'exponential',
                 },
             }).toDestination();
