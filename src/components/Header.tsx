@@ -43,7 +43,10 @@ export default function Header() {
             <div className="p-2 rounded-lg bg-primary text-primary-foreground">
                 <MonogramLogo className="h-6 w-6" />
             </div>
-            <span className="font-headline text-2xl font-bold text-foreground tracking-tighter">Sargam by SKV</span>
+            <span className="font-headline text-2xl text-foreground tracking-tighter">
+                <span className="font-bold text-primary">Sargam</span>
+                <span className="font-normal"> by SKV</span>
+            </span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
             {navLinks.map(({ href, label, icon: Icon }) => (
