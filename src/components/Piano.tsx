@@ -60,7 +60,6 @@ export default function Piano({
     }, [disabled, onNotePlay, isLoading]);
 
     const stopNote = useCallback((fullNote: string) => {
-        // Final guard: Do not proceed if fullNote is invalid. This is the ultimate fix.
         if (!fullNote || !samplerRef.current || samplerRef.current.disposed) {
             return;
         }
@@ -68,7 +67,11 @@ export default function Piano({
         setPressedKeys(prev => {
             if (prev.has(fullNote)) {
                 if ('triggerRelease' in samplerRef.current!) {
-                    samplerRef.current.triggerRelease(fullNote);
+                    try {
+                      samplerRef.current.triggerRelease(fullNote);
+                    } catch (e) {
+                      // Fails silently if the note is already released.
+                    }
                 }
                 const newSet = new Set(prev);
                 newSet.delete(fullNote);
@@ -95,8 +98,14 @@ export default function Piano({
             if (disabled || event.repeat || isLoading) return;
             
             const fullNote = getNoteFromKey(event.key);
-            if (fullNote && !pressedKeys.has(fullNote)) {
-                playNote(fullNote);
+            if (fullNote) {
+                 // Check if key is already pressed before playing
+                setPressedKeys(prev => {
+                    if (!prev.has(fullNote)) {
+                        playNote(fullNote);
+                    }
+                    return prev;
+                });
             }
 
             if (event.key === 'z') changeOctave(-1);
@@ -118,7 +127,7 @@ export default function Piano({
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [playNote, stopNote, currentOctave, disabled, isLoading, pressedKeys]);
+    }, [playNote, stopNote, currentOctave, disabled, isLoading]);
 
     const changeOctave = (direction: number) => {
         setCurrentOctave(prev => Math.max(1, Math.min(6, prev + direction)));
