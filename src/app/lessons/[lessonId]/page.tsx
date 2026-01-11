@@ -143,8 +143,11 @@ export default function LessonPage() {
         synth = playbackSamplerRef.current!;
     } else {
         // Use PolySynth for guitar and drums to handle chords/simultaneous notes
-        const synthType = lesson.instrument === 'guitar' ? Tone.PluckSynth : Tone.MembraneSynth;
-        synth = new Tone.PolySynth(synthType).toDestination();
+        if (lesson.instrument === 'guitar') {
+            synth = new Tone.PolySynth(Tone.PluckSynth).toDestination();
+        } else { // drums
+            synth = new Tone.PolySynth(Tone.MembraneSynth).toDestination();
+        }
     }
 
     const events = lesson.notes.flatMap(note => {
@@ -183,7 +186,7 @@ export default function LessonPage() {
     Tone.Transport.scheduleOnce(() => {
       setMode('idle');
       setHighlightedKeys([]);
-      if (lesson.instrument !== 'piano') {
+      if (lesson.instrument !== 'piano' && synth) {
           synth.dispose();
       }
     }, maxTime + 0.5);
@@ -223,7 +226,7 @@ export default function LessonPage() {
         if (closestLessonNote.note && closestLessonNote.diff <= timeTolerance) {
             const lessonNoteKey = closestLessonNote.note.key;
             if (Array.isArray(lessonNoteKey)) {
-                if (lessonNoteKey.includes(playedNote.key)) {
+                if (lessonNoteKey.includes(playedNote.key as string)) {
                     correctNoteCount++;
                 }
             } else if (playedNote.key === lessonNoteKey) {
@@ -244,10 +247,12 @@ export default function LessonPage() {
     setMode('results');
   };
   
-  const handleNotePlay = useCallback((noteKey: string) => {
+  const handleNotePlay = useCallback((noteKey: string | string[]) => {
     if (mode !== 'playing') return;
     const time = (Tone.Transport.state === 'started' ? Tone.Transport.seconds : performance.now() / 1000);
-    setUserPlayedNotes(prev => [...prev, { key: noteKey, duration: '8n', time: time.toFixed(2) }]);
+    const notesToAdd = Array.isArray(noteKey) ? noteKey : [noteKey];
+    const newPlayedNotes = notesToAdd.map(key => ({ key, duration: '8n', time: time.toFixed(2) as unknown as string }));
+    setUserPlayedNotes(prev => [...prev, ...newPlayedNotes]);
   }, [mode]);
 
   const handleReport = async (reason: string) => {
