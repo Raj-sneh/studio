@@ -15,8 +15,6 @@ import { LESSONS } from '@/lib/lessons';
 import type { Note, Instrument } from '@/types';
 import { getSampler } from '@/lib/samplers';
 import { useToast } from '@/hooks/use-toast';
-import { analyzeUserPerformance } from '@/ai/flows/analyze-user-performance';
-import { flagContentForReview } from '@/ai/flows/flag-content-for-review';
 
 const Piano = lazy(() => import('@/components/Piano'));
 const Guitar = lazy(() => import('@/components/Guitar'));
@@ -27,8 +25,7 @@ const instrumentComponents: Record<Instrument, React.ElementType> = {
     drums: lazy(() => import('@/components/DrumKit')),
 };
 
-type Mode = 'idle' | 'demo' | 'playing' | 'analyzing' | 'feedback';
-type Feedback = { accuracy: number; timing: number; feedback: string; };
+type Mode = 'idle' | 'demo' | 'playing';
 
 function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
   return (
@@ -51,7 +48,6 @@ export default function LessonPage() {
   const [isInstrumentReady, setIsInstrumentReady] = useState(false);
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
   const [userPlayedNotes, setUserPlayedNotes] = useState<Note[]>([]);
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [isReportMenuOpen, setIsReportMenuOpen] = useState(false);
   
   const freePlaySamplerRef = useRef<Tone.Synth | Tone.PluckSynth | null>(null);
@@ -200,39 +196,10 @@ export default function LessonPage() {
     setUserPlayedNotes(prev => [...prev, { key: noteKey, duration: '8n', time: `0:0:${time}` }]);
   };
 
-  const analyzePerformance = async () => {
-    if (userPlayedNotes.length === 0) {
-      toast({ title: "No notes played!", description: "Play some notes before analyzing." });
-      return;
-    }
-    setMode('analyzing');
-    try {
-      const result = await analyzeUserPerformance({
-        lessonNotes: lesson.notes,
-        userNotes: userPlayedNotes,
-      });
-      setFeedback(result);
-      setMode('feedback');
-    } catch (error) {
-      console.error('Analysis failed:', error);
-      toast({ variant: 'destructive', title: 'Analysis Failed', description: 'Could not analyze your performance.' });
-      setMode('idle');
-    }
-  };
-
   const handleReport = async (reason: string) => {
-    try {
-      await flagContentForReview({
-        targetType: 'lesson',
-        targetRef: lesson.id,
-        reason,
-        details: `User reported lesson: "${lesson.title}"`,
-      });
-      toast({ title: 'Report Submitted', description: 'Thank you for your feedback. We will review this lesson.' });
-    } catch (error) {
-      console.error('Failed to submit report:', error);
-      toast({ variant: 'destructive', title: 'Report Failed', description: 'Could not submit your report. Please try again.' });
-    }
+    // In a real app, this would likely be wired to a backend service.
+    // For now, we just show a toast.
+    toast({ title: 'Report Submitted', description: 'Thank you for your feedback. We will review this lesson.' });
     setIsReportMenuOpen(false);
   };
   
@@ -240,41 +207,10 @@ export default function LessonPage() {
     switch (mode) {
       case 'demo': return "Watch and listen to the demo...";
       case 'playing': return "It's your turn! Play the notes on the virtual instrument.";
-      case 'analyzing': return "Our AI is analyzing your performance...";
-      case 'feedback': return "Here's how you did!";
       default: return `Ready to learn ${lesson.title}?`;
     }
   };
   
-  const renderFeedback = () => {
-    if (!feedback) return null;
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Bot /> AI Feedback</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div>
-              <p className="text-sm text-muted-foreground">Accuracy</p>
-              <p className="text-2xl font-bold">{feedback.accuracy}%</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Timing</p>
-              <p className="text-2xl font-bold">{feedback.timing}%</p>
-            </div>
-          </div>
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertTitle>Feedback from your AI Teacher</AlertTitle>
-            <AlertDescription>{feedback.feedback}</AlertDescription>
-          </Alert>
-          <Button onClick={() => setMode('idle')} className="w-full">Try Again</Button>
-        </CardContent>
-      </Card>
-    );
-  };
-
   const InstrumentComponent = instrumentComponents[lesson.instrument] || null;
   const isUIDisabled = mode !== 'idle' && mode !== 'playing' || !isInstrumentReady;
   
@@ -299,59 +235,33 @@ export default function LessonPage() {
             </CardContent>
           </Card>
 
-          {mode !== 'feedback' ? (
-            <>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Music className="text-primary"/>
-                        Lesson Controls
-                    </CardTitle>
-                    <CardDescription>
-                        Use the controls below to learn.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                     <Button onClick={playDemo} disabled={isUIDisabled || mode === 'demo'} className="w-full">
-                        {mode === 'demo' ? <Loader2 className="animate-spin" /> : <Play />}
-                        Play Demo
-                    </Button>
-                    {mode !== 'playing' ? (
-                      <Button onClick={startPractice} disabled={isUIDisabled} className="w-full">
-                        <User className="mr-2"/>
-                        Your Turn
-                      </Button>
-                    ) : (
-                      <Button onClick={analyzePerformance} disabled={userPlayedNotes.length === 0} className="w-full">
-                        Analyze My Playing
-                      </Button>
-                    )}
-                </CardContent>
-            </Card>
-            {process.env.NODE_ENV === 'development' && (
-              <Card>
-                <CardHeader>
+          <Card>
+              <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Bot className="text-primary" />
-                    AI Teacher
+                      <Music className="text-primary"/>
+                      Lesson Controls
                   </CardTitle>
                   <CardDescription>
-                    Listen to your playing and get live feedback.
+                      Use the controls below to learn.
                   </CardDescription>
-                </CardHeader>
-                <CardContent>
-                   <Button 
-                      className="w-full"
-                      onClick={() => toast({ title: "Coming Soon!", description: "The live AI Teacher is still in development."})}
-                   >
-                     <Mic className="mr-2" />
-                     Listen & Learn
-                   </Button>
-                </CardContent>
-              </Card>
-            )}
-            </>
-          ) : renderFeedback()}
+              </CardHeader>
+              <CardContent className="space-y-2">
+                   <Button onClick={playDemo} disabled={isUIDisabled || mode === 'demo'} className="w-full">
+                      {mode === 'demo' ? <Loader2 className="animate-spin" /> : <Play />}
+                      Play Demo
+                  </Button>
+                  {mode !== 'playing' ? (
+                    <Button onClick={startPractice} disabled={isUIDisabled} className="w-full">
+                      <User className="mr-2"/>
+                      Your Turn
+                    </Button>
+                  ) : (
+                    <Button onClick={() => setMode('idle')} className="w-full">
+                      End Practice
+                    </Button>
+                  )}
+              </CardContent>
+          </Card>
 
           <div className="flex-grow" />
           <Button variant="link" size="sm" className="text-muted-foreground" onClick={() => setIsReportMenuOpen(true)}>
