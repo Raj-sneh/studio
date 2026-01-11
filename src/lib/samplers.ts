@@ -8,10 +8,33 @@ const loadingPromises = new Map<Instrument, Promise<Tone.Sampler | Tone.Synth>>(
 
 const samplerUrls: Record<string, Record<string, string>> = {
     piano: {
-        A0: 'A0.mp3', C1: 'C1.mp3', 'D#1': 'DS1.mp3', 'F#1': 'FS1.mp3', A1: 'A1.mp3', C2: 'C2.mp3', 'D#2': 'DS2.mp3', 'F#2': 'FS2.mp3', A2: 'A2.mp3', C3: 'C3.mp3', 'D#3': 'DS3.mp3', 'F#3': 'FS3.mp3', A3: 'A3.mp3', C4: 'C4.mp3', 'D#4': 'DS4.mp3', 'F#4': 'FS4.mp3', A4: 'A4.mp3', C5: 'C5.mp3', 'D#5': 'DS5.mp3', 'F#5': 'FS5.mp3', A5: 'A5.mp3', C6: 'C6.mp3', 'D#6': 'DS6.mp3', 'F#6': 'FS6.mp3', A6: 'A6.mp3', C7: 'C7.mp3', 'D#7': 'DS7.mp3', 'F#7': 'FS7.mp3', A7: 'A7.mp3', C8: 'C8.mp3'
+        A1: 'A1.mp3',
+        A2: 'A2.mp3',
+        A3: 'A3.mp3',
+        A4: 'A4.mp3',
+        A5: 'A5.mp3',
+        A6: 'A6.mp3',
+        C1: 'C1.mp3',
+        C2: 'C2.mp3',
+        C3: 'C3.mp3',
+        C4: 'C4.mp3',
+        C5: 'C5.mp3',
+        C6: 'C6.mp3',
+        C7: 'C7.mp3',
     },
     guitar: {
-        'F#2': 'FS2.mp3', 'G#2': 'GS2.mp3', A2: 'A2.mp3', 'A#2': 'AS2.mp3', B2: 'B2.mp3', C3: 'C3.mp3', 'C#3': 'CS3.mp3', D3: 'D3.mp3', 'D#3': 'DS3.mp3', E3: 'E3.mp3', F3: 'F3.mp3', 'F#3': 'FS3.mp3', G3: 'G3.mp3', 'G#3': 'GS3.mp3', A3: 'A3.mp3', 'A#3': 'AS3.mp3', B3: 'B3.mp3', C4: 'C4.mp3', 'C#4': 'CS4.mp3', D4: 'D4.mp3', 'D#4': 'DS4.mp3', E4: 'E4.mp3', F4: 'F4.mp3'
+        A2: 'A2.mp3',
+        A3: 'A3.mp3',
+        A4: 'A4.mp3',
+        C3: 'C3.mp3',
+        C4: 'C4.mp3',
+        C5: 'C5.mp3',
+        E2: 'E2.mp3',
+        E3: 'E3.mp3',
+        E4: 'E4.mp3',
+        'G#2': 'GS2.mp3',
+        'G#3': 'GS3.mp3',
+        'G#4': 'GS4.mp3',
     },
 };
 
