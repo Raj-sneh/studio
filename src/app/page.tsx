@@ -41,13 +41,13 @@ export default function DashboardPage() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <Card className="hover:shadow-lg transition-shadow">
-          <Link href="/lessons">
+          <Link href="/practice">
             <CardHeader className="flex-row items-center justify-between">
-              <CardTitle>Practice Lessons</CardTitle>
+              <CardTitle>Practice Mode</CardTitle>
               <Music className="w-6 h-6 text-primary" />
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground mb-4">Hone your skills with interactive exercises and receive instant feedback.</p>
+              <p className="text-muted-foreground mb-4">Freely play virtual instruments and experiment with sounds.</p>
               {practiceImage && 
                 <Image 
                   src={practiceImage.imageUrl}
@@ -95,4 +95,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
