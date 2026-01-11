@@ -7,29 +7,6 @@ import { firebaseConfig } from '@/firebase/config';
 const samplerCache = new Map<Instrument, Tone.Sampler | Tone.Synth | Tone.PluckSynth>();
 const loadingPromises = new Map<Instrument, Promise<Tone.Sampler | Tone.Synth | Tone.PluckSynth>>();
 
-const samplerUrls: Record<string, Record<string, string>> = {
-    piano: {
-        A1: 'A1.mp3',
-        A2: 'A2.mp3',
-        A3: 'A3.mp3',
-        A4: 'A4.mp3',
-        A5: 'A5.mp3',
-        A6: 'A6.mp3',
-    },
-    guitar: {
-        // This is no longer used, as guitar is now a synth.
-    },
-    drums: {
-        // This is no longer used, as drums are now a synth.
-    }
-};
-
-const baseUrlMap: Record<string, string> = {
-    piano: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_grand_piano-mp3/',
-    guitar: '', // Not used for synth
-    drums: '', // Not used for synth
-}
-
 /**
  * Creates or retrieves a cached Tone.js instrument.
  * This function is async and handles concurrent requests for the same instrument.
@@ -66,53 +43,45 @@ export const getSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.
             return resolve(mockSampler);
         }
 
-        if (instrument === 'drums') {
-            // This will be handled by the DrumKit component's internal synths
-            const mockSynth = {
-                triggerAttackRelease: () => {},
-                dispose: () => {},
-                disposed: false,
-            } as unknown as Tone.Synth;
-            samplerCache.set(instrument, mockSynth);
-            loadingPromises.delete(instrument);
-            return resolve(mockSynth);
-        }
-        
-        if (instrument === 'guitar') {
-            const synth = new Tone.PluckSynth().toDestination();
-            samplerCache.set(instrument, synth);
-            loadingPromises.delete(instrument);
-            return resolve(synth);
-        }
+        try {
+            let newInstrument: Tone.Synth | Tone.PluckSynth;
 
-        const hasUrls = samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0;
-        
-        if (hasUrls) {
-            try {
-                const sampler = new Tone.Sampler({
-                    urls: samplerUrls[instrument],
-                    baseUrl: baseUrlMap[instrument],
-                    release: 1,
-                    onload: () => {
-                        samplerCache.set(instrument, sampler);
-                        loadingPromises.delete(instrument); // Clean up promise map
-                        resolve(sampler);
+            if (instrument === 'drums') {
+                // The DrumKit component handles its own synths, so we provide a mock-like object.
+                const mockSynth = {
+                    triggerAttackRelease: () => {},
+                    dispose: () => {},
+                    disposed: false,
+                } as unknown as Tone.Synth;
+                samplerCache.set(instrument, mockSynth);
+                loadingPromises.delete(instrument);
+                return resolve(mockSynth);
+            }
+            
+            if (instrument === 'guitar') {
+                newInstrument = new Tone.PluckSynth().toDestination();
+            } else { // 'piano' and any other fallback
+                newInstrument = new Tone.Synth({
+                    oscillator: {
+                        type: "sine"
                     },
-                    onerror: (error) => {
-                        console.error(`Error loading sampler for ${instrument}:`, error);
-                        loadingPromises.delete(instrument);
-                        reject(error);
+                    envelope: {
+                        attack: 0.005,
+                        decay: 0.1,
+                        sustain: 0.3,
+                        release: 1
                     }
                 }).toDestination();
-            } catch (error) {
-                 reject(error);
             }
-        } else {
-            // Fallback to a basic synth if no samples are defined
-            const synth = new Tone.Synth().toDestination();
-            samplerCache.set(instrument, synth);
+
+            samplerCache.set(instrument, newInstrument);
             loadingPromises.delete(instrument);
-            resolve(synth);
+            resolve(newInstrument);
+
+        } catch (error) {
+            console.error(`Error creating synth for ${instrument}:`, error);
+            loadingPromises.delete(instrument);
+            reject(error);
         }
     });
 
