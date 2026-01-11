@@ -24,6 +24,13 @@ const AnalyzePerformanceInputSchema = z.object({
 });
 export type AnalyzePerformanceInput = z.infer<typeof AnalyzePerformanceInputSchema>;
 
+// Define a schema for the prompt's input, which will be strings
+const PromptInputSchema = z.object({
+  lessonNotes: z.string(),
+  userNotes: z.string(),
+});
+
+
 // Define the output schema for the flow
 const AnalyzePerformanceOutputSchema = z.object({
   accuracy: z.number().min(0).max(100).describe("The percentage of correctly played notes."),
@@ -42,7 +49,7 @@ export async function analyzeUserPerformance(
 // Define the Genkit prompt
 const analyzePerformancePrompt = ai.definePrompt({
   name: 'analyzePerformancePrompt',
-  input: { schema: AnalyzePerformanceInputSchema },
+  input: { schema: PromptInputSchema },
   output: { schema: AnalyzePerformanceOutputSchema },
 
   prompt: `You are an AI music teacher. Your goal is to provide encouraging and helpful feedback to a student learning a song.
@@ -58,12 +65,12 @@ const analyzePerformancePrompt = ai.definePrompt({
 
     **Lesson Notes (Correct):**
     \`\`\`json
-    {{jsonStringify lessonNotes}}
+    {{{lessonNotes}}}
     \`\`\`
 
     **User's Notes (Played):**
     \`\`\`json
-    {{jsonStringify userNotes}}
+    {{{userNotes}}}
     \`\`\`
     `,
 });
@@ -77,7 +84,13 @@ const analyzePerformanceFlow = ai.defineFlow(
     outputSchema: AnalyzePerformanceOutputSchema,
   },
   async (input) => {
-    const { output } = await analyzePerformancePrompt(input);
+    // Manually stringify the note arrays before passing them to the prompt
+    const promptInput = {
+      lessonNotes: JSON.stringify(input.lessonNotes, null, 2),
+      userNotes: JSON.stringify(input.userNotes, null, 2),
+    };
+    
+    const { output } = await analyzePerformancePrompt(promptInput);
     return output!;
   }
 );
