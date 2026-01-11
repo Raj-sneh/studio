@@ -16,5 +16,5 @@ export async function conversationalFlow(
     return 'Sneh Kumar Verma';
   }
   
-  return 'I am still in development mode try another feature';
+  return 'As an AI music assistant, my capabilities are still evolving. For now, I can tell you about my developer. What would you like to know?';
 }
