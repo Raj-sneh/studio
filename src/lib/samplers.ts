@@ -16,10 +16,22 @@ const samplerUrls: Record<string, Record<string, string>> = {
         A6: 'A6.mp3',
     },
     guitar: {
+        'E2': 'E2.mp3',
+        'G2': 'G2.mp3',
         'A2': 'A2.mp3',
+        'B2': 'B2.mp3',
         'C3': 'C3.mp3',
+        'D3': 'D3.mp3',
         'E3': 'E3.mp3',
+        'F3': 'F3.mp3',
         'G3': 'G3.mp3',
+        'A3': 'A3.mp3',
+        'B3': 'B3.mp3',
+        'C4': 'C4.mp3',
+        'D4': 'D4.mp3',
+        'E4': 'E4.mp3',
+        'F#4': 'Fs4.mp3',
+        'G#3': 'Gs3.mp3'
     },
     drums: {
         'C#4': 'crash.mp3', // Crash
