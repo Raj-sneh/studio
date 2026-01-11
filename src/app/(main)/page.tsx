@@ -7,7 +7,6 @@ import { ArrowRight, Music, Wand2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import AIBot from "@/components/AIBot";
 
 export default function DashboardPage() {
   const practiceImage = PlaceHolderImages.find(img => img.id === 'dashboard-practice');
@@ -17,16 +16,17 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div className="text-center">
         <h1 className="font-headline text-4xl font-bold tracking-tight">
-          Welcome to <span className="text-primary">Sargam</span> by SKV
+          Welcome to <span className="text-primary font-bold">Sargam</span>
+          <span className="font-normal"> by SKV</span>
         </h1>
         <p className="mt-2 text-lg text-muted-foreground">The AI-powered music learning companion.</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <Card className="hover:shadow-lg transition-shadow">
-          <Link href="/practice">
+          <Link href="/lessons">
             <CardHeader className="flex-row items-center justify-between">
-              <CardTitle>Practice</CardTitle>
+              <CardTitle>Practice Lessons</CardTitle>
               <Music className="w-6 h-6 text-primary" />
             </CardHeader>
             <CardContent>
@@ -74,7 +74,6 @@ export default function DashboardPage() {
           </Button>
         </Link>
       </div>
-      {process.env.NODE_ENV === 'development' && <AIBot />}
     </div>
   );
 }

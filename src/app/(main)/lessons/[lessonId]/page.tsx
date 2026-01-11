@@ -17,9 +17,6 @@ import { getSampler } from '@/lib/samplers';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeUserPerformance } from '@/ai/flows/analyze-user-performance';
 import { flagContentForReview } from '@/ai/flows/flag-content-for-review';
-import { useAudioRecorder } from '@/hooks/use-audio-recorder';
-import { transcribeAudio } from '@/ai/flows/transcribe-audio-flow';
-
 
 const Piano = lazy(() => import('@/components/Piano'));
 const Guitar = lazy(() => import('@/components/Guitar'));
@@ -30,7 +27,7 @@ const instrumentComponents: Record<Instrument, React.ElementType> = {
     drums: lazy(() => import('@/components/DrumKit')),
 };
 
-type Mode = 'idle' | 'demo' | 'playing' | 'listening' | 'analyzing' | 'feedback';
+type Mode = 'idle' | 'demo' | 'playing' | 'analyzing' | 'feedback';
 type Feedback = { accuracy: number; timing: number; feedback: string; };
 
 function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
@@ -48,7 +45,6 @@ export default function LessonPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
-  const { isRecording, startRecording, stopRecording } = useAudioRecorder();
 
   const [lesson, setLesson] = useState(LESSONS[0]);
   const [mode, setMode] = useState<Mode>('idle');
@@ -57,7 +53,6 @@ export default function LessonPage() {
   const [userPlayedNotes, setUserPlayedNotes] = useState<Note[]>([]);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [isReportMenuOpen, setIsReportMenuOpen] = useState(false);
-  const [micPermissionError, setMicPermissionError] = useState(false);
   
   const freePlaySamplerRef = useRef<Tone.Synth | Tone.PluckSynth | null>(null);
   const playbackSamplerRef = useRef<Tone.Sampler | null>(null);
@@ -80,16 +75,13 @@ export default function LessonPage() {
     }
     partRef.current?.dispose();
     setHighlightedKeys([]);
-    if (isRecording) {
-      stopRecording();
-    }
     if(freePlaySamplerRef.current && 'releaseAll' in freePlaySamplerRef.current) {
         (freePlaySamplerRef.current as any).releaseAll();
     }
      if(playbackSamplerRef.current && 'releaseAll' in playbackSamplerRef.current) {
         playbackSamplerRef.current.releaseAll();
     }
-  }, [isRecording, stopRecording]);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -241,54 +233,6 @@ export default function LessonPage() {
       setMode('idle');
     }
   };
-  
-  const startListening = async () => {
-    toast({
-        title: 'Feature in Development',
-        description: 'The "Listen & Learn" feature is coming soon. Please try another mode!',
-    });
-  };
-  
-  const stopListeningAndAnalyze = async () => {
-    if (!isRecording) return;
-
-    setMode('analyzing');
-    const audioBlob = await stopRecording();
-    if (!audioBlob) {
-        setMode('idle');
-        return;
-    }
-
-    try {
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = async () => {
-            const base64Audio = reader.result as string;
-            const transcriptionResult = await transcribeAudio({ 
-                audioDataUri: base64Audio,
-                instrument: 'piano', // For now, this is fixed as the transcription is for piano
-            });
-
-            if (transcriptionResult.notes.length === 0) {
-                toast({ title: "No notes detected", description: "Couldn't detect any notes in your recording." });
-                setMode('idle');
-                return;
-            }
-
-            const result = await analyzeUserPerformance({
-                lessonNotes: lesson.notes,
-                userNotes: transcriptionResult.notes.map(n => ({...n, time: `0:0:${n.time}`})),
-            });
-            setFeedback(result);
-            setMode('feedback');
-        };
-    } catch (error) {
-        console.error("Transcription or analysis failed:", error);
-        toast({ variant: "destructive", title: "AI Failed", description: "Could not process your recording." });
-        setMode('idle');
-    }
-  };
-
 
   const handleReport = async (reason: string) => {
     try {
@@ -310,7 +254,6 @@ export default function LessonPage() {
     switch (mode) {
       case 'demo': return "Watch and listen to the demo...";
       case 'playing': return "It's your turn! Play the notes on the virtual instrument.";
-      case 'listening': return "Listening to your playing... Play along with the rhythm.";
       case 'analyzing': return "Our AI is analyzing your performance...";
       case 'feedback': return "Here's how you did!";
       default: return `Ready to learn ${lesson.title}?`;
@@ -399,39 +342,6 @@ export default function LessonPage() {
                     )}
                 </CardContent>
             </Card>
-              <Card>
-                  <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                          <Bot className="text-accent"/>
-                          AI Teacher
-                      </CardTitle>
-                      <CardDescription>
-                          Use your microphone to play along.
-                      </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                      {mode !== 'listening' ? (
-                          <Button onClick={startListening} disabled={isUIDisabled} className="w-full" variant="outline">
-                              <Mic className="mr-2"/>
-                              Listen & Learn
-                          </Button>
-                      ) : (
-                          <Button onClick={stopListeningAndAnalyze} className="w-full" variant="destructive">
-                              <Square className="mr-2"/>
-                              Stop & Analyze
-                          </Button>
-                      )}
-                      {micPermissionError && (
-                          <Alert variant="destructive" className="mt-4">
-                              <MicOff className="h-4 w-4" />
-                              <AlertTitle>Microphone Access Denied</AlertTitle>
-                              <AlertDescription>
-                                  Please enable microphone permissions in your browser settings to use this feature.
-                              </AlertDescription>
-                          </Alert>
-                      )}
-                  </CardContent>
-              </Card>
             </>
           ) : renderFeedback()}
 
@@ -481,5 +391,3 @@ export default function LessonPage() {
     </div>
   );
 }
-
-    
