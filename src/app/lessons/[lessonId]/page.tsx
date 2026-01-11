@@ -134,21 +134,22 @@ export default function LessonPage() {
     let needsDisposal = false;
 
     try {
-      if (lesson.instrument === 'piano') {
-        if (!playbackSamplerRef.current || playbackSamplerRef.current.disposed) {
-            toast({ title: "Piano sampler not ready", description: "Please wait a moment for the piano sounds to load." });
-            return;
+        if (lesson.instrument === 'piano') {
+            if (!playbackSamplerRef.current || playbackSamplerRef.current.disposed) {
+                toast({ title: "Piano sampler not ready", description: "Please wait a moment for the piano sounds to load." });
+                return;
+            }
+            synth = playbackSamplerRef.current;
+        } else {
+            needsDisposal = true;
+            const polySynth = new Tone.PolySynth().toDestination();
+            if (lesson.instrument === 'guitar') {
+                polySynth.set({ voice: Tone.PluckSynth });
+            } else { // drums
+                polySynth.set({ voice: Tone.MembraneSynth });
+            }
+            synth = polySynth;
         }
-        synth = playbackSamplerRef.current;
-      } else {
-        needsDisposal = true;
-        // Use PolySynth for guitar and drums to handle chords/simultaneous notes
-        if (lesson.instrument === 'guitar') {
-            synth = new Tone.PolySynth(Tone.PluckSynth).toDestination();
-        } else { // drums
-            synth = new Tone.PolySynth(Tone.MembraneSynth).toDestination();
-        }
-      }
 
       const events = lesson.notes.flatMap(note => {
           const keys = Array.isArray(note.key) ? note.key : [note.key];
@@ -413,5 +414,3 @@ export default function LessonPage() {
     </div>
   );
 }
-
-    
