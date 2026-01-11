@@ -243,16 +243,10 @@ export default function LessonPage() {
   };
   
   const startListening = async () => {
-    try {
-        stopAllActivity();
-        setMicPermissionError(false);
-        setUserPlayedNotes([]);
-        await startRecording();
-        setMode('listening');
-    } catch (error) {
-        setMicPermissionError(true);
-        setMode('idle');
-    }
+    toast({
+        title: 'Feature in Development',
+        description: 'The "Listen & Learn" feature is coming soon. Please try another mode!',
+    });
   };
   
   const stopListeningAndAnalyze = async () => {
@@ -405,7 +399,6 @@ export default function LessonPage() {
                     )}
                 </CardContent>
             </Card>
-            {process.env.NODE_ENV === 'development' && (
               <Card>
                   <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -439,7 +432,6 @@ export default function LessonPage() {
                       )}
                   </CardContent>
               </Card>
-            )}
             </>
           ) : renderFeedback()}
 
@@ -489,3 +481,5 @@ export default function LessonPage() {
     </div>
   );
 }
+
+    
