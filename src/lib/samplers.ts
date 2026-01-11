@@ -31,8 +31,8 @@ const samplerUrls: Record<string, Record<string, string>> = {
         'C4': 'C4.mp3',
         'D4': 'D4.mp3',
         'E4': 'E4.mp3',
-        'F#4': 'Fs4.mp3',
-        'G#3': 'Gs3.mp3'
+        'F#4': 'Fsharp4.mp3',
+        'G#3': 'Gsharp3.mp3'
     },
     drums: {
         // This is no longer used, as drums are now a synth.
@@ -81,25 +81,17 @@ export const getSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.
             return resolve(mockSampler);
         }
 
-        // *** GUARANTEED FIX: Use a synth for drums to avoid network errors ***
         if (instrument === 'drums') {
-            const drumSynth = new Tone.MembraneSynth({
-                pitchDecay: 0.02,
-                octaves: 8,
-                oscillator: {
-                    type: 'sine',
-                },
-                envelope: {
-                    attack: 0.001,
-                    decay: 0.2,
-                    sustain: 0.01,
-                    release: 0.8,
-                    attackCurve: 'exponential',
-                },
-            }).toDestination();
-            samplerCache.set(instrument, drumSynth);
+            // This will be handled by the DrumKit component's internal synths
+            // but we can resolve with a silent dummy object to prevent errors elsewhere.
+            const mockSynth = {
+                triggerAttackRelease: () => {},
+                dispose: () => {},
+                disposed: false,
+            } as unknown as Tone.Synth;
+            samplerCache.set(instrument, mockSynth);
             loadingPromises.delete(instrument);
-            return resolve(drumSynth);
+            return resolve(mockSynth);
         }
 
         const hasUrls = samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0;
