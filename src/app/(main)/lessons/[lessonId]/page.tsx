@@ -113,7 +113,7 @@ export default function LessonPage() {
             await Tone.loaded();
 
             if (active) {
-                freePlaySamplerRef.current = freeplay;
+                freePlaySamplerRef.current = freeplay as any;
                 playbackSamplerRef.current = playback;
                 setIsInstrumentReady(true);
             }
@@ -147,16 +147,31 @@ export default function LessonPage() {
     
     const sampler = playbackSamplerRef.current;
 
-    const events = lesson.notes.map(note => {
-        return {
-            time: note.time,
-            key: note.key,
-            duration: note.duration,
-        };
+    // Group notes by time
+    const eventsMap = new Map<string, { key: string[], duration: string }>();
+    lesson.notes.forEach(note => {
+        const time = note.time;
+        if (!eventsMap.has(time)) {
+            eventsMap.set(time, { key: [], duration: note.duration });
+        }
+        const event = eventsMap.get(time)!;
+        if (Array.isArray(note.key)) {
+            event.key.push(...note.key);
+        } else {
+            event.key.push(note.key);
+        }
     });
 
+    const events = Array.from(eventsMap.entries()).map(([time, { key, duration }]) => ({
+        time,
+        key,
+        duration
+    }));
+
     partRef.current = new Tone.Part((time, event) => {
-        sampler.triggerAttackRelease(event.key, event.duration, time);
+        if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
+          sampler.triggerAttackRelease(event.key, event.duration, time);
+        }
         
         const keysToHighlight = Array.isArray(event.key) ? event.key : [event.key];
         
@@ -201,7 +216,7 @@ export default function LessonPage() {
     const time = Tone.Transport.seconds.toFixed(2);
     
     if (freePlaySamplerRef.current && 'triggerAttackRelease' in freePlaySamplerRef.current) {
-        freePlaySamplerRef.current.triggerAttackRelease(noteKey, '8n');
+        (freePlaySamplerRef.current as any).triggerAttackRelease(noteKey, '8n');
     }
 
     setUserPlayedNotes(prev => [...prev, { key: noteKey, duration: '8n', time: `0:0:${time}` }]);
@@ -390,39 +405,41 @@ export default function LessonPage() {
                     )}
                 </CardContent>
             </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Bot className="text-accent"/>
-                        AI Teacher
-                    </CardTitle>
-                    <CardDescription>
-                        Use your microphone to play along.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {mode !== 'listening' ? (
-                        <Button onClick={startListening} disabled={isUIDisabled} className="w-full" variant="outline">
-                            <Mic className="mr-2"/>
-                            Listen & Learn
-                        </Button>
-                    ) : (
-                        <Button onClick={stopListeningAndAnalyze} className="w-full" variant="destructive">
-                            <Square className="mr-2"/>
-                            Stop & Analyze
-                        </Button>
-                    )}
-                    {micPermissionError && (
-                        <Alert variant="destructive" className="mt-4">
-                            <MicOff className="h-4 w-4" />
-                            <AlertTitle>Microphone Access Denied</AlertTitle>
-                            <AlertDescription>
-                                Please enable microphone permissions in your browser settings to use this feature.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                </CardContent>
-            </Card>
+            {process.env.NODE_ENV === 'development' && (
+              <Card>
+                  <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                          <Bot className="text-accent"/>
+                          AI Teacher
+                      </CardTitle>
+                      <CardDescription>
+                          Use your microphone to play along.
+                      </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                      {mode !== 'listening' ? (
+                          <Button onClick={startListening} disabled={isUIDisabled} className="w-full" variant="outline">
+                              <Mic className="mr-2"/>
+                              Listen & Learn
+                          </Button>
+                      ) : (
+                          <Button onClick={stopListeningAndAnalyze} className="w-full" variant="destructive">
+                              <Square className="mr-2"/>
+                              Stop & Analyze
+                          </Button>
+                      )}
+                      {micPermissionError && (
+                          <Alert variant="destructive" className="mt-4">
+                              <MicOff className="h-4 w-4" />
+                              <AlertTitle>Microphone Access Denied</AlertTitle>
+                              <AlertDescription>
+                                  Please enable microphone permissions in your browser settings to use this feature.
+                              </AlertDescription>
+                          </Alert>
+                      )}
+                  </CardContent>
+              </Card>
+            )}
             </>
           ) : renderFeedback()}
 
