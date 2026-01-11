@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { chat } from '@/ai/flows/conversational-flow';
+import { useToast } from '@/hooks/use-toast';
 
 export type Message = {
   role: 'user' | 'model';
@@ -14,6 +15,7 @@ export type Message = {
 };
 
 export default function AIBot() {
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -31,26 +33,32 @@ export default function AIBot() {
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const userMessage = input.trim();
-    const userMsg: Message = { role: 'user', content: userMessage };
-    setMessages((prev) => [...prev, userMsg]);
+    const userMessageContent = input.trim();
+    const newMessages: Message[] = [
+      ...messages,
+      { role: 'user', content: userMessageContent },
+    ];
+    
+    setMessages(newMessages);
     setInput('');
     setIsLoading(true);
 
-    let botResponse = 'I am still in my development phase, but I will be able to assist you with more features soon. Thank you for your patience!';
-
-    if (userMessage.toLowerCase().includes('who is your developer')) {
-        botResponse = 'my developer is sneh kumar verma';
+    try {
+      const result = await chat({ history: newMessages });
+      const botResponse: Message = { role: 'model', content: result.response };
+      setMessages((prev) => [...prev, botResponse]);
+    } catch (error) {
+        console.error("AI chat failed:", error);
+        toast({
+            title: "AI Assistant Error",
+            description: "Could not get a response from the AI. Please check the console.",
+            variant: "destructive"
+        });
+        // Rollback the user message on error
+        setMessages(messages);
+    } finally {
+        setIsLoading(false);
     }
-    
-    // Simulate AI "thinking" and then give the canned response.
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'model', content: botResponse },
-      ]);
-      setIsLoading(false);
-    }, 500);
   };
 
   if (!isOpen) return (
