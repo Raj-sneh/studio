@@ -22,21 +22,21 @@ const samplerUrls: Record<string, Record<string, string>> = {
         'G3': 'G3.mp3',
     },
     drums: {
-        'C3': 'kick.wav',
-        'D3': 'snare.wav',
-        'F#3': 'hihat.wav',
-        'C#4': 'crash.wav',
-        'E4': 'ride.wav',
-        'G3': 'tom1.wav', // Tom 1 (High)
-        'F3': 'tom2.wav', // Tom 2 (Mid)
-        'B2': 'tom3.wav', // Tom 3 (Low)
+        'C#4': 'crash.mp3',
+        'F#3': 'hihat.mp3',
+        'C3': 'kick.mp3',
+        'E4': 'ride.mp3',
+        'D3': 'snare.mp3',
+        'G3': 'tom1.mp3',
+        'F3': 'tom2.mp3',
+        'B2': 'tom3.mp3',
     }
 };
 
 const baseUrlMap: Record<string, string> = {
     piano: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_grand_piano-mp3/',
     guitar: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_guitar_nylon-mp3/',
-    drums: 'https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/drum-samples/CR78/',
+    drums: 'https://cdn.jsdelivr.net/gh/firebase/codelab-friendly-chat-web/storage-files/salamander/',
 }
 
 /**
