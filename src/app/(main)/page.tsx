@@ -16,7 +16,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h1 className="font-headline text-4xl font-bold tracking-tight">Welcome to Sargam</h1>
+        <h1 className="font-headline text-4xl font-bold tracking-tight">Welcome to Sargam by SKV</h1>
         <p className="mt-2 text-lg text-muted-foreground">The AI-powered music learning companion.</p>
       </div>
       
@@ -72,9 +72,7 @@ export default function DashboardPage() {
           </Button>
         </Link>
       </div>
-      <AIBot />
+      {process.env.NODE_ENV === 'development' && <AIBot />}
     </div>
   );
 }
-
-    

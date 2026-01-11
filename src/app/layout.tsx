@@ -21,7 +21,7 @@ const fontBody = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: 'Sargam - AI Music Teacher',
+  title: 'Sargam by SKV - AI Music Teacher',
   description: 'Learn music with your AI-powered teacher.',
 };
 
