@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import * as Tone from "tone";
 import { cn } from "@/lib/utils";
 import { getSampler } from "@/lib/samplers";
@@ -22,11 +22,6 @@ interface PianoProps {
     disabled?: boolean;
 }
 
-type ActiveNote = {
-    note: string;
-    octave: number;
-} | null;
-
 export default function Piano({
     octaves = 7,
     startOctave = 1,
@@ -34,45 +29,44 @@ export default function Piano({
     highlightedKeys = [],
     disabled = false,
 }: PianoProps) {
-    const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
+    const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [currentOctave, setCurrentOctave] = useState(3);
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
-    const [activeMouseNote, setActiveMouseNote] = useState<ActiveNote>(null);
+    const [activeMouseNote, setActiveMouseNote] = useState<string | null>(null);
 
     useEffect(() => {
         getSampler('piano').then(loadedSampler => {
-            setSampler(loadedSampler);
+            samplerRef.current = loadedSampler;
             setIsLoading(false);
         });
+        return () => {
+          samplerRef.current?.dispose();
+        }
     }, []);
 
-    const playNote = useCallback(async (note: string, octave: number) => {
-        if (!sampler || disabled || isLoading || sampler.disposed) return;
+    const playNote = useCallback(async (fullNote: string | null) => {
+        if (!fullNote || !samplerRef.current || disabled || isLoading || samplerRef.current.disposed) return;
+        
         if (Tone.context.state !== 'running') {
             await Tone.start();
         }
 
-        const fullNote = `${note}${octave}`;
-        if ('triggerAttack' in sampler) {
-            sampler.triggerAttack(fullNote, Tone.now());
+        if ('triggerAttack' in samplerRef.current) {
+            samplerRef.current.triggerAttack(fullNote, Tone.now());
         }
 
         onNotePlay?.(fullNote);
         setPressedKeys(prev => new Set(prev).add(fullNote));
-    }, [disabled, onNotePlay, sampler, isLoading]);
+    }, [disabled, onNotePlay, isLoading]);
 
-    const stopNote = useCallback((note: string | null, octave: number | null) => {
-        if (!note || typeof octave === 'undefined' || octave === null || !sampler || disabled || isLoading || sampler.disposed) {
-            return;
-        }
+    const stopNote = useCallback((fullNote: string | null) => {
+        if (!fullNote || !samplerRef.current || samplerRef.current.disposed) return;
 
-        const fullNote = `${note}${octave}`;
-        
         setPressedKeys(prev => {
             if (prev.has(fullNote)) {
-                if ('triggerRelease' in sampler) {
-                    sampler.triggerRelease(fullNote);
+                if ('triggerRelease' in samplerRef.current!) {
+                    samplerRef.current.triggerRelease(fullNote);
                 }
                 const newSet = new Set(prev);
                 newSet.delete(fullNote);
@@ -80,33 +74,38 @@ export default function Piano({
             }
             return prev;
         });
-    }, [disabled, sampler, isLoading]);
+    }, [disabled, isLoading]);
     
     useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (disabled || event.repeat || !sampler || isLoading) return;
-            const note = keyMap[event.key.toLowerCase()];
+        const getNoteFromKey = (key: string) => {
+            const note = keyMap[key.toLowerCase()];
             if (note) {
                 let octave = currentOctave;
-                if (['k', 'o', 'l', 'p'].includes(event.key.toLowerCase())) {
+                if (['k', 'o', 'l', 'p'].includes(key.toLowerCase())) {
                     octave++;
                 }
-
-                playNote(note, octave);
+                return `${note}${octave}`;
             }
+            return null;
+        }
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (disabled || event.repeat || isLoading) return;
+            
+            const fullNote = getNoteFromKey(event.key);
+            if (fullNote) {
+                playNote(fullNote);
+            }
+
             if (event.key === 'z') changeOctave(-1);
             if (event.key === 'x') changeOctave(1);
         };
 
         const handleKeyUp = (event: KeyboardEvent) => {
-            if (disabled || !sampler || isLoading) return;
-            const note = keyMap[event.key.toLowerCase()];
-            if (note) {
-                let octave = currentOctave;
-                if (['k', 'o', 'l', 'p'].includes(event.key.toLowerCase())) {
-                    octave++;
-                }
-                stopNote(note, octave);
+            if (disabled || isLoading) return;
+            const fullNote = getNoteFromKey(event.key);
+            if (fullNote) {
+                stopNote(fullNote);
             }
         };
 
@@ -117,18 +116,18 @@ export default function Piano({
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [playNote, stopNote, currentOctave, disabled, sampler, isLoading]);
+    }, [playNote, stopNote, currentOctave, disabled, isLoading]);
 
     const handleMouseUp = () => {
-        if(activeMouseNote) {
-            stopNote(activeMouseNote.note, activeMouseNote.octave);
+        if (activeMouseNote) {
+            stopNote(activeMouseNote);
             setActiveMouseNote(null);
         }
     };
     
     const handleMouseLeave = () => {
-        if(activeMouseNote) {
-            stopNote(activeMouseNote.note, activeMouseNote.octave);
+        if (activeMouseNote) {
+            stopNote(activeMouseNote);
             setActiveMouseNote(null);
         }
     };
@@ -163,13 +162,13 @@ export default function Piano({
 
                         return (
                             <div
-                                key={`${note}${octave}`}
+                                key={fullNote}
                                 onMouseDown={() => {
-                                    playNote(note, octave);
-                                    setActiveMouseNote({ note, octave });
+                                    playNote(fullNote);
+                                    setActiveMouseNote(fullNote);
                                 }}
-                                onTouchStart={(e) => { e.preventDefault(); playNote(note, octave); }}
-                                onTouchEnd={(e) => { e.preventDefault(); stopNote(note, octave); }}
+                                onTouchStart={(e) => { e.preventDefault(); playNote(fullNote); }}
+                                onTouchEnd={(e) => { e.preventDefault(); stopNote(fullNote); }}
                                 className={cn(
                                     "relative cursor-pointer transition-colors duration-100 flex items-end justify-center pb-2 font-medium",
                                     isBlack
