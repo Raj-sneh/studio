@@ -7,6 +7,7 @@ import { ArrowRight, Music, Wand2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import AIBot from "@/components/AIBot";
 
 export default function DashboardPage() {
   const practiceImage = PlaceHolderImages.find(img => img.id === 'dashboard-practice');
@@ -74,6 +75,7 @@ export default function DashboardPage() {
           </Button>
         </Link>
       </div>
+      <AIBot />
     </div>
   );
 }
