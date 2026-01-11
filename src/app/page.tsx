@@ -8,10 +8,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import AIBot from "@/components/AIBot";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
+  const { toast } = useToast();
+  const router = useRouter();
   const practiceImage = PlaceHolderImages.find(img => img.id === 'dashboard-practice');
   const magicImage = PlaceHolderImages.find(img => img.id === 'dashboard-magic');
+
+  const handleAiComposerClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    toast({
+      title: 'Calibrating Composition Circuits...',
+      description: "My melody generation core is still in its learning phase. Please check back soon for magical new features!",
+    });
+    // We can still navigate the user if we want
+    setTimeout(() => {
+        router.push('/compose');
+    }, 1500)
+  };
 
   return (
     <div className="space-y-8">
@@ -46,8 +62,8 @@ export default function DashboardPage() {
           </Link>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
-          <Link href="/compose">
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={handleAiComposerClick}>
+          
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle>AI Composer</CardTitle>
               <Wand2 className="w-6 h-6 text-primary" />
@@ -64,7 +80,7 @@ export default function DashboardPage() {
                 />
               }
             </CardContent>
-          </Link>
+          
         </Card>
       </div>
 
@@ -79,3 +95,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
