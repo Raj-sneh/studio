@@ -24,13 +24,15 @@ const strings = [
 
 const fretMarkers = [3, 5, 7, 9, 12];
 
-const chords: Record<string, string[]> = {
-    'Open': ['E4', 'B3', 'G3', 'D3', 'A2', 'E2'],
-    'C':    ['E4', 'C4', 'G3', 'E3', 'C3', 'E2'],
-    'G':    ['G4', 'B3', 'G3', 'D3', 'B2', 'G2'],
-    'Am':   ['E4', 'C4', 'A3', 'E3', 'A2', 'E2'],
-    'F':    ['F4', 'C4', 'A3', 'F3', 'C3', 'F2'],
-    'Dm':   ['F4', 'D4', 'A3', 'D3', 'A2', 'D2'],
+// Corrected chord voicings for a more realistic sound
+const chords: Record<string, (string | null)[]> = {
+    'G': ['G4', 'B3', 'G3', 'D3', 'B2', 'G2'],      // G Major
+    'C': ['E4', 'C4', 'G3', 'E3', 'C3', null],      // C Major (low E muted)
+    'D': ['F#4', 'D4', 'A3', 'D3', null, null],     // D Major (A, E muted)
+    'Am': ['E4', 'C4', 'A3', 'E3', 'A2', null],     // A Minor (low E muted)
+    'Em': ['E4', 'B3', 'G3', 'E3', 'B2', 'E2'],      // E Minor
+    'E': ['E4', 'B3', 'G#3', 'E3', 'B2', 'E2'],     // E Major
+    'F': ['F4', 'C4', 'A3', 'F3', 'C3', 'F2'],      // F Major (Barre chord)
 };
 const chordNames = Object.keys(chords);
 
@@ -39,7 +41,7 @@ export default function Guitar({ onNotePlay, disabled = false, highlightedKeys =
   const [sampler, setSampler] = useState<Tone.Sampler | Tone.Synth | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [vibratingString, setVibratingString] = useState<number | null>(null);
-  const [selectedChord, setSelectedChord] = useState<string>('Open');
+  const [selectedChord, setSelectedChord] = useState<string>('G');
 
   useEffect(() => {
     getSampler('guitar').then(loadedSampler => {
@@ -51,8 +53,11 @@ export default function Guitar({ onNotePlay, disabled = false, highlightedKeys =
   const playNote = useCallback((stringIndex: number) => {
     if (!sampler || disabled || isLoading || sampler.disposed) return;
     
-    const note = chords[selectedChord][stringIndex] || strings[stringIndex].open;
+    const note = chords[selectedChord][stringIndex];
     
+    // If the note is null for a given chord, don't play anything (muted string)
+    if (!note) return;
+
     if (sampler && 'triggerAttackRelease' in sampler) {
         sampler.triggerAttackRelease(note, '1n', Tone.now());
     }
@@ -114,12 +119,14 @@ export default function Guitar({ onNotePlay, disabled = false, highlightedKeys =
               className={cn(
                 "w-full h-0.5 transition-all duration-100 ease-in-out cursor-pointer group",
                 string.color,
-                disabled && "cursor-not-allowed"
+                disabled && "cursor-not-allowed",
+                // Mute strings that are not part of the current chord
+                chords[selectedChord][index] === null && "opacity-30 cursor-not-allowed"
               )}
             >
               <div className={cn(
                 "w-full h-full transform-gpu",
-                !disabled && "group-hover:scale-y-[3] group-hover:bg-yellow-300",
+                !disabled && chords[selectedChord][index] !== null && "group-hover:scale-y-[3] group-hover:bg-yellow-300",
                 vibratingString === index && "vibrating bg-yellow-400 scale-y-[2]"
               )}></div>
             </div>
