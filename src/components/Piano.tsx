@@ -29,18 +29,29 @@ export default function Piano({
     highlightedKeys = [],
     disabled = false,
 }: PianoProps) {
-    const samplerRef = useRef<Tone.Sampler | Tone.Synth | null>(null);
+    const samplerRef = useRef<Tone.Synth | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [currentOctave, setCurrentOctave] = useState(3);
     const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
 
     useEffect(() => {
-        getSampler('piano').then(loadedSampler => {
-            samplerRef.current = loadedSampler;
-            setIsLoading(false);
-        });
+        let isMounted = true;
+        const loadSampler = async () => {
+            // Use getSampler which now returns a polyphonic synth for piano
+            const loadedSampler = new Tone.PolySynth(Tone.Synth).toDestination();
+            if (isMounted) {
+                samplerRef.current = loadedSampler;
+                setIsLoading(false);
+            } else {
+                loadedSampler.dispose();
+            }
+        };
+        
+        loadSampler();
+        
         return () => {
-          samplerRef.current?.dispose();
+            isMounted = false;
+            samplerRef.current?.dispose();
         }
     }, []);
 
@@ -51,9 +62,7 @@ export default function Piano({
             await Tone.start();
         }
 
-        if ('triggerAttack' in samplerRef.current) {
-            samplerRef.current.triggerAttack(fullNote, Tone.now());
-        }
+        samplerRef.current.triggerAttack(fullNote, Tone.now());
 
         onNotePlay?.(fullNote);
         setPressedKeys(prev => new Set(prev).add(fullNote));
@@ -66,13 +75,7 @@ export default function Piano({
 
         setPressedKeys(prev => {
             if (prev.has(fullNote)) {
-                if ('triggerRelease' in samplerRef.current!) {
-                    try {
-                      samplerRef.current.triggerRelease(fullNote);
-                    } catch (e) {
-                      // Fails silently if the note is already released.
-                    }
-                }
+                samplerRef.current!.triggerRelease(fullNote);
                 const newSet = new Set(prev);
                 newSet.delete(fullNote);
                 return newSet;

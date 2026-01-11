@@ -51,7 +51,6 @@ export default function LessonPage() {
   const [userPlayedNotes, setUserPlayedNotes] = useState<Note[]>([]);
   const [isReportMenuOpen, setIsReportMenuOpen] = useState(false);
   
-  const freePlaySamplerRef = useRef<Tone.Synth | Tone.PluckSynth | null>(null);
   const playbackSamplerRef = useRef<Tone.Sampler | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
 
@@ -72,9 +71,6 @@ export default function LessonPage() {
     }
     partRef.current?.dispose();
     setHighlightedKeys([]);
-    if(freePlaySamplerRef.current && 'releaseAll' in freePlaySamplerRef.current) {
-        (freePlaySamplerRef.current as any).releaseAll();
-    }
      if(playbackSamplerRef.current && 'releaseAll' in playbackSamplerRef.current) {
         playbackSamplerRef.current.releaseAll();
     }
@@ -87,7 +83,7 @@ export default function LessonPage() {
 
     const loadInstruments = async () => {
         try {
-            const freeplay = await getSampler(lesson.instrument);
+            // No longer need to load freeplay sampler here
             const playback = new Tone.Sampler({
                 urls: {
                     C4: "C4.mp3",
@@ -102,7 +98,6 @@ export default function LessonPage() {
             await Tone.loaded();
 
             if (active) {
-                freePlaySamplerRef.current = freeplay as any;
                 playbackSamplerRef.current = playback;
                 setIsInstrumentReady(true);
             }
@@ -121,7 +116,6 @@ export default function LessonPage() {
     return () => {
       active = false;
       stopAllActivity();
-      freePlaySamplerRef.current?.dispose();
       playbackSamplerRef.current?.dispose();
     };
   }, [lesson.instrument, stopAllActivity, toast]);
@@ -189,11 +183,7 @@ export default function LessonPage() {
   const handleNotePlay = (noteKey: string) => {
     if (mode !== 'playing') return;
     const time = Tone.Transport.seconds.toFixed(2);
-    
-    if (freePlaySamplerRef.current && 'triggerAttackRelease' in freePlaySamplerRef.current) {
-        (freePlaySamplerRef.current as any).triggerAttackRelease(noteKey, '8n');
-    }
-
+    // This function now only records the note, it does not play audio.
     setUserPlayedNotes(prev => [...prev, { key: noteKey, duration: '8n', time: `0:0:${time}` }]);
   };
 
