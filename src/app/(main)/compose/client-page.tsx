@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useTransition } from 'react';
 import * as Tone from 'tone';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, Play, Square, Wand2 } from 'lucide-react';
 import type { Note } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
+import { composeMelodyFlow } from '@/ai/flows/compose-melody-flow';
 
 function InstrumentLoader() {
   return (
@@ -24,18 +26,19 @@ const Piano = dynamic(() => import('@/components/Piano'), {
     loading: () => <InstrumentLoader />
 });
 
-type Mode = 'idle' | 'playing';
+type Mode = 'idle' | 'playing' | 'generating';
 
 export default function ComposePage() {
   const { toast } = useToast();
   const [mode, setMode] = useState<Mode>('idle');
+  const [prompt, setPrompt] = useState('');
   const [playedNotes, setPlayedNotes] = useState<Note[]>([]);
   const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
   const [isInstrumentReady, setIsInstrumentReady] = useState(false);
+  const [isGenerating, startGenerationTransition] = useTransition();
   
   const samplerRef = useRef<Tone.Sampler | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
-  const transportTimeRef = useRef(0);
 
   const stopPlayback = useCallback(() => {
     if (Tone.Transport.state === 'started') {
@@ -47,8 +50,10 @@ export default function ComposePage() {
     if(samplerRef.current && 'releaseAll' in samplerRef.current) {
         samplerRef.current.releaseAll();
     }
-    setMode("idle");
-  }, []);
+    if (mode === 'playing') {
+      setMode("idle");
+    }
+  }, [mode]);
 
   useEffect(() => {
     let active = true;
@@ -143,29 +148,87 @@ export default function ComposePage() {
     }, maxTime + 0.2);
     
   }, [playedNotes, stopPlayback]);
+
+  const handleGenerateMelody = () => {
+    if (!prompt) {
+      toast({
+        title: "Prompt is empty",
+        description: "Please enter a description for the melody you want to create.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    stopPlayback();
+    setMode('generating');
+
+    startGenerationTransition(async () => {
+      try {
+        const generatedNotes = await composeMelodyFlow(prompt);
+        setPlayedNotes(generatedNotes);
+        toast({
+          title: "Melody Generated!",
+          description: "Your new melody is ready. Press play to hear it."
+        });
+      } catch (error) {
+        console.error("Melody generation failed:", error);
+        toast({
+          title: "Generation Failed",
+          description: "Could not generate melody from the prompt. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setMode('idle');
+      }
+    });
+  };
   
   const isUIReady = isInstrumentReady;
+  const isBusy = mode === 'playing' || mode === 'generating' || isGenerating;
 
   return (
     <div className="space-y-8">
       <div className="text-center">
         <h1 className="font-headline text-4xl font-bold tracking-tight flex items-center justify-center gap-3">
           <Wand2 className="h-8 w-8 text-primary" />
-          Piano Composer
+          AI Composer
         </h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Play on the piano to compose your own melody.
+          Describe a melody or play on the piano to compose.
         </p>
       </div>
 
       <Card>
         <CardHeader>
+            <CardTitle>AI Melody Generation</CardTitle>
+            <CardDescription>Describe the melody you want to create, e.g., "a happy, upbeat tune in C major".</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Textarea
+              placeholder="A slow, melancholic melody in A minor..."
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              disabled={isBusy}
+          />
+          <Button onClick={handleGenerateMelody} disabled={!isUIReady || isBusy} size="lg" className="w-full">
+            {isBusy && mode === 'generating' ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin"/>
+            ) : (
+              <Wand2 className="mr-2 h-5 w-5"/>
+            )}
+            Generate Melody
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
             <CardTitle>Your Composition</CardTitle>
-            <CardDescription>Press play to hear what you've played on the piano below.</CardDescription>
+            <CardDescription>The generated or played melody will appear here. Press play to listen.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
              {mode !== 'playing' ? (
-                 <Button onClick={playMelody} disabled={!isUIReady || playedNotes.length === 0} size="lg" className="w-full">
+                 <Button onClick={playMelody} disabled={!isUIReady || playedNotes.length === 0 || isBusy} size="lg" className="w-full">
                     <Play className="mr-2 h-5 w-5"/>
                     Play Melody
                 </Button>
@@ -179,17 +242,20 @@ export default function ComposePage() {
                 <Piano 
                   highlightedKeys={highlightedKeys} 
                   onNotePlay={handleNotePlay}
-                  disabled={mode === 'playing'}
+                  disabled={isBusy}
                 />
             </div>
         </CardContent>
       </Card>
 
-      {!isInstrumentReady && (
+      {(!isInstrumentReady || (isBusy && mode === 'generating')) && (
         <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50">
             <InstrumentLoader />
+            {isBusy && mode === 'generating' && <p className="mt-4 text-lg">Generating melody...</p>}
         </div>
       )}
     </div>
   );
 }
+
+    
