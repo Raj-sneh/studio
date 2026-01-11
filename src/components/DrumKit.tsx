@@ -31,8 +31,7 @@ const drumPads: DrumPad[] = [
   { note: 'B2', name: 'Tom 3', key: 'd', Icon: DrumIcons.Tom3Icon, style: '' },
   { note: 'C3', name: 'Kick', key: 'z', Icon: DrumIcons.KickIcon, style: 'col-span-2' },
   { note: 'D3', name: 'Snare', key: 'x', Icon: DrumIcons.SnareIcon, style: 'col-span-2' },
-  { note: 'G#2', name: 'Cowbell', key: 'c', Icon: DrumIcons.CowbellIcon, style: '' },
-  { note: 'A2', name: 'Perc', key: 'v', Icon: DrumIcons.PercIcon, style: '' },
+  { note: 'A2', name: 'Perc', key: 'v', Icon: DrumIcons.PercIcon, style: 'col-span-2' },
 ];
 
 const keyMap: Record<string, string> = drumPads.reduce((acc, pad) => {

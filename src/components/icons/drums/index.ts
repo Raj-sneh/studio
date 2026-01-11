@@ -1,5 +1,4 @@
 
-export { default as CowbellIcon } from './CowbellIcon';
 export { default as CrashIcon } from './CrashIcon';
 export { default as HiHatClosedIcon } from './HiHatClosedIcon';
 export { default as HiHatOpenIcon } from './HiHatOpenIcon';
