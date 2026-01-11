@@ -22,14 +22,8 @@ type DrumPad = {
 };
 
 const drumPads: DrumPad[] = [
-    { note: 'G2', name: 'Crash', key: 'q', Icon: DrumIcons.CrashIcon, style: 'col-span-2' },
-    { note: 'G#2', name: 'Ride', key: 'w', Icon: DrumIcons.RideIcon, style: 'col-span-2' },
-    { note: 'D2', name: 'Hi-Hat', key: 'e', Icon: DrumIcons.HiHatClosedIcon, style: '' },
-    { note: 'E2', name: 'Tom 1', key: 'a', Icon: DrumIcons.Tom1Icon, style: '' },
-    { note: 'F2', name: 'Tom 2', key: 's', Icon: DrumIcons.Tom2Icon, style: '' },
-    { note: 'F#2', name: 'Tom 3', key: 'd', Icon: DrumIcons.Tom3Icon, style: '' },
-    { note: 'C2', name: 'Kick', key: 'z', Icon: DrumIcons.KickIcon, style: 'col-span-2' },
-    { note: 'C#2', name: 'Snare', key: 'x', Icon: DrumIcons.SnareIcon, style: 'col-span-2' },
+    { note: 'C3', name: 'High Bongo', key: 'q', Icon: DrumIcons.Tom1Icon, style: 'col-span-2' },
+    { note: 'D3', name: 'Low Bongo', key: 'w', Icon: DrumIcons.Tom2Icon, style: 'col-span-2' },
 ];
 
 const keyMap: Record<string, string> = drumPads.reduce((acc, pad) => {
@@ -97,9 +91,9 @@ export default function DrumKit({ onNotePlay, disabled = false }: DrumKitProps) 
                         style
                     )}
                 >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-[8px] font-semibold mt-0.5">{name}</span>
-                    <kbd className="absolute bottom-0.5 right-0.5 text-[8px] font-mono bg-muted text-muted-foreground rounded px-0.5 py-0.25">{key.toUpperCase()}</kbd>
+                    <Icon className="h-6 w-6" />
+                    <span className="text-xs font-semibold mt-1">{name}</span>
+                    <kbd className="absolute bottom-1 right-1 text-xs font-mono bg-muted text-muted-foreground rounded px-1.5 py-0.5">{key.toUpperCase()}</kbd>
                 </button>
             ))}
         </div>
