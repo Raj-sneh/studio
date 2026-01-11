@@ -35,12 +35,12 @@ const samplerUrls: Record<string, Record<string, string>> = {
         'G#3': 'Gs3.mp3'
     },
     drums: {
-        'C#2': 'crash.mp3',
-        'E2': 'ride.mp3',
-        'F#1': 'hihat.mp3',
-        'G1': 'tom1.mp3',
-        'F1': 'tom2.mp3',
-        'B0': 'tom3.mp3',
+        'C#2': 'crash-1.mp3',
+        'E2': 'ride-1.mp3',
+        'F#1': 'hihat-close.mp3',
+        'G1': 'tom-hi.mp3',
+        'F1': 'tom-mid.mp3',
+        'B0': 'tom-low.mp3',
         'C1': 'kick.mp3',
         'D1': 'snare.mp3',
     }
@@ -49,7 +49,7 @@ const samplerUrls: Record<string, Record<string, string>> = {
 const baseUrlMap: Record<string, string> = {
     piano: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_grand_piano-mp3/',
     guitar: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_guitar_nylon-mp3/',
-    drums: `https://storage.googleapis.com/${firebaseConfig.projectId}.appspot.com/samples/drums/`,
+    drums: 'https://unpkg.com/@tonejs/examples@1.0.4/audio/drum-samples/Bongos/',
 }
 
 /**
