@@ -41,6 +41,18 @@
       "description": "A vintage piano in a classic room.",
       "imageUrl": "https://images.unsplash.com/photo-1597724369756-2d3c491b24d2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx2aW50YWdlJTIwcGlhbm98ZW58MHx8fHwxNzY2NjkzMDE0fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "vintage piano"
+    },
+    {
+      "id": "lesson-guitar-simple",
+      "description": "An acoustic guitar resting on a stand.",
+      "imageUrl": "https://images.unsplash.com/photo-1588690224648-20426ab6274a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxhY291c3RpYyUyMGd1aXRhcnxlbnwwfHx8fDE3NjgxMjEwNjR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "acoustic guitar"
+    },
+    {
+      "id": "lesson-drum-basics",
+      "description": "A close-up of a drum kit.",
+      "imageUrl": "https://images.unsplash.com/photo-1492891651366-a5c2839dc64b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxkcnVtJTIwa2l0fGVufDB8fHx8MTc2ODEyNjY3N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "drum kit"
     }
   ]
 }

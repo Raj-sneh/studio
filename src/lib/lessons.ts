@@ -52,6 +52,56 @@ export const LESSONS: Lesson[] = [
     ],
   },
   {
+    id: 'simple-guitar-strum',
+    title: 'Simple Strumming',
+    instrument: 'guitar',
+    difficulty: 'Beginner',
+    tempo: 90,
+    imageId: 'lesson-guitar-simple',
+    notes: [
+      // G Chord
+      { key: 'G2', duration: '4n', time: '0:0:0' },
+      { key: 'B2', duration: '4n', time: '0:0:0' },
+      { key: 'D3', duration: '4n', time: '0:0:0' },
+      // C Chord
+      { key: 'C3', duration: '4n', time: '0:2:0' },
+      { key: 'E3', duration: '4n', time: '0:2:0' },
+      { key: 'G3', duration: '4n', time: '0:2:0' },
+      // G Chord
+      { key: 'G2', duration: '4n', time: '1:0:0' },
+      { key: 'B2', duration: '4n', time: '1:0:0' },
+      { key: 'D3', duration: '4n', time: '1:0:0' },
+      // D Chord
+      { key: 'D3', duration: '4n', time: '1:2:0' },
+      { key: 'F#3', duration: '4n', time: '1:2:0' },
+      { key: 'A3', duration: '4n', time: '1:2:0' },
+    ],
+  },
+  {
+    id: 'basic-rock-beat',
+    title: 'Basic Rock Beat',
+    instrument: 'drums',
+    difficulty: 'Beginner',
+    tempo: 120,
+    imageId: 'lesson-drum-basics',
+    notes: [
+      // Measure 1
+      { key: 'C1', duration: '8n', time: '0:0:0' }, // Kick
+      { key: 'C2', duration: '8n', time: '0:0:0' }, // Hi-Hat
+      { key: 'C2', duration: '8n', time: '0:1:0' }, // Hi-Hat
+      { key: 'D2', duration: '8n', time: '0:2:0' }, // Snare
+      { key: 'C2', duration: '8n', time: '0:2:0' }, // Hi-Hat
+      { key: 'C2', duration: '8n', time: '0:3:0' }, // Hi-Hat
+      // Measure 2
+      { key: 'C1', duration: '8n', time: '1:0:0' }, // Kick
+      { key: 'C2', duration: '8n', time: '1:0:0' }, // Hi-Hat
+      { key: 'C2', duration: '8n', time: '1:1:0' }, // Hi-Hat
+      { key: 'D2', duration: '8n', time: '1:2:0' }, // Snare
+      { key: 'C2', duration: '8n', time: '1:2:0' }, // Hi-Hat
+      { key: 'C2', duration: '8n', time: '1:3:0' }, // Hi-Hat
+    ]
+  },
+  {
     id: 'happy-birthday',
     title: 'Happy Birthday',
     instrument: 'piano',
