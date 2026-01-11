@@ -35,15 +35,14 @@ const samplerUrls: Record<string, Record<string, string>> = {
         'G#3': 'Gs3.mp3'
     },
     drums: {
-        'C3': 'hi.mp3',
-        'D3': 'lo.mp3',
+        // This is no longer used, as drums are now a synth.
     }
 };
 
 const baseUrlMap: Record<string, string> = {
     piano: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_grand_piano-mp3/',
     guitar: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_guitar_nylon-mp3/',
-    drums: 'https://tonejs.github.io/audio/drum-samples/Bongos/',
+    drums: '', // Not used for synth
 }
 
 /**
@@ -80,6 +79,27 @@ export const getSampler = (instrument: Instrument): Promise<Tone.Sampler | Tone.
             } as unknown as Tone.Sampler;
             samplerCache.set(instrument, mockSampler);
             return resolve(mockSampler);
+        }
+
+        // *** GUARANTEED FIX: Use a synth for drums to avoid network errors ***
+        if (instrument === 'drums') {
+            const drumSynth = new Tone.MembraneSynth({
+                pitchDecay: 0.01,
+                octaves: 6,
+                oscillator: {
+                    type: 'sine',
+                },
+                envelope: {
+                    attack: 0.001,
+                    decay: 0.5,
+                    sustain: 0.01,
+                    release: 0.4,
+                    attackCurve: 'exponential',
+                },
+            }).toDestination();
+            samplerCache.set(instrument, drumSynth);
+            loadingPromises.delete(instrument);
+            return resolve(drumSynth);
         }
 
         const hasUrls = samplerUrls[instrument] && Object.keys(samplerUrls[instrument]).length > 0;

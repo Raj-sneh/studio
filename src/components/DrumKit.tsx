@@ -22,8 +22,8 @@ type DrumPad = {
 };
 
 const drumPads: DrumPad[] = [
-    { note: 'C3', name: 'High Bongo', key: 'q', Icon: DrumIcons.Tom1Icon, style: 'col-span-2' },
-    { note: 'D3', name: 'Low Bongo', key: 'w', Icon: DrumIcons.Tom2Icon, style: 'col-span-2' },
+    { note: 'C2', name: 'Low Bongo', key: 'q', Icon: DrumIcons.Tom1Icon, style: 'col-span-2' },
+    { note: 'G2', name: 'High Bongo', key: 'w', Icon: DrumIcons.Tom2Icon, style: 'col-span-2' },
 ];
 
 const keyMap: Record<string, string> = drumPads.reduce((acc, pad) => {
@@ -46,8 +46,9 @@ export default function DrumKit({ onNotePlay, disabled = false }: DrumKitProps) 
   const playNote = useCallback((note: string) => {
     if (!sampler || disabled || isLoading || sampler.disposed) return;
     
-    if (sampler && 'triggerAttack' in sampler) {
-      sampler.triggerAttack(note, Tone.now());
+    // Use triggerAttackRelease for both Sampler and Synth compatibility
+    if (sampler && 'triggerAttackRelease' in sampler) {
+      sampler.triggerAttackRelease(note, '8n', Tone.now());
     }
     onNotePlay?.(note);
 
