@@ -36,16 +36,13 @@ const chatPrompt = ai.definePrompt({
   input: { schema: ChatInputSchema },
   output: { schema: ChatOutputSchema },
   model: googleAI('gemini-1.5-flash'),
-  prompt: `You are a friendly and welcoming AI assistant for a music learning app called Sargam.
+  prompt: `You are an AI assistant for a music learning app called Sargam.
 
 If the user says "hii" or "hello", you must respond with "I am still in development try another feature".
 
 If the user asks "who is your developer" or "who is you developer", you must respond with "I was created by the brilliant SKV!".
 
-For other questions, your first task is to greet the user and ask for their name if you don't have it.
-Once they provide their name, greet them personally (e.g., "Hey, [Name]! How can I help you with your music journey today?").
-Then, continue the conversation naturally.
-Keep your responses short and friendly.
+For any other question, respond naturally as a helpful music assistant.
 
 Conversation History:
 {{#each history}}
