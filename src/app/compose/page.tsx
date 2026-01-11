@@ -10,7 +10,6 @@ import { Loader2, Play, Square, Wand2 } from 'lucide-react';
 import type { Note } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
-import { composeMelodyFlow } from '@/ai/flows/compose-melody-flow';
 
 function InstrumentLoader() {
   return (
@@ -150,28 +149,10 @@ export default function ComposePage() {
       });
       return;
     }
-    
-    stopPlayback();
-    setMode('generating');
 
-    startGenerationTransition(async () => {
-      try {
-        const generatedNotes = await composeMelodyFlow(prompt);
-        setPlayedNotes(generatedNotes);
-        toast({
-          title: "Melody Generated!",
-          description: "Your new melody is ready. Press play to hear it."
-        });
-      } catch (error) {
-        console.error("Melody generation failed:", error);
-        toast({
-          title: "Generation Failed",
-          description: "Could not generate melody from the prompt. Please try again.",
-          variant: "destructive"
-        });
-      } finally {
-        setMode('idle');
-      }
+    toast({
+      title: "Feature in Development",
+      description: "I am still in development mode try another feature",
     });
   };
   
