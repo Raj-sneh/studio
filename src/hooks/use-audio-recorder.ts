@@ -55,13 +55,15 @@ export function useAudioRecorder() {
       mediaRecorderRef.current.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         audioChunksRef.current = [];
+        // The stream is already stopped when mediaRecorderRef.current.stop() is called.
+        // We set isRecording to false here after all processing is done.
         setIsRecording(false);
-        // Stop all media tracks to turn off the microphone indicator
-        mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop());
         resolve(audioBlob);
       };
 
       mediaRecorderRef.current.stop();
+      // Immediately stop all media tracks to turn off the microphone indicator.
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
     });
   }, [isRecording]);
 
