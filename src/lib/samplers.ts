@@ -35,22 +35,21 @@ const samplerUrls: Record<string, Record<string, string>> = {
         'G#3': 'Gs3.mp3'
     },
     drums: {
-      'C2': 'kick.mp3',
-      'C#2': 'snare.mp3',
-      'D2': 'hihat.mp3',
-      'D#2': 'openhat.mp3',
-      'E2': 'tom1.mp3',
-      'F2': 'tom2.mp3',
-      'F#2': 'tom3.mp3',
-      'G2': 'crash.mp3',
-      'G#2': 'ride.mp3',
+      'C2': 'kick.mp3',      // Kick
+      'C#2': 'snare.mp3',     // Snare
+      'D2': 'hihat.mp3',     // Hi-Hat Closed
+      'E2': 'tom1.mp3',      // Tom 1
+      'F2': 'tom2.mp3',      // Tom 2
+      'F#2': 'tom3.mp3',      // Tom 3
+      'G2': 'crash.mp3',     // Crash
+      'G#2': 'ride.mp3',      // Ride
     }
 };
 
 const baseUrlMap: Record<string, string> = {
     piano: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_grand_piano-mp3/',
     guitar: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_guitar_nylon-mp3/',
-    drums: 'https://unpkg.com/@tonejs/examples@1.1.1/audio/racked_kit/',
+    drums: 'https://gleitz.github.io/midi-js-soundfonts/salamander/',
 }
 
 /**
