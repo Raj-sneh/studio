@@ -115,25 +115,32 @@ export default function Guitar({ onNotePlay, disabled = false, highlightedKeys =
         
         {/* Strings */}
         <div className="relative z-30 flex flex-col justify-around h-64 p-4">
-          {strings.map((string, index) => (
-            <div
-              key={index}
-              onClick={() => playNote(index)}
-              className={cn(
-                "w-full h-0.5 transition-all duration-100 ease-in-out cursor-pointer group",
-                string.color,
-                disabled && "cursor-not-allowed",
-                // Mute strings that are not part of the current chord
-                chords[selectedChord][index] === null && "opacity-30 cursor-not-allowed"
-              )}
-            >
-              <div className={cn(
-                "w-full h-full transform-gpu",
-                !disabled && chords[selectedChord][index] !== null && "group-hover:scale-y-[3] group-hover:bg-yellow-300",
-                vibratingString === index && "vibrating bg-yellow-400 scale-y-[2]"
-              )}></div>
-            </div>
-          ))}
+          {strings.map((string, index) => {
+            const currentChordNotes = chords[selectedChord];
+            const noteForThisString = currentChordNotes[index];
+            const isHighlighted = noteForThisString && highlightedKeys.includes(noteForThisString);
+
+            return (
+                <div
+                key={index}
+                onClick={() => playNote(index)}
+                className={cn(
+                    "w-full h-0.5 transition-all duration-100 ease-in-out cursor-pointer group",
+                    string.color,
+                    disabled && "cursor-not-allowed",
+                    // Mute strings that are not part of the current chord
+                    chords[selectedChord][index] === null && "opacity-30 cursor-not-allowed"
+                )}
+                >
+                <div className={cn(
+                    "w-full h-full transform-gpu",
+                    !disabled && chords[selectedChord][index] !== null && "group-hover:scale-y-[3] group-hover:bg-yellow-300",
+                    vibratingString === index && "vibrating bg-yellow-400 scale-y-[2]",
+                    isHighlighted && "bg-primary scale-y-[3]"
+                )}></div>
+                </div>
+            );
+        })}
         </div>
 
         {/* Frets */}
