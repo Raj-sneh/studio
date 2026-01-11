@@ -111,13 +111,8 @@ export default function Piano({
             if (disabled || event.repeat || isLoading) return;
             
             const fullNote = getNoteFromKey(event.key);
-            if (fullNote) {
-                setPressedKeys(prev => {
-                    if (!prev.has(fullNote)) {
-                        playNote(fullNote);
-                    }
-                    return prev;
-                });
+            if (fullNote && !pressedKeys.has(fullNote)) {
+                 playNote(fullNote);
             }
 
             if (event.key === 'z') changeOctave(-1);
@@ -139,7 +134,7 @@ export default function Piano({
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [playNote, stopNote, currentOctave, disabled, isLoading]);
+    }, [playNote, stopNote, currentOctave, disabled, isLoading, pressedKeys]);
 
     const changeOctave = (direction: number) => {
         setCurrentOctave(prev => Math.max(1, Math.min(6, prev + direction)));

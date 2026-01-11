@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react';
@@ -76,37 +75,30 @@ export default function LessonPage() {
 
   useEffect(() => {
     let active = true;
-    setIsInstrumentReady(false);
+    setIsInstrumentReady(false); // Set to false on lesson change
     stopAllActivity();
 
-    const loadInstruments = async () => {
+    if (lesson.instrument === 'drums' || lesson.instrument === 'guitar') {
+        setIsInstrumentReady(true);
+        return;
+    }
+    
+    const loadPianoSampler = async () => {
         try {
-            const samplerFactory = () => new Tone.Sampler({
+            const sampler = new Tone.Sampler({
                 urls: { C4: "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3", A4: "A4.mp3" },
                 release: 1,
                 baseUrl: "https://tonejs.github.io/audio/salamander/",
             }).toDestination();
             
-            let playback: Tone.Sampler;
-
-            if (lesson.instrument === 'piano') {
-                playback = samplerFactory();
-            } else if (lesson.instrument === 'guitar') {
-                 // For now, let's use a synth for guitar demo to avoid loading issues.
-                 // In a real app, you'd load guitar samples.
-                 playback = new Tone.Sampler().toDestination(); // Placeholder
-            } else {
-                 playback = new Tone.Sampler().toDestination(); // Placeholder for drums etc.
-            }
-            
             await Tone.loaded();
 
             if (active) {
-                playbackSamplerRef.current = playback;
+                playbackSamplerRef.current = sampler;
                 setIsInstrumentReady(true);
             }
         } catch (err) {
-            console.error("Failed to load instruments", err);
+            console.error("Failed to load instruments for demo", err);
              toast({
                 title: "Instrument loading failed",
                 description: "Could not load sounds for lesson playback.",
@@ -115,28 +107,44 @@ export default function LessonPage() {
         }
     };
     
-    loadInstruments();
+    // Only load the heavy sampler for piano demos
+    if (lesson.instrument === 'piano') {
+        loadPianoSampler();
+    } else {
+        setIsInstrumentReady(true);
+    }
+
 
     return () => {
       active = false;
       stopAllActivity();
       playbackSamplerRef.current?.dispose();
     };
-  }, [lesson.instrument, stopAllActivity, toast, lesson]);
+  }, [lesson, stopAllActivity, toast]);
   
   const playDemo = useCallback(async () => {
-    if (!isInstrumentReady || !playbackSamplerRef.current || playbackSamplerRef.current.disposed) return;
+    if (!isInstrumentReady || (lesson.instrument === 'piano' && (!playbackSamplerRef.current || playbackSamplerRef.current.disposed))) {
+        toast({ title: "Demo instrument not ready", description: "Please wait a moment for the sounds to load."});
+        return;
+    }
     
     stopAllActivity();
     setMode('demo');
     setUserPlayedNotes([]);
     await Tone.start();
     
-    const sampler = playbackSamplerRef.current;
+    let sampler: Tone.Sampler | Tone.Synth | Tone.PluckSynth;
+
+    if (lesson.instrument === 'piano') {
+        sampler = playbackSamplerRef.current!;
+    } else if (lesson.instrument === 'guitar') {
+        sampler = new Tone.PluckSynth().toDestination();
+    } else {
+        sampler = new Tone.Synth().toDestination(); // Fallback for drums or others
+    }
 
     const events = lesson.notes.flatMap(note => {
         if (Array.isArray(note.key)) {
-            // For chords, we can decide how to handle them. Let's play them together.
             return note.key.map(k => ({ time: note.time, key: k, duration: note.duration }));
         }
         return { time: note.time, key: note.key, duration: note.duration };
@@ -174,9 +182,12 @@ export default function LessonPage() {
     Tone.Transport.scheduleOnce(() => {
       setMode('idle');
       setHighlightedKeys([]);
+      if (lesson.instrument !== 'piano') {
+          sampler.dispose();
+      }
     }, maxTime + 0.5);
 
-  }, [isInstrumentReady, lesson, stopAllActivity]);
+  }, [isInstrumentReady, lesson, stopAllActivity, toast]);
 
 
   const startPractice = () => {
@@ -185,11 +196,11 @@ export default function LessonPage() {
     setMode('playing');
   };
   
-  const handleNotePlay = (noteKey: string) => {
+  const handleNotePlay = useCallback((noteKey: string) => {
     if (mode !== 'playing') return;
     const time = Tone.Transport.seconds.toFixed(2);
     setUserPlayedNotes(prev => [...prev, { key: noteKey, duration: '8n', time: `0:0:${time}` }]);
-  };
+  }, [mode]);
 
   const handleReport = async (reason: string) => {
     toast({ title: 'Report Submitted', description: 'Thank you for your feedback. We will review this lesson.' });
