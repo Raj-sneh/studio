@@ -3,8 +3,8 @@
     {
       "id": "dashboard-practice",
       "description": "A person practicing a musical instrument.",
-      "imageUrl": "https://images.unsplash.com/photo-1598322488653-53c0704ad521?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxmbHV0ZSUyMHBsYXllcnxlbnwwfHx8fDE3NjgyODU5OTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "flute player"
+      "imageUrl": "https://images.unsplash.com/photo-1558502319-e39634f31c4b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxndWl0YXIlMjBsZXNzb258ZW58MHx8fHwxNzY4NDY3MzAxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "guitar lesson"
     },
     {
       "id": "dashboard-magic",
