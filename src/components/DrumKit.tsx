@@ -22,14 +22,14 @@ type DrumPad = {
 };
 
 const drumPads: DrumPad[] = [
-    { note: 'C#4', name: 'Crash', key: 'q', Icon: DrumIcons.CrashIcon, style: 'col-span-2' },
-    { note: 'E4', name: 'Ride', key: 'w', Icon: DrumIcons.RideIcon, style: 'col-span-2' },
-    { note: 'G3', name: 'Tom 1', key: 'a', Icon: DrumIcons.Tom1Icon, style: '' },
-    { note: 'F3', name: 'Tom 2', key: 's', Icon: DrumIcons.Tom2Icon, style: '' },
-    { note: 'B2', name: 'Tom 3', key: 'd', Icon: DrumIcons.Tom3Icon, style: '' },
-    { note: 'F#3', name: 'Hi-Hat', key: 'e', Icon: DrumIcons.HiHatClosedIcon, style: '' },
-    { note: 'C3', name: 'Kick', key: 'z', Icon: DrumIcons.KickIcon, style: 'col-span-2' },
-    { note: 'D3', name: 'Snare', key: 'x', Icon: DrumIcons.SnareIcon, style: 'col-span-2' },
+    { note: 'C#2', name: 'Crash', key: 'q', Icon: DrumIcons.CrashIcon, style: 'col-span-2' },
+    { note: 'E2', name: 'Ride', key: 'w', Icon: DrumIcons.RideIcon, style: 'col-span-2' },
+    { note: 'F#1', name: 'Hi-Hat', key: 'e', Icon: DrumIcons.HiHatClosedIcon, style: '' },
+    { note: 'G1', name: 'Tom 1', key: 'a', Icon: DrumIcons.Tom1Icon, style: '' },
+    { note: 'F1', name: 'Tom 2', key: 's', Icon: DrumIcons.Tom2Icon, style: '' },
+    { note: 'B0', name: 'Tom 3', key: 'd', Icon: DrumIcons.Tom3Icon, style: '' },
+    { note: 'C1', name: 'Kick', key: 'z', Icon: DrumIcons.KickIcon, style: 'col-span-2' },
+    { note: 'D1', name: 'Snare', key: 'x', Icon: DrumIcons.SnareIcon, style: 'col-span-2' },
 ];
 
 const keyMap: Record<string, string> = drumPads.reduce((acc, pad) => {
@@ -76,7 +76,7 @@ export default function DrumKit({ onNotePlay, disabled = false }: DrumKitProps) 
 
   if (isLoading) {
     return (
-        <div className="flex flex-col items-center justify-center min-h-[300px] text-center bg-muted rounded-lg w-full">
+        <div className="flex flex-col items-center justify-center min-h-[200px] text-center bg-muted rounded-lg w-full">
             <Loader2 className="h-8 w-8 animate-spin" />
             <p className="mt-4 text-muted-foreground capitalize">Loading Drum Kit...</p>
         </div>
@@ -84,7 +84,7 @@ export default function DrumKit({ onNotePlay, disabled = false }: DrumKitProps) 
   }
 
   return (
-    <div className="w-full max-w-lg mx-auto p-2 select-none">
+    <div className="w-full max-w-md mx-auto p-2 select-none">
         <div className="grid grid-cols-4 gap-2">
             {drumPads.map(({ note, name, key, Icon, style }) => (
                 <button
@@ -97,9 +97,9 @@ export default function DrumKit({ onNotePlay, disabled = false }: DrumKitProps) 
                         style
                     )}
                 >
-                    <Icon className="h-6 w-6" />
-                    <span className="text-xs font-semibold mt-1">{name}</span>
-                    <kbd className="absolute bottom-1 right-1 text-[10px] font-mono bg-muted text-muted-foreground rounded px-1 py-0.5">{key.toUpperCase()}</kbd>
+                    <Icon className="h-5 w-5" />
+                    <span className="text-[10px] font-semibold mt-1">{name}</span>
+                    <kbd className="absolute bottom-1 right-1 text-[9px] font-mono bg-muted text-muted-foreground rounded px-1 py-0.5">{key.toUpperCase()}</kbd>
                 </button>
             ))}
         </div>
