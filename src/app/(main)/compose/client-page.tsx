@@ -38,15 +38,14 @@ export default function ComposePage() {
   const [isInstrumentReady, setIsInstrumentReady] = useState(false);
   
   const samplerRef = useRef<Tone.Sampler | Tone.Synth | Tone.PluckSynth | null>(null);
-  const scheduledEventsRef = useRef<number[]>([]);
+  const partRef = useRef<Tone.Part | null>(null);
 
   const stopPlayback = useCallback(() => {
     if (Tone.Transport.state === 'started') {
         Tone.Transport.stop();
         Tone.Transport.cancel();
     }
-    scheduledEventsRef.current.forEach(id => Tone.Transport.clear(id));
-    scheduledEventsRef.current = [];
+    partRef.current?.dispose();
     setHighlightedKeys([]);
     if(samplerRef.current && 'releaseAll' in samplerRef.current) {
         samplerRef.current.releaseAll();
@@ -134,40 +133,37 @@ export default function ComposePage() {
     
     let maxTime = 0;
 
+    partRef.current = new Tone.Part((time, event) => {
+      if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
+        sampler.triggerAttackRelease(event.key, event.duration, time);
+      }
+      
+      const keysToHighlight = Array.isArray(event.key) ? event.key : [event.key];
+      
+      Tone.Draw.schedule(() => {
+          setHighlightedKeys(current => [...current, ...keysToHighlight]);
+      }, time);
+      
+      const releaseTime = time + Tone.Time(event.duration).toSeconds() * 0.95;
+      Tone.Draw.schedule(() => {
+          setHighlightedKeys(currentKeys => currentKeys.filter(k => !keysToHighlight.includes(k)));
+      }, releaseTime);
+
+    }, generatedNotes.map(n => ({ time: n.time, key: n.key, duration: n.duration }))).start(0);
+
     generatedNotes.forEach(note => {
-        const startTime = Tone.Time(note.time).toSeconds();
-        const duration = Tone.Time(note.duration).toSeconds();
-        const endTime = startTime + duration;
+        const endTime = Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds();
         if (endTime > maxTime) {
             maxTime = endTime;
         }
-
-        const eventId = Tone.Transport.scheduleOnce(time => {
-            if (sampler && 'triggerAttackRelease' in sampler && !sampler.disposed) {
-                sampler.triggerAttackRelease(note.key, duration, time);
-            }
-            
-            const keysToHighlight = Array.isArray(note.key) ? note.key : [note.key];
-            
-            Tone.Draw.schedule(() => {
-                setHighlightedKeys(current => [...current, ...keysToHighlight]);
-            }, time);
-            
-            const releaseTime = time + duration * 0.95;
-            Tone.Draw.schedule(() => {
-                setHighlightedKeys(currentKeys => currentKeys.filter(k => !keysToHighlight.includes(k)));
-            }, releaseTime);
-        }, note.time);
-        scheduledEventsRef.current.push(eventId);
     });
-    
+
     Tone.Transport.start();
 
-    const endEventId = Tone.Transport.scheduleOnce(() => {
+    Tone.Transport.scheduleOnce(() => {
         setMode('idle');
         setHighlightedKeys([]);
     }, maxTime + 0.2);
-    scheduledEventsRef.current.push(endEventId);
     
   }, [generatedNotes, stopPlayback]);
   

@@ -1,6 +1,6 @@
 
 export type Note = {
-  key: string; 
+  key: string | string[]; // Can be a single note or an array for chords
   duration: string; // Tone.js duration, e.g., '8n', '4n'
   time: string; // Tone.js time, e.g. '0:0:1'
 };
