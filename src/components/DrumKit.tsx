@@ -10,6 +10,7 @@ import * as DrumIcons from '@/components/icons/drums';
 interface DrumKitProps {
   onNotePlay?: (note: string) => void;
   disabled?: boolean;
+  highlightedKeys?: string[];
 }
 
 type DrumPad = {
@@ -50,7 +51,7 @@ type DrumSynths = {
     crash: Tone.MetalSynth
 };
 
-export default function DrumKit({ onNotePlay, disabled = false }: DrumKitProps) {
+export default function DrumKit({ onNotePlay, disabled = false, highlightedKeys = [] }: DrumKitProps) {
   const synthsRef = useRef<DrumSynths | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pressedPad, setPressedPad] = useState<string | null>(null);
@@ -158,22 +159,28 @@ export default function DrumKit({ onNotePlay, disabled = false }: DrumKitProps) 
   return (
     <div className="w-full max-w-md mx-auto p-1 select-none">
         <div className="grid grid-cols-4 gap-2">
-            {drumPads.map(({ note, name, key, Icon, style }) => (
-                <button
-                    key={note}
-                    onMouseDown={() => playNote(note)}
-                    disabled={disabled || isLoading}
-                    className={cn(
-                        "relative flex flex-col items-center justify-center aspect-square rounded-md border-2 bg-card text-card-foreground shadow-sm transition-all duration-100 ease-in-out hover:bg-accent hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed",
-                        pressedPad === note ? 'bg-primary border-primary-foreground scale-95' : 'border-border',
-                        style
-                    )}
-                >
-                    <Icon className="h-8 w-8" />
-                    <span className="text-[10px] font-semibold mt-1 truncate">{name}</span>
-                    <kbd className="absolute bottom-1 right-1 text-[10px] font-mono bg-muted text-muted-foreground rounded px-1 py-0.5">{key.toUpperCase()}</kbd>
-                </button>
-            ))}
+            {drumPads.map(({ note, name, key, Icon, style }) => {
+                const isHighlighted = highlightedKeys.includes(note);
+                const isPressed = pressedPad === note;
+
+                return (
+                    <button
+                        key={note}
+                        onMouseDown={() => playNote(note)}
+                        disabled={disabled || isLoading}
+                        className={cn(
+                            "relative flex flex-col items-center justify-center aspect-square rounded-md border-2 bg-card text-card-foreground shadow-sm transition-all duration-100 ease-in-out hover:bg-accent hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed",
+                            isPressed && 'bg-primary border-primary-foreground scale-95',
+                            isHighlighted && 'bg-primary/50 border-primary',
+                            style
+                        )}
+                    >
+                        <Icon className="h-8 w-8" />
+                        <span className="text-[10px] font-semibold mt-1 truncate">{name}</span>
+                        <kbd className="absolute bottom-1 right-1 text-[10px] font-mono bg-muted text-muted-foreground rounded px-1 py-0.5">{key.toUpperCase()}</kbd>
+                    </button>
+                )
+            })}
         </div>
          <p className="text-center text-xs text-muted-foreground mt-3">Use your keyboard to play the drums.</p>
     </div>
