@@ -1,10 +1,8 @@
-
 'use client';
 
 import { useEffect, useState, type ReactNode } from "react";
-import { useAuth, useUser, setDocumentNonBlocking, initiateAnonymousSignIn } from "@/firebase";
+import { useAuth, useUser, setDocumentNonBlocking, initiateAnonymousSignIn, useFirestore } from "@/firebase";
 import { doc } from "firebase/firestore";
-import { useFirestore } from "@/firebase/provider";
 import { Loader2 } from "lucide-react";
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
@@ -51,5 +49,3 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   
   return <>{children}</>;
 }
-
-    
