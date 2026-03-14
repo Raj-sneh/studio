@@ -1,0 +1,109 @@
+'use client';
+
+import { useEffect, type ReactNode, useState, useRef } from 'react';
+import {
+  useAuth,
+  useUser,
+  initiateAnonymousSignIn,
+  useFirestore,
+  setDocumentNonBlocking,
+} from '@/firebase';
+import { doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { WelcomeModal } from '@/components/WelcomeModal';
+import { useToast } from '@/hooks/use-toast';
+
+export function AppStateProvider({ children }: { children: ReactNode }) {
+  const { user, isFirebaseReady } = useUser();
+  const auth = useAuth();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const [isWelcomeModalOpen, setWelcomeModalOpen] = useState(false);
+  const [isSavingName, setIsSavingName] = useState(false);
+  const isInitialSignInRef = useRef(false);
+
+  const handleSaveName = async (newName: string) => {
+    if (!user || !firestore) return;
+    if (!newName.trim()) {
+        toast({ title: "Name cannot be empty", variant: "destructive" });
+        return;
+    }
+    
+    setIsSavingName(true);
+    const userDocRef = doc(firestore, 'users', user.uid);
+    try {
+        await updateDoc(userDocRef, { displayName: newName });
+        setWelcomeModalOpen(false);
+        toast({ title: "Welcome!", description: "Your stage name is set." });
+    } catch (error: any) {
+        toast({ title: "Error", description: "Could not update your name.", variant: "destructive" });
+    } finally {
+        setIsSavingName(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isFirebaseReady || !auth || !firestore) return;
+
+    const handleUserSession = async () => {
+      if (user) {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        try {
+          const docSnap = await getDoc(userDocRef);
+          
+          if (docSnap.exists()) {
+            const userProfile = docSnap.data();
+            // Show modal if name is still generic
+            if (
+              (userProfile.displayName === 'Guest User' || userProfile.displayName === 'New User') &&
+              !sessionStorage.getItem('welcomeModalShown')
+            ) {
+              setWelcomeModalOpen(true);
+              sessionStorage.setItem('welcomeModalShown', 'true');
+            }
+          } else {
+             // New user creation
+             const userData = {
+              id: user.uid,
+              displayName: user.displayName || 'Guest User',
+              email: user.email || `guest_${user.uid}@example.com`,
+              createdAt: serverTimestamp(),
+            };
+            
+            setDocumentNonBlocking(userDocRef, userData, { merge: true });
+            
+             if (!sessionStorage.getItem('welcomeModalShown')) {
+              setWelcomeModalOpen(true);
+              sessionStorage.setItem('welcomeModalShown', 'true');
+            }
+          }
+        } catch (e) {
+          console.warn("Session retrieval failed:", e);
+        }
+      } else if (!isInitialSignInRef.current) {
+        // Prevent infinite sign-in loops
+        isInitialSignInRef.current = true;
+        initiateAnonymousSignIn(auth).catch((err) => {
+          console.error("Anonymous sign-in failed:", err);
+          // Wait 2 seconds before allowing another attempt if it failed
+          setTimeout(() => { isInitialSignInRef.current = false; }, 2000);
+        });
+      }
+    };
+
+    handleUserSession();
+  }, [isFirebaseReady, user, auth, firestore]);
+
+  return (
+    <>
+      {children}
+      <WelcomeModal
+        isOpen={isWelcomeModalOpen}
+        onOpenChange={setWelcomeModalOpen}
+        onSaveName={handleSaveName}
+        isSaving={isSavingName}
+        currentName={user?.displayName || ''}
+      />
+    </>
+  );
+}

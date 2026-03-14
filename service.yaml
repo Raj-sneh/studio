@@ -1,0 +1,32 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: voice-engine
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/gpu-zonal-redundancy-disabled: 'true'
+        autoscaling.knative.dev/maxScale: '1'
+        run.googleapis.com/cpu-throttling: 'false'
+        run.googleapis.com/startup-cpu-boost: 'true'
+    spec:
+      containerConcurrency: 1
+      timeoutSeconds: 600
+      containers:
+      - image: asia-south1-docker.pkg.dev/studio-4164192500-df01a/sargam-repo/voice-engine
+        ports:
+        - containerPort: 8080
+        startupProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 30
+        resources:
+          limits:
+            nvidia.com/gpu: '1'
+            cpu: '4'
+            memory: '16Gi'
+      nodeSelector:
+        run.googleapis.com/accelerator: nvidia-l4

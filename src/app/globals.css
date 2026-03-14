@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 257 100% 7%;
+    --foreground: 257 20% 90%;
+    --card: 257 80% 10%;
+    --card-foreground: 257 20% 90%;
+    --popover: 257 100% 7%;
+    --popover-foreground: 257 20% 90%;
+    --primary: 179 100% 50%;
+    --primary-foreground: 257 100% 7%;
+    --secondary: 251 100% 65%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 257 50% 15%;
+    --muted-foreground: 257 20% 60%;
+    --accent: 251 100% 65%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 251 30% 25%;
+    --input: 251 30% 25%;
+    --ring: 179 100% 50%;
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground selection:bg-primary/30 selection:text-primary-foreground;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline;
+  }
+}
+
+@layer utilities {
+  .music-note {
+    animation: float-note linear infinite;
+  }
+
+  @keyframes float-note {
+    0% {
+      transform: translateY(-10vh) rotate(0deg);
+      opacity: 0;
+      filter: blur(2px);
+    }
+    10% {
+      opacity: 0.6;
+    }
+    90% {
+      opacity: 0.6;
+    }
+    100% {
+      transform: translateY(110vh) rotate(360deg);
+      opacity: 0;
+      filter: blur(2px);
+    }
+  }
+
+  .animate-ninja-spin {
+    animation: ninja-spin 20s linear infinite;
+  }
+
+  @keyframes ninja-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .glass-panel {
+    @apply bg-card/40 backdrop-blur-md border border-white/10 shadow-xl;
+  }
+}
