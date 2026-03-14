@@ -31,7 +31,8 @@ function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
   );
 }
 
-const HOLD_NOTE_THRESHOLD_MS = 300;
+// Snappier hold threshold to prevent "boring" slow feeling
+const HOLD_NOTE_THRESHOLD_MS = 200;
 
 export default function LessonPage() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function LessonPage() {
   const [isClient, setIsClient] = useState(false);
   const [isReportMenuOpen, setIsReportMenuOpen] = useState(false);
 
-  const [lessonMode, setLessonMode] = useState<'idle' | 'learn' | 'playing_demo'>('idle');
+  const [lessonMode, setLessonMode] = useState<'idle' | 'learn' | 'playing_demo' | 'finished'>('idle');
   const [statusText, setStatusText] = useState('Pick a mode to start!');
 
   const [currentNoteIndex, setCurrentNoteIndex] = useState<number | null>(null);
@@ -72,7 +73,7 @@ export default function LessonPage() {
     return [...lesson.notes].sort((a, b) => Tone.Time(a.time).toSeconds() - Tone.Time(b.time).toSeconds());
   }, [lesson]);
 
-  const stopPlayback = useCallback((newMode: 'idle' | 'learn' | 'playing_demo' = 'idle') => {
+  const stopPlayback = useCallback((newMode: 'idle' | 'learn' | 'playing_demo' | 'finished' = 'idle') => {
     if (Tone.Transport.state === 'started') {
         Tone.Transport.stop();
         Tone.Transport.cancel();
@@ -82,7 +83,6 @@ export default function LessonPage() {
     });
     partsRef.current = [];
     
-    // Release all notes on cached samplers
     Object.values(samplersRef.current).forEach(sampler => {
         if (sampler instanceof Tone.Sampler || sampler instanceof Tone.PolySynth) {
             if (!sampler.disposed) sampler.releaseAll();
@@ -158,7 +158,7 @@ export default function LessonPage() {
   useEffect(() => {
     if (lessonMode === 'learn' && currentNoteIndex === null && isLessonStarted) {
       toast({ title: "Great job!", description: "You played it perfectly! ✨" });
-      setLessonMode('idle');
+      setLessonMode('finished');
       setIsLessonStarted(false);
       setStatusText('Lesson complete! Try another one?');
     }
@@ -189,7 +189,7 @@ export default function LessonPage() {
         const newPressedKeys = new Set(currentlyPressedChordKeys).add(playedKey);
         setCurrentlyPressedChordKeys(newPressedKeys);
         if (correctKeys.every(k => newPressedKeys.has(k))) {
-            setTimeout(() => advanceToNextNote(), 50);
+            setTimeout(() => advanceToNextNote(), 30); // snappier delay
         }
     } else {
         if (isHoldNote) {
@@ -197,12 +197,13 @@ export default function LessonPage() {
             const startTime = Date.now();
             const holdDurationMs = Tone.Time(currentNote.duration).toMilliseconds();
             clearInterval(holdIntervalRef.current);
+            // Snappier feedback with 16ms updates (60fps)
             holdIntervalRef.current = setInterval(() => {
                 const elapsedTime = Date.now() - startTime;
                 const progress = Math.min(100, (elapsedTime / holdDurationMs) * 100);
                 setHoldState({ key: currentNote.key as string, progress });
                 if (progress >= 100) advanceToNextNote();
-            }, 20);
+            }, 16);
         } else {
             advanceToNextNote();
         }
@@ -231,6 +232,7 @@ export default function LessonPage() {
     isHoldingRef.current = false;
     toast({ title: 'Ready!', description: 'Play the glowing key to start.' });
     setStatusText('Follow the glowing keys...');
+    setLessonMode('learn');
   };
   
   const handleStartLearn = () => {
@@ -243,7 +245,7 @@ export default function LessonPage() {
       setStatusText('Stopped.');
   };
 
-  const InstrumentComponent = isClient ? instrumentComponents[lesson.instrument] || null : null;
+  const InstrumentComponent = isClient ? instrumentComponents[lesson.instrument] : null;
   const lessonNoteStringsForDisplay = useMemo(() => sortedNotes.map(n => Array.isArray(n.key) ? n.key.join(' + ') : n.key), [sortedNotes]);
   const highlightedKeysForLearn = currentNote?.key ? (Array.isArray(currentNote.key) ? currentNote.key : [currentNote.key]) : [];
   
@@ -265,7 +267,7 @@ export default function LessonPage() {
                     <Button onClick={handlePlayDemo} disabled={lessonMode === 'playing_demo'}>
                         <Play className="mr-2 h-4 w-4"/> Play Demo
                     </Button>
-                    <Button onClick={handleStartLearn}>
+                    <Button onClick={handleStartLearn} disabled={lessonMode === 'playing_demo'}>
                        <BookOpen className="mr-2 h-4 w-4"/> Start Learning
                     </Button>
                 </div>
@@ -274,7 +276,7 @@ export default function LessonPage() {
                       <StopCircle className="mr-2 h-4 w-4"/> Stop Demo
                   </Button>
                 )}
-                 {lessonMode === 'learn' && (
+                 {(lessonMode === 'learn' || lessonMode === 'finished') && (
                   <Button onClick={handleStartLearn} className="w-full mt-4">
                       <RefreshCw className="mr-2 h-4 w-4"/> Restart Lesson
                   </Button>

@@ -55,40 +55,22 @@
       "imageHint": "mysterious maze"
     },
     {
-      "id": "lesson-jana-gana-mana",
-      "description": "The national flag of India.",
-      "imageUrl": "https://images.unsplash.com/photo-1532375810709-75b1da00537c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-      "imageHint": "india flag"
+      "id": "lesson-lakdi-kathi",
+      "description": "A small toy horse, representing Lakdi Ki Kathi.",
+      "imageUrl": "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageHint": "toy horse"
     },
     {
-      "id": "lesson-tum-hi-ho",
-      "description": "A romantic evening scene.",
-      "imageUrl": "https://images.unsplash.com/photo-1516589174184-c6858b16ecb0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-      "imageHint": "romantic evening"
-    },
-    {
-      "id": "lesson-kal-ho-naa-ho",
-      "description": "A beautiful sunset over the city.",
-      "imageUrl": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-      "imageHint": "beautiful sunset"
-    },
-    {
-      "id": "lesson-pehla-nasha",
-      "description": "A dreamy cloud scape.",
-      "imageUrl": "https://images.unsplash.com/photo-1496450681664-3df85efbd29f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-      "imageHint": "dreamy clouds"
+      "id": "lesson-nani-morni",
+      "description": "A beautiful peacock, representing Nani Teri Morni.",
+      "imageUrl": "https://images.unsplash.com/photo-1523626752472-b55a629375ad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageHint": "peacock bird"
     },
     {
       "id": "lesson-fur-elise",
       "description": "Classical architecture.",
       "imageUrl": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
       "imageHint": "classical music"
-    },
-    {
-      "id": "lesson-kesariya",
-      "description": "Saffron colored flowers.",
-      "imageUrl": "https://images.unsplash.com/photo-1526333337845-4ef446729691?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-      "imageHint": "saffron color"
     },
     {
       "id": "lesson-shape-of-you",
