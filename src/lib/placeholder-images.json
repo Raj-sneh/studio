@@ -53,6 +53,48 @@
       "description": "A mysterious maze, representing the song Bhool Bhulaiyaa.",
       "imageUrl": "https://images.unsplash.com/photo-1569992182223-352293fa47b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYXplfGVufDB8fHx8MTc3MDQ2Mjg1Nnww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "mysterious maze"
+    },
+    {
+      "id": "lesson-jana-gana-mana",
+      "description": "The national flag of India.",
+      "imageUrl": "https://images.unsplash.com/photo-1532375810709-75b1da00537c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageHint": "india flag"
+    },
+    {
+      "id": "lesson-tum-hi-ho",
+      "description": "A romantic evening scene.",
+      "imageUrl": "https://images.unsplash.com/photo-1516589174184-c6858b16ecb0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageHint": "romantic evening"
+    },
+    {
+      "id": "lesson-kal-ho-naa-ho",
+      "description": "A beautiful sunset over the city.",
+      "imageUrl": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageHint": "beautiful sunset"
+    },
+    {
+      "id": "lesson-pehla-nasha",
+      "description": "A dreamy cloud scape.",
+      "imageUrl": "https://images.unsplash.com/photo-1496450681664-3df85efbd29f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageHint": "dreamy clouds"
+    },
+    {
+      "id": "lesson-fur-elise",
+      "description": "Classical architecture.",
+      "imageUrl": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageHint": "classical music"
+    },
+    {
+      "id": "lesson-kesariya",
+      "description": "Saffron colored flowers.",
+      "imageUrl": "https://images.unsplash.com/photo-1526333337845-4ef446729691?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageHint": "saffron color"
+    },
+    {
+      "id": "lesson-shape-of-you",
+      "description": "Modern abstract art.",
+      "imageUrl": "https://images.unsplash.com/photo-1549490349-8643362247b5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageHint": "abstract shapes"
     }
   ]
 }
