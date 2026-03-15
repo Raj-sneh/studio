@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback, useEffect, useRef, lazy, Suspense, useMemo } from 'react';
@@ -18,8 +19,8 @@ import { collection, serverTimestamp } from 'firebase/firestore';
 
 const Piano = lazy(() => import('@/components/Piano'));
 
-// Snappier hold threshold to prevent "boring" slow feeling
-const HOLD_NOTE_THRESHOLD_MS = 150;
+// Snappy settings for high-performance feedback
+const HOLD_NOTE_THRESHOLD_MS = 100;
 
 interface AIComposerProps {
   initialPrompt?: string | null;
