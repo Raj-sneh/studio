@@ -39,7 +39,8 @@ async function toWav(
       resolve(Buffer.concat(bufs).toString('base64'));
     });
 
-    writer.end(pcmData);
+    writer.write(pcmData);
+    writer.end();
   });
 }
 

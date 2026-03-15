@@ -92,7 +92,10 @@ export default function LessonPage() {
   }, []);
 
   useEffect(() => {
-      return () => stopPlayback();
+      return () => {
+        if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
+        stopPlayback();
+      }
   }, [stopPlayback]);
 
   const handlePlayDemo = useCallback(async () => {
@@ -166,7 +169,7 @@ export default function LessonPage() {
   }, [currentNoteIndex, lessonMode]);
   
   const advanceToNextNote = useCallback(() => {
-    clearInterval(holdIntervalRef.current);
+    if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
     isHoldingRef.current = false;
     setHoldState(null);
 
@@ -193,8 +196,8 @@ export default function LessonPage() {
             isHoldingRef.current = true;
             const startTime = Date.now();
             const holdDurationMs = Tone.Time(currentNote.duration).toMilliseconds();
-            clearInterval(holdIntervalRef.current);
-            // High-frequency 60fps tracking (16ms)
+            if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
+            // Ultra-snappy 60fps tracking (16ms)
             holdIntervalRef.current = setInterval(() => {
                 const elapsedTime = Date.now() - startTime;
                 const progress = Math.min(100, (elapsedTime / holdDurationMs) * 100);
@@ -213,7 +216,7 @@ export default function LessonPage() {
 
     if (correctKeys.length === 1 && playedKey === correctKeys[0]) {
       isHoldingRef.current = false;
-      clearInterval(holdIntervalRef.current);
+      if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
       if (holdState && holdState.progress < 100) {
         setHoldState(null);
         toast({ title: "Keep holding!", description: "Hold until the bar is full.", variant: "destructive" });
@@ -225,7 +228,7 @@ export default function LessonPage() {
     setIsLessonStarted(true);
     setCurrentNoteIndex(0);
     setHoldState(null);
-    clearInterval(holdIntervalRef.current);
+    if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
     isHoldingRef.current = false;
     toast({ title: 'Ready!', description: 'Play the glowing key to start.' });
     setStatusText('Follow the glowing keys...');
