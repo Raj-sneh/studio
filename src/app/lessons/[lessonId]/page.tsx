@@ -32,7 +32,7 @@ function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
 }
 
 // Snappier hold threshold to prevent "boring" slow feeling
-const HOLD_NOTE_THRESHOLD_MS = 200;
+const HOLD_NOTE_THRESHOLD_MS = 150;
 
 export default function LessonPage() {
   const router = useRouter();
@@ -189,7 +189,7 @@ export default function LessonPage() {
         const newPressedKeys = new Set(currentlyPressedChordKeys).add(playedKey);
         setCurrentlyPressedChordKeys(newPressedKeys);
         if (correctKeys.every(k => newPressedKeys.has(k))) {
-            setTimeout(() => advanceToNextNote(), 30); // snappier delay
+            setTimeout(() => advanceToNextNote(), 20); // Even snappier delay
         }
     } else {
         if (isHoldNote) {
@@ -197,7 +197,7 @@ export default function LessonPage() {
             const startTime = Date.now();
             const holdDurationMs = Tone.Time(currentNote.duration).toMilliseconds();
             clearInterval(holdIntervalRef.current);
-            // Snappier feedback with 16ms updates (60fps)
+            // High-frequency 60fps tracking (16ms)
             holdIntervalRef.current = setInterval(() => {
                 const elapsedTime = Date.now() - startTime;
                 const progress = Math.min(100, (elapsedTime / holdDurationMs) * 100);
