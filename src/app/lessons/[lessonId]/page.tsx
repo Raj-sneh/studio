@@ -32,8 +32,8 @@ function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
   );
 }
 
-// Snappier hold threshold to prevent "boring" slow feeling
-const HOLD_NOTE_THRESHOLD_MS = 150;
+// Increased threshold to avoid too many "slow" hold interactions
+const HOLD_NOTE_THRESHOLD_MS = 300;
 
 export default function LessonPage() {
   const router = useRouter();
@@ -198,7 +198,7 @@ export default function LessonPage() {
             const startTime = Date.now();
             const holdDurationMs = Tone.Time(currentNote.duration).toMilliseconds();
             clearInterval(holdIntervalRef.current);
-            // High-frequency 60fps tracking (16ms)
+            // High-frequency 60fps tracking (16ms) for snappy response
             holdIntervalRef.current = setInterval(() => {
                 const elapsedTime = Date.now() - startTime;
                 const progress = Math.min(100, (elapsedTime / holdDurationMs) * 100);
