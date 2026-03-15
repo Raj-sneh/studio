@@ -1,4 +1,3 @@
-
 import type { Lesson } from '@/types';
 
 /**

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, lazy, Suspense, useRef, useMemo } from 'react';
@@ -29,7 +28,7 @@ function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
 }
 
 // Ultra-snappy settings for high-performance feedback
-const HOLD_NOTE_THRESHOLD_MS = 100;
+const HOLD_NOTE_THRESHOLD_MS = 150;
 
 export default function LessonPage() {
   const router = useRouter();
@@ -44,7 +43,7 @@ export default function LessonPage() {
   const [statusText, setStatusText] = useState('Pick a mode to start!');
 
   const [currentNoteIndex, setCurrentNoteIndex] = useState<number | null>(null);
-  const [holdState, setHoldState] = useState<{ key: string | string[], progress: number } | null>(null);
+  const [holdState, setHoldState] = useState<{ key: string, progress: number } | null>(null);
   const [isLessonStarted, setIsLessonStarted] = useState(false);
   const [currentlyPressedChordKeys, setCurrentlyPressedChordKeys] = useState(new Set<string>());
   const [highlightedPlayKeys, setHighlightedPlayKeys] = useState<string[]>([]);
@@ -316,7 +315,7 @@ export default function LessonPage() {
                   highlightedKeys={lessonMode === 'learn' ? highlightedKeysForLearn : highlightedPlayKeys}
                   activeKeys={lessonMode === 'learn' && isLessonStarted ? highlightedKeysForLearn : null}
                   disabled={lessonMode !== 'learn' || !isLessonStarted}
-                  holdState={(lessonMode === 'learn') ? holdState : null}
+                  holdState={lessonMode === 'learn' ? holdState : null}
                   interactiveMode={lessonMode === 'learn'}
                 />
               </Suspense>
