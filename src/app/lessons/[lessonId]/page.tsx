@@ -7,8 +7,8 @@ import * as Tone from 'tone';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, AlertCircle, ChevronLeft, Music, CheckCircle, RefreshCw, Play, BookOpen, StopCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Loader2, AlertCircle, ChevronLeft, RefreshCw, Play, BookOpen, StopCircle } from 'lucide-react';
 import { LESSONS } from '@/lib/lessons';
 import type { Instrument, LessonNote } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -16,10 +16,6 @@ import NoteDisplay from '@/components/note-display';
 import { getSampler, type CachedSampler } from '@/lib/samplers';
 
 const Piano = lazy(() => import('@/components/Piano'));
-
-const instrumentComponents: Record<Instrument, React.ElementType> = {
-    piano: Piano,
-};
 
 function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
   return (
@@ -32,8 +28,8 @@ function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
   );
 }
 
-// Increased threshold to avoid too many "slow" hold interactions
-const HOLD_NOTE_THRESHOLD_MS = 300;
+// Snappier hold threshold and tracking frequency
+const HOLD_NOTE_THRESHOLD_MS = 150;
 
 export default function LessonPage() {
   const router = useRouter();
@@ -198,7 +194,7 @@ export default function LessonPage() {
             const startTime = Date.now();
             const holdDurationMs = Tone.Time(currentNote.duration).toMilliseconds();
             clearInterval(holdIntervalRef.current);
-            // High-frequency 60fps tracking (16ms) for snappy response
+            // High-frequency 60fps tracking (16ms)
             holdIntervalRef.current = setInterval(() => {
                 const elapsedTime = Date.now() - startTime;
                 const progress = Math.min(100, (elapsedTime / holdDurationMs) * 100);
@@ -335,9 +331,6 @@ export default function LessonPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Something wrong?</DialogTitle>
-            <DialogDescription>
-              Tell us why you are reporting this lesson.
-            </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <Button variant="outline" className="w-full justify-start" onClick={() => setIsReportMenuOpen(false)}>Incorrect Notes</Button>
@@ -349,3 +342,7 @@ export default function LessonPage() {
     </div>
   );
 }
+
+const instrumentComponents: Record<Instrument, React.ElementType> = {
+    piano: Piano,
+};
