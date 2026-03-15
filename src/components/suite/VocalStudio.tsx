@@ -179,6 +179,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
           if (isAutoSync) {
             const sortedNotes = [...result.notes].sort((a, b) => Tone.Time(a.time).toSeconds() - Tone.Time(b.time).toSeconds());
             const lastNote = sortedNotes[sortedNotes.length - 1];
+            // Sync BPM to vocal track duration
             const totalBeats = Tone.Time(lastNote.time).toSeconds() + Tone.Time(lastNote.duration).toSeconds();
             finalBpm = Math.max(60, Math.min(180, (totalBeats / vocalDuration) * 60));
             setPianoTempo(Math.round(finalBpm));
