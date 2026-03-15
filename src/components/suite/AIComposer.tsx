@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback, useEffect, useRef, lazy, Suspense, useMemo } from 'react';
@@ -228,7 +229,7 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
                 const startTime = Date.now();
                 const holdDurationMs = Tone.Time(currentNote.duration).toMilliseconds();
                 if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
-                // High-frequency 60fps tracking (16ms)
+                // Faster 60fps tracking (16ms)
                 holdIntervalRef.current = setInterval(() => {
                     const progress = Math.min(100, ((Date.now() - startTime) / holdDurationMs) * 100);
                     setHoldState({ key: currentNote.key, progress });

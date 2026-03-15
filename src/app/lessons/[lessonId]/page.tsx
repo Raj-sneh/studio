@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, lazy, Suspense, useRef, useMemo } from 'react';
@@ -189,7 +190,7 @@ export default function LessonPage() {
         const newPressedKeys = new Set(currentlyPressedChordKeys).add(playedKey);
         setCurrentlyPressedChordKeys(newPressedKeys);
         if (correctKeys.every(k => newPressedKeys.has(k))) {
-            setTimeout(() => advanceToNextNote(), 20); // Even snappier delay
+            setTimeout(() => advanceToNextNote(), 20); 
         }
     } else {
         if (isHoldNote) {
