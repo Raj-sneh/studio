@@ -61,10 +61,13 @@ export const LESSONS: Lesson[] = [
       { key: 'F4', duration: '8n', time: '8:1:0' }, { key: 'G4', duration: '8n', time: '8:1:2' },
       { key: 'E4', duration: '4n', time: '8:2:0' }, { key: 'D4', duration: '4n', time: '8:3:0' },
       { key: 'C4', duration: '1n', time: '9:0:0' },
+      // Repeat to extend duration
       { key: 'C4', duration: '8n', time: '10:0:0' }, { key: 'D4', duration: '8n', time: '10:1:0' },
       { key: 'E4', duration: '4n', time: '10:2:0' }, { key: 'C4', duration: '4n', time: '10:3:0' },
       { key: 'G4', duration: '4n', time: '11:0:0' }, { key: 'F4', duration: '4n', time: '11:1:0' },
       { key: 'E4', duration: '2n', time: '11:2:0' }, { key: 'C4', duration: '1n', time: '12:0:0' },
+      { key: 'G4', duration: '4n', time: '13:0:0' }, { key: 'F4', duration: '4n', time: '13:2:0' },
+      { key: 'E4', duration: '2n', time: '14:0:0' }, { key: 'C4', duration: '1n', time: '15:0:0' },
     ],
   },
   {
@@ -87,12 +90,16 @@ export const LESSONS: Lesson[] = [
       { key: 'G4', duration: '2n', time: '5:3:0' }, { key: 'F4', duration: '4n', time: '6:1:0' },
       { key: 'E4', duration: '4n', time: '6:2:0' }, { key: 'D4', duration: '2n', time: '6:3:0' },
       { key: 'C4', duration: '1n', time: '7:0:0' },
+      // Extension
       { key: 'C4', duration: '4n', time: '8:0:0' }, { key: 'E4', duration: '4n', time: '8:1:0' },
       { key: 'G4', duration: '4n', time: '8:2:0' }, { key: 'C5', duration: '4n', time: '8:3:0' },
       { key: 'C5', duration: '4n', time: '9:0:0' }, { key: 'B4', duration: '4n', time: '9:1:0' },
       { key: 'A4', duration: '4n', time: '9:2:0' }, { key: 'G4', duration: '2n', time: '9:3:0' },
       { key: 'F4', duration: '4n', time: '10:1:0' }, { key: 'E4', duration: '4n', time: '10:2:0' },
       { key: 'D4', duration: '2n', time: '10:3:0' }, { key: 'C4', duration: '1n', time: '11:0:0' },
+      { key: 'G4', duration: '4n', time: '12:0:0' }, { key: 'F4', duration: '4n', time: '12:2:0' },
+      { key: 'E4', duration: '2n', time: '13:0:0' }, { key: 'C4', duration: '1n', time: '14:0:0' },
+      { key: 'C4', duration: '1n', time: '15:0:0' },
     ],
   },
   {
@@ -113,6 +120,7 @@ export const LESSONS: Lesson[] = [
       { key: 'G4', duration: '8n', time: '3:1:0' }, { key: 'D#4', duration: '4n', time: '3:2:0' },
       { key: 'D#4', duration: '4n', time: '3:3:0' }, { key: 'F4', duration: '8n', time: '4:0:0' },
       { key: 'D#4', duration: '8n', time: '4:1:0' }, { key: 'C4', duration: '2n', time: '4:2:0' },
+      // Repeat theme to extend
       { key: 'G4', duration: '8n', time: '5:0:0' }, { key: 'G4', duration: '8n', time: '5:1:0' },
       { key: 'F4', duration: '8n', time: '5:2:0' }, { key: 'G4', duration: '8n', time: '5:3:0' },
       { key: 'C5', duration: '2n', time: '6:0:0' }, { key: 'B4', duration: '4n', time: '6:2:0' },
@@ -124,6 +132,8 @@ export const LESSONS: Lesson[] = [
       { key: 'F4', duration: '4n', time: '11:2:0' }, { key: 'G4', duration: '2n', time: '11:3:0' },
       { key: 'F4', duration: '4n', time: '12:2:0' }, { key: 'D#4', duration: '4n', time: '12:3:0' },
       { key: 'C4', duration: '1n', time: '13:0:0' },
+      { key: 'C4', duration: '1n', time: '14:0:0' },
+      { key: 'C4', duration: '1n', time: '15:0:0' },
     ],
   },
   {

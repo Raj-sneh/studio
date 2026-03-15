@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback, useEffect, useRef, lazy, Suspense, useMemo } from 'react';
@@ -18,7 +19,8 @@ import { collection, serverTimestamp } from 'firebase/firestore';
 
 const Piano = lazy(() => import('@/components/Piano'));
 
-const HOLD_NOTE_THRESHOLD_MS = 300;
+// Snappy settings for high-performance feedback
+const HOLD_NOTE_THRESHOLD_MS = 100;
 
 interface AiComposerProps {
   initialPrompt?: string | null;
@@ -118,7 +120,6 @@ export function AiComposer({ initialPrompt, autogen, autoplay, onGenerate }: AiC
 
         const totalDuration = sortedNotes.reduce((max, note) => Math.max(max, Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds()), 0);
 
-        // Schedule the stop using Transport time (relative to start)
         Tone.Transport.scheduleOnce(() => {
             stopPlayback();
             setStatusText('Finished playing.');
@@ -228,11 +229,12 @@ export function AiComposer({ initialPrompt, autogen, autoplay, onGenerate }: AiC
                 const startTime = Date.now();
                 const holdDurationMs = Tone.Time(currentNote.duration).toMilliseconds();
                 if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
+                // 60fps tracking (16ms)
                 holdIntervalRef.current = setInterval(() => {
                     const progress = Math.min(100, ((Date.now() - startTime) / holdDurationMs) * 100);
                     setHoldState({ key: currentNote.key, progress });
                     if (progress >= 100) advanceToNextNote();
-                }, 20);
+                }, 16);
             } else {
                 advanceToNextNote();
             }
