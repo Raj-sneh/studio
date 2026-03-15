@@ -7,7 +7,7 @@ import * as Tone from 'tone';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, AlertCircle, ChevronLeft, RefreshCw, Play, BookOpen, StopCircle } from 'lucide-react';
 import { LESSONS } from '@/lib/lessons';
 import type { Instrument, LessonNote } from '@/types';
@@ -242,7 +242,7 @@ export default function LessonPage() {
       setStatusText('Stopped.');
   };
 
-  const InstrumentComponent = isClient ? instrumentComponents[lesson.instrument] : null;
+  const InstrumentComponent = isClient ? Piano : null;
   const lessonNoteStringsForDisplay = useMemo(() => sortedNotes.map(n => Array.isArray(n.key) ? n.key.join(' + ') : n.key), [sortedNotes]);
   const highlightedKeysForLearn = currentNote?.key ? (Array.isArray(currentNote.key) ? currentNote.key : [currentNote.key]) : [];
   
@@ -342,7 +342,3 @@ export default function LessonPage() {
     </div>
   );
 }
-
-const instrumentComponents: Record<Instrument, React.ElementType> = {
-    piano: Piano,
-};

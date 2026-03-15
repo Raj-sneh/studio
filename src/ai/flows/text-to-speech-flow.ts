@@ -91,7 +91,7 @@ const textToSpeechGenkitFlow = ai.defineFlow(
                     },
                 },
             },
-            prompt: sing ? `SING this text with a musical melody and rhythm, do not just speak it: ${text}` : text,
+            prompt: sing ? `Sing this text with a clear musical melody and professional rhythm. Ensure every word is sung: ${text}` : text,
         });
 
         if (!media || !media.url) {

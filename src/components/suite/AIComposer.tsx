@@ -19,7 +19,7 @@ import { collection, serverTimestamp } from 'firebase/firestore';
 
 const Piano = lazy(() => import('@/components/Piano'));
 
-// Snappy settings for rapid feedback
+// Ultra-snappy settings for rapid feedback
 const HOLD_NOTE_THRESHOLD_MS = 100;
 
 interface AIComposerProps {
