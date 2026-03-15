@@ -28,8 +28,8 @@ function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
   );
 }
 
-// Snappier hold threshold and tracking frequency
-const HOLD_NOTE_THRESHOLD_MS = 150;
+// Ultra-snappy settings for high-performance feedback
+const HOLD_NOTE_THRESHOLD_MS = 100;
 
 export default function LessonPage() {
   const router = useRouter();
@@ -186,7 +186,7 @@ export default function LessonPage() {
         const newPressedKeys = new Set(currentlyPressedChordKeys).add(playedKey);
         setCurrentlyPressedChordKeys(newPressedKeys);
         if (correctKeys.every(k => newPressedKeys.has(k))) {
-            setTimeout(() => advanceToNextNote(), 20); 
+            advanceToNextNote();
         }
     } else {
         if (isHoldNote) {
