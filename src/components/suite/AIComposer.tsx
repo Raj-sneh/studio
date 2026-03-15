@@ -18,7 +18,8 @@ import { collection, serverTimestamp } from 'firebase/firestore';
 
 const Piano = lazy(() => import('@/components/Piano'));
 
-const HOLD_NOTE_THRESHOLD_MS = 200; // Snappier threshold
+// Snappier hold threshold to prevent "boring" slow feeling
+const HOLD_NOTE_THRESHOLD_MS = 200;
 
 interface AIComposerProps {
   initialPrompt?: string | null;
@@ -227,7 +228,7 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
                 const startTime = Date.now();
                 const holdDurationMs = Tone.Time(currentNote.duration).toMilliseconds();
                 if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
-                // 16ms interval for smooth 60fps tracking
+                // Snappier 60fps tracking (16ms)
                 holdIntervalRef.current = setInterval(() => {
                     const progress = Math.min(100, ((Date.now() - startTime) / holdDurationMs) * 100);
                     setHoldState({ key: currentNote.key, progress });

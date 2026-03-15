@@ -1,7 +1,7 @@
 'use server';
 /**
  * @fileOverview A flow for generating speech/singing using Gemini 2.5 Flash Preview TTS.
- * This file handles mapping UI voices to Gemini models and converting raw PCM to WAV.
+ * Handles mapping UI voices to Gemini models and converting raw PCM to WAV.
  */
 import 'server-only';
 import { ai } from '@/ai/genkit';
@@ -73,7 +73,6 @@ const textToSpeechGenkitFlow = ai.defineFlow(
             victor: 'Pollux',    // Bold/Male
             sophie: 'Regulus',   // Gentle/Female
             kai: 'Sirius',       // Cool/Male
-            // Fallbacks
             male: 'Achernar',
             female: 'Algenib',
             combined: 'Achernar',
