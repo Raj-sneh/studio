@@ -7,9 +7,10 @@
     enable = true;
     previews = {
       web = {
-        command = [ "npm" "run" "dev" "--" "--port" "3000" "--hostname" "0.0.0.0" ];
+        command = [ "npm" "run" "dev" "--" "--port" "45577" "--hostname" "0.0.0.0" ];
         manager = "web";
       };
     };
   };
 }
+#refresh
