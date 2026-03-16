@@ -92,14 +92,13 @@ const textToSpeechGenkitFlow = ai.defineFlow(
                     },
                 },
             },
-            prompt: sing ? `Sing this text with a clear musical melody and professional rhythm. Ensure every word is sung: ${text}` : text,
+            prompt: sing ? `Sing this text with a clear musical melody and professional rhythm. Ensure every word is sung beautifully: ${text}` : text,
         });
 
         if (!media || !media.url) {
             throw new Error('The AI artist was unable to perform right now.');
         }
 
-        // Extract base64 and convert PCM to WAV
         const base64Data = media.url.substring(media.url.indexOf(',') + 1);
         const audioBuffer = Buffer.from(base64Data, 'base64');
 

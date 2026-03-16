@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, lazy, Suspense, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, Suspense, useRef, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import * as Tone from 'tone';
 import { Button } from '@/components/ui/button';
@@ -14,8 +14,7 @@ import type { Instrument, LessonNote } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import NoteDisplay from '@/components/note-display';
 import { getSampler, type CachedSampler } from '@/lib/samplers';
-
-const Piano = lazy(() => import('@/components/Piano'));
+import Piano from '@/components/Piano';
 
 function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
   return (
@@ -29,7 +28,7 @@ function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
 }
 
 // Ultra-snappy settings for high-performance feedback
-const HOLD_NOTE_THRESHOLD_MS = 100;
+const HOLD_NOTE_THRESHOLD_MS = 150;
 
 export default function LessonPage() {
   const router = useRouter();
@@ -245,7 +244,6 @@ export default function LessonPage() {
       setStatusText('Stopped.');
   };
 
-  const InstrumentComponent = isClient ? Piano : null;
   const lessonNoteStringsForDisplay = useMemo(() => sortedNotes.map(n => Array.isArray(n.key) ? n.key.join(' + ') : n.key), [sortedNotes]);
   const highlightedKeysForLearn = currentNote?.key ? (Array.isArray(currentNote.key) ? currentNote.key : [currentNote.key]) : [];
   
@@ -306,11 +304,11 @@ export default function LessonPage() {
 
       <div className="flex-1 min-h-[350px]">
           <Card className="h-full flex items-center justify-center p-1 md:p-4">
-            {!isClient || !InstrumentComponent ? (
+            {!isClient ? (
               <InstrumentLoader instrument={lesson.instrument} />
             ) : (
               <Suspense fallback={<InstrumentLoader instrument={lesson.instrument} />}>
-                <InstrumentComponent 
+                <Piano 
                   onNoteDown={handleNoteDown}
                   onNoteUp={handleNoteUp}
                   highlightedKeys={lessonMode === 'learn' ? highlightedKeysForLearn : highlightedPlayKeys}
