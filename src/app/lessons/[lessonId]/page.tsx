@@ -313,7 +313,7 @@ export default function LessonPage() {
                 highlightedKeys={lessonMode === 'learn' ? highlightedKeysForLearn : highlightedPlayKeys}
                 activeKeys={lessonMode === 'learn' && isLessonStarted ? highlightedKeysForLearn : null}
                 disabled={lessonMode !== 'learn' || !isLessonStarted}
-                holdState={lessonMode === 'learn' ? holdState : null}
+                holdState={lessonMode === 'learn' ? (holdState || null) : null}
                 interactiveMode={lessonMode === 'learn'}
               />
             )}

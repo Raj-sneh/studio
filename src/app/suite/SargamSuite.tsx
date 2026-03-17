@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AIComposer } from './AIComposer';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AiComposer } from './AiComposer';
 import { VocalStudio } from './VocalStudio';
 import { Music, Mic, UserRoundPlus, Lock } from 'lucide-react';
 import Image from 'next/image';
@@ -29,7 +30,6 @@ export function SargamSuite() {
         }
     }, [requestedTab]);
 
-    // Stable callback to prevent infinite loops in child components
     const handleGenerate = useCallback(() => {
         console.log("Generation started");
     }, []);
@@ -57,7 +57,7 @@ export function SargamSuite() {
 
                 <div className="mt-0">
                     {activeTab === 'composer' && (
-                        <AIComposer 
+                        <AiComposer 
                             initialPrompt={initialPrompt}
                             autogen={autogen}
                             autoplay={autoplay}
