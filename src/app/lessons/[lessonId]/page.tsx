@@ -307,17 +307,15 @@ export default function LessonPage() {
             {!isClient ? (
               <InstrumentLoader instrument={lesson.instrument} />
             ) : (
-              <Suspense fallback={<InstrumentLoader instrument={lesson.instrument} />}>
-                <Piano 
-                  onNoteDown={handleNoteDown}
-                  onNoteUp={handleNoteUp}
-                  highlightedKeys={lessonMode === 'learn' ? highlightedKeysForLearn : highlightedPlayKeys}
-                  activeKeys={lessonMode === 'learn' && isLessonStarted ? highlightedKeysForLearn : null}
-                  disabled={lessonMode !== 'learn' || !isLessonStarted}
-                  holdState={lessonMode === 'learn' ? holdState : null}
-                  interactiveMode={lessonMode === 'learn'}
-                />
-              </Suspense>
+              <Piano 
+                onNoteDown={handleNoteDown}
+                onNoteUp={handleNoteUp}
+                highlightedKeys={lessonMode === 'learn' ? highlightedKeysForLearn : highlightedPlayKeys}
+                activeKeys={lessonMode === 'learn' && isLessonStarted ? highlightedKeysForLearn : null}
+                disabled={lessonMode !== 'learn' || !isLessonStarted}
+                holdState={lessonMode === 'learn' ? holdState : null}
+                interactiveMode={lessonMode === 'learn'}
+              />
             )}
           </Card>
       </div>
