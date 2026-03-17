@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
@@ -192,7 +193,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                                 touchAction: interactiveMode ? 'none' : 'auto'
                                 }}
                             >
-                                {isHolding && (
+                                {isHolding && holdState && (
                                     <div
                                         className="absolute bottom-0 left-0 w-full rounded-b-lg overflow-hidden"
                                         style={{
@@ -230,7 +231,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                                 touchAction: interactiveMode ? 'none' : 'auto'
                                 }}
                             >
-                                {isHolding && (
+                                {isHolding && holdState && (
                                      <div
                                         className="absolute bottom-0 left-0 w-full rounded-b-md overflow-hidden"
                                         style={{

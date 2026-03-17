@@ -28,7 +28,7 @@ function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
 }
 
 // Ultra-snappy settings for high-performance feedback
-const HOLD_NOTE_THRESHOLD_MS = 150;
+const HOLD_NOTE_THRESHOLD_MS = 100;
 
 export default function LessonPage() {
   const router = useRouter();
