@@ -7,6 +7,7 @@ import { AiComposer } from './AiComposer';
 import { VocalStudio } from './VocalStudio';
 import { Music, Mic, UserRoundPlus, Lock } from 'lucide-react';
 import Image from 'next/image';
+import { PulseRunner } from '@/components/suite/PulseRunner';
 
 const TABS = [
     { value: 'composer', label: 'Melody Maker', icon: Music },
@@ -96,6 +97,11 @@ export function SargamSuite() {
                         )}
                     </div>
                 </Tabs>
+            </div>
+
+            {/* Dedicated AI Game Section below AI Suite cards */}
+            <div className="max-w-4xl mx-auto">
+                <PulseRunner />
             </div>
         </div>
     );

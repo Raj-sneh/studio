@@ -6,10 +6,11 @@ import { useAuth, useUser } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Music, LogOut, User as UserIcon, Loader2, BookOpen, Wand2, LogIn, ChevronDown } from "lucide-react";
+import { Music, LogOut, User as UserIcon, Loader2, BookOpen, Wand2, LogIn, ChevronDown, Trophy } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
+import { useGame } from "@/context/GameContext";
 
 const navLinks = [
   { href: "/practice", label: "Practice", icon: Music },
@@ -22,6 +23,7 @@ export default function Header() {
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
+  const { score, isGameActive } = useGame();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
@@ -97,12 +99,19 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/10 bg-background/80 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2">
             <span className="font-headline text-xl font-bold text-foreground tracking-tighter relative">
                 <span className="text-primary">Sargam</span> AI
             </span>
           </Link>
+
+          {(score > 0 || isGameActive) && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 animate-in zoom-in duration-300">
+               <Trophy className="h-3 w-3 text-primary" />
+               <span className="text-xs font-black font-mono text-primary">{score.toLocaleString()}</span>
+            </div>
+          )}
         </div>
 
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium">

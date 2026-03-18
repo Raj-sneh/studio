@@ -1,14 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
   Zap, 
-  Play, 
   Gamepad2, 
   Loader2, 
   RotateCcw, 
@@ -18,15 +16,13 @@ import {
   AlertTriangle,
   Music2
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { generateNotes } from '@/ai/flows/generate-notes-flow';
-import type { GenerateNotesOutput, NoteObject } from '@/ai/flows/generate-notes-types';
+import type { NoteObject } from '@/ai/flows/generate-notes-types';
 import { useToast } from '@/hooks/use-toast';
 import { useGame } from '@/context/GameContext';
 import * as Tone from 'tone';
 import { getSampler } from '@/lib/samplers';
 
-// --- GAME CONSTANTS ---
 const GAME_WIDTH = 800;
 const GAME_HEIGHT = 200;
 const RUNNER_X = 100;
@@ -48,14 +44,13 @@ type GameObject = {
 export function PulseRunner() {
   const { toast } = useToast();
   const { 
-    score, combo, maxCombo, accuracy, setGameActive, updateStats, resetGame 
+    score, combo, accuracy, setGameActive, updateStats, resetGame 
   } = useGame();
 
   const [prompt, setPrompt] = useState('');
   const [gameState, setGameState] = useState<'idle' | 'loading' | 'playing' | 'gameover' | 'won'>('idle');
   const [progress, setProgress] = useState(0);
   
-  // Game refs for high-performance loop
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number | null>(null); 
   const objectsRef = useRef<GameObject[]>([]);
@@ -101,7 +96,6 @@ export function PulseRunner() {
   const handleInput = useCallback((noteKey: string) => {
     if (gameState !== 'playing') return;
 
-    // Check for nearest note collision
     const nearestNote = objectsRef.current.find(obj => 
       obj.type === 'note' && 
       !obj.hit && 
@@ -117,7 +111,6 @@ export function PulseRunner() {
     }
   }, [gameState, updateStats]);
 
-  // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const keyMap: Record<string, string> = {
@@ -135,13 +128,11 @@ export function PulseRunner() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // 1. UPDATE
     distanceRef.current += speedRef.current;
     
-    // Spawn notes based on melody timing
     if (pendingNotesRef.current.length > 0) {
       const nextNote = pendingNotesRef.current[0];
-      const noteTime = Tone.Time(nextNote.time).toSeconds() * 100; // Scaled time
+      const noteTime = Tone.Time(nextNote.time).toSeconds() * 100;
       if (distanceRef.current / speedRef.current >= noteTime) {
         objectsRef.current.push({
           id: Math.random().toString(),
@@ -154,7 +145,6 @@ export function PulseRunner() {
       }
     }
 
-    // Spawn obstacles randomly
     if (time - lastSpawnRef.current > 2000 / (speedRef.current / 5)) {
         if (Math.random() > 0.7) {
             objectsRef.current.push({
@@ -167,19 +157,15 @@ export function PulseRunner() {
         }
     }
 
-    // Move objects and check collisions
     objectsRef.current = objectsRef.current.filter(obj => {
       obj.x -= speedRef.current;
 
-      // Note missed
       if (obj.x < RUNNER_X - 50 && obj.type === 'note' && !obj.hit) {
         updateStats(false, 0);
-        // Push missed note back to pending for later
         pendingNotesRef.current.push(obj.data!);
         return false;
       }
 
-      // Obstacle collision
       if (obj.type === 'obstacle' && 
           obj.x < RUNNER_X + RUNNER_SIZE && 
           obj.x + OBSTACLE_WIDTH > RUNNER_X && 
@@ -192,7 +178,6 @@ export function PulseRunner() {
       return obj.x > -50;
     });
 
-    // Check Win
     const totalNotes = melodyRef.current.length;
     const notesHandled = totalNotes - pendingNotesRef.current.length;
     const currentProgress = (notesHandled / totalNotes) * 100;
@@ -203,10 +188,7 @@ export function PulseRunner() {
        setGameActive(false);
     }
 
-    // 2. DRAW
     ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-    // Draw Track
     ctx.strokeStyle = '#1e1b4b';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -214,13 +196,11 @@ export function PulseRunner() {
     ctx.lineTo(GAME_WIDTH, GAME_HEIGHT - 10);
     ctx.stroke();
 
-    // Draw Runner (Neon Box)
     ctx.shadowBlur = 15;
     ctx.shadowColor = '#00ffff';
     ctx.fillStyle = '#00ffff';
     ctx.fillRect(RUNNER_X, GAME_HEIGHT - RUNNER_SIZE - 10, RUNNER_SIZE, RUNNER_SIZE);
     
-    // Draw Objects
     objectsRef.current.forEach(obj => {
       if (obj.type === 'note') {
         ctx.shadowColor = obj.hit ? '#4ade80' : '#f472b6';
@@ -247,7 +227,9 @@ export function PulseRunner() {
 
   useEffect(() => {
     return () => {
-      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
     };
   }, []);
 
@@ -368,16 +350,6 @@ export function PulseRunner() {
                         </div>
                         <h3 className="text-5xl font-black font-headline uppercase italic text-white tracking-tighter">RUN COMPLETED</h3>
                         <p className="text-primary font-black tracking-[0.5em] text-xs">PERFECT HARMONY</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 w-full max-w-xs text-center">
-                        <div className="bg-black/60 p-3 rounded-2xl border border-white/10">
-                            <span className="block text-[10px] uppercase font-bold text-muted-foreground">Final Score</span>
-                            <span className="text-xl font-black text-primary">{score.toLocaleString()}</span>
-                        </div>
-                        <div className="bg-black/60 p-3 rounded-2xl border border-white/10">
-                            <span className="block text-[10px] uppercase font-bold text-muted-foreground">Accuracy</span>
-                            <span className="text-xl font-black text-white">{accuracy}%</span>
-                        </div>
                     </div>
                     <div className="flex gap-4">
                         <Button onClick={startNewGame} size="lg" className="h-14 px-8 rounded-2xl bg-white text-black hover:bg-white/90 shadow-2xl shadow-primary/20">

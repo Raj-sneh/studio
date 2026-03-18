@@ -44,9 +44,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setScore(prev => Math.max(0, prev - 50));
     }
 
-    // Update accuracy
     setTimeout(() => {
-        setAccuracy(prev => {
+        setAccuracy(() => {
             const currentTotal = totalNotes + 1;
             const currentHits = hit ? hitNotes + 1 : hitNotes;
             return Math.round((currentHits / currentTotal) * 100);

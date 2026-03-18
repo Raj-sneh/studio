@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/ca
 import { Music, BookOpen, Wand2, Sparkles } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { AnimatedMusicBackground } from '@/components/AnimatedMusicBackground';
+import { PulseRunner } from '@/components/suite/PulseRunner';
 
 export default function LandingPage() {
   const practiceImg = PlaceHolderImages.find(img => img.id === 'dashboard-practice');
@@ -90,6 +91,11 @@ export default function LandingPage() {
             </CardHeader>
           </Card>
         </Link>
+      </section>
+
+      {/* AI Game Section */}
+      <section className="max-w-7xl mx-auto px-4">
+          <PulseRunner />
       </section>
 
       {/* Footer / Info Section */}
