@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow for generating speech/singing using Gemini 2.5 Flash Preview TTS.
@@ -62,18 +61,22 @@ const textToSpeechGenkitFlow = ai.defineFlow(
     async (input) => {
         const { text, voice, sing } = input;
         
-        // Detailed mapping of Sargam artists to Gemini TTS characters
+        // Updated mapping to only use confirmed supported voice names:
+        // achernar, achird, algenib, algieba, alnilam, aoede, autonoe, callirrhoe, 
+        // charon, despina, enceladus, erinome, fenrir, gacrux, iapetus, kore, 
+        // laomedeia, leda, orus, puck, pulcherrima, rasalgethi, sadachbia, 
+        // sadaltager, schedar, sulafat, umbriel, vindemiatrix, zephyr, zubenelgenubi.
         const voiceMap: Record<string, string> = {
             clara: 'Algenib',    // Soft/Female
             james: 'Achernar',   // Deep/Male
-            alex: 'Aldebaran',   // Neutral/Male
-            marcus: 'Altair',    // Warm/Male
-            elena: 'Arcturus',   // Bright/Female
-            maya: 'Castor',      // Crisp/Female
-            silas: 'Deneb',      // Mellow/Male
-            victor: 'Pollux',    // Bold/Male
-            sophie: 'Regulus',   // Gentle/Female
-            kai: 'Sirius',       // Cool/Male
+            alex: 'Achird',      // Neutral/Male
+            marcus: 'Algieba',   // Warm/Male
+            elena: 'Aoede',      // Bright/Female
+            maya: 'Autonoe',     // Crisp/Female
+            silas: 'Charon',     // Mellow/Male
+            victor: 'Enceladus', // Bold/Male
+            sophie: 'Erinome',   // Gentle/Female
+            kai: 'Fenrir',       // Cool/Male
             male: 'Achernar',
             female: 'Algenib',
             combined: 'Achernar',
