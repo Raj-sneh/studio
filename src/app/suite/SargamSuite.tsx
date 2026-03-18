@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AIComposer } from './AIComposer';
-import { VocalStudio } from './VocalStudio';
+import { AIComposer } from '@/components/suite/AIComposer';
+import { VocalStudio } from '@/components/suite/VocalStudio';
 import { Music, Mic, UserRoundPlus, Lock } from 'lucide-react';
 import Image from 'next/image';
 import { PulseRunner } from '@/components/suite/PulseRunner';
