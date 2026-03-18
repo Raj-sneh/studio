@@ -28,7 +28,7 @@ function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
 }
 
 // Ultra-snappy settings for high-performance feedback
-const HOLD_NOTE_THRESHOLD_MS = 100;
+const HOLD_NOTE_THRESHOLD_MS = 150;
 
 export default function LessonPage() {
   const router = useRouter();
@@ -59,17 +59,29 @@ export default function LessonPage() {
     const foundLesson = LESSONS.find(l => l.id === lessonId);
     if (foundLesson) {
       setLesson(foundLesson);
-    } else {
+    } else if (params.lessonId) {
       router.push('/lessons');
     }
   }, [params.lessonId, router]);
 
   const sortedNotes = useMemo(() => {
-    if (!lesson) return [];
-    return [...lesson.notes].sort((a, b) => Tone.Time(a.time).toSeconds() - Tone.Time(b.time).toSeconds());
+    if (!lesson || !lesson.notes) return [];
+    try {
+      // Create a copy and sort safely. Tone.Time might be undefined if called during initial SSR or early hydration.
+      return [...lesson.notes].sort((a, b) => {
+        const timeA = a?.time ? Tone.Time(a.time).toSeconds() : 0;
+        const timeB = b?.time ? Tone.Time(b.time).toSeconds() : 0;
+        return timeA - timeB;
+      });
+    } catch (e) {
+      console.warn("Sorting error:", e);
+      return lesson.notes;
+    }
   }, [lesson]);
 
   const stopPlayback = useCallback((newMode: 'idle' | 'learn' | 'playing_demo' | 'finished' = 'idle') => {
+    if (typeof window === 'undefined') return;
+    
     if (Tone.Transport.state === 'started') {
         Tone.Transport.stop();
         Tone.Transport.cancel();
@@ -125,7 +137,8 @@ export default function LessonPage() {
 
         partsRef.current.push(part);
 
-        const totalDuration = sortedNotes.reduce((max, note) => Math.max(max, Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds()), 0);
+        const lastNote = sortedNotes[sortedNotes.length - 1];
+        const totalDuration = lastNote ? Tone.Time(lastNote.time).toSeconds() + Tone.Time(lastNote.duration).toSeconds() : 5;
 
         Tone.Transport.scheduleOnce(() => {
             stopPlayback('idle');
@@ -155,7 +168,7 @@ export default function LessonPage() {
   }, [currentNote]);
 
   useEffect(() => {
-    if (lessonMode === 'learn' && currentNoteIndex === null && isLessonStarted) {
+    if (lessonMode === 'learn' && isLessonStarted && currentNoteIndex === null) {
       toast({ title: "Great job!", description: "You played it perfectly! ✨" });
       setLessonMode('finished');
       setIsLessonStarted(false);
@@ -196,7 +209,7 @@ export default function LessonPage() {
             const startTime = Date.now();
             const holdDurationMs = Tone.Time(currentNote.duration).toMilliseconds();
             if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
-            // Ultra-snappy 60fps tracking (16ms)
+            // Ultra-snappy tracking at 60fps (16ms)
             holdIntervalRef.current = setInterval(() => {
                 const elapsedTime = Date.now() - startTime;
                 const progress = Math.min(100, (elapsedTime / holdDurationMs) * 100);
@@ -256,9 +269,9 @@ export default function LessonPage() {
       <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline text-3xl">{lesson.title}</CardTitle>
-              <CardDescription>Grand Piano | Speed: {lesson.tempo}bpm</CardDescription>
-              <Badge variant="secondary" className="w-fit">{lesson.difficulty}</Badge>
+              <CardTitle className="font-headline text-3xl">{lesson?.title || 'Loading...'}</CardTitle>
+              <CardDescription>Grand Piano | Speed: {lesson?.tempo || 100}bpm</CardDescription>
+              <Badge variant="secondary" className="w-fit">{lesson?.difficulty || 'Beginner'}</Badge>
             </CardHeader>
              <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -305,7 +318,7 @@ export default function LessonPage() {
       <div className="flex-1 min-h-[350px]">
           <Card className="h-full flex items-center justify-center p-1 md:p-4">
             {!isClient ? (
-              <InstrumentLoader instrument={lesson.instrument} />
+              <InstrumentLoader instrument={lesson?.instrument} />
             ) : (
               <Piano 
                 onNoteDown={handleNoteDown}
