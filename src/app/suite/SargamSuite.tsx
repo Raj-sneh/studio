@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AiComposer } from './AiComposer';
+import { AIComposer } from './AIComposer';
 import { VocalStudio } from './VocalStudio';
 import { Music, Mic, UserRoundPlus, Lock } from 'lucide-react';
 import Image from 'next/image';
@@ -54,7 +54,7 @@ export function SargamSuite() {
 
                     <div className="mt-0">
                         {activeTab === 'composer' && (
-                            <AiComposer 
+                            <AIComposer 
                                 initialPrompt={initialPrompt}
                                 autogen={autogen}
                                 autoplay={autoplay}
@@ -99,7 +99,6 @@ export function SargamSuite() {
                 </Tabs>
             </div>
 
-            {/* Dedicated AI Game Section below AI Suite cards */}
             <div className="max-w-4xl mx-auto">
                 <PulseRunner />
             </div>

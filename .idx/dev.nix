@@ -1,12 +1,11 @@
-
 { pkgs, ... }: {
-  channel = "stable-23.11";
+  channel = "stable-24.05";
   packages = [
     pkgs.nodejs_20
   ];
   idx = {
     extensions = [
-      "usernamehw.errorlens"
+      "ritwickdey.LiveServer"
     ];
     previews = {
       enable = true;
