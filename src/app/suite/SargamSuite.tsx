@@ -7,7 +7,6 @@ import { AIComposer } from '@/components/suite/AIComposer';
 import { VocalStudio } from '@/components/suite/VocalStudio';
 import { Music, Mic, UserRoundPlus, Lock } from 'lucide-react';
 import Image from 'next/image';
-import { PulseRunner } from '@/components/suite/PulseRunner';
 
 const TABS = [
     { value: 'composer', label: 'Melody Maker', icon: Music },
@@ -47,7 +46,6 @@ export function SargamSuite() {
                                 <TabsTrigger key={tab.value} value={tab.value} className="gap-2 py-3 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all rounded-xl">
                                     <tab.icon className="h-4 w-4" />
                                     {tab.label}
-                                    {tab.value === 'cloner' && <Lock className="h-3 w-3 ml-1 opacity-50" />}
                                 </TabsTrigger>
                             ))}
                         </TabsList>
@@ -95,10 +93,6 @@ export function SargamSuite() {
                         )}
                     </div>
                 </Tabs>
-            </div>
-
-            <div className="max-w-4xl mx-auto pt-10 border-t border-border/10">
-                <PulseRunner />
             </div>
         </div>
     );
