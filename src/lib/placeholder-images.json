@@ -49,22 +49,22 @@
       "imageHint": "music notes"
     },
     {
-      "id": "lesson-bhool-bhulaiyaa",
-      "description": "A mysterious maze, representing the song Bhool Bhulaiyaa.",
-      "imageUrl": "https://images.unsplash.com/photo-1569992182223-352293fa47b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYXplfGVufDB8fHx8MTc3MDQ2Mjg1Nnww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "mysterious maze"
+      "id": "lesson-mary-lamb",
+      "description": "A cute white lamb in a field.",
+      "imageUrl": "https://images.unsplash.com/photo-1484557985045-edf25e08da73?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageHint": "cute lamb"
     },
     {
-      "id": "lesson-lakdi-kathi",
-      "description": "A small toy horse, representing Lakdi Ki Kathi.",
-      "imageUrl": "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-      "imageHint": "toy horse"
+      "id": "lesson-london-bridge",
+      "description": "A historic bridge over a river.",
+      "imageUrl": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageHint": "historic bridge"
     },
     {
-      "id": "lesson-nani-morni",
-      "description": "A beautiful peacock, representing Nani Teri Morni.",
-      "imageUrl": "https://images.unsplash.com/photo-1523626752472-b55a629375ad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-      "imageHint": "peacock bird"
+      "id": "lesson-row-boat",
+      "description": "A person rowing a small boat on a calm lake.",
+      "imageUrl": "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageHint": "rowing boat"
     },
     {
       "id": "lesson-fur-elise",
