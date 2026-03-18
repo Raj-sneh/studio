@@ -47,6 +47,7 @@ export function SargamSuite() {
                                 <TabsTrigger key={tab.value} value={tab.value} className="gap-2 py-3 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all rounded-xl">
                                     <tab.icon className="h-4 w-4" />
                                     {tab.label}
+                                    {tab.value === 'cloner' && <Lock className="h-3 w-3 ml-1 opacity-50" />}
                                 </TabsTrigger>
                             ))}
                         </TabsList>
@@ -86,12 +87,9 @@ export function SargamSuite() {
                                     <div className="space-y-2">
                                         <h2 className="text-3xl font-headline font-bold">Voice Cloning</h2>
                                         <p className="text-xl text-muted-foreground max-w-md mx-auto">
-                                            Coming Soon: Support us to bring it soon!
+                                            Coming Soon: We are fine-tuning the vocal patterns.
                                         </p>
                                     </div>
-                                    <p className="text-sm text-muted-foreground/60 italic">
-                                        Our engineers are fine-tuning the vocal patterns. Stay tuned.
-                                    </p>
                                 </div>
                             </div>
                         )}
@@ -99,7 +97,7 @@ export function SargamSuite() {
                 </Tabs>
             </div>
 
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-4xl mx-auto pt-10 border-t border-border/10">
                 <PulseRunner />
             </div>
         </div>

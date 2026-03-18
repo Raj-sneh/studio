@@ -93,12 +93,12 @@ export default function LandingPage() {
         </Link>
       </section>
 
-      {/* AI Game Section */}
+      {/* Pulse Runner Game Section */}
       <section className="max-w-7xl mx-auto px-4">
           <PulseRunner />
       </section>
 
-      {/* Footer / Info Section */}
+      {/* Footer Info Section */}
       <section className="text-center py-20 px-4">
         <p className="text-muted-foreground max-w-2xl mx-auto italic text-lg leading-relaxed">
           "Music is the language of the soul. Let AI be your companion in mastering it. Open up your creative space and let the notes flow."

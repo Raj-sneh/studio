@@ -237,7 +237,7 @@ export function PulseRunner() {
     <section className="mt-20 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
       <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-l-4 border-primary pl-6 py-2">
         <div className="space-y-1">
-          <h2 className="text-5xl font-black font-headline tracking-tighter italic uppercase text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-primary animate-ninja-spin [animation-duration:10s]">
+          <h2 className="text-5xl font-black font-headline tracking-tighter italic uppercase text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-primary">
             Pulse Runner
           </h2>
           <p className="text-muted-foreground font-medium uppercase tracking-[0.2em] text-xs">AI Rhythm Action Studio</p>
@@ -279,7 +279,7 @@ export function PulseRunner() {
                 </p>
                 <div className="space-y-4 pt-4">
                   <Textarea 
-                    placeholder="e.g., 'Aggressive techno piano', 'Melancholic rain melody', 'Fast happy anime rhythm'..." 
+                    placeholder="e.g., 'Aggressive techno piano', 'Melancholic rain melody'..." 
                     className="min-h-[100px] bg-white/5 border-white/10 text-lg rounded-2xl focus:ring-primary/40"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
@@ -349,13 +349,12 @@ export function PulseRunner() {
                             <Trophy className="h-10 w-10 text-black" />
                         </div>
                         <h3 className="text-5xl font-black font-headline uppercase italic text-white tracking-tighter">RUN COMPLETED</h3>
-                        <p className="text-primary font-black tracking-[0.5em] text-xs">PERFECT HARMONY</p>
                     </div>
                     <div className="flex gap-4">
                         <Button onClick={startNewGame} size="lg" className="h-14 px-8 rounded-2xl bg-white text-black hover:bg-white/90 shadow-2xl shadow-primary/20">
                             <RotateCcw className="mr-2 h-5 w-5" /> NEW RUN
                         </Button>
-                        <Button onClick={() => setGameState('idle')} variant="outline" size="lg" className="h-14 px-8 rounded-2xl border-white/20">
+                        <Button onClick={() => setGameState('idle')} variant="outline" size="lg" className="h-14 px-8 rounded-2xl">
                             STUDIO
                         </Button>
                     </div>
