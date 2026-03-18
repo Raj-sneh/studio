@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -7,10 +6,11 @@ import { useAuth, useUser } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Music, LogOut, User as UserIcon, Loader2, BookOpen, Wand2, LogIn, ChevronDown } from "lucide-react";
+import { Music, LogOut, User as UserIcon, Loader2, BookOpen, Wand2, LogIn, ChevronDown, Zap } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
+import { useGame } from "@/context/GameContext";
 
 const navLinks = [
   { href: "/practice", label: "Practice", icon: Music },
@@ -23,6 +23,7 @@ export default function Header() {
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
+  const { score, isGameActive, combo } = useGame();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
@@ -98,10 +99,19 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/10 bg-background/80 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
-        <div className="flex items-center">
+        <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2">
-            <span className="font-headline text-xl font-bold text-foreground tracking-tighter">
+            <span className="font-headline text-xl font-bold text-foreground tracking-tighter relative">
                 <span className="text-primary">Sargam</span> AI
+                {isGameActive && (
+                  <div className="absolute -top-1 -right-24 flex items-center gap-1.5 bg-primary/20 border border-primary/40 px-2 py-0.5 rounded-full animate-in fade-in zoom-in duration-300">
+                    <Zap className="h-3 w-3 text-primary fill-primary animate-pulse" />
+                    <span className="text-[10px] font-black text-primary font-mono tracking-tighter">
+                      {score.toLocaleString()}
+                      {combo > 1 && <span className="ml-1 text-secondary">x{combo}</span>}
+                    </span>
+                  </div>
+                )}
             </span>
           </Link>
         </div>
