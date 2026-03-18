@@ -5,7 +5,7 @@
   ];
   idx = {
     extensions = [
-      "ritwickdey.LiveServer"
+      "christian-kohler.path-intellisense"
     ];
     previews = {
       enable = true;
@@ -13,6 +13,9 @@
         web = {
           command = ["npm" "run" "dev" "--" "-p" "$PORT" "--hostname" "0.0.0.0"];
           manager = "web";
+          env = {
+            PORT = "$PORT";
+          };
         };
       };
     };

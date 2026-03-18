@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -28,7 +27,7 @@ function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
 }
 
 // Ultra-snappy settings for high-performance feedback
-const HOLD_NOTE_THRESHOLD_MS = 150;
+const HOLD_NOTE_THRESHOLD_MS = 100;
 
 export default function LessonPage() {
   const router = useRouter();
@@ -67,7 +66,6 @@ export default function LessonPage() {
   const sortedNotes = useMemo(() => {
     if (!lesson || !lesson.notes) return [];
     try {
-      // Create a copy and sort safely. Tone.Time might be undefined if called during initial SSR or early hydration.
       return [...lesson.notes].sort((a, b) => {
         const timeA = a?.time ? Tone.Time(a.time).toSeconds() : 0;
         const timeB = b?.time ? Tone.Time(b.time).toSeconds() : 0;
@@ -209,7 +207,6 @@ export default function LessonPage() {
             const startTime = Date.now();
             const holdDurationMs = Tone.Time(currentNote.duration).toMilliseconds();
             if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
-            // Ultra-snappy tracking at 60fps (16ms)
             holdIntervalRef.current = setInterval(() => {
                 const elapsedTime = Date.now() - startTime;
                 const progress = Math.min(100, (elapsedTime / holdDurationMs) * 100);
