@@ -7,7 +7,6 @@ import { AIComposer } from '@/components/suite/AIComposer';
 import { VocalStudio } from '@/components/suite/VocalStudio';
 import { Music, Mic, UserRoundPlus, Lock } from 'lucide-react';
 import Image from 'next/image';
-import { PulseRunner } from '@/components/suite/PulseRunner';
 
 const TABS = [
     { value: 'composer', label: 'Melody Maker', icon: Music },
@@ -86,21 +85,14 @@ export function SargamSuite() {
                                     <div className="space-y-2">
                                         <h2 className="text-3xl font-headline font-bold">Voice Cloning</h2>
                                         <p className="text-xl text-muted-foreground max-w-md mx-auto">
-                                            Coming Soon: Support us to bring it soon!
+                                            Coming Soon: We are fine-tuning the vocal patterns.
                                         </p>
                                     </div>
-                                    <p className="text-sm text-muted-foreground/60 italic">
-                                        Our engineers are fine-tuning the vocal patterns. Stay tuned.
-                                    </p>
                                 </div>
                             </div>
                         )}
                     </div>
                 </Tabs>
-            </div>
-
-            <div className="max-w-4xl mx-auto">
-                <PulseRunner />
             </div>
         </div>
     );
