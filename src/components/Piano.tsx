@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
@@ -17,7 +16,7 @@ interface PianoProps {
   disabled?: boolean;
   highlightedKeys?: string[];
   activeKeys?: string[] | null;
-  holdState?: { key: string; progress: number } | null;
+  holdState?: { key: string | string[]; progress: number } | null;
   interactiveMode?: boolean;
 }
 
@@ -171,7 +170,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                     {whiteKeys.map(({ note }) => {
                         const isKeyActive = !disabled && (!activeKeys || activeKeys.includes(note));
                         const isHighlighted = highlightedKeys?.includes(note);
-                        const isHolding = holdState?.key === note;
+                        const isHolding = holdState?.key === note || (Array.isArray(holdState?.key) && holdState?.key.includes(note));
 
                         return (
                             <div
@@ -199,7 +198,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                                         style={{
                                             height: `${holdState.progress}%`,
                                             background: 'linear-gradient(to top, hsl(var(--primary) / 0.3), hsl(var(--primary) / 0.7))',
-                                            transition: 'height 0.05s linear',
+                                            transition: 'height 0.016s linear',
                                         }}
                                     />
                                 )}
@@ -210,7 +209,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                     {blackKeys.map(({ note }) => {
                          const isKeyActive = !disabled && (!activeKeys || activeKeys.includes(note));
                          const isHighlighted = highlightedKeys?.includes(note);
-                         const isHolding = holdState?.key === note;
+                         const isHolding = holdState?.key === note || (Array.isArray(holdState?.key) && holdState?.key.includes(note));
                          return (
                             <div
                                 key={note}
@@ -237,7 +236,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                                         style={{
                                             height: `${holdState.progress}%`,
                                             background: 'linear-gradient(to top, hsl(var(--primary) / 0.3), hsl(var(--primary) / 0.7))',
-                                            transition: 'height 0.05s linear',
+                                            transition: 'height 0.016s linear',
                                         }}
                                     />
                                 )}

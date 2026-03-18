@@ -1,17 +1,20 @@
 { pkgs, ... }: {
-  channel = "stable-23.11";
+  channel = "stable-24.05";
   packages = [
     pkgs.nodejs_20
-    pkgs.psmisc 
   ];
-  idx.previews = {
-    enable = true;
+  idx = {
     previews = {
-      web = {
-        command = ["npm" "run" "dev" "--" "--port" "9000" "--hostname" "0.0.0.0"];
-        manager = "web";
+      enable = true;
+      previews = {
+        web = {
+          command = ["npm" "run" "dev" "--" "-p" "9001"];
+          manager = "web";
+          env = {
+            PORT = "9001";
+          };
+        };
       };
     };
   };
 }
-#refresh

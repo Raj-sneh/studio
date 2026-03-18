@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useCallback, Suspense, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import * as Tone from 'tone';
 import { Button } from '@/components/ui/button';
@@ -43,7 +42,7 @@ export default function LessonPage() {
   const [statusText, setStatusText] = useState('Pick a mode to start!');
 
   const [currentNoteIndex, setCurrentNoteIndex] = useState<number | null>(null);
-  const [holdState, setHoldState] = useState<{ key: string; progress: number } | null>(null);
+  const [holdState, setHoldState] = useState<{ key: string | string[]; progress: number } | null>(null);
   const [isLessonStarted, setIsLessonStarted] = useState(false);
   const [currentlyPressedChordKeys, setCurrentlyPressedChordKeys] = useState(new Set<string>());
   const [highlightedPlayKeys, setHighlightedPlayKeys] = useState<string[]>([]);
@@ -200,7 +199,7 @@ export default function LessonPage() {
             holdIntervalRef.current = setInterval(() => {
                 const elapsedTime = Date.now() - startTime;
                 const progress = Math.min(100, (elapsedTime / holdDurationMs) * 100);
-                setHoldState({ key: currentNote.key as string, progress });
+                setHoldState({ key: currentNote.key, progress });
                 if (progress >= 100) advanceToNextNote();
             }, 16);
         } else {
@@ -287,13 +286,13 @@ export default function LessonPage() {
             </CardHeader>
             <CardContent>
                 <div className="text-center p-4 mb-2 border rounded-lg h-16 flex items-center justify-center bg-muted/50">
-                     <p className="text-lg font-semibold">
+                     <div className="text-lg font-semibold">
                          {lessonMode === 'learn' && isLessonStarted && currentNote ? (
                              <span className="animate-pulse">{isHoldNote ? 'Press and Hold:' : 'Press:'} {Array.isArray(currentNote.key) ? currentNote.key.join(' + ') : currentNote.key}</span>
                          ) : (
                              <span className="text-muted-foreground">{statusText}</span>
                          )}
-                     </p>
+                     </div>
                 </div>
                  {isClient && (
                     <NoteDisplay notes={lessonNoteStringsForDisplay} currentNoteIndex={lessonMode === 'learn' ? currentNoteIndex : null} />
@@ -313,7 +312,7 @@ export default function LessonPage() {
                 highlightedKeys={lessonMode === 'learn' ? highlightedKeysForLearn : highlightedPlayKeys}
                 activeKeys={lessonMode === 'learn' && isLessonStarted ? highlightedKeysForLearn : null}
                 disabled={lessonMode !== 'learn' || !isLessonStarted}
-                holdState={lessonMode === 'learn' ? (holdState || null) : null}
+                holdState={lessonMode === 'learn' ? holdState : null}
                 interactiveMode={lessonMode === 'learn'}
               />
             )}
