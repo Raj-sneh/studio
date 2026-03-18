@@ -5,8 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AiComposer } from './AiComposer';
 import { VocalStudio } from './VocalStudio';
-import { PulseRunner } from './PulseRunner';
-import { Music, Mic, UserRoundPlus, Lock, Gamepad2 } from 'lucide-react';
+import { Music, Mic, UserRoundPlus, Lock } from 'lucide-react';
 import Image from 'next/image';
 
 const TABS = [
@@ -97,11 +96,6 @@ export function SargamSuite() {
                         )}
                     </div>
                 </Tabs>
-            </div>
-
-            <div className="relative pt-10">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-                <PulseRunner />
             </div>
         </div>
     );
