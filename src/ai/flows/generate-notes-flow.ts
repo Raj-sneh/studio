@@ -21,7 +21,7 @@ export async function generateNotes(input: GenerateNotesInput): Promise<Generate
 
 const prompt = ai.definePrompt({
   name: 'generateNotesPrompt',
-  model: 'googleai/gemini-1.5-pro',
+  model: 'googleai/gemini-1.5-pro-latest',
   input: {schema: GenerateNotesInputSchema},
   output: {schema: GenerateNotesOutputSchema},
   prompt: `You are a helpful music teacher. Your goal is to write down a piano tune that matches the user's request as accurately as possible.

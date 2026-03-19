@@ -22,7 +22,7 @@ export async function generateArrangement(input: GenerateArrangementInput): Prom
 
 const arrangementPrompt = ai.definePrompt({
     name: 'generateArrangementPrompt',
-    model: 'googleai/gemini-1.5-pro',
+    model: 'googleai/gemini-1.5-pro-latest',
     input: { schema: GenerateArrangementInputSchema },
     output: { schema: GenerateArrangementOutputSchema },
     prompt: `You are a friendly music helper. Your job is to write a unique piano track based on what the user wants. 

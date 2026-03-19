@@ -91,7 +91,7 @@ const sargamFlow = ai.defineFlow(
 
     try {
       const response = await ai.generate({
-        model: 'googleai/gemini-1.5-pro',
+        model: 'googleai/gemini-1.5-pro-latest',
         system: finalSystemPrompt,
         messages: [
           ...chatHistory,
