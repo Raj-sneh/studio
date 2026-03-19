@@ -28,6 +28,7 @@ export type UserProfile = {
   id: string;
   displayName: string;
   email: string;
+  avatarUrl?: string | null;
   createdAt: Timestamp;
   dob?: Timestamp;
   gender?: 'male' | 'female' | 'other' | 'prefer-not-to-say';
