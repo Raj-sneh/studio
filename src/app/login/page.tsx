@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import GoogleIcon from '@/components/icons/GoogleIcon';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronLeft } from 'lucide-react';
 import { AnimatedMusicBackground } from '@/components/AnimatedMusicBackground';
 
 const emailFormSchema = z.object({
@@ -152,9 +152,14 @@ function PhoneLoginForm({ onLoadingChange }: { onLoadingChange: (isLoading: bool
                 <FormLabel>Verification Code</FormLabel>
                 <FormControl>
                   <Input 
-                    placeholder="123456" 
-                    className="font-mono text-center tracking-[1em] pl-[1em] text-2xl text-primary font-bold h-14" 
+                    type="text"
+                    inputMode="numeric"
+                    pattern="\d*"
+                    autoComplete="one-time-code"
+                    placeholder="Enter 6-digit code" 
+                    className="font-mono text-center tracking-widest text-2xl text-primary font-bold h-14" 
                     maxLength={6}
+                    autoFocus
                     {...field} 
                   />
                 </FormControl>
@@ -291,6 +296,11 @@ export default function LoginPage() {
   return (
     <div className="relative overflow-hidden flex items-center justify-center py-12 min-h-[calc(100vh-theme(spacing.32))]">
       <AnimatedMusicBackground />
+      <div className="absolute top-4 left-4 z-20">
+        <Button variant="ghost" onClick={() => router.push('/')} className="gap-2">
+            <ChevronLeft className="h-4 w-4" /> Home
+        </Button>
+      </div>
       <Card className="w-full max-w-md z-10 bg-card/80 backdrop-blur-sm border-border/50">
         <CardHeader className="text-center">
           <CardTitle className="font-headline text-3xl">Welcome Back</CardTitle>
