@@ -60,13 +60,21 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
     const initialAutoRunDone = useRef(false);
 
     const sortedNotes = useMemo(() => {
-        if (!generatedMelody) return [];
-        return [...generatedMelody.notes].sort((a, b) => Tone.Time(a.time).toSeconds() - Tone.Time(b.time).toSeconds());
+        if (!generatedMelody || !generatedMelody.notes) return [];
+        try {
+          return [...generatedMelody.notes].sort((a, b) => {
+            const timeA = a?.time ? Tone.Time(a.time).toSeconds() : 0;
+            const timeB = b?.time ? Tone.Time(b.time).toSeconds() : 0;
+            return timeA - timeB;
+          });
+        } catch (e) {
+          return generatedMelody.notes;
+        }
     }, [generatedMelody]);
 
     const stopPlayback = useCallback(() => {
         try {
-            if (Tone.Transport.state === 'started') {
+            if (typeof window !== 'undefined' && Tone.Transport.state === 'started') {
                 Tone.Transport.stop();
                 Tone.Transport.cancel(0);
             }
@@ -75,55 +83,60 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
                 partRef.current = null;
             }
             
-            getSampler('piano').then(sampler => {
-                if (sampler && !sampler.disposed) {
-                    if ('releaseAll' in sampler) {
-                        sampler.releaseAll();
-                    }
-                }
-            });
+            // Safe cleanup of keys
+            setHighlightedKeys([]);
+            setMode('idle');
+            if (generationState === 'generated') setStatusText('Ready to play or learn.');
         } catch (e) {
             console.warn("Audio cleanup warning:", e);
         }
-
-        setHighlightedKeys([]);
-        setMode('idle');
-        if (generationState === 'generated') setStatusText('Ready to play or learn.');
     }, [generationState]);
 
     useEffect(() => {
-      return () => stopPlayback();
+      return () => {
+        if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
+        stopPlayback();
+      };
     }, [stopPlayback]);
     
     const handlePlayDemo = useCallback(async (melody: GenerateNotesOutput) => {
         stopPlayback();
-        await Tone.start();
-        setMode('demo');
-        setStatusText('Playing the tune...');
+        try {
+          await Tone.start();
+          setMode('demo');
+          setStatusText('Playing the tune...');
 
-        const pianoSampler = await getSampler('piano') as InstrumentSynth;
-        samplerRef.current = pianoSampler;
-        
-        Tone.Transport.bpm.value = melody.tempo;
+          const pianoSampler = await getSampler('piano') as InstrumentSynth;
+          samplerRef.current = pianoSampler;
+          
+          Tone.Transport.bpm.value = melody.tempo;
 
-        const part = new Tone.Part((time, note) => {
-            if (samplerRef.current && !samplerRef.current.disposed) {
-                samplerRef.current.triggerAttackRelease(note.key, note.duration, time);
-            }
-            Tone.Draw.schedule(() => {
-                setHighlightedKeys([note.key]);
-            }, time);
-        }, sortedNotes).start(0);
-        partRef.current = part;
+          const part = new Tone.Part((time, note) => {
+              if (samplerRef.current && !samplerRef.current.disposed) {
+                  samplerRef.current.triggerAttackRelease(note.key, note.duration, time);
+              }
+              Tone.Draw.schedule(() => {
+                  setHighlightedKeys([note.key]);
+              }, time);
+          }, sortedNotes).start(0);
+          partRef.current = part;
 
-        const totalDuration = sortedNotes.reduce((max, note) => Math.max(max, Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds()), 0);
+          const totalDuration = sortedNotes.reduce((max, note) => {
+            try {
+              return Math.max(max, Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds());
+            } catch(e) { return max; }
+          }, 0);
 
-        Tone.Transport.scheduleOnce(() => {
-            stopPlayback();
-            setStatusText('Finished playing.');
-        }, totalDuration + 0.5);
-        
-        Tone.Transport.start();
+          Tone.Transport.scheduleOnce(() => {
+              stopPlayback();
+              setStatusText('Finished playing.');
+          }, totalDuration + 0.5);
+          
+          Tone.Transport.start();
+        } catch (err) {
+          console.error("Demo playback failed:", err);
+          stopPlayback();
+        }
     }, [stopPlayback, sortedNotes]);
 
     const handleGeneration = useCallback(async (isAutoRun: boolean = false, rating?: 'good' | 'bad') => {
@@ -198,7 +211,9 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
 
     const isHoldNote = useMemo(() => {
         if (!currentNote) return false;
-        return Tone.Time(currentNote.duration).toMilliseconds() > HOLD_NOTE_THRESHOLD_MS;
+        try {
+          return Tone.Time(currentNote.duration).toMilliseconds() > HOLD_NOTE_THRESHOLD_MS;
+        } catch(e) { return false; }
     }, [currentNote]);
     
     useEffect(() => {
@@ -249,15 +264,17 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
     }, [mode, currentNote, holdState, toast]);
 
     const startOrResetLesson = async () => {
-        await Tone.start();
-        stopPlayback();
-        setMode('learn');
-        setCurrentNoteIndex(0);
-        setHoldState(null);
-        isHoldingRef.current = false;
-        if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
-        toast({ title: 'Ready!', description: 'Play the glowing key to start.' });
-        setStatusText('Play the glowing key...');
+        try {
+          await Tone.start();
+          stopPlayback();
+          setMode('learn');
+          setCurrentNoteIndex(0);
+          setHoldState(null);
+          isHoldingRef.current = false;
+          if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
+          toast({ title: 'Ready!', description: 'Play the glowing key to start.' });
+          setStatusText('Play the glowing key...');
+        } catch(e) { console.error("Lesson start error:", e); }
     };
 
     const isBusy = generationState === 'loading' || mode === 'demo';
