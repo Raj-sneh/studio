@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A friendly music teacher who writes down piano tunes using Gemini 1.5 Pro.
+ * @fileOverview A friendly music teacher who writes down piano tunes using Gemini 2.5 Flash.
  */
 import {ai} from '@/ai/genkit';
 import {
@@ -21,7 +21,7 @@ export async function generateNotes(input: GenerateNotesInput): Promise<Generate
 
 const prompt = ai.definePrompt({
   name: 'generateNotesPrompt',
-  model: 'googleai/gemini-1.5-pro-latest',
+  model: 'googleai/gemini-2.5-flash',
   input: {schema: GenerateNotesInputSchema},
   output: {schema: GenerateNotesOutputSchema},
   prompt: `You are a helpful music teacher. Your goal is to write down a piano tune that matches the user's request as accurately as possible.
