@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -8,13 +9,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
-import { ChevronRight, Loader2, User as UserIcon, Calendar, Mail, Save, ChevronLeft } from "lucide-react";
+import { ChevronRight, Loader2, User as UserIcon, Calendar, Mail, Save, ChevronLeft, Camera } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, Timestamp, updateDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 import React from 'react';
 
 const profileSchema = z.object({
@@ -30,6 +33,7 @@ export default function ProfilePage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const router = useRouter();
+    const defaultAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
 
     const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
     const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
@@ -82,21 +86,45 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="space-y-8 max-w-2xl mx-auto">
+        <div className="space-y-8 max-w-2xl mx-auto pb-20">
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
                     <ChevronLeft className="h-6 w-6" />
                 </Button>
                 <h1 className="font-headline text-3xl font-bold tracking-tighter">Your Profile</h1>
             </div>
+
+            {/* Profile Avatar Header */}
+            <div className="flex flex-col items-center gap-6 p-8 rounded-3xl bg-card border border-primary/10 shadow-xl relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
+                <div className="relative">
+                    <Avatar className="h-32 w-32 border-4 border-background shadow-2xl transition-transform duration-500 group-hover:scale-105">
+                        <AvatarImage 
+                            src={user?.photoURL || profile?.avatarUrl || defaultAvatar?.imageUrl} 
+                            alt={user?.displayName || "User"} 
+                            className="object-cover"
+                        />
+                        <AvatarFallback className="bg-primary/20 text-primary text-4xl font-bold">
+                            {user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute bottom-1 right-1 h-8 w-8 rounded-full bg-primary flex items-center justify-center border-2 border-background shadow-lg">
+                        <Camera className="h-4 w-4 text-primary-foreground" />
+                    </div>
+                </div>
+                <div className="text-center space-y-1">
+                    <h2 className="text-2xl font-bold font-headline">{user?.displayName || "Guest User"}</h2>
+                    <p className="text-sm text-muted-foreground">{user?.email || "No email linked"}</p>
+                </div>
+            </div>
             
-            <Card>
+            <Card className="border-primary/10">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-xl">
                         <UserIcon className="h-5 w-5 text-primary" />
                         Personal Information
                     </CardTitle>
-                    <CardDescription>Update your name, age, and other details.</CardDescription>
+                    <CardDescription>Update your public identity and details.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
@@ -141,7 +169,7 @@ export default function ProfilePage() {
                                             <FormLabel>Gender</FormLabel>
                                             <select 
                                               {...field}
-                                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                             >
                                               <option value="male">Male</option>
                                               <option value="female">Female</option>
@@ -155,14 +183,14 @@ export default function ProfilePage() {
                             </div>
 
                             <div className="space-y-2">
-                                <FormLabel className="text-muted-foreground">Email Address (Primary)</FormLabel>
-                                <div className="flex items-center gap-2 p-3 bg-muted rounded-md text-sm text-muted-foreground border border-dashed">
-                                    <Mail className="h-4 w-4" />
-                                    {profile?.email || user?.email || 'N/A'}
+                                <FormLabel className="text-muted-foreground">Linked Email</FormLabel>
+                                <div className="flex items-center gap-3 p-4 bg-muted/40 rounded-xl text-sm text-muted-foreground border border-dashed border-primary/20">
+                                    <Mail className="h-4 w-4 text-primary" />
+                                    {user?.email || 'N/A'}
                                 </div>
                             </div>
 
-                            <Button type="submit" className="w-full h-12 text-lg">
+                            <Button type="submit" className="w-full h-12 text-lg font-bold shadow-lg shadow-primary/10">
                                 <Save className="mr-2 h-5 w-5" />
                                 Save Changes
                             </Button>
@@ -171,22 +199,22 @@ export default function ProfilePage() {
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-primary/10 overflow-hidden">
                 <CardHeader>
                     <CardTitle>Account Activity</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4">
-                    <Link href="/profile/history" className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-primary/5 transition-all group">
+                    <Link href="/profile/history" className="flex items-center justify-between p-5 rounded-2xl bg-muted/50 hover:bg-primary/5 transition-all group border border-transparent hover:border-primary/20">
                         <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                <ChevronRight className="h-5 w-5 text-primary rotate-180" />
+                            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <ChevronRight className="h-6 w-6 text-primary rotate-180" />
                             </div>
                             <div>
-                                <h3 className="font-bold">Generation History</h3>
-                                <p className="text-sm text-muted-foreground">See all the melodies you've created.</p>
+                                <h3 className="font-bold text-lg">Generation History</h3>
+                                <p className="text-sm text-muted-foreground">Review your AI-composed tracks and lyrics.</p>
                             </div>
                         </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                     </Link>
                 </CardContent>
             </Card>

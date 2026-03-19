@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -48,36 +49,44 @@ export default function Header() {
       return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
     }
 
-    if (user && !user.isAnonymous) {
+    // Show avatar for all signed in users (including guests)
+    if (user) {
       return (
         <div className="relative" ref={menuRef}>
           <button 
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none"
           >
-            <Avatar className="h-8 w-8 border border-primary/20">
-              <AvatarImage src={user?.photoURL || userAvatar?.imageUrl} alt={user?.displayName || "User"} />
-              <AvatarFallback className="bg-primary/10 text-primary text-xs">{user?.displayName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+            <Avatar className="h-9 w-9 border-2 border-primary/20 ring-2 ring-background shadow-lg transition-transform hover:scale-105">
+              <AvatarImage 
+                src={user.photoURL || userAvatar?.imageUrl} 
+                alt={user.displayName || "User"} 
+                className="object-cover"
+              />
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold uppercase">
+                {user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}
+              </AvatarFallback>
             </Avatar>
-            <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isMenuOpen && "rotate-180")} />
+            {!user.isAnonymous && <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isMenuOpen && "rotate-180")} />}
           </button>
 
           {isMenuOpen && (
-            <div className="absolute right-0 mt-2 w-48 rounded-md border bg-popover p-1 shadow-lg z-50">
-              <div className="px-2 py-1.5 text-sm font-semibold border-b mb-1">
-                {user.displayName || "My Account"}
+            <div className="absolute right-0 mt-3 w-56 rounded-xl border bg-card/95 backdrop-blur-md p-1.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-3 py-2 text-sm font-semibold border-b mb-1 flex flex-col">
+                <span className="truncate">{user.displayName || "Guest User"}</span>
+                <span className="text-[10px] text-muted-foreground font-normal truncate">{user.email || "No email linked"}</span>
               </div>
               <button 
                 onClick={() => { router.push('/profile'); setIsMenuOpen(false); }}
-                className="flex w-full items-center px-2 py-1.5 text-sm hover:bg-accent rounded-sm"
+                className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg transition-colors"
               >
-                <UserIcon className="mr-2 h-4 w-4" /> Profile
+                <UserIcon className="mr-3 h-4 w-4 text-primary" /> Profile Settings
               </button>
               <button 
                 onClick={handleLogout}
-                className="flex w-full items-center px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10 rounded-sm"
+                className="flex w-full items-center px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors mt-1"
               >
-                <LogOut className="mr-2 h-4 w-4" /> Logout
+                <LogOut className="mr-3 h-4 w-4" /> Logout
               </button>
             </div>
           )}
@@ -86,7 +95,7 @@ export default function Header() {
     }
     
     return (
-      <Button asChild variant="ghost" size="sm" className="text-primary">
+      <Button asChild variant="ghost" size="sm" className="text-primary font-bold">
         <Link href="/login">
           <LogIn className="mr-2 h-4 w-4" /> Login
         </Link>
@@ -105,18 +114,21 @@ export default function Header() {
           </Link>
         </div>
 
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
             {navLinks.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
                 className={cn(
-                  "flex items-center gap-2 transition-colors hover:text-primary",
+                  "flex items-center gap-2 transition-all hover:text-primary relative group",
                    pathname.startsWith(href) ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 <Icon className="h-4 w-4" />
                 {label}
+                {pathname.startsWith(href) && (
+                  <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-primary rounded-full" />
+                )}
               </Link>
             ))}
         </nav>

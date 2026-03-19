@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, type ReactNode, useState, useRef } from 'react';
@@ -53,6 +54,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           
           if (docSnap.exists()) {
             const userProfile = docSnap.data();
+            
+            // Sync photoURL if it exists in auth but not in firestore
+            if (user.photoURL && userProfile.avatarUrl !== user.photoURL) {
+              updateDoc(userDocRef, { avatarUrl: user.photoURL });
+            }
+
             // Show modal if name is still generic
             if (
               (userProfile.displayName === 'Guest User' || userProfile.displayName === 'New User') &&
@@ -67,6 +74,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
               id: user.uid,
               displayName: user.displayName || 'Guest User',
               email: user.email || `guest_${user.uid}@example.com`,
+              avatarUrl: user.photoURL || null,
               createdAt: serverTimestamp(),
             };
             
