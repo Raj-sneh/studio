@@ -193,7 +193,6 @@ export default function LoginPage() {
                         <Input
                           type="email"
                           placeholder="Enter your email"
-                          className="bg-[#12052d] border-[#2c1a57] text-white"
                           {...field}
                         />
                       </FormControl>
@@ -212,7 +211,6 @@ export default function LoginPage() {
                         <Input
                           type="password"
                           placeholder="Enter your password"
-                          className="bg-[#12052d] border-[#2c1a57] text-white"
                           {...field}
                         />
                       </FormControl>
@@ -241,7 +239,6 @@ export default function LoginPage() {
                         <Input
                           type="tel"
                           placeholder="+919876543210"
-                          className="bg-[#12052d] border-[#2c1a57] text-white"
                           {...field}
                         />
                       </FormControl>
@@ -276,7 +273,7 @@ export default function LoginPage() {
                           autoComplete="one-time-code"
                           placeholder="Enter 6-digit code"
                           maxLength={6}
-                          className="bg-[#12052d] border-[#2c1a57] text-white text-center tracking-[0.5em] text-2xl"
+                          className="text-center tracking-[0.5em] text-2xl font-mono"
                           value={field.value}
                           onChange={(e) => {
                             const onlyNumbers = e.target.value.replace(/\D/g, '').slice(0, 6);

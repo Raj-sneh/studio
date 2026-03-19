@@ -176,7 +176,6 @@ export default function SignupPage() {
                       <FormControl>
                         <Input
                           placeholder="Your name"
-                          className="bg-[#12052d] border-[#2c1a57] text-white"
                           {...field}
                         />
                       </FormControl>
@@ -195,7 +194,6 @@ export default function SignupPage() {
                         <Input
                           type="email"
                           placeholder="you@example.com"
-                          className="bg-[#12052d] border-[#2c1a57] text-white"
                           {...field}
                         />
                       </FormControl>
@@ -214,7 +212,6 @@ export default function SignupPage() {
                         <Input
                           type="tel"
                           placeholder="+919876543210"
-                          className="bg-[#12052d] border-[#2c1a57] text-white"
                           {...field}
                         />
                       </FormControl>
@@ -233,7 +230,6 @@ export default function SignupPage() {
                         <Input
                           type="password"
                           placeholder="Create password"
-                          className="bg-[#12052d] border-[#2c1a57] text-white"
                           {...field}
                         />
                       </FormControl>
@@ -252,7 +248,6 @@ export default function SignupPage() {
                         <Input
                           type="password"
                           placeholder="Confirm password"
-                          className="bg-[#12052d] border-[#2c1a57] text-white"
                           {...field}
                         />
                       </FormControl>
@@ -287,7 +282,7 @@ export default function SignupPage() {
                           autoComplete="one-time-code"
                           placeholder="Enter 6-digit code"
                           maxLength={6}
-                          className="bg-[#12052d] border-[#2c1a57] text-white text-center tracking-[0.5em] text-2xl"
+                          className="text-center tracking-[0.5em] text-2xl font-mono"
                           value={field.value}
                           onChange={(e) => {
                             const onlyNumbers = e.target.value.replace(/\D/g, '').slice(0, 6);

@@ -37,6 +37,26 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-headline;
   }
+
+  /* Global Autofill Reset for WebKit Browsers */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus {
+    -webkit-text-fill-color: white !important;
+    -webkit-box-shadow: 0 0 0px 1000px #070019 inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  /* Global Select Styling */
+  select {
+    @apply bg-black text-white border-border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:outline-none;
+  }
 }
 
 @layer utilities {
