@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A flow for generating speech/singing using Gemini 1.5 Flash.
+ * @fileOverview A flow for generating speech/singing using Gemini 2.5 Flash Preview TTS.
  * Handles mapping UI voices to Gemini models and converting raw PCM to WAV.
  */
 import { ai } from '@/ai/genkit';
@@ -60,28 +60,28 @@ const textToSpeechGenkitFlow = ai.defineFlow(
     async (input) => {
         const { text, voice, sing } = input;
         
-        // Mapping to confirmed supported voice names for Gemini TTS.
+        // Mapping to supported voice names for Gemini 2.5 TTS.
         const voiceMap: Record<string, string> = {
-            clara: 'Algenib',    // Soft/Female
-            james: 'Achernar',   // Deep/Male
-            alex: 'Achird',      // Neutral/Male
-            marcus: 'Algieba',   // Warm/Male
-            elena: 'Aoede',      // Bright/Female
-            maya: 'Autonoe',     // Crisp/Female
-            silas: 'Charon',     // Mellow/Male
-            victor: 'Enceladus', // Bold/Male
-            sophie: 'Erinome',   // Gentle/Female
-            kai: 'Fenrir',       // Cool/Male
-            male: 'Achernar',
-            female: 'Algenib',
-            combined: 'Achernar',
-            duet: 'Algenib'
+            clara: 'algenib',    
+            james: 'achernar',   
+            alex: 'achird',      
+            marcus: 'algieba',   
+            elena: 'aoede',      
+            maya: 'autonoe',     
+            silas: 'charon',     
+            victor: 'enceladus', 
+            sophie: 'erinome',   
+            kai: 'fenrir',       
+            male: 'achernar',
+            female: 'algenib',
+            combined: 'achernar',
+            duet: 'algenib'
         };
 
-        const voiceName = voiceMap[voice] || 'Algenib';
+        const voiceName = voiceMap[voice] || 'algenib';
 
         const { media } = await ai.generate({
-            model: 'googleai/gemini-1.5-flash',
+            model: 'googleai/gemini-2.5-flash-preview-tts',
             config: {
                 responseModalities: ['AUDIO'],
                 speechConfig: {

@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     }
 
     const result = await ai.generate({
-      model: "googleai/gemini-1.5-flash",
+      model: "googleai/gemini-1.5-pro",
       prompt: prompt,
       config: {
         temperature: 0.7,

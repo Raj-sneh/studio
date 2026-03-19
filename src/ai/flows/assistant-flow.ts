@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A friendly AI helper for the app using Gemini 1.5 Flash.
+ * @fileOverview A friendly AI helper for the app using Gemini 1.5 Pro.
  */
 
 import { ai } from '@/ai/genkit';
@@ -91,7 +91,7 @@ const sargamFlow = ai.defineFlow(
 
     try {
       const response = await ai.generate({
-        model: 'googleai/gemini-1.5-flash',
+        model: 'googleai/gemini-1.5-pro',
         system: finalSystemPrompt,
         messages: [
           ...chatHistory,
