@@ -1,8 +1,7 @@
 'use server';
 /**
- * @fileOverview A friendly music teacher who writes down piano tunes using Gemini 2.5 Flash.
+ * @fileOverview A friendly music teacher who writes down piano tunes using Gemini 1.5 Flash.
  */
-import 'server-only';
 import {ai} from '@/ai/genkit';
 import {
   GenerateNotesInputSchema,
@@ -15,14 +14,14 @@ export async function generateNotes(input: GenerateNotesInput): Promise<Generate
   try {
     return await generateNotesFlow(input);
   } catch (error: any) {
-    console.error("Error in generateNotes:", error);
+    console.error("Error in generateNotes flow:", error);
     throw new Error(`I had trouble writing the tune: ${error.message || 'Please try again.'}`);
   }
 }
 
 const prompt = ai.definePrompt({
   name: 'generateNotesPrompt',
-  model: 'googleai/gemini-2.5-flash',
+  model: 'googleai/gemini-1.5-flash',
   input: {schema: GenerateNotesInputSchema},
   output: {schema: GenerateNotesOutputSchema},
   prompt: `You are a helpful music teacher. Your goal is to write down a piano tune that matches the user's request as accurately as possible.

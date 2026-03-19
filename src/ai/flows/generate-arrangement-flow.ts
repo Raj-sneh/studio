@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A helpful music maker that writes background tracks using Gemini 2.5 Flash.
+ * @fileOverview A helpful music maker that writes background tracks using Gemini 1.5 Flash.
  */
 
 import {ai} from '@/ai/genkit';
@@ -22,7 +22,7 @@ export async function generateArrangement(input: GenerateArrangementInput): Prom
 
 const arrangementPrompt = ai.definePrompt({
     name: 'generateArrangementPrompt',
-    model: 'googleai/gemini-2.5-flash',
+    model: 'googleai/gemini-1.5-flash',
     input: { schema: GenerateArrangementInputSchema },
     output: { schema: GenerateArrangementOutputSchema },
     prompt: `You are a friendly music helper. Your job is to write a unique piano track based on what the user wants. 

@@ -1,9 +1,8 @@
 'use server';
 /**
- * @fileOverview A flow for generating speech/singing using Gemini 2.5 Flash Preview TTS.
+ * @fileOverview A flow for generating speech/singing using Gemini 1.5 Flash.
  * Handles mapping UI voices to Gemini models and converting raw PCM to WAV.
  */
-import 'server-only';
 import { ai } from '@/ai/genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { TextToSpeechInputSchema, TextToSpeechOutputSchema, type TextToSpeechInput, type TextToSpeechOutput } from './text-to-speech-types';
@@ -11,7 +10,7 @@ import wav from 'wav';
 
 /**
  * Converts raw PCM audio data into a WAV format data URI.
- * Gemini 2.5 Flash Preview TTS returns 16-bit, Mono, 24kHz Linear PCM.
+ * Gemini TTS returns 16-bit, Mono, 24kHz Linear PCM.
  */
 async function toWav(
   pcmData: Buffer,
@@ -61,11 +60,7 @@ const textToSpeechGenkitFlow = ai.defineFlow(
     async (input) => {
         const { text, voice, sing } = input;
         
-        // Updated mapping to only use confirmed supported voice names:
-        // achernar, achird, algenib, algieba, alnilam, aoede, autonoe, callirrhoe, 
-        // charon, despina, enceladus, erinome, fenrir, gacrux, iapetus, kore, 
-        // laomedeia, leda, orus, puck, pulcherrima, rasalgethi, sadachbia, 
-        // sadaltager, schedar, sulafat, umbriel, vindemiatrix, zephyr, zubenelgenubi.
+        // Mapping to confirmed supported voice names for Gemini TTS.
         const voiceMap: Record<string, string> = {
             clara: 'Algenib',    // Soft/Female
             james: 'Achernar',   // Deep/Male
@@ -86,7 +81,7 @@ const textToSpeechGenkitFlow = ai.defineFlow(
         const voiceName = voiceMap[voice] || 'Algenib';
 
         const { media } = await ai.generate({
-            model: googleAI.model('gemini-2.5-flash-preview-tts'),
+            model: 'googleai/gemini-1.5-flash',
             config: {
                 responseModalities: ['AUDIO'],
                 speechConfig: {

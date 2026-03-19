@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A friendly AI helper for the app using Gemini 2.5 Flash.
+ * @fileOverview A friendly AI helper for the app using Gemini 1.5 Flash.
  */
 
 import { ai } from '@/ai/genkit';
@@ -91,7 +91,7 @@ const sargamFlow = ai.defineFlow(
 
     try {
       const response = await ai.generate({
-        model: 'googleai/gemini-2.5-flash',
+        model: 'googleai/gemini-1.5-flash',
         system: finalSystemPrompt,
         messages: [
           ...chatHistory,
@@ -117,6 +117,7 @@ const sargamFlow = ai.defineFlow(
       return { responseText: rawResponse.replace(/```json|```|\{|\}/g, '').trim() };
 
     } catch (error: any) {
+      console.error("askSargam Error:", error);
       return { responseText: "I had a quick glitch. Can you try saying that again? 🎹" };
     }
   }

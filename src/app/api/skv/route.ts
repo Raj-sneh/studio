@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     }
 
     const result = await ai.generate({
-      model: "googleai/gemini-2.5-flash",
+      model: "googleai/gemini-1.5-flash",
       prompt: prompt,
       config: {
         temperature: 0.7,
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       text: result.text,
     });
   } catch (err: any) {
-    console.error("GENKIT ERROR:", err);
+    console.error("GENKIT API ERROR:", err);
     return Response.json(
       { error: "Internal Server Error", message: err.message },
       { status: 500 }
