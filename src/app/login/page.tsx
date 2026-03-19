@@ -153,7 +153,7 @@ function PhoneLoginForm({ onLoadingChange }: { onLoadingChange: (isLoading: bool
                 <FormControl>
                   <Input 
                     placeholder="123456" 
-                    className="font-mono text-center tracking-[1em] text-lg" 
+                    className="font-mono text-center tracking-[1em] pl-[1em] text-2xl text-primary font-bold h-14" 
                     maxLength={6}
                     {...field} 
                   />
