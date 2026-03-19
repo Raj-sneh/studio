@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from 'react';
@@ -10,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import Link from "next/link";
-import { ChevronRight, Loader2, User as UserIcon, Calendar, Mail, Save } from "lucide-react";
+import { ChevronRight, Loader2, User as UserIcon, Calendar, Mail, Save, ChevronLeft } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, Timestamp, updateDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 import React from 'react';
 
 const profileSchema = z.object({
@@ -29,6 +29,7 @@ export default function ProfilePage() {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
+    const router = useRouter();
 
     const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
     const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
@@ -82,7 +83,12 @@ export default function ProfilePage() {
 
     return (
         <div className="space-y-8 max-w-2xl mx-auto">
-            <h1 className="font-headline text-3xl font-bold tracking-tighter">Your Profile</h1>
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
+                    <ChevronLeft className="h-6 w-6" />
+                </Button>
+                <h1 className="font-headline text-3xl font-bold tracking-tighter">Your Profile</h1>
+            </div>
             
             <Card>
                 <CardHeader>

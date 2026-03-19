@@ -2,12 +2,20 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LifeBuoy, Mail, MessageSquare, Instagram, ExternalLink } from "lucide-react";
+import { LifeBuoy, Mail, MessageSquare, Instagram, ExternalLink, ChevronLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function SupportPage() {
+    const router = useRouter();
+
     return (
         <div className="space-y-8 max-w-2xl mx-auto">
-            <h1 className="font-headline text-3xl font-bold tracking-tighter">Support & Help</h1>
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" onClick={() => router.push('/profile')}>
+                    <ChevronLeft className="h-6 w-6" />
+                </Button>
+                <h1 className="font-headline text-3xl font-bold tracking-tighter">Support & Help</h1>
+            </div>
             <Card>
                 <CardHeader>
                     <CardTitle>Get Assistance</CardTitle>

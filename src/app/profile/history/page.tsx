@@ -1,12 +1,12 @@
-
 'use client';
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash, Trash2, History, Mic, Piano, Calendar, Wand2, Loader2 } from "lucide-react";
+import { Trash, Trash2, History, Mic, Piano, Calendar, Wand2, Loader2, ChevronLeft } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
+import { useRouter } from "next/navigation";
 import React from "react";
 
 const deleteDocumentNonBlocking = (ref: any) => deleteDoc(ref);
@@ -14,6 +14,7 @@ const deleteDocumentNonBlocking = (ref: any) => deleteDoc(ref);
 export default function HistoryPage() {
     const { user } = useUser();
     const firestore = useFirestore();
+    const router = useRouter();
 
     const historyQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -50,10 +51,15 @@ export default function HistoryPage() {
     return (
         <div className="space-y-8 max-w-4xl mx-auto">
             <div className="flex items-center justify-between">
-                <h1 className="font-headline text-3xl font-bold tracking-tighter flex items-center gap-3">
-                    <History className="text-primary" />
-                    Generation History
-                </h1>
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" onClick={() => router.push('/profile')}>
+                        <ChevronLeft className="h-6 w-6" />
+                    </Button>
+                    <h1 className="font-headline text-3xl font-bold tracking-tighter flex items-center gap-3">
+                        <History className="text-primary" />
+                        Generation History
+                    </h1>
+                </div>
                 {history && history.length > 0 && (
                     <AlertDialog>
                         <AlertDialogTrigger asChild>

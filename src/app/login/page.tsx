@@ -148,7 +148,18 @@ function PhoneLoginForm({ onLoadingChange }: { onLoadingChange: (isLoading: bool
       <Form {...otpForm}>
         <form onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="space-y-4">
           <FormField control={otpForm.control} name="otp" render={({ field }) => (
-              <FormItem><FormLabel>Verification Code</FormLabel><FormControl><Input placeholder="123456" {...field} /></FormControl><FormMessage /></FormItem>
+              <FormItem>
+                <FormLabel>Verification Code</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="123456" 
+                    className="font-mono text-center tracking-[1em] text-lg" 
+                    maxLength={6}
+                    {...field} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
           )}/>
           <div className="flex gap-2">
             <Button type="button" variant="ghost" onClick={() => setStep('phone')} disabled={isLoading}>Back</Button>

@@ -168,7 +168,18 @@ export default function SignupPage() {
             <Form {...otpForm}>
               <form onSubmit={otpForm.handleSubmit(handleOtpSubmit)} className="space-y-4">
                 <FormField control={otpForm.control} name="otp" render={({ field }) => (
-                  <FormItem><FormLabel>6-Digit OTP</FormLabel><FormControl><Input placeholder="123456" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem>
+                    <FormLabel>6-Digit OTP</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="123456" 
+                        className="font-mono text-center tracking-[1em] text-lg" 
+                        maxLength={6}
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}/>
                 <div className="flex gap-2">
                     <Button type="button" variant="ghost" onClick={() => setStep('details')} disabled={isLoading}>Back</Button>
