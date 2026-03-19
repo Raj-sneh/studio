@@ -8,12 +8,18 @@ import { VocalStudio } from '@/components/suite/VocalStudio';
 import { Music, Mic, UserRoundPlus, Lock } from 'lucide-react';
 import Image from 'next/image';
 
+/**
+ * Defines the available tabs in the AI Creative Studio.
+ */
 const TABS = [
     { value: 'composer', label: 'Melody Maker', icon: Music },
     { value: 'singer', label: 'Vocal Studio', icon: Mic },
     { value: 'cloner', label: 'Voice Cloner', icon: UserRoundPlus },
 ];
 
+/**
+ * The unified UI for the AI Creative Studio.
+ */
 export function SargamSuite() {
     const searchParams = useSearchParams();
     const requestedTab = searchParams.get('tab');
@@ -21,8 +27,10 @@ export function SargamSuite() {
     const autogen = searchParams.get('autogen') === 'true';
     const autoplay = searchParams.get('autoplay') === 'true';
 
+    // Initialize the active tab from URL or default to the first tab.
     const [activeTab, setActiveTab] = useState(requestedTab || TABS[0].value);
 
+    // Sync tab state with URL changes.
     useEffect(() => {
         if (requestedTab && TABS.some(t => t.value === requestedTab)) {
             setActiveTab(requestedTab);
@@ -43,7 +51,11 @@ export function SargamSuite() {
                     <div className="flex justify-center mb-8">
                         <TabsList className="grid w-full grid-cols-3 max-w-lg h-auto p-1 bg-muted/50 border border-border/50 rounded-2xl">
                             {TABS.map(tab => (
-                                <TabsTrigger key={tab.value} value={tab.value} className="gap-2 py-3 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all rounded-xl">
+                                <TabsTrigger 
+                                    key={tab.value} 
+                                    value={tab.value} 
+                                    className="gap-2 py-3 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all rounded-xl"
+                                >
                                     <tab.icon className="h-4 w-4" />
                                     {tab.label}
                                 </TabsTrigger>
@@ -72,7 +84,7 @@ export function SargamSuite() {
                                 <div className="absolute inset-0 z-0">
                                     <Image 
                                         src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=1080" 
-                                        alt="Studio" 
+                                        alt="Music Studio" 
                                         fill 
                                         className="object-cover blur-xl grayscale opacity-30"
                                         data-ai-hint="music studio"
@@ -85,7 +97,7 @@ export function SargamSuite() {
                                     <div className="space-y-2">
                                         <h2 className="text-3xl font-headline font-bold">Voice Cloning</h2>
                                         <p className="text-xl text-muted-foreground max-w-md mx-auto">
-                                            Coming Soon: We are fine-tuning the vocal patterns.
+                                            Coming Soon: We are fine-tuning the vocal patterns for precise replication.
                                         </p>
                                     </div>
                                 </div>
