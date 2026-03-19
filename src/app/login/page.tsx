@@ -1,347 +1,340 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { signInWithEmailAndPassword, sendSignInLinkToEmail, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  GoogleAuthProvider,
+  ConfirmationResult,
+} from 'firebase/auth';
 
-import { useAuth, useUser } from '@/firebase/provider';
+import { auth } from '@/firebase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import GoogleIcon from '@/components/icons/GoogleIcon';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, ChevronLeft } from 'lucide-react';
-import { AnimatedMusicBackground } from '@/components/AnimatedMusicBackground';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const emailFormSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email.' }),
-  password: z.string().min(1, { message: 'Password is required.' }),
+  email: z.string().email('Enter a valid email'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 const phoneFormSchema = z.object({
-  phone: z.string().min(10, { message: 'Please enter a valid phone number with country code.' }),
+  phone: z
+    .string()
+    .min(10, 'Enter valid phone number')
+    .refine((val) => /^\+?[1-9]\d{9,14}$/.test(val.replace(/\s/g, '')), {
+      message: 'Use full number with country code, like +919876543210',
+    }),
 });
 
 const otpFormSchema = z.object({
-  otp: z.string().length(6, { message: 'OTP must be 6 digits.' }),
+  otp: z.string().length(6, 'OTP must be 6 digits'),
 });
 
-function EmailLoginForm({ onLoadingChange }: { onLoadingChange: (isLoading: boolean) => void }) {
-  const auth = useAuth();
-  const { toast } = useToast();
-  const [isEmailLoading, setEmailLoading] = useState(false);
-
-  const form = useForm<z.infer<typeof emailFormSchema>>({
-    resolver: zodResolver(emailFormSchema),
-    defaultValues: { email: '', password: '' },
-  });
-
-  useEffect(() => {
-    onLoadingChange(isEmailLoading);
-  }, [isEmailLoading, onLoadingChange]);
-
-  const handleEmailSignIn = async (values: z.infer<typeof emailFormSchema>) => {
-    if (!auth) return;
-    setEmailLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
-      toast({
-        title: 'Success!',
-        description: 'You have successfully signed in.',
-      });
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Sign In Failed',
-        description: 'Invalid email or password. Please try again.',
-      });
-      setEmailLoading(false);
-    }
-  };
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleEmailSignIn)} className="space-y-4">
-        <FormField control={form.control} name="email" render={({ field }) => (
-            <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem>
-        )}/>
-        <FormField control={form.control} name="password" render={({ field }) => (
-            <FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>
-        )}/>
-        <Button type="submit" disabled={isEmailLoading} className="w-full">
-          {isEmailLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Sign In
-        </Button>
-      </form>
-    </Form>
-  );
+declare global {
+  interface Window {
+    recaptchaVerifier?: RecaptchaVerifier;
+    confirmationResult?: ConfirmationResult;
+  }
 }
 
-function PhoneLoginForm({ onLoadingChange }: { onLoadingChange: (isLoading: boolean) => void }) {
-  const auth = useAuth();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+export default function LoginPage() {
+  const router = useRouter();
+
+  const [tab, setTab] = useState<'email' | 'phone'>('email');
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const emailForm = useForm<z.infer<typeof emailFormSchema>>({
+    resolver: zodResolver(emailFormSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
 
   const phoneForm = useForm<z.infer<typeof phoneFormSchema>>({
     resolver: zodResolver(phoneFormSchema),
-    defaultValues: { phone: '' },
+    defaultValues: {
+      phone: '+91',
+    },
   });
+
   const otpForm = useForm<z.infer<typeof otpFormSchema>>({
     resolver: zodResolver(otpFormSchema),
-    defaultValues: { otp: '' },
+    defaultValues: {
+      otp: '',
+    },
   });
 
-  useEffect(() => {
-    onLoadingChange(isLoading);
-  }, [isLoading, onLoadingChange]);
+  const setupRecaptcha = () => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'normal',
+        callback: () => {},
+        'expired-callback': () => {},
+      });
+    }
+    return window.recaptchaVerifier;
+  };
+
+  const handleEmailLogin = async (values: z.infer<typeof emailFormSchema>) => {
+    try {
+      setIsLoading(true);
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      router.push('/suite');
+    } catch (error: any) {
+      alert(error?.message || 'Email login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSendOtp = async (values: z.infer<typeof phoneFormSchema>) => {
-    if (!auth) return;
-    setIsLoading(true);
     try {
-      const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container-login', { size: 'invisible' });
-      const confirmation = await signInWithPhoneNumber(auth, values.phone, recaptchaVerifier);
-      setConfirmationResult(confirmation);
+      setIsLoading(true);
+
+      const phone = values.phone.replace(/\s/g, '');
+      const appVerifier = setupRecaptcha();
+
+      const confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier);
+
+      window.confirmationResult = confirmationResult;
       setStep('otp');
-      toast({ title: 'OTP Sent', description: 'Check your phone for the verification code.' });
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Failed to Send OTP',
-        description: error.message || 'Please check the phone number and try again.',
-      });
+      console.error('OTP send error:', error);
+      alert(error?.message || 'Could not send OTP');
+
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = undefined;
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleVerifyOtp = async (values: z.infer<typeof otpFormSchema>) => {
-    if (!confirmationResult) return;
-    setIsLoading(true);
     try {
-      await confirmationResult.confirm(values.otp);
-      toast({
-        title: 'Success!',
-        description: 'You have successfully signed in.',
-      });
+      setIsLoading(true);
+
+      if (!window.confirmationResult) {
+        alert('OTP session expired. Send OTP again.');
+        setStep('phone');
+        return;
+      }
+
+      await window.confirmationResult.confirm(values.otp);
+      router.push('/suite');
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'OTP Verification Failed',
-        description: error.message || 'The code is incorrect. Please try again.',
-      });
+      console.error('OTP verify error:', error);
+      alert(error?.message || 'Invalid OTP');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (step === 'otp') {
-    return (
-      <Form {...otpForm}>
-        <form onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="space-y-4">
-          <FormField control={otpForm.control} name="otp" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Verification Code</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="text"
-                    inputMode="numeric"
-                    pattern="\d*"
-                    autoComplete="one-time-code"
-                    placeholder="Enter 6-digit code" 
-                    className="font-mono text-center tracking-widest text-2xl text-primary font-bold h-14" 
-                    maxLength={6}
-                    autoFocus
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-          )}/>
-          <div className="flex gap-2">
-            <Button type="button" variant="ghost" onClick={() => setStep('phone')} disabled={isLoading}>Back</Button>
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Verify OTP & Sign In
-            </Button>
-          </div>
-        </form>
-      </Form>
-    );
-  }
-
-  return (
-    <Form {...phoneForm}>
-      <form onSubmit={phoneForm.handleSubmit(handleSendOtp)} className="space-y-4">
-        <FormField control={phoneForm.control} name="phone" render={({ field }) => (
-            <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input type="tel" placeholder="+1 123 456 7890" {...field} /></FormControl><FormMessage /></FormItem>
-        )}/>
-        <Button type="submit" disabled={isLoading} className="w-full">
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Send OTP
-        </Button>
-      </form>
-    </Form>
-  );
-}
-
-function EmailLinkLoginForm({ onLoadingChange }: { onLoadingChange: (isLoading: boolean) => void }) {
-    const auth = useAuth();
-    const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
-
-    const form = useForm<{ email: string }>({
-        resolver: zodResolver(z.object({ email: z.string().email({ message: 'Please enter a valid email.' }) })),
-        defaultValues: { email: '' },
-    });
-
-    useEffect(() => {
-        onLoadingChange(isLoading);
-    }, [isLoading, onLoadingChange]);
-
-    const handleEmailLinkSignIn = async (values: { email: string }) => {
-        if (!auth) return;
-        setIsLoading(true);
-        try {
-            const actionCodeSettings = {
-                url: `${window.location.origin}/finish-signin`,
-                handleCodeInApp: true,
-            };
-            await sendSignInLinkToEmail(auth, values.email, actionCodeSettings);
-            window.localStorage.setItem('emailForSignIn', values.email);
-            toast({
-                title: 'Check Your Email',
-                description: 'A magic sign-in link has been sent to your email address.',
-            });
-            form.reset();
-        } catch (error: any) {
-            toast({
-                variant: 'destructive',
-                title: 'Failed to Send Link',
-                description: error.message || 'Please check the email and try again.',
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleEmailLinkSignIn)} className="space-y-4">
-                <FormField control={form.control} name="email" render={({ field }) => (
-                    <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <Button type="submit" disabled={isLoading} className="w-full">
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Send Magic Link
-                </Button>
-            </form>
-        </Form>
-    );
-}
-
-export default function LoginPage() {
-  const router = useRouter();
-  const auth = useAuth();
-  const { user, isUserLoading } = useUser();
-  const { toast } = useToast();
-  const [isGoogleLoading, setGoogleLoading] = useState(false);
-  const [isFormLoading, setFormLoading] = useState(false);
-
-  useEffect(() => {
-    if (!isUserLoading && user && !user.isAnonymous) {
-      router.push('/profile');
-    }
-  }, [user, isUserLoading, router]);
-
-  const handleGoogleSignIn = async () => {
-    if (!auth) return;
-    setGoogleLoading(true);
+  const handleGoogleLogin = async () => {
     try {
-        const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
-      toast({
-        title: 'Success!',
-        description: 'You have successfully signed in.',
-      });
+      setIsLoading(true);
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      router.push('/suite');
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
-        description: error.message || 'Could not sign in with Google.',
-      });
+      alert(error?.message || 'Google sign in failed');
     } finally {
-      setGoogleLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const anyLoading = isGoogleLoading || isFormLoading;
-
-  if (isUserLoading || (user && !user.isAnonymous)) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
-    <div className="relative overflow-hidden flex items-center justify-center py-12 min-h-[calc(100vh-theme(spacing.32))]">
-      <AnimatedMusicBackground />
-      <div className="absolute top-4 left-4 z-20">
-        <Button variant="ghost" onClick={() => router.push('/')} className="gap-2">
-            <ChevronLeft className="h-4 w-4" /> Home
-        </Button>
-      </div>
-      <Card className="w-full max-w-md z-10 bg-card/80 backdrop-blur-sm border-border/50">
-        <CardHeader className="text-center">
-          <CardTitle className="font-headline text-3xl">Welcome Back</CardTitle>
-          <CardDescription>Sign in to your Sargam AI account.</CardDescription>
+    <div className="min-h-screen bg-[#070019] text-white flex items-center justify-center px-4 py-10">
+      <Card className="w-full max-w-md bg-[#0d0225] border border-[#23124a] text-white">
+        <CardHeader>
+          <CardTitle className="text-4xl font-bold text-center">Welcome Back</CardTitle>
+          <p className="text-center text-gray-300">Sign in to your Sargam AI account.</p>
         </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="email" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+
+        <CardContent className="space-y-6">
+          <Tabs value={tab} onValueChange={(value) => setTab(value as 'email' | 'phone')}>
+            <TabsList className="grid w-full grid-cols-2 bg-[#1a0d3a]">
               <TabsTrigger value="email">Email</TabsTrigger>
-              <TabsTrigger value="phone">Phone</TabsTrigger>
-              <TabsTrigger value="link">Magic Link</TabsTrigger>
+              <TabsTrigger
+                value="phone"
+                onClick={() => {
+                  setStep('phone');
+                  otpForm.reset({ otp: '' });
+                }}
+              >
+                Phone
+              </TabsTrigger>
             </TabsList>
-            <TabsContent value="email" className="pt-4">
-              <EmailLoginForm onLoadingChange={setFormLoading} />
-            </TabsContent>
-            <TabsContent value="phone" className="pt-4">
-              <PhoneLoginForm onLoadingChange={setFormLoading} />
-            </TabsContent>
-            <TabsContent value="link" className="pt-4">
-              <EmailLinkLoginForm onLoadingChange={setFormLoading} />
-            </TabsContent>
           </Tabs>
 
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+          {tab === 'email' && (
+            <Form {...emailForm}>
+              <form onSubmit={emailForm.handleSubmit(handleEmailLogin)} className="space-y-4">
+                <FormField
+                  control={emailForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="Enter your email"
+                          className="bg-[#12052d] border-[#2c1a57] text-white"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={emailForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="Enter your password"
+                          className="bg-[#12052d] border-[#2c1a57] text-white"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button type="submit" disabled={isLoading} className="w-full">
+                  {isLoading ? 'Signing in...' : 'Sign In'}
+                </Button>
+              </form>
+            </Form>
+          )}
+
+          {tab === 'phone' && step === 'phone' && (
+            <Form {...phoneForm}>
+              <form onSubmit={phoneForm.handleSubmit(handleSendOtp)} className="space-y-4">
+                <FormField
+                  control={phoneForm.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="tel"
+                          placeholder="+919876543210"
+                          className="bg-[#12052d] border-[#2c1a57] text-white"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div id="recaptcha-container" className="flex justify-center overflow-hidden" />
+
+                <Button type="submit" disabled={isLoading} className="w-full">
+                  {isLoading ? 'Sending OTP...' : 'Send Verification Code'}
+                </Button>
+              </form>
+            </Form>
+          )}
+
+          {tab === 'phone' && step === 'otp' && (
+            <Form {...otpForm}>
+              <form onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="space-y-4">
+                <FormField
+                  control={otpForm.control}
+                  name="otp"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Verification Code</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          autoComplete="one-time-code"
+                          placeholder="Enter 6-digit code"
+                          maxLength={6}
+                          className="bg-[#12052d] border-[#2c1a57] text-white text-center tracking-[0.5em] text-2xl"
+                          value={field.value}
+                          onChange={(e) => {
+                            const onlyNumbers = e.target.value.replace(/\D/g, '').slice(0, 6);
+                            field.onChange(onlyNumbers);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setStep('phone');
+                      otpForm.reset({ otp: '' });
+                    }}
+                    disabled={isLoading}
+                  >
+                    Back
+                  </Button>
+
+                  <Button type="submit" disabled={isLoading} className="w-full">
+                    {isLoading ? 'Verifying...' : 'Verify OTP & Sign In'}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          )}
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-[#2c1a57]" />
+            </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card/80 px-2 text-muted-foreground">Or continue with</span>
+              <span className="bg-[#0d0225] px-2 text-gray-400">Or continue with</span>
             </div>
           </div>
 
-          <Button onClick={handleGoogleSignIn} disabled={anyLoading} className="w-full" variant="outline" size="lg">
-            {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-5 w-5" />}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full bg-transparent border-[#2c1a57] text-white"
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+          >
             Sign in with Google
           </Button>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4 text-center text-sm">
-          <div id="recaptcha-container-login"></div>
-          <p className="text-muted-foreground">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="font-medium text-primary hover:underline">Sign up</Link>
-          </p>
+
+        <CardFooter className="justify-center text-sm text-gray-300">
+          Don&apos;t have an account?
+          <Link href="/signup" className="ml-2 text-cyan-400 hover:underline">
+            Sign up
+          </Link>
         </CardFooter>
       </Card>
     </div>
