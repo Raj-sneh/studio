@@ -2,8 +2,8 @@
   "placeholderImages": [
     {
       "id": "user-avatar",
-      "description": "Default user avatar",
-      "imageUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwZW9wbGV8ZW58MHx8fHwxNzE3Mzk0MjM3fDA&ixlib=rb-4.0.3&q=80&w=100",
+      "description": "Generic user silhouette placeholder",
+      "imageUrl": "",
       "imageHint": "user profile"
     },
     {

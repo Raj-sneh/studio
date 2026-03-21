@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from 'react';
@@ -17,7 +16,6 @@ import { doc, Timestamp, updateDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import React from 'react';
 
 const profileSchema = z.object({
@@ -33,7 +31,6 @@ export default function ProfilePage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const router = useRouter();
-    const defaultAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
 
     const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
     const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
@@ -100,12 +97,12 @@ export default function ProfilePage() {
                 <div className="relative">
                     <Avatar className="h-32 w-32 border-4 border-background shadow-2xl transition-transform duration-500 group-hover:scale-105">
                         <AvatarImage 
-                            src={user?.photoURL || profile?.avatarUrl || defaultAvatar?.imageUrl} 
+                            src={user?.photoURL || profile?.avatarUrl || undefined} 
                             alt={user?.displayName || "User"} 
                             className="object-cover"
                         />
-                        <AvatarFallback className="bg-primary/20 text-primary text-4xl font-bold">
-                            {user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                        <AvatarFallback className="bg-primary/20 text-primary flex items-center justify-center">
+                            <UserIcon className="h-16 w-16 opacity-50" />
                         </AvatarFallback>
                     </Avatar>
                     <div className="absolute bottom-1 right-1 h-8 w-8 rounded-full bg-primary flex items-center justify-center border-2 border-background shadow-lg">
@@ -169,7 +166,7 @@ export default function ProfilePage() {
                                             <FormLabel>Gender</FormLabel>
                                             <select 
                                               {...field}
-                                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                              className="flex h-10 w-full rounded-md border border-input bg-black text-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                             >
                                               <option value="male">Male</option>
                                               <option value="female">Female</option>

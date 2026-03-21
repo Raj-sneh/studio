@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -8,7 +7,6 @@ import { signOut } from "firebase/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Music, LogOut, User as UserIcon, Loader2, BookOpen, Wand2, LogIn, ChevronDown } from "lucide-react";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 
@@ -25,7 +23,6 @@ export default function Header() {
   const { user, isUserLoading } = useUser();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -49,7 +46,6 @@ export default function Header() {
       return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
     }
 
-    // Show avatar for all signed in users (including guests)
     if (user) {
       return (
         <div className="relative" ref={menuRef}>
@@ -59,12 +55,12 @@ export default function Header() {
           >
             <Avatar className="h-9 w-9 border-2 border-primary/20 ring-2 ring-background shadow-lg transition-transform hover:scale-105">
               <AvatarImage 
-                src={user.photoURL || userAvatar?.imageUrl} 
+                src={user.photoURL || undefined} 
                 alt={user.displayName || "User"} 
                 className="object-cover"
               />
-              <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold uppercase">
-                {user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}
+              <AvatarFallback className="bg-primary/10 text-primary flex items-center justify-center">
+                <UserIcon className="h-5 w-5" />
               </AvatarFallback>
             </Avatar>
             {!user.isAnonymous && <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isMenuOpen && "rotate-180")} />}
