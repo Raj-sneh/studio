@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://sargam-ai.vercel.app'),
   title: "Sargam AI | Virtual Piano & AI Music Learning",
   description: "Sargam AI is an AI-powered virtual piano and music learning platform. Practice piano, learn music, and create melodies with AI.",
-  keywords: ["Sargam AI", "piano AI", "virtual piano", "AI piano tutor", "music learning AI", "online piano practice"],
+  keywords: ["Sargam AI", "virtual piano", "AI piano tutor", "music learning AI", "online piano practice"],
   creator: "Sargam AI Studio",
   publisher: "Sargam AI Studio",
   openGraph: {
@@ -53,7 +53,6 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/favicon.ico",
-    apple: "/apple-icon.png",
   },
 };
 
