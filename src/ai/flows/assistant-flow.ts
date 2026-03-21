@@ -39,7 +39,7 @@ const getLessonLibrary = ai.defineTool(
   }
 );
 
-const sargamBotSystemPrompt = `You are SKV AI, a friendly music helper. 🤖
+const sargamBotSystemPrompt = `You are Sargam AI, a friendly music helper. 🤖
 
 **WHAT YOU DO:** 
 You help people make and learn music! You talk like a real friend using simple words.

@@ -28,12 +28,12 @@ export default function SupportPage() {
                             <h3 className="font-semibold">Instagram</h3>
                             <p className="text-sm text-muted-foreground">Follow us for updates, tips, and to see what others are creating!</p>
                             <a 
-                                href="https://www.instagram.com/sargamskv?igsh=MTVpc3VjN3ozbTg4aQ==" 
+                                href="https://www.instagram.com/sargamskv.in?igsh=MTVkamx2em02dnFmOQ==" 
                                 target="_blank" 
                                 rel="noopener noreferrer" 
                                 className="text-primary font-medium hover:underline flex items-center gap-1"
                             >
-                                @sargamskv <ExternalLink className="h-3 w-3" />
+                                @sargamskv.in <ExternalLink className="h-3 w-3" />
                             </a>
                         </div>
                     </div>

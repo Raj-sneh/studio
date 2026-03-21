@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Music, BookOpen, Wand2, Sparkles, User } from 'lucide-react';
+import { Music, BookOpen, Wand2, Sparkles } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { AnimatedMusicBackground } from '@/components/AnimatedMusicBackground';
 
@@ -19,13 +19,13 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="text-center space-y-10 pt-20 max-w-4xl mx-auto px-4">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest animate-bounce">
-          <Sparkles className="h-3 w-3" /> Developed by SKV
+          <Sparkles className="h-3 w-3" /> Professional AI Music Studio
         </div>
         <h1 className="font-headline text-6xl md:text-8xl font-bold tracking-tight text-foreground leading-tight">
           Sargam AI: The <span className="text-primary">Virtual Piano</span> & AI Tutor
         </h1>
         <p className="text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-          Created by <span className="text-foreground font-semibold">Sneh Kumar Verma</span>, Sargam AI is your intelligent music workstation. Practice on a professional virtual piano, follow guided lessons, or compose unique melodies with our advanced AI studio.
+          Sargam AI is your intelligent music workstation. Practice on a professional virtual piano, follow guided lessons, or compose unique melodies with our advanced AI studio.
         </p>
       </section>
 
@@ -85,24 +85,11 @@ export default function LandingPage() {
               <Wand2 className="absolute bottom-6 left-6 h-10 w-10 text-primary" />
             </div>
             <CardHeader className="p-8">
-              <CardTitle className="text-2xl mb-2">SKV AI Creative Studio</CardTitle>
-              <CardDescription className="text-base leading-relaxed">Compose unique piano melodies or generate vocal tracks from your lyrics using our professional AI performance studio built by SKV.</CardDescription>
+              <CardTitle className="text-2xl mb-2">AI Creative Studio</CardTitle>
+              <CardDescription className="text-base leading-relaxed">Compose unique piano melodies or generate vocal tracks from your lyrics using our professional AI performance studio.</CardDescription>
             </CardHeader>
           </Card>
         </Link>
-      </section>
-
-      {/* About Section */}
-      <section className="max-w-4xl mx-auto px-4 py-20 text-center space-y-8">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-            <User className="h-10 w-10 text-primary" />
-          </div>
-          <h2 className="text-3xl font-headline font-bold">About the Developer</h2>
-          <p className="text-lg text-muted-foreground leading-relaxed">
-            Sargam AI is a passion project by <span className="text-primary font-semibold">Sneh Kumar Verma</span>, designed to bridge the gap between technology and musical education. As an AI piano tutor, this platform leverages state-of-the-art models to provide a seamless <span className="text-foreground font-medium">virtual piano</span> experience for learners worldwide.
-          </p>
-        </div>
       </section>
 
       {/* Footer Info Section */}
