@@ -5,8 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AIComposer } from '@/components/suite/AIComposer';
 import { VocalStudio } from '@/components/suite/VocalStudio';
-import { Music, Mic, UserRoundPlus, Lock } from 'lucide-react';
-import Image from 'next/image';
+import { VoiceCloner } from '@/components/suite/VoiceCloner';
+import { Music, Mic, UserRoundPlus } from 'lucide-react';
 
 /**
  * Defines the available tabs in the AI Creative Studio.
@@ -80,28 +80,7 @@ export function SargamSuite() {
                             />
                         )}
                         {activeTab === 'cloner' && (
-                            <div className="relative min-h-[400px] overflow-hidden rounded-3xl border border-white/10">
-                                <div className="absolute inset-0 z-0">
-                                    <Image 
-                                        src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=1080" 
-                                        alt="Music Studio" 
-                                        fill 
-                                        className="object-cover blur-xl grayscale opacity-30"
-                                        data-ai-hint="music studio"
-                                    />
-                                </div>
-                                <div className="relative z-10 flex flex-col items-center justify-center h-full min-h-[400px] text-center p-8 space-y-6 backdrop-blur-md bg-black/40">
-                                    <div className="h-20 w-20 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-                                        <Lock className="h-10 w-10 text-primary animate-pulse" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <h2 className="text-3xl font-headline font-bold">Voice Cloning</h2>
-                                        <p className="text-xl text-muted-foreground max-w-md mx-auto">
-                                            Coming Soon: We are fine-tuning the vocal patterns for precise replication.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                            <VoiceCloner />
                         )}
                     </div>
                 </Tabs>

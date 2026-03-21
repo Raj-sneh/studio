@@ -1,1 +1,4 @@
-# Python dependencies removed as requested.
+flask
+flask-cors
+TTS
+torch
