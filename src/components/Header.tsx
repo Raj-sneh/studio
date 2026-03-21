@@ -16,6 +16,20 @@ const navLinks = [
   { href: "/suite", label: "AI Studio", icon: Wand2 },
 ];
 
+/**
+ * A custom geometric human structure for guest avatars.
+ */
+function GeometricGuestIcon() {
+  return (
+    <svg viewBox="0 0 100 100" className="h-full w-full p-2" xmlns="http://www.w3.org/2000/svg">
+      {/* Head */}
+      <circle cx="50" cy="35" r="18" fill="currentColor" />
+      {/* Body (Semicircle) */}
+      <path d="M20 85 C 20 55, 80 55, 80 85" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
@@ -59,8 +73,8 @@ export default function Header() {
                 alt={user.displayName || "User"} 
                 className="object-cover"
               />
-              <AvatarFallback className="bg-primary/10 text-primary flex items-center justify-center">
-                <UserIcon className="h-5 w-5" />
+              <AvatarFallback className="bg-primary text-primary-foreground flex items-center justify-center">
+                <GeometricGuestIcon />
               </AvatarFallback>
             </Avatar>
             {!user.isAnonymous && <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isMenuOpen && "rotate-180")} />}
