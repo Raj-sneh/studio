@@ -1,7 +1,7 @@
 'use server';
 /**
  * @fileOverview A flow for generating high-quality speech using Inworld AI TTS.
- * This flow replaces the previous engine to provide sub-second latency and superior voice quality.
+ * This flow provides sub-second latency and superior voice quality.
  */
 import { ai } from '@/ai/genkit';
 import { TextToSpeechInputSchema, TextToSpeechOutputSchema, type TextToSpeechInput, type TextToSpeechOutput } from './text-to-speech-types';
@@ -25,7 +25,6 @@ const textToSpeechGenkitFlow = ai.defineFlow(
         const { text, voice } = input;
         
         // Mapping UI voices to Inworld Voice IDs
-        // "Clive" is the primary high-quality voice provided in the unlock request.
         const voiceMap: Record<string, string> = {
             clive: 'Clive',
             clara: 'Clara',
@@ -43,12 +42,17 @@ const textToSpeechGenkitFlow = ai.defineFlow(
         };
 
         const voiceId = voiceMap[voice] || 'Clive';
+        const authToken = process.env.INWORLD_AUTH_TOKEN;
+
+        if (!authToken) {
+            throw new Error('Inworld Auth Token is missing in environment variables.');
+        }
 
         const url = 'https://api.inworld.ai/tts/v1/voice';
         const options = {
             method: 'POST',
             headers: {
-                'Authorization': 'Basic WExzdTRkaWM0WUNyaFBPekJGUTFxYlFnOFlWdDBVamo6QVo5aDNhUGE1d0Q0RDlZcTU2MkE1ZlBqTlowcTJJcEVkUnYxaUdQS1VGOHByUlVLV3ZLM1JZeWFYdVlIcW9RYg==',
+                'Authorization': `Basic ${authToken}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
@@ -67,7 +71,7 @@ const textToSpeechGenkitFlow = ai.defineFlow(
         }
 
         const result = await response.json();
-        const audioContent = result.audioContent; // This is base64 encoded audio data
+        const audioContent = result.audioContent;
 
         if (!audioContent) {
             throw new Error('Inworld AI did not return any audio content.');
