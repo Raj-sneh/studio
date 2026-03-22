@@ -12,7 +12,7 @@ import {
 } from './voice-cloning-types';
 
 /**
- * Communicates with the external XTTS Voice Engine.
+ * Communicates with the external voice engine (Flask).
  */
 export async function cloneVoice(input: VoiceCloningInput): Promise<VoiceCloningOutput> {
   return voiceCloningFlow(input);
@@ -35,43 +35,38 @@ const voiceCloningFlow = ai.defineFlow(
     const formData = new FormData();
     const blob = new Blob([buffer], { type: 'audio/wav' });
     
-    // The key 'audio' must match what the Flask app expects in request.files.get("audio")
+    // Field name 'audio' must match what the Flask app expects
     formData.append('audio', blob, 'sample.wav');
     formData.append('text', text);
 
-    // Resolve URL - prioritize 127.0.0.1 over localhost for Node.js fetch reliability
+    // Prioritize 127.0.0.1 for Node.js reliability
     let VOICE_ENGINE_URL = process.env.VOICE_ENGINE_URL || 'http://127.0.0.1:8080/clone';
     
-    // Node.js 18+ fetch often fails to resolve 'localhost' to 127.0.0.1 automatically.
-    // We force the replacement to ensure we hit the IPv4 loopback address.
     if (VOICE_ENGINE_URL.includes('localhost')) {
       VOICE_ENGINE_URL = VOICE_ENGINE_URL.replace('localhost', '127.0.0.1');
     }
 
     try {
-      console.log(`Attempting to connect to voice engine at: ${VOICE_ENGINE_URL}`);
+      console.log(`Connecting to voice engine: ${VOICE_ENGINE_URL}`);
       
       const response = await fetch(VOICE_ENGINE_URL, {
         method: 'POST',
         body: formData,
-        // Increase timeout for slow XTTS/Voice processing (90 seconds)
         signal: AbortSignal.timeout(90000), 
       });
 
       if (!response.ok) {
-        let errorMessage = `Voice engine returned status ${response.status}`;
+        let errorMessage = `Engine returned error ${response.status}`;
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
-        } catch (e) {
-          errorMessage = response.statusText || errorMessage;
-        }
+        } catch (e) {}
         throw new Error(errorMessage);
       }
 
       const audioBuffer = await response.arrayBuffer();
       if (!audioBuffer || audioBuffer.byteLength === 0) {
-        throw new Error("Voice engine returned an empty audio file.");
+        throw new Error("The voice engine produced an empty file.");
       }
       
       const outputBase64 = Buffer.from(audioBuffer).toString('base64');
@@ -80,20 +75,16 @@ const voiceCloningFlow = ai.defineFlow(
         clonedAudioUri: `data:audio/mpeg;base64,${outputBase64}`,
       };
     } catch (error: any) {
-      console.error("Voice Cloning Engine Connection Error:", {
-        message: error.message,
-        url: VOICE_ENGINE_URL,
-        name: error.name
-      });
+      console.error("Voice Cloning Error:", error.message);
       
-      let clientMessage = "The voice engine is currently unavailable.";
+      let clientMessage = "The voice engine is currently offline.";
       
       if (error.name === 'TimeoutError' || error.message.includes('timeout')) {
-        clientMessage = "The voice generation timed out. Please ensure the Python server is responding.";
+        clientMessage = "The generation timed out. Try a shorter script.";
       } else if (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED')) {
-        clientMessage = `Could not connect to the voice engine at ${VOICE_ENGINE_URL}. Please ensure the Python server (app.py) is running on port 8080.`;
+        clientMessage = `Could not connect to the voice engine at ${VOICE_ENGINE_URL}. Ensure your Python app is running on port 8080.`;
       } else {
-        clientMessage = `Voice Synthesis Error: ${error.message}`;
+        clientMessage = `Synthesis Error: ${error.message}`;
       }
       
       throw new Error(clientMessage);

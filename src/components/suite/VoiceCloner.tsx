@@ -15,13 +15,13 @@ import {
   Sparkles, 
   Upload, 
   Volume2, 
-  Info,
   CheckCircle2,
   Zap,
   Trash2,
   BookOpen,
   RefreshCw,
-  Quote
+  Quote,
+  Wand2
 } from 'lucide-react';
 import { 
   Form, 
@@ -50,7 +50,6 @@ export function VoiceCloner() {
   const [suggestedScripts, setSuggestedScripts] = useState<string[]>([]);
   const [currentScriptIndex, setCurrentScriptIndex] = useState(0);
   
-  // Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -111,10 +110,10 @@ export function VoiceCloner() {
         setRecordingTime(prev => prev + 1);
       }, 1000);
 
-      toast({ title: "Recording Started", description: "Read the suggested script below clearly." });
+      toast({ title: "Mic Active", description: "Recording started. Read the script clearly!" });
     } catch (err) {
       console.error("Recording error:", err);
-      toast({ title: "Mic Error", description: "Could not access microphone.", variant: "destructive" });
+      toast({ title: "Mic Error", description: "Please allow microphone access to record.", variant: "destructive" });
     }
   };
 
@@ -129,15 +128,15 @@ export function VoiceCloner() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({ title: "File too large", description: "Please upload a sample smaller than 5MB.", variant: "destructive" });
+      if (file.size > 10 * 1024 * 1024) {
+        toast({ title: "File too large", description: "Please upload a sample smaller than 10MB.", variant: "destructive" });
         return;
       }
       
       const reader = new FileReader();
       reader.onloadend = () => {
         setSampleDataUri(reader.result as string);
-        toast({ title: "Sample Loaded", description: "Voice reference captured successfully." });
+        toast({ title: "Voice Sample Loaded", description: "The reference voice is ready for cloning." });
       };
       reader.readAsDataURL(file);
     }
@@ -145,7 +144,7 @@ export function VoiceCloner() {
 
   const handleGenerate = async (values: z.infer<typeof formSchema>) => {
     if (!sampleDataUri) {
-      toast({ title: "Reference Missing", description: "Please provide a voice sample first.", variant: "destructive" });
+      toast({ title: "No Voice Sample", description: "Record or upload a voice first.", variant: "destructive" });
       return;
     }
 
@@ -159,13 +158,13 @@ export function VoiceCloner() {
       });
 
       setClonedAudioUri(result.clonedAudioUri);
-      toast({ title: "Success!", description: "Your voice performance has been synthesized." });
+      toast({ title: "Clone Ready!", description: "The AI has finished synthesizing your performance." });
     } catch (error: any) {
       console.error("Cloning error:", error);
       toast({ 
         variant: 'destructive', 
-        title: 'Cloning Failed', 
-        description: error.message || "Synthesis engine is currently unavailable." 
+        title: 'Synthesis Error', 
+        description: error.message || "The voice engine is temporarily busy. Try again." 
       });
     } finally {
       setIsLoading(false);
@@ -191,18 +190,17 @@ export function VoiceCloner() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-700">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Input Section */}
         <div className="space-y-6">
-          <Card className="border-primary/10 bg-card/50 backdrop-blur-sm">
+          <Card className="border-primary/20 bg-card/40 backdrop-blur-md shadow-2xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Mic className="h-5 w-5 text-primary" />
-                Voice Reference
+                Voice Reference Studio
               </CardTitle>
               <CardDescription>
-                Record your voice or upload a sample.
+                Provide a short audio clip (5-10s) of the target voice.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -210,40 +208,40 @@ export function VoiceCloner() {
                 {!sampleDataUri && !isRecording && (
                   <Button 
                     variant="outline" 
-                    className="flex-1 h-24 flex-col gap-2 border-dashed border-2 hover:bg-primary/5 hover:border-primary/40 transition-all"
+                    className="flex-1 h-28 flex-col gap-2 border-dashed border-2 hover:bg-primary/10 hover:border-primary/50 transition-all group"
                     onClick={startRecording}
                   >
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Mic className="h-5 w-5 text-primary" />
+                    <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Mic className="h-6 w-6 text-primary" />
                     </div>
-                    <span>Start Recording</span>
+                    <span className="font-bold">Record Voice</span>
                   </Button>
                 )}
 
                 {isRecording && (
                   <Button 
                     variant="destructive" 
-                    className="flex-1 h-24 flex-col gap-2 border-2 animate-pulse"
+                    className="flex-1 h-28 flex-col gap-2 border-2 animate-pulse"
                     onClick={stopRecording}
                   >
-                    <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
-                      <StopCircle className="h-5 w-5" />
+                    <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
+                      <StopCircle className="h-6 w-6" />
                     </div>
-                    <span>Stop ({formatTime(recordingTime)})</span>
+                    <span className="font-bold">Stop Recording ({formatTime(recordingTime)})</span>
                   </Button>
                 )}
 
                 {sampleDataUri && !isRecording && (
-                  <div className="flex-1 h-24 border-2 border-primary/40 bg-primary/5 rounded-md flex flex-col items-center justify-center relative group">
-                    <CheckCircle2 className="h-8 w-8 text-primary mb-1" />
-                    <span className="text-xs font-bold text-primary">Sample Ready</span>
+                  <div className="flex-1 h-28 border-2 border-primary/50 bg-primary/10 rounded-xl flex flex-col items-center justify-center relative group shadow-inner">
+                    <CheckCircle2 className="h-10 w-10 text-primary mb-1 animate-in zoom-in-50" />
+                    <span className="text-xs font-black text-primary uppercase tracking-tighter">Sample Captured</span>
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/20 hover:text-destructive"
                       onClick={() => setSampleDataUri(null)}
                     >
-                      <Trash2 className="h-3 w-3 text-destructive" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 )}
@@ -258,25 +256,21 @@ export function VoiceCloner() {
                   />
                   <Button 
                     variant="outline" 
-                    className="w-full h-24 flex-col gap-2 border-dashed border-2 hover:bg-secondary/5 hover:border-secondary/40 transition-all"
+                    className="w-full h-28 flex-col gap-2 border-dashed border-2 hover:bg-secondary/10 hover:border-secondary/50 transition-all group"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isRecording}
                   >
-                    <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
-                      <Upload className="h-5 w-5 text-secondary" />
+                    <div className="h-12 w-12 rounded-full bg-secondary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Upload className="h-6 w-6 text-secondary" />
                     </div>
-                    <span>Upload File</span>
+                    <span className="font-bold">Upload Audio</span>
                   </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Suggested Scripts */}
-          <Card className="border-primary/10 bg-card/50 backdrop-blur-sm overflow-hidden relative">
-            <div className="absolute top-0 right-0 p-3 opacity-10">
-              <Quote className="h-12 w-12" />
-            </div>
+          <Card className="border-primary/10 bg-card/40 backdrop-blur-md overflow-hidden shadow-xl">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-primary" />
@@ -284,24 +278,25 @@ export function VoiceCloner() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="min-h-[80px] p-4 bg-muted/40 rounded-xl border border-dashed border-primary/20 flex flex-col items-center justify-center text-center">
+              <div className="min-h-[100px] p-6 bg-muted/40 rounded-2xl border border-dashed border-primary/20 flex flex-col items-center justify-center text-center relative group">
+                <Quote className="absolute top-2 left-2 h-6 w-6 text-primary/10 group-hover:text-primary/30 transition-colors" />
                 {isGeneratingScript ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 ) : (
-                  <p className="text-sm italic text-foreground leading-relaxed">
-                    "{suggestedScripts[currentScriptIndex] || 'Click refresh to generate training scripts...'}"
+                  <p className="text-base font-medium italic text-foreground leading-relaxed px-4">
+                    "{suggestedScripts[currentScriptIndex] || 'Hit refresh to generate training scripts...'}"
                   </p>
                 )}
               </div>
               <div className="flex items-center justify-between">
-                <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">
-                  Read this to clone your voice
+                <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest flex items-center gap-1">
+                   <Zap className="h-3 w-3 text-primary" /> Read clearly for best results
                 </p>
                 <div className="flex gap-2">
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="h-8 text-[10px] font-bold"
+                    className="h-9 px-4 font-bold rounded-full hover:bg-primary/10"
                     onClick={() => setCurrentScriptIndex((prev) => (prev + 1) % suggestedScripts.length)}
                     disabled={suggestedScripts.length === 0}
                   >
@@ -310,11 +305,11 @@ export function VoiceCloner() {
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-8 w-8"
+                    className="h-9 w-9 rounded-full"
                     onClick={fetchScripts}
                     disabled={isGeneratingScript}
                   >
-                    <RefreshCw className={cn("h-3 w-3", isGeneratingScript && "animate-spin")} />
+                    <RefreshCw className={cn("h-4 w-4", isGeneratingScript && "animate-spin")} />
                   </Button>
                 </div>
               </div>
@@ -322,15 +317,14 @@ export function VoiceCloner() {
           </Card>
         </div>
 
-        {/* Script Section */}
-        <Card className="border-primary/10 bg-card/50 backdrop-blur-sm">
+        <Card className="border-primary/10 bg-card/40 backdrop-blur-md shadow-2xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Volume2 className="h-5 w-5 text-primary" />
-              Performance Script
+              <Wand2 className="h-5 w-5 text-primary" />
+              AI Performance Script
             </CardTitle>
             <CardDescription>
-              Enter the text you want your AI clone to perform.
+              Write the text you want the cloned voice to perform.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -343,8 +337,8 @@ export function VoiceCloner() {
                     <FormItem>
                       <FormControl>
                         <Textarea 
-                          placeholder="Type your script here..." 
-                          className="min-h-[150px] bg-background/50 text-lg focus:ring-1 focus:ring-primary/30"
+                          placeholder="What should your AI clone say? Type it here..." 
+                          className="min-h-[180px] bg-background/50 text-lg focus:ring-2 focus:ring-primary/20 p-6 rounded-2xl transition-all"
                           disabled={isLoading || isRecording}
                           {...field}
                         />
@@ -356,13 +350,13 @@ export function VoiceCloner() {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-14 text-lg font-headline shadow-xl shadow-primary/20 transition-all hover:scale-[1.01]" 
+                  className="w-full h-16 text-xl font-headline shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] rounded-2xl" 
                   disabled={isLoading || !sampleDataUri || isRecording}
                 >
                   {isLoading ? (
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    <Loader2 className="mr-3 h-6 w-6 animate-spin" />
                   ) : (
-                    <Sparkles className="mr-2 h-5 w-5" />
+                    <Sparkles className="mr-3 h-6 w-6" />
                   )}
                   {isLoading ? 'Synthesizing Performance...' : 'Synthesize AI Performance'}
                 </Button>
@@ -372,40 +366,39 @@ export function VoiceCloner() {
         </Card>
       </div>
 
-      {/* Result Section */}
       {clonedAudioUri && (
-        <Card className="border-primary/20 bg-primary/5 border-2 animate-in slide-in-from-bottom-4 duration-500 overflow-hidden relative">
-          <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
-          <CardContent className="p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shadow-lg transform -rotate-3 group-hover:rotate-0 transition-transform">
-                <Volume2 className="h-8 w-8 text-primary-foreground" />
+        <Card className="border-primary/40 bg-primary/10 border-2 animate-in slide-in-from-bottom-8 duration-700 overflow-hidden relative shadow-2xl rounded-3xl">
+          <div className="absolute top-0 left-0 w-2 h-full bg-primary" />
+          <CardContent className="p-10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex items-center gap-8">
+              <div className="h-20 w-20 rounded-3xl bg-primary flex items-center justify-center shadow-xl transform -rotate-6 hover:rotate-0 transition-transform duration-500">
+                <Volume2 className="h-10 w-10 text-primary-foreground" />
               </div>
-              <div className="space-y-1">
-                <h3 className="font-headline text-2xl font-bold">Studio Performance</h3>
+              <div className="space-y-2">
+                <h3 className="font-headline text-3xl font-bold">AI Studio Master</h3>
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-primary-foreground bg-primary px-2 py-0.5 rounded font-black uppercase tracking-tighter">AI Ready</span>
-                  <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold flex items-center gap-2">
-                    <Zap className="h-3 w-3 text-primary" /> Synthetic Output
+                  <span className="text-[12px] text-primary-foreground bg-primary px-3 py-1 rounded-full font-black uppercase tracking-tighter shadow-sm">Instant Ready</span>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black flex items-center gap-2">
+                    <Zap className="h-3 w-3 text-primary animate-pulse" /> Synthetic Performance
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <audio 
                 ref={audioPlayerRef} 
                 src={clonedAudioUri} 
                 onEnded={() => setIsPlaying(false)}
                 className="hidden"
               />
-              <Button size="lg" className="h-14 px-10 rounded-full font-bold shadow-lg" onClick={togglePlayback}>
-                {isPlaying ? <StopCircle className="mr-2 h-5 w-5" /> : <Play className="mr-2 h-5 w-5" />}
+              <Button size="lg" className="h-16 px-12 rounded-2xl font-black text-lg shadow-2xl hover:scale-105 transition-transform" onClick={togglePlayback}>
+                {isPlaying ? <StopCircle className="mr-3 h-6 w-6" /> : <Play className="mr-3 h-6 w-6" />}
                 {isPlaying ? 'Stop' : 'Play Performance'}
               </Button>
-              <Button variant="outline" size="icon" className="h-14 w-14 rounded-full border-primary/20 hover:bg-primary/10" asChild>
-                <a href={clonedAudioUri} download="cloned_voice.mp3">
-                  <Upload className="h-5 w-5 rotate-180" />
+              <Button variant="outline" size="icon" className="h-16 w-16 rounded-2xl border-primary/30 hover:bg-primary/20 hover:scale-105 transition-all shadow-xl" asChild title="Download Result">
+                <a href={clonedAudioUri} download="sargam_ai_clone.mp3">
+                  <Upload className="h-6 w-6 rotate-180" />
                 </a>
               </Button>
             </div>
