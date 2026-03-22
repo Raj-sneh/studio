@@ -56,7 +56,7 @@ const voiceCloningFlow = ai.defineFlow(
       const outputBase64 = Buffer.from(audioBuffer).toString('base64');
 
       return {
-        clonedAudioUri: `data:audio/wav;base64,${outputBase64}`,
+        clonedAudioUri: `data:audio/mpeg;base64,${outputBase64}`,
       };
     } catch (error: any) {
       console.error("Voice Cloning Engine Error:", error);

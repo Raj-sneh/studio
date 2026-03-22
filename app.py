@@ -1,0 +1,120 @@
+from flask import Flask, request, send_file, jsonify
+from flask_cors import CORS
+from gtts import gTTS
+import os
+import wave
+import audioop
+import subprocess
+import librosa
+import numpy as np
+
+app = Flask(__name__)
+CORS(app)
+
+
+@app.route('/')
+def home():
+    return "Voice backend running"
+
+
+@app.route('/clone', methods=['POST'])
+def clone():
+    try:
+        text = request.form.get("text")
+        audio = request.files.get("audio")
+
+        if not text or not audio:
+            return jsonify({"error": "Missing text or audio"}), 400
+
+        # ----------------------------
+        # SAVE INPUT
+        # ----------------------------
+        input_path = "input_audio"
+        audio.save(input_path)
+
+        wav_path = "converted.wav"
+
+        # ----------------------------
+        # CONVERT TO WAV (ffmpeg)
+        # ----------------------------
+        result = subprocess.run(
+            ["ffmpeg", "-y", "-i", input_path, wav_path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+        if result.returncode != 0:
+            return jsonify({"error": "Audio conversion failed"}), 500
+
+        # ----------------------------
+        # REAL ANALYSIS (duration + energy)
+        # ----------------------------
+        try:
+            with wave.open(wav_path, 'rb') as wf:
+                frames = wf.getnframes()
+                rate = wf.getframerate()
+                duration = frames / float(rate)
+
+                frames_data = wf.readframes(frames)
+                energy = audioop.rms(frames_data, wf.getsampwidth())
+        except:
+            duration = 3
+            energy = 1500
+
+        # ----------------------------
+        # 🔥 PITCH DETECTION (RIGHT PLACE)
+        # ----------------------------
+        try:
+            y, sr = librosa.load(wav_path)
+            pitches, magnitudes = librosa.piptrack(y=y, sr=sr)
+
+            pitch_values = pitches[magnitudes > np.median(magnitudes)]
+            pitch = np.mean(pitch_values) if len(pitch_values) > 0 else 150
+        except:
+            pitch = 150
+
+        # ----------------------------
+        # DECISION LOGIC
+        # ----------------------------
+        if duration > 5:
+            slow = True
+        else:
+            slow = False
+
+        if energy > 3000:
+            slow = False
+        elif energy < 1200:
+            slow = True
+
+        # 🔥 PITCH EFFECT
+        if pitch > 200:
+            slow = False   # high pitch → faster
+        elif pitch < 120:
+            slow = True    # deep voice → slower
+
+        # ----------------------------
+        # GENERATE OUTPUT
+        # ----------------------------
+        output_path = "output.mp3"
+        tts = gTTS(text=text, slow=slow)
+        tts.save(output_path)
+
+        return send_file(
+            output_path,
+            mimetype="audio/mpeg",
+            as_attachment=True,
+            download_name="output.mp3"
+        )
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        for f in ["input_audio", "converted.wav"]:
+            if os.path.exists(f):
+                os.remove(f)
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)

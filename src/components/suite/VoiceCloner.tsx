@@ -18,7 +18,8 @@ import {
   Volume2, 
   History,
   Info,
-  CheckCircle2
+  CheckCircle2,
+  Zap
 } from 'lucide-react';
 import { 
   Form, 
@@ -245,7 +246,7 @@ export function VoiceCloner() {
                 {isPlaying ? 'Stop' : 'Play Result'}
               </Button>
               <Button variant="outline" size="icon" className="h-12 w-12 rounded-full" asChild>
-                <a href={clonedAudioUri} download="cloned_voice.wav">
+                <a href={clonedAudioUri} download="cloned_voice.mp3">
                   <Upload className="h-5 w-5 rotate-180" />
                 </a>
               </Button>

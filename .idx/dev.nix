@@ -5,6 +5,7 @@
     pkgs.python311
     pkgs.python311Packages.pip
     pkgs.ffmpeg # Required for processing audio files
+    pkgs.sox
   ];
   idx = {
     extensions = [
