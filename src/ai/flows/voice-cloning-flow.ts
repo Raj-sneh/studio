@@ -34,11 +34,11 @@ const voiceCloningFlow = ai.defineFlow(
     // Create Form Data to send to the Flask server
     const formData = new FormData();
     const blob = new Blob([buffer], { type: 'audio/wav' });
-    formData.append('sample', blob, 'sample.wav');
+    // Changed 'sample' to 'audio' to match updated main.py
+    formData.append('audio', blob, 'sample.wav');
     formData.append('text', text);
 
     // Call the external Voice Engine (Flask server)
-    // In production, this URL should be an environment variable
     const VOICE_ENGINE_URL = process.env.VOICE_ENGINE_URL || 'http://localhost:8080/clone';
 
     try {
