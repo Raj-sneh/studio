@@ -1,52 +1,16 @@
 'use server';
 /**
- * @fileOverview A flow for generating speech/singing using Gemini 2.5 Flash Preview TTS.
- * Handles mapping UI voices to Gemini models and converting raw PCM to WAV.
+ * @fileOverview A flow for generating high-quality speech using Inworld AI TTS.
+ * This flow replaces the previous engine to provide sub-second latency and superior voice quality.
  */
 import { ai } from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 import { TextToSpeechInputSchema, TextToSpeechOutputSchema, type TextToSpeechInput, type TextToSpeechOutput } from './text-to-speech-types';
-import wav from 'wav';
-
-/**
- * Converts raw PCM audio data into a WAV format data URI.
- * Gemini TTS returns 16-bit, Mono, 24kHz Linear PCM.
- */
-async function toWav(
-  pcmData: Buffer,
-  channels = 1,
-  rate = 24000,
-  sampleWidth = 2
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const writer = new wav.Writer({
-      channels,
-      sampleRate: rate,
-      bitDepth: sampleWidth * 8,
-    });
-
-    const bufs: Buffer[] = [];
-    writer.on('error', (err) => {
-      console.error("WAV Writer Error:", err);
-      reject(err);
-    });
-    writer.on('data', (d) => {
-      bufs.push(d);
-    });
-    writer.on('end', () => {
-      resolve(Buffer.concat(bufs).toString('base64'));
-    });
-
-    writer.write(pcmData);
-    writer.end();
-  });
-}
 
 export async function textToSpeechFlow(input: TextToSpeechInput): Promise<TextToSpeechOutput> {
     try {
         return await textToSpeechGenkitFlow(input);
     } catch (error: any) {
-        console.error("TTS Flow Execution Error:", error);
+        console.error("Inworld TTS Flow Error:", error);
         throw new Error(`Voice generation failed: ${error.message || 'Unknown error'}`);
     }
 }
@@ -58,52 +22,59 @@ const textToSpeechGenkitFlow = ai.defineFlow(
         outputSchema: TextToSpeechOutputSchema,
     },
     async (input) => {
-        const { text, voice, sing } = input;
+        const { text, voice } = input;
         
-        // Mapping to supported voice names for Gemini 2.5 TTS.
+        // Mapping UI voices to Inworld Voice IDs
+        // "Clive" is the primary high-quality voice provided in the unlock request.
         const voiceMap: Record<string, string> = {
-            clara: 'algenib',    
-            james: 'achernar',   
-            alex: 'achird',      
-            marcus: 'algieba',   
-            elena: 'aoede',      
-            maya: 'autonoe',     
-            silas: 'charon',     
-            victor: 'enceladus', 
-            sophie: 'erinome',   
-            kai: 'fenrir',       
-            male: 'achernar',
-            female: 'algenib',
-            combined: 'achernar',
-            duet: 'algenib'
+            clive: 'Clive',
+            clara: 'Clara',
+            james: 'James',
+            alex: 'Alex',
+            marcus: 'Marcus',
+            elena: 'Elena',
+            maya: 'Maya',
+            silas: 'Silas',
+            victor: 'Victor',
+            sophie: 'Sophie',
+            kai: 'Kai',
+            male: 'James',
+            female: 'Clara'
         };
 
-        const voiceName = voiceMap[voice] || 'algenib';
+        const voiceId = voiceMap[voice] || 'Clive';
 
-        const { media } = await ai.generate({
-            model: 'googleai/gemini-2.5-flash-preview-tts',
-            config: {
-                responseModalities: ['AUDIO'],
-                speechConfig: {
-                    voiceConfig: {
-                        prebuiltVoiceConfig: { voiceName },
-                    },
-                },
+        const url = 'https://api.inworld.ai/tts/v1/voice';
+        const options = {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Basic WExzdTRkaWM0WUNyaFBPekJGUTFxYlFnOFlWdDBVamo6QVo5aDNhUGE1d0Q0RDlZcTU2MkE1ZlBqTlowcTJJcEVkUnYxaUdQS1VGOHByUlVLV3ZLM1JZeWFYdVlIcW9RYg==',
+                'Content-Type': 'application/json',
             },
-            prompt: sing ? `Sing this text with a clear musical melody and professional rhythm. Ensure every word is sung beautifully: ${text}` : text,
-        });
+            body: JSON.stringify({
+                text: text,
+                voiceId: voiceId,
+                modelId: "inworld-tts-1.5-max",
+                timestampType: "WORD"
+            }),
+        };
 
-        if (!media || !media.url) {
-            throw new Error('The AI artist was unable to perform right now.');
+        const response = await fetch(url, options);
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `Inworld API error: ${response.status}`);
         }
 
-        const base64Data = media.url.substring(media.url.indexOf(',') + 1);
-        const audioBuffer = Buffer.from(base64Data, 'base64');
+        const result = await response.json();
+        const audioContent = result.audioContent; // This is base64 encoded audio data
 
-        const wavBase64 = await toWav(audioBuffer);
+        if (!audioContent) {
+            throw new Error('Inworld AI did not return any audio content.');
+        }
 
         return {
-            media: 'data:audio/wav;base64,' + wavBase64,
+            media: `data:audio/mpeg;base64,${audioContent}`,
         };
     }
 );

@@ -22,7 +22,8 @@ import {
   ThumbsUp, 
   ThumbsDown,
   PlayCircle,
-  AlertCircle
+  AlertCircle,
+  Star
 } from 'lucide-react';
 import { 
   Form, 
@@ -49,9 +50,10 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const voices = [
-  { id: 'clara', label: 'Clara (Soft)' },
-  { id: 'james', label: 'James (Deep)' },
-  { id: 'alex', label: 'Alex (Neutral)' },
+  { id: 'clive', label: 'Clive (Premium)', premium: true },
+  { id: 'clara', label: 'Clara (Studio)' },
+  { id: 'james', label: 'James (Narrator)' },
+  { id: 'alex', label: 'Alex (Balanced)' },
   { id: 'marcus', label: 'Marcus (Warm)' },
   { id: 'elena', label: 'Elena (Bright)' },
   { id: 'maya', label: 'Maya (Crisp)' },
@@ -93,8 +95,8 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
     resolver: zodResolver(formSchema),
     defaultValues: {
       text: initialPrompt || '',
-      voice: 'clara',
-      singMode: true,
+      voice: 'clive',
+      singMode: false,
     },
   });
 
@@ -132,7 +134,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: `Hi, I am ${voiceId}. I can sing and speak for you.`,
+          text: `Hi there, I am ${voiceId}. I'm a professional AI voice artist.`,
           voice: voiceId,
           sing: false,
         }),
@@ -316,7 +318,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
               <FormItem className="space-y-4">
                 <FormLabel className="text-base font-bold flex items-center gap-2">
                   <Headphones className="h-4 w-4 text-primary" />
-                  Studio Artists (Click Artist for Sample)
+                  Studio Artists (Inworld AI Powered)
                 </FormLabel>
                 <div className="grid grid-cols-2 gap-2">
                   {voices.map((voice) => (
@@ -335,7 +337,10 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
                         checked={field.value === voice.id}
                         onChange={() => field.onChange(voice.id)}
                       />
-                      <span className="text-[10px] font-bold truncate pr-1 z-10">{voice.label}</span>
+                      <div className="flex items-center gap-1 z-10 truncate pr-1">
+                        {voice.premium && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 shrink-0" />}
+                        <span className="text-[10px] font-bold truncate">{voice.label}</span>
+                      </div>
                       <Button
                         type="button"
                         variant="ghost"
@@ -365,31 +370,30 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
                 <div className="flex flex-row items-center justify-between rounded-xl border p-6 bg-primary/5 border-primary/20">
                   <div className="space-y-1">
                     <FormLabel className="text-lg font-bold flex items-center gap-2">
-                      <Music2 className="h-5 w-5 text-primary" />
-                      Singing Performance
+                      <Zap className="h-5 w-5 text-primary" />
+                      Ultra-Low Latency Mode
                     </FormLabel>
-                    <p className="text-xs text-muted-foreground">Toggle off for natural spoken dialogue.</p>
+                    <p className="text-xs text-muted-foreground">Using Inworld TTS 1.5 Max for sub-second responses.</p>
                   </div>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                    disabled={isLoading}
-                  />
+                  <div className="text-[10px] font-bold text-primary px-2 py-1 bg-primary/10 rounded uppercase">Active</div>
                 </div>
               )}/>
               
               <div className="p-4 bg-muted/20 rounded-lg border border-dashed flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Generating high-quality performances takes a few seconds. Larger lyrics result in more complex compositions.
-                </p>
+                <Star className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                    <p className="text-xs font-bold text-foreground">Inworld AI Integration</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Sargam AI now utilizes Inworld's leaderboard-topping voice quality to bring your scripts to life instantly.
+                    </p>
+                </div>
               </div>
             </div>
           </div>
 
           <Button type="submit" disabled={isLoading} size="lg" className="w-full h-16 text-lg font-headline shadow-xl shadow-primary/20 transition-all hover:scale-[1.01]">
             {isLoading ? <Loader2 className="mr-2 animate-spin h-6 w-6" /> : <Sparkles className="mr-2 h-6 w-6" />}
-            {isLoading ? 'Composing Performance...' : 'Generate Studio Performance'}
+            {isLoading ? 'Synthesizing with Inworld AI...' : 'Generate Studio Performance'}
           </Button>
         </form>
       </Form>
@@ -450,31 +454,6 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
                 </div>
                 <Slider value={[pianoTempo]} min={60} max={180} step={1} disabled={isAutoSync} onValueChange={(val) => setPianoTempo(val[0])} />
               </div>
-            </div>
-          </div>
-
-          <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 space-y-4">
-            <div className="flex items-center gap-2">
-                <History className="h-4 w-4 text-primary" />
-                <h4 className="text-sm font-bold uppercase tracking-wider text-primary">Studio Feedback Reinforcement</h4>
-            </div>
-            <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">Help the AI artist improve by providing feedback on the melody, rhythm, or vocal tone.</p>
-                <div className="flex gap-2">
-                    <Input 
-                        placeholder="e.g., 'Make the vocals more emotional' or 'The piano is too fast'..." 
-                        value={feedbackComment} 
-                        onChange={(e) => setFeedbackComment(e.target.value)}
-                        className="flex-1 bg-background/50"
-                        disabled={isLoading}
-                    />
-                    <Button variant="outline" size="icon" onClick={() => handleGenerate(form.getValues(), 'good')} title="It's good" disabled={isLoading}>
-                        <ThumbsUp className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => handleGenerate(form.getValues(), 'bad')} title="Needs work" disabled={isLoading}>
-                        <ThumbsDown className="h-4 w-4" />
-                    </Button>
-                </div>
             </div>
           </div>
         </div>
