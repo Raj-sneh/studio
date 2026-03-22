@@ -39,9 +39,14 @@ const voiceCloningFlow = ai.defineFlow(
     formData.append('audio', blob, 'sample.wav');
     formData.append('text', text);
 
-    // Call the external Voice Engine (Flask server)
-    // Defaulting to 127.0.0.1 as it is often more stable than 'localhost' in Node.js fetch environments
-    const VOICE_ENGINE_URL = process.env.VOICE_ENGINE_URL || 'http://127.0.0.1:8080/clone';
+    // Resolve URL - prioritize 127.0.0.1 over localhost for Node.js fetch reliability
+    let VOICE_ENGINE_URL = process.env.VOICE_ENGINE_URL || 'http://127.0.0.1:8080/clone';
+    
+    // Node.js 18+ fetch often fails to resolve 'localhost' to 127.0.0.1 automatically.
+    // We force the replacement to ensure we hit the IPv4 loopback address.
+    if (VOICE_ENGINE_URL.includes('localhost')) {
+      VOICE_ENGINE_URL = VOICE_ENGINE_URL.replace('localhost', '127.0.0.1');
+    }
 
     try {
       console.log(`Attempting to connect to voice engine at: ${VOICE_ENGINE_URL}`);
@@ -49,8 +54,8 @@ const voiceCloningFlow = ai.defineFlow(
       const response = await fetch(VOICE_ENGINE_URL, {
         method: 'POST',
         body: formData,
-        // Increase timeout for slow XTTS/Voice processing
-        signal: AbortSignal.timeout(60000), 
+        // Increase timeout for slow XTTS/Voice processing (90 seconds)
+        signal: AbortSignal.timeout(90000), 
       });
 
       if (!response.ok) {
@@ -59,7 +64,6 @@ const voiceCloningFlow = ai.defineFlow(
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
         } catch (e) {
-          // If response isn't JSON, just use the status text
           errorMessage = response.statusText || errorMessage;
         }
         throw new Error(errorMessage);
@@ -79,14 +83,15 @@ const voiceCloningFlow = ai.defineFlow(
       console.error("Voice Cloning Engine Connection Error:", {
         message: error.message,
         url: VOICE_ENGINE_URL,
-        stack: error.stack
+        name: error.name
       });
       
       let clientMessage = "The voice engine is currently unavailable.";
-      if (error.name === 'TimeoutError') {
-        clientMessage = "The voice generation timed out. Please try a shorter text.";
-      } else if (error.message.includes('fetch failed')) {
-        clientMessage = `Could not connect to the voice engine at ${VOICE_ENGINE_URL}. Please ensure the Python server is running.`;
+      
+      if (error.name === 'TimeoutError' || error.message.includes('timeout')) {
+        clientMessage = "The voice generation timed out. Please ensure the Python server is responding.";
+      } else if (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED')) {
+        clientMessage = `Could not connect to the voice engine at ${VOICE_ENGINE_URL}. Please ensure the Python server (app.py) is running on port 8080.`;
       } else {
         clientMessage = `Voice Synthesis Error: ${error.message}`;
       }
