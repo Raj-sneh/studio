@@ -7,12 +7,7 @@ app = Flask(__name__)
 CORS(app)
 
 print("Loading model... wait")
-# Using xtts_v2 as the standard multilingual model
-try:
-    tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=False)
-except Exception as e:
-    print(f"Error loading model: {e}")
-    tts = None
+tts = TTS("tts_models/multilingual/multi-dataset/your_model", gpu=False)
 
 @app.route('/')
 def home():
@@ -20,9 +15,6 @@ def home():
 
 @app.route('/clone', methods=['POST'])
 def clone():
-    if tts is None:
-        return jsonify({"error": "TTS model not loaded"}), 500
-        
     try:
         text = request.form.get("text")
         audio = request.files.get("audio")
@@ -35,11 +27,9 @@ def clone():
 
         output_path = "output.wav"
 
-        # xtts_v2 requires language parameter
         tts.tts_to_file(
             text=text,
             speaker_wav=sample_path,
-            language="en",
             file_path=output_path
         )
 
@@ -51,11 +41,8 @@ def clone():
         )
 
     except Exception as e:
-        print(f"Cloning error: {e}")
         return jsonify({"error": str(e)}), 500
-    finally:
-        if os.path.exists("sample.wav"):
-            os.remove("sample.wav")
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
