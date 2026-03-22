@@ -40,7 +40,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     }
     try {
       const savedHistory = localStorage.getItem(CHAT_HISTORY_KEY);
-      if (savedHistory) {
+      if (savedHistory && savedHistory !== 'undefined' && savedHistory !== 'null') {
         const { timestamp, messages: savedMessages } = JSON.parse(savedHistory);
         if (Date.now() - timestamp > CHAT_HISTORY_TTL) {
           localStorage.removeItem(CHAT_HISTORY_KEY);
@@ -144,7 +144,13 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         }),
       });
       
-      const result = await res.json();
+      const resText = await res.text();
+      let result;
+      try {
+        result = resText ? JSON.parse(resText) : {};
+      } catch (e) {
+        throw new Error(`Invalid server response: ${resText.substring(0, 100)}`);
+      }
       
       if (!res.ok) {
         throw new Error(result.responseText || result.message || `API request failed with status ${res.status}`);

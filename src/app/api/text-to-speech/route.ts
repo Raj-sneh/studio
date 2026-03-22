@@ -4,7 +4,18 @@ import { TextToSpeechInputSchema } from '@/ai/flows/text-to-speech-types';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const text = await req.text();
+    if (!text) {
+      return NextResponse.json({ error: 'Empty body' }, { status: 400 });
+    }
+
+    let body: any;
+    try {
+      body = JSON.parse(text);
+    } catch (e) {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
     const validatedInput = TextToSpeechInputSchema.parse(body);
     const result = await textToSpeechFlow(validatedInput);
     return NextResponse.json(result);

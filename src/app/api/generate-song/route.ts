@@ -6,7 +6,17 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const text = await req.text();
+    if (!text) {
+      return NextResponse.json({ error: 'Request body is empty' }, { status: 400 });
+    }
+
+    let body: any;
+    try {
+      body = JSON.parse(text);
+    } catch (e) {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
     
     const validatedInput = GenerateSongInputSchema.parse(body);
     const result = await generateSong(validatedInput);

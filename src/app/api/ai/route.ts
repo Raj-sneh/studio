@@ -7,7 +7,17 @@ export const maxDuration = 60; // Increase timeout for slow AI flows
 
 export async function POST(req: Request) {
   try {
-    const body: any = await req.json();
+    const text = await req.text();
+    if (!text) {
+      return Response.json({ error: 'Request body is empty' }, { status: 400 });
+    }
+
+    let body: any;
+    try {
+      body = JSON.parse(text);
+    } catch (e) {
+      return Response.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
 
     if (!body.prompt) {
       return Response.json({ error: 'Prompt is required' }, { status: 400 });

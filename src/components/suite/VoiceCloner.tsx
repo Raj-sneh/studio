@@ -19,7 +19,9 @@ import {
   CheckCircle2,
   Zap,
   Trash2,
-  Radio
+  BookOpen,
+  RefreshCw,
+  Quote
 } from 'lucide-react';
 import { 
   Form, 
@@ -31,6 +33,7 @@ import {
 } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cloneVoice } from '@/ai/flows/voice-cloning-flow';
+import { generateTrainingParagraphs } from '@/ai/flows/voice-training-flow';
 import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
@@ -40,9 +43,12 @@ const formSchema = z.object({
 export function VoiceCloner() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [clonedAudioUri, setClonedAudioUri] = useState<string | null>(null);
   const [sampleDataUri, setSampleDataUri] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [suggestedScripts, setSuggestedScripts] = useState<string[]>([]);
+  const [currentScriptIndex, setCurrentScriptIndex] = useState(0);
   
   // Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -60,6 +66,22 @@ export function VoiceCloner() {
       text: '',
     },
   });
+
+  const fetchScripts = async () => {
+    setIsGeneratingScript(true);
+    try {
+      const scripts = await generateTrainingParagraphs();
+      setSuggestedScripts(scripts);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsGeneratingScript(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchScripts();
+  }, []);
 
   const startRecording = async () => {
     try {
@@ -89,7 +111,7 @@ export function VoiceCloner() {
         setRecordingTime(prev => prev + 1);
       }, 1000);
 
-      toast({ title: "Recording Started", description: "Speak clearly into your microphone." });
+      toast({ title: "Recording Started", description: "Read the suggested script below clearly." });
     } catch (err) {
       console.error("Recording error:", err);
       toast({ title: "Mic Error", description: "Could not access microphone.", variant: "destructive" });
@@ -172,92 +194,133 @@ export function VoiceCloner() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Input Section */}
-        <Card className="border-primary/10 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mic className="h-5 w-5 text-primary" />
-              Voice Reference
-            </CardTitle>
-            <CardDescription>
-              Record your voice live or upload a clear 5-10 second sample.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex gap-4">
-              {!sampleDataUri && !isRecording && (
-                <Button 
-                  variant="outline" 
-                  className="flex-1 h-24 flex-col gap-2 border-dashed border-2 hover:bg-primary/5 hover:border-primary/40 transition-all"
-                  onClick={startRecording}
-                >
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Mic className="h-5 w-5 text-primary" />
-                  </div>
-                  <span>Start Recording</span>
-                </Button>
-              )}
+        <div className="space-y-6">
+          <Card className="border-primary/10 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mic className="h-5 w-5 text-primary" />
+                Voice Reference
+              </CardTitle>
+              <CardDescription>
+                Record your voice or upload a sample.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex gap-4">
+                {!sampleDataUri && !isRecording && (
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 h-24 flex-col gap-2 border-dashed border-2 hover:bg-primary/5 hover:border-primary/40 transition-all"
+                    onClick={startRecording}
+                  >
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Mic className="h-5 w-5 text-primary" />
+                    </div>
+                    <span>Start Recording</span>
+                  </Button>
+                )}
 
-              {isRecording && (
-                <Button 
-                  variant="destructive" 
-                  className="flex-1 h-24 flex-col gap-2 border-2 animate-pulse"
-                  onClick={stopRecording}
-                >
-                  <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
-                    <StopCircle className="h-5 w-5" />
-                  </div>
-                  <span>Stop ({formatTime(recordingTime)})</span>
-                </Button>
-              )}
+                {isRecording && (
+                  <Button 
+                    variant="destructive" 
+                    className="flex-1 h-24 flex-col gap-2 border-2 animate-pulse"
+                    onClick={stopRecording}
+                  >
+                    <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
+                      <StopCircle className="h-5 w-5" />
+                    </div>
+                    <span>Stop ({formatTime(recordingTime)})</span>
+                  </Button>
+                )}
 
-              {sampleDataUri && !isRecording && (
-                <div className="flex-1 h-24 border-2 border-primary/40 bg-primary/5 rounded-md flex flex-col items-center justify-center relative group">
-                  <CheckCircle2 className="h-8 w-8 text-primary mb-1" />
-                  <span className="text-xs font-bold text-primary">Sample Ready</span>
+                {sampleDataUri && !isRecording && (
+                  <div className="flex-1 h-24 border-2 border-primary/40 bg-primary/5 rounded-md flex flex-col items-center justify-center relative group">
+                    <CheckCircle2 className="h-8 w-8 text-primary mb-1" />
+                    <span className="text-xs font-bold text-primary">Sample Ready</span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => setSampleDataUri(null)}
+                    >
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
+                )}
+
+                <div className="flex-1">
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileChange} 
+                    className="hidden" 
+                    accept="audio/*"
+                  />
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-24 flex-col gap-2 border-dashed border-2 hover:bg-secondary/5 hover:border-secondary/40 transition-all"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isRecording}
+                  >
+                    <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
+                      <Upload className="h-5 w-5 text-secondary" />
+                    </div>
+                    <span>Upload File</span>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Suggested Scripts */}
+          <Card className="border-primary/10 bg-card/50 backdrop-blur-sm overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+              <Quote className="h-12 w-12" />
+            </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-primary" />
+                Training Scripts
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="min-h-[80px] p-4 bg-muted/40 rounded-xl border border-dashed border-primary/20 flex flex-col items-center justify-center text-center">
+                {isGeneratingScript ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                ) : (
+                  <p className="text-sm italic text-foreground leading-relaxed">
+                    "{suggestedScripts[currentScriptIndex] || 'Click refresh to generate training scripts...'}"
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">
+                  Read this to clone your voice
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 text-[10px] font-bold"
+                    onClick={() => setCurrentScriptIndex((prev) => (prev + 1) % suggestedScripts.length)}
+                    disabled={suggestedScripts.length === 0}
+                  >
+                    Next Script
+                  </Button>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => setSampleDataUri(null)}
+                    className="h-8 w-8"
+                    onClick={fetchScripts}
+                    disabled={isGeneratingScript}
                   >
-                    <Trash2 className="h-3 w-3 text-destructive" />
+                    <RefreshCw className={cn("h-3 w-3", isGeneratingScript && "animate-spin")} />
                   </Button>
                 </div>
-              )}
-
-              <div className="flex-1">
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  className="hidden" 
-                  accept="audio/*"
-                />
-                <Button 
-                  variant="outline" 
-                  className="w-full h-24 flex-col gap-2 border-dashed border-2 hover:bg-secondary/5 hover:border-secondary/40 transition-all"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isRecording}
-                >
-                  <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
-                    <Upload className="h-5 w-5 text-secondary" />
-                  </div>
-                  <span>Upload File</span>
-                </Button>
               </div>
-            </div>
-
-            <div className="bg-muted/30 p-4 rounded-lg flex gap-3 items-start border border-border/50">
-              <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Quality Tip</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  For the best clone, record in a quiet room and speak with your natural emotion and pitch.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Script Section */}
         <Card className="border-primary/10 bg-card/50 backdrop-blur-sm">

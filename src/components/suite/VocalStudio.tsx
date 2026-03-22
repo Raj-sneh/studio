@@ -140,7 +140,14 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
         }),
       });
 
-      const data = await res.json();
+      const resText = await res.text();
+      let data;
+      try {
+        data = resText ? JSON.parse(resText) : {};
+      } catch (e) {
+        throw new Error("Invalid voice sample response");
+      }
+
       if (!res.ok) throw new Error(data.message || "Preview failed");
       
       const audio = new Audio(data.media);
@@ -236,7 +243,14 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
           }),
         });
 
-        const songData = await res.json();
+        const resText = await res.text();
+        let songData;
+        try {
+          songData = resText ? JSON.parse(resText) : {};
+        } catch (e) {
+          throw new Error("The AI artist returned an invalid response.");
+        }
+
         if (!res.ok) throw new Error(songData.message || "The AI artist was unable to complete the song.");
 
         newResult = {
@@ -262,7 +276,14 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
           }),
         });
 
-        const speechResult = await res.json();
+        const resText = await res.text();
+        let speechResult;
+        try {
+          speechResult = resText ? JSON.parse(resText) : {};
+        } catch (e) {
+          throw new Error("Voice synthesis engine returned an invalid response.");
+        }
+
         if (!res.ok) throw new Error(speechResult.message || "Voice generation failed.");
         
         newResult = { vocalUri: speechResult.media };
