@@ -35,10 +35,17 @@ export function GlobalCreditBar() {
     fetchCredits();
 
     const handleUpdate = () => fetchCredits();
+    const handleShow = () => {
+      setIsVisible(true);
+      setShowContactInfo(true);
+    };
+
     window.addEventListener('creditsUpdated', handleUpdate);
+    window.addEventListener('showCreditBar', handleShow);
     
     return () => {
       window.removeEventListener('creditsUpdated', handleUpdate);
+      window.removeEventListener('showCreditBar', handleShow);
     };
   }, []);
 

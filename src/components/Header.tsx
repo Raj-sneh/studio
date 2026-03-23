@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import { Music, LogOut, User as UserIcon, Loader2, BookOpen, Wand2, LogIn, ChevronDown, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
 
 const navLinks = [
   { href: "/practice", label: "Practice", icon: Music },
@@ -71,6 +70,10 @@ export default function Header() {
     await signOut(auth);
     setIsMenuOpen(false);
     router.push("/");
+  };
+
+  const handleOpenCreditBar = () => {
+    window.dispatchEvent(new Event('showCreditBar'));
   };
   
   const renderAuthControls = () => {
@@ -162,11 +165,15 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
-            <Coins className="h-4 w-4 text-primary" />
+          <button 
+            onClick={handleOpenCreditBar}
+            className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20 hover:bg-primary/20 transition-all active:scale-95 group"
+            title="Manage Credits & Buy Premium"
+          >
+            <Coins className="h-4 w-4 text-primary group-hover:rotate-12 transition-transform" />
             <span className="text-sm font-bold text-primary">{credits}</span>
             <span className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter hidden sm:inline">Credits</span>
-          </div>
+          </button>
           {renderAuthControls()}
         </div>
       </div>
