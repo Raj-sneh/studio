@@ -84,11 +84,18 @@ export default function RootLayout({
 
           {/* User Custom Snippet */}
           <div 
-            className="fixed bottom-0 left-0 w-full z-[100] bg-background/95 backdrop-blur border-t p-4 flex items-center justify-center gap-4"
+            className="fixed bottom-0 left-0 w-full z-[100] bg-background/95 backdrop-blur border-t p-4 flex flex-wrap items-center justify-center gap-4"
             dangerouslySetInnerHTML={{ __html: `
               <input type="text" id="text" placeholder="Enter text" style="background: black; color: white; border: 1px solid hsl(var(--border)); padding: 8px 12px; border-radius: 6px;">
               <button id="gen-btn" onclick="generate()" style="background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: opacity 0.2s;">Generate</button>
+              
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="file" id="voiceFile" style="color: white; font-size: 12px;">
+                <button id="upload-btn" onclick="uploadVoice()" style="background: hsl(var(--secondary)); color: hsl(var(--secondary-foreground)); padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: opacity 0.2s;">Upload Voice</button>
+              </div>
+
               <audio id="player" controls style="height: 40px;"></audio>
+              
               <script>
                 async function generate() {
                     const text = document.getElementById("text").value;
@@ -123,6 +130,15 @@ export default function RootLayout({
                         console.error(err);
                         alert("Fetch failed");
                     }
+                }
+
+                async function uploadVoice() {
+                  const fileInput = document.getElementById("voiceFile");
+                  if (!fileInput.files[0]) {
+                    alert("Please select a file first");
+                    return;
+                  }
+                  alert("Voice upload triggered for: " + fileInput.files[0].name);
                 }
               </script>
             `}}
