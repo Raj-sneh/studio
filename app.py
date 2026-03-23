@@ -9,7 +9,9 @@ import librosa
 import numpy as np
 
 app = Flask(__name__)
-CORS(app)
+
+# Enhanced CORS configuration to allow the custom ngrok header
+CORS(app, resources={r"/*": {"origins": "*"}}, allow_headers=["Content-Type", "Authorization", "ngrok-skip-browser-warning"])
 
 # 🎫 COUPON DATABASE
 # Mapping codes to their credit values
@@ -34,8 +36,12 @@ user_redemptions = {}
 def home():
     return "Sargam AI Voice Backend Running"
 
-@app.route('/redeem', methods=['POST'])
+@app.route('/redeem', methods=['POST', 'OPTIONS'])
 def redeem_coupon():
+    # Handle CORS preflight explicitly if needed, though Flask-CORS does this
+    if request.method == 'OPTIONS':
+        return jsonify({"status": "ok"}), 200
+
     try:
         code = request.form.get("code")
         user_id = request.form.get("userId")

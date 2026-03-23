@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, Coins, Sparkles, Ticket, Gem, Coffee, Mail } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { X, Coins, Sparkles, Ticket, Gem, Coffee, Mail, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -23,7 +23,6 @@ export function GlobalCreditBar() {
   const [showContactInfo, setShowContactInfo] = useState(false);
 
   // Hardcoded ngrok URL provided by user. 
-  // Added ngrok-skip-browser-warning header in fetch to bypass the landing page.
   const API_BASE_URL = "https://lourdes-hesitant-jeraldine.ngrok-free.dev";
 
   useEffect(() => {
@@ -67,6 +66,9 @@ export function GlobalCreditBar() {
     setIsRedeeming(true);
     setCouponStatus({ message: "⏳ Checking...", type: 'info' });
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
     try {
       const formData = new FormData();
       formData.append("code", couponCode.trim());
@@ -75,17 +77,20 @@ export function GlobalCreditBar() {
       const res = await fetch(`${API_BASE_URL}/redeem`, {
         method: "POST",
         body: formData,
+        signal: controller.signal,
         headers: {
-          "ngrok-skip-browser-warning": "true", // Bypass ngrok warning page
+          "ngrok-skip-browser-warning": "true", 
         }
       });
+
+      clearTimeout(timeoutId);
 
       const resText = await res.text();
       let data;
       try {
-        data = JSON.parse(resText);
+        data = resText ? JSON.parse(resText) : {};
       } catch (e) {
-        throw new Error("Invalid response format. Is ngrok tunnel open?");
+        throw new Error("Invalid response format. Is your Python server running?");
       }
 
       if (res.ok && data.status === "success") {
@@ -103,9 +108,16 @@ export function GlobalCreditBar() {
       }
     } catch (err: any) {
       console.error("Redeem Error:", err);
-      // Fail gracefully without crashing the app
+      
+      let errorMsg = "❌ Service offline";
+      if (err.name === 'AbortError') {
+        errorMsg = "❌ Request timed out";
+      } else if (err.message.includes('fetch') || err.message.includes('NetworkError')) {
+        errorMsg = "❌ Connection refused. Check Python server.";
+      }
+
       setCouponStatus({ 
-        message: err.message.includes('fetch') ? "❌ Connection Refused" : "❌ Service offline", 
+        message: errorMsg, 
         type: 'error' 
       });
     } finally {
@@ -254,5 +266,3 @@ export function GlobalCreditBar() {
     </div>
   );
 }
-
-import { Loader2 } from 'lucide-react';
