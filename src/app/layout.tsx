@@ -84,48 +84,39 @@ export default function RootLayout({
 
           {/* User Custom Snippet */}
           <div 
-            className="fixed bottom-0 left-0 w-full z-[100] bg-background/95 backdrop-blur border-t p-4 flex flex-wrap items-center justify-center gap-4"
+            className="fixed bottom-0 left-0 w-full z-[100] bg-background/95 backdrop-blur border-t p-4 flex flex-wrap items-center justify-center gap-8 shadow-2xl"
             dangerouslySetInnerHTML={{ __html: `
-              <input type="text" id="text" placeholder="Enter text" style="background: black; color: white; border: 1px solid hsl(var(--border)); padding: 8px 12px; border-radius: 6px;">
-              <button id="gen-btn" onclick="generate()" style="background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: opacity 0.2s;">Generate</button>
-              
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <input type="file" id="voiceFile" style="color: white; font-size: 12px;">
-                <button id="upload-btn" onclick="uploadVoice()" style="background: hsl(var(--secondary)); color: hsl(var(--secondary-foreground)); padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: opacity 0.2s;">Upload Voice</button>
+              <div style="display: flex; flex-direction: column; gap: 4px; border-right: 1px solid hsl(var(--border)); padding-right: 24px;">
+                <h3 style="margin: 0; font-size: 13px; font-weight: bold; color: hsl(var(--primary));">🎙️ Upload Your Voice (Premium)</h3>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input type="file" id="voiceFile" accept="audio/*" style="color: white; font-size: 12px; width: 180px;">
+                  <button onclick="uploadVoice()" style="background: hsl(var(--secondary)); color: hsl(var(--secondary-foreground)); padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; border: none; font-size: 12px;">Upload Voice</button>
+                </div>
+                <p id="uploadStatus" style="margin: 0; font-size: 11px; color: hsl(var(--muted-foreground)); min-height: 1.2em;"></p>
               </div>
 
-              <audio id="player" controls style="height: 40px;"></audio>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <input type="text" id="text" placeholder="Enter text for TTS" style="background: black; color: white; border: 1px solid hsl(var(--border)); padding: 8px 12px; border-radius: 6px; width: 200px; font-size: 14px;">
+                <button onclick="generate()" style="background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; font-size: 14px;">Generate</button>
+                <audio id="player" controls style="height: 36px;"></audio>
+              </div>
               
               <script>
                 async function generate() {
                     const text = document.getElementById("text").value;
-
-                    if (!text) {
-                        alert("Enter text");
-                        return;
-                    }
-
+                    if (!text) { alert("Enter text"); return; }
                     try {
                         const res = await fetch("https://lourdes-hesitant-jeraldine.ngrok-free.dev/tts", {
                             method: "POST",
-                            headers: {
-                                "Content-Type": "application/x-www-form-urlencoded"
-                            },
+                            headers: { "Content-Type": "application/x-www-form-urlencoded" },
                             body: "text=" + encodeURIComponent(text)
                         });
-
-                        if (!res.ok) {
-                            alert("Error: " + res.status);
-                            return;
-                        }
-
+                        if (!res.ok) { alert("Error: " + res.status); return; }
                         const blob = await res.blob();
                         const url = URL.createObjectURL(blob);
-
                         const player = document.getElementById("player");
                         player.src = url;
                         player.play();
-
                     } catch (err) {
                         console.error(err);
                         alert("Fetch failed");
@@ -133,24 +124,30 @@ export default function RootLayout({
                 }
 
                 async function uploadVoice() {
-                    const file = document.getElementById("voiceFile").files[0];
-                    if (!file) {
-                        alert("Please select a file first");
-                        return;
-                    }
+                    const fileInput = document.getElementById("voiceFile");
+                    const status = document.getElementById("uploadStatus");
+                    const file = fileInput.files[0];
+                    if (!file) { status.innerText = "Please select a file first"; return; }
 
+                    status.innerText = "Uploading to server...";
                     const formData = new FormData();
                     formData.append("file", file);
-                    formData.append("user_id", "user123"); // temporary
+                    formData.append("user_id", "user123");
 
                     try {
-                        await fetch("https://lourdes-hesitant-jeraldine.ngrok-free.dev/upload", {
+                        const res = await fetch("https://lourdes-hesitant-jeraldine.ngrok-free.dev/upload", {
                             method: "POST",
                             body: formData
                         });
-                        alert("Voice uploaded ✅");
+                        if (res.ok) {
+                            status.innerText = "Voice uploaded ✅";
+                            alert("Voice uploaded ✅");
+                        } else {
+                            status.innerText = "Upload failed: " + res.status;
+                        }
                     } catch (err) {
                         console.error(err);
+                        status.innerText = "Upload failed ❌";
                         alert("Upload failed");
                     }
                 }
