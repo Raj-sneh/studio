@@ -82,52 +82,91 @@ export default function RootLayout({
           <FloatingAssistantButton />
           <Toaster />
 
-          {/* User Custom Snippet */}
+          {/* 🎙️ AI VOICE GENERATOR APP & CREDIT SYSTEM */}
           <div 
             className="fixed bottom-0 left-0 w-full z-[100] bg-background/95 backdrop-blur border-t p-4 flex flex-col items-center justify-center gap-4 shadow-2xl"
             dangerouslySetInnerHTML={{ __html: `
-              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px; width: 100%;">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px; width: 100%; max-width: 1200px; margin: 0 auto;">
                 
-                <!-- 🔹 TTS SECTION -->
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                  <h2 style="margin: 0; font-size: 14px; font-weight: bold; color: hsl(var(--primary));">🎙️ AI Voice Generator</h2>
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <input type="text" id="text" placeholder="Enter text" style="background: black; color: white; border: 1px solid hsl(var(--border)); padding: 6px 12px; border-radius: 6px; font-size: 14px; width: 200px;">
-                    <button onclick="generate()" style="background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; font-size: 14px;">Generate Voice</button>
-                    <audio id="player" controls style="height: 32px;"></audio>
+                <!-- 🔹 BALANCE SECTION -->
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0 12px; border-right: 1px solid hsl(var(--border));">
+                  <span style="font-size: 10px; font-weight: 900; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.1em;">Balance</span>
+                  <div style="display: flex; items-center; gap: 8px;">
+                    <span id="creditDisplay" style="font-size: 20px; font-weight: bold; color: hsl(var(--primary));">5</span>
+                    <span style="font-size: 12px; color: hsl(var(--muted-foreground));">Credits</span>
                   </div>
                 </div>
 
-                <div style="width: 1px; height: 40px; background: hsl(var(--border));"></div>
-
-                <!-- 🔹 UPLOAD SECTION -->
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                  <h3 style="margin: 0; font-size: 14px; font-weight: bold; color: hsl(var(--secondary));">🎙️ Upload Your Voice (Premium)</h3>
+                <!-- 🔹 TTS GENERATOR SECTION -->
+                <div style="display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 300px;">
+                  <h2 style="margin: 0; font-size: 14px; font-weight: bold; color: hsl(var(--primary)); display: flex; align-items: center; gap: 6px;">
+                    🎙️ AI Voice Generator 
+                    <span id="creditStatus" style="font-size: 10px; font-weight: normal; color: hsl(var(--muted-foreground));">(1 credit per generation)</span>
+                  </h2>
                   <div style="display: flex; align-items: center; gap: 8px;">
-                    <input type="file" id="voiceFile" accept="audio/*" style="color: white; font-size: 12px;">
-                    <button onclick="uploadVoice()" style="background: hsl(var(--secondary)); color: hsl(var(--secondary-foreground)); padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; font-size: 14px;">Upload Voice</button>
-                    <p id="uploadStatus" style="margin: 0; font-size: 12px; color: hsl(var(--muted-foreground)); min-width: 100px;"></p>
+                    <input type="text" id="textInput" placeholder="Enter text to speak..." style="background: black; color: white; border: 1px solid hsl(var(--border)); padding: 8px 12px; border-radius: 8px; font-size: 14px; flex: 1;">
+                    <button id="genBtn" onclick="generate()" style="background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; font-size: 14px; white-space: nowrap; transition: all 0.2s;">Generate</button>
+                    <audio id="player" controls style="height: 36px;"></audio>
+                  </div>
+                </div>
+
+                <div style="width: 1px; height: 40px; background: hsl(var(--border)); display: none;" class="md:block"></div>
+
+                <!-- 🔹 REFILL / PREMIUM SECTION -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <h3 style="margin: 0; font-size: 14px; font-weight: bold; color: hsl(var(--secondary));">💎 Refill Credits</h3>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <button onclick="buyCredits(49, 100)" style="background: rgba(var(--secondary), 0.1); color: hsl(var(--secondary)); border: 1px solid hsl(var(--secondary)); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s;">₹49 (100 Cr)</button>
+                    <button onclick="buyCredits(99, 250)" style="background: hsl(var(--secondary)); color: hsl(var(--secondary-foreground)); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s;">₹99 (250 Cr)</button>
                   </div>
                 </div>
 
               </div>
               
               <script>
-                // Persistent User ID Logic
-                let user_id = localStorage.getItem("user_id");
-                if (!user_id) {
-                    user_id = Date.now().toString();
-                    localStorage.setItem("user_id", user_id);
+                // --- CREDIT SYSTEM LOGIC ---
+                let credits = parseInt(localStorage.getItem("sargam_credits"));
+                if (isNaN(credits)) {
+                    credits = 5; // Initial free credits
+                    localStorage.setItem("sargam_credits", credits);
                 }
 
-                // 🔥 GENERATE TTS
+                function updateCreditUI() {
+                    const display = document.getElementById("creditDisplay");
+                    const btn = document.getElementById("genBtn");
+                    display.innerText = credits;
+                    
+                    if (credits <= 0) {
+                        display.style.color = "hsl(var(--destructive))";
+                        btn.innerText = "Buy Premium";
+                        btn.style.background = "hsl(var(--secondary))";
+                    } else {
+                        display.style.color = "hsl(var(--primary))";
+                        btn.innerText = "Generate";
+                        btn.style.background = "hsl(var(--primary))";
+                    }
+                }
+                
+                // Initialize UI
+                updateCreditUI();
+
+                // 🔥 GENERATE TTS WITH CREDIT CHECK
                 async function generate() {
-                    const text = document.getElementById("text").value;
+                    if (credits <= 0) {
+                        alert("⚠️ Out of credits! Please Buy Premium to continue generating voices.");
+                        return;
+                    }
+
+                    const text = document.getElementById("textInput").value;
+                    const btn = document.getElementById("genBtn");
 
                     if (!text) {
                         alert("Enter text first");
                         return;
                     }
+
+                    btn.disabled = true;
+                    btn.innerText = "Processing... ⏳";
 
                     try {
                         const formData = new FormData();
@@ -144,65 +183,39 @@ export default function RootLayout({
                         }
 
                         const blob = await res.blob();
-
                         if (blob.size === 0) {
                             alert("Empty audio ❌");
                             return;
                         }
 
+                        // Deduct Credit on Success
+                        credits -= 1;
+                        localStorage.setItem("sargam_credits", credits);
+                        updateCreditUI();
+
                         const url = URL.createObjectURL(blob);
-                        document.getElementById("player").src = url;
-                        document.getElementById("player").play();
+                        const player = document.getElementById("player");
+                        player.src = url;
+                        player.play();
 
                     } catch (err) {
                         console.error(err);
-                        alert("Error ❌");
+                        alert("Connection Error ❌");
+                    } finally {
+                        if (credits > 0) btn.innerText = "Generate";
+                        btn.disabled = false;
                     }
                 }
 
-                // 🔥 UPLOAD VOICE
-                async function uploadVoice() {
-                    const fileInput = document.getElementById("voiceFile");
-                    const status = document.getElementById("uploadStatus");
-                    const file = fileInput.files[0];
-
-                    if (!file) {
-                        alert("Select a file first");
-                        return;
-                    }
-
-                    status.innerText = "Uploading... ⏳";
-
-                    try {
-                        const formData = new FormData();
-                        formData.append("file", file);
-
-                        // Use the persistent user_id from localStorage
-                        formData.append("user_id", user_id);
-
-                        const res = await fetch("https://lourdes-hesitant-jeraldine.ngrok-free.dev/upload", {
-                            method: "POST",
-                            body: formData
-                        });
-
-                        if (!res.ok) {
-                            status.innerText = "Upload failed ❌";
-                            return;
-                        }
-
-                        status.innerText = "Voice uploaded ✅";
-                        alert("Voice uploaded ✅");
-
-                    } catch (err) {
-                        console.error(err);
-                        status.innerText = "Error ❌";
-                        alert("Error ❌");
-                    }
+                // 🔥 PREMIUM PURCHASE FLOW (MANUAL)
+                function buyCredits(amount, count) {
+                    const upiId = "snehkumarverma@upi"; // Example UPI
+                    const message = \`💎 PREMIUM UPGRADE\\n\\n1. Send ₹\${amount} via UPI to: \${upiId}\\n2. Send a screenshot of the payment to: support.sargamskv@gmail.com\\n\\nYour account will be credited with \${count} credits manually after verification. ✨\`;
+                    alert(message);
                 }
-                
-                // Make functions globally available
+
                 window.generate = generate;
-                window.uploadVoice = uploadVoice;
+                window.buyCredits = buyCredits;
               </script>
             `}}
           />
