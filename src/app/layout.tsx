@@ -98,12 +98,13 @@ export default function RootLayout({
                 </div>
 
                 <!-- 🔹 COUPON REDEMPTION -->
-                <div style="display: flex; flex-direction: column; gap: 8px; border-right: 1px solid hsl(var(--border)); padding-right: 24px;">
+                <div style="display: flex; flex-direction: column; gap: 4px; border-right: 1px solid hsl(var(--border)); padding-right: 24px;">
                   <h3 style="margin: 0; font-size: 14px; font-weight: bold; color: hsl(var(--primary)); text-align: center;">🎟️ Redeem Coupon</h3>
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <input type="text" id="couponInput" placeholder="Enter code..." style="background: hsl(var(--background)); color: white; border: 1px solid hsl(var(--border)); padding: 6px 12px; border-radius: 8px; font-size: 12px; width: 120px;">
                     <button id="redeemBtn" onclick="redeemCoupon()" style="background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s;">Redeem</button>
                   </div>
+                  <p id="couponStatus" style="font-size: 10px; font-weight: bold; text-align: center; margin: 0; min-height: 12px;"></p>
                 </div>
 
                 <!-- 🔹 PREMIUM REFILL -->
@@ -149,16 +150,19 @@ export default function RootLayout({
                 
                 async function redeemCoupon() {
                     const input = document.getElementById("couponInput");
+                    const status = document.getElementById("couponStatus");
                     const btn = document.getElementById("redeemBtn");
                     const code = input.value.trim();
                     
                     if (!code) {
-                        alert("Please enter a coupon code.");
+                        status.innerText = "⚠️ Enter code";
+                        status.style.color = "orange";
                         return;
                     }
 
                     btn.disabled = true;
-                    btn.innerText = "⏳...";
+                    status.innerText = "⏳ Checking...";
+                    status.style.color = "hsl(var(--muted-foreground))";
 
                     try {
                         const formData = new FormData();
@@ -172,22 +176,26 @@ export default function RootLayout({
                         const data = await res.json();
 
                         if (data.status === "success") {
-                            // Add credits to local storage
                             let current = getCredits();
                             localStorage.setItem("sargam_credits", current + data.credits);
                             
                             input.value = "";
                             window.dispatchEvent(new Event('creditsUpdated'));
-                            alert(\`✅ Success! \${data.credits} credits added to your account. ✨\`);
+                            status.innerText = "✅ Coupon applied!";
+                            status.style.color = "hsl(var(--primary))";
+                        } else if (data.status === "used") {
+                            status.innerText = "❌ Already used";
+                            status.style.color = "hsl(var(--destructive))";
                         } else {
-                            alert(\`❌ \${data.message || "Invalid coupon code."}\`);
+                            status.innerText = "❌ Invalid coupon";
+                            status.style.color = "hsl(var(--destructive))";
                         }
                     } catch (err) {
                         console.error("Redeem error:", err);
-                        alert("❌ Backend is offline. Please try again later.");
+                        status.innerText = "❌ Offline";
+                        status.style.color = "hsl(var(--destructive))";
                     } finally {
                         btn.disabled = false;
-                        btn.innerText = "Redeem";
                     }
                 }
 
