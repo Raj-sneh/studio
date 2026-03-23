@@ -25,7 +25,7 @@ const textToSpeechGenkitFlow = ai.defineFlow(
         const { text, voice } = input;
         
         // Mapping UI voices to Resemble Voice UUIDs
-        // Note: These should be replaced with your actual Resemble Voice UUIDs
+        // Ensure these match the Voice IDs in your Resemble Project
         const voiceMap: Record<string, string> = {
             clive: process.env.RESEMBLE_VOICE_CLIVE_ID || 'default_uuid',
             clara: process.env.RESEMBLE_VOICE_CLARA_ID || 'default_uuid',
@@ -47,10 +47,14 @@ const textToSpeechGenkitFlow = ai.defineFlow(
         const projectUuid = process.env.RESEMBLE_PROJECT_ID;
 
         if (!apiKey || !projectUuid) {
-            throw new Error('Resemble API Key or Project ID is missing in environment variables.');
+            throw new Error('Resemble API Key or Project ID is missing in your .env file.');
         }
 
-        // 1. Create the clip
+        if (voiceUuid === 'default_uuid') {
+            console.warn(`Warning: Voice "${voice}" is using a default UUID. Ensure RESEMBLE_VOICE_ID is set.`);
+        }
+
+        // 1. Create the clip via Resemble API v2
         const url = `https://app.resemble.ai/api/v2/projects/${projectUuid}/clips`;
         const options = {
             method: 'POST',
@@ -78,13 +82,13 @@ const textToSpeechGenkitFlow = ai.defineFlow(
         const clipUrl = result.item?.link;
 
         if (!clipUrl) {
-            throw new Error('Resemble AI did not return a clip URL.');
+            throw new Error('Resemble AI did not return a clip URL. Ensure your Voice UUID is valid.');
         }
 
-        // 2. Fetch the actual audio file and convert to Base64
+        // 2. Fetch the actual audio file and convert to Base64 for the client
         const audioResponse = await fetch(clipUrl);
         if (!audioResponse.ok) {
-            throw new Error('Failed to download the generated audio clip.');
+            throw new Error('Failed to download the generated audio clip from Resemble servers.');
         }
 
         const arrayBuffer = await audioResponse.arrayBuffer();

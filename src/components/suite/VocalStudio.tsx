@@ -23,7 +23,8 @@ import {
   ThumbsDown,
   PlayCircle,
   AlertCircle,
-  Star
+  Star,
+  Mic2
 } from 'lucide-react';
 import { 
   Form, 
@@ -50,8 +51,8 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const voices = [
-  { id: 'clive', label: 'Clive (Resemble)', premium: true },
-  { id: 'clara', label: 'Clara (Studio)' },
+  { id: 'clive', label: 'Clive (Premium)', premium: true },
+  { id: 'clara', label: 'Clara (Pro)' },
   { id: 'james', label: 'James (Narrator)' },
   { id: 'alex', label: 'Alex (Balanced)' },
   { id: 'marcus', label: 'Marcus (Warm)' },
@@ -134,7 +135,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: `Hi there, I am ${voiceId}. Powered by Resemble AI.`,
+          text: `Checking frequency. I am ${voiceId}, your Resemble AI studio voice.`,
           voice: voiceId,
           sing: false,
         }),
@@ -145,19 +146,19 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
       try {
         data = resText ? JSON.parse(resText) : {};
       } catch (e) {
-        throw new Error("Invalid voice sample response");
+        throw new Error("Invalid voice sample response from Resemble AI.");
       }
 
-      if (!res.ok) throw new Error(data.message || "Preview failed");
+      if (!res.ok) throw new Error(data.message || "Preview failed. Check API key.");
       
       const audio = new Audio(data.media);
       audio.play().catch(err => {
         console.error("Audio playback error:", err);
-        toast({ title: "Playback blocked", description: "Please click again to allow audio.", variant: "destructive" });
+        toast({ title: "Playback blocked", description: "Click the play icon again to allow audio.", variant: "destructive" });
       });
     } catch (e: any) {
       console.error("Preview Error:", e);
-      toast({ title: "Preview failed", description: e.message || "Could not play sample.", variant: "destructive" });
+      toast({ title: "Preview failed", description: e.message || "Could not play sample. Verify RESEMBLE_VOICE_ID in .env.", variant: "destructive" });
     } finally {
       setPreviewLoading(null);
     }
@@ -186,12 +187,17 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
           (pianoSampler as any).volume.value = pianoVolume; 
           
           if (isAutoSync) {
-            const sortedNotes = [...result.notes].sort((a, b) => Tone.Time(a.time).toSeconds() - Tone.Time(b.time).toSeconds());
+            const sortedNotes = [...result.notes].sort((a, b) => {
+               try {
+                 return Tone.Time(a.time).toSeconds() - Tone.Time(b.time).toSeconds();
+               } catch(e) { return 0; }
+            });
             const lastNote = sortedNotes[sortedNotes.length - 1];
-            // Sync BPM to vocal track duration
-            const totalBeats = Tone.Time(lastNote.time).toSeconds() + Tone.Time(lastNote.duration).toSeconds();
-            finalBpm = Math.max(60, Math.min(180, (totalBeats / vocalDuration) * 60));
-            setPianoTempo(Math.round(finalBpm));
+            if (lastNote) {
+              const totalBeats = Tone.Time(lastNote.time).toSeconds() + Tone.Time(lastNote.duration).toSeconds();
+              finalBpm = Math.max(60, Math.min(180, (totalBeats / vocalDuration) * 60));
+              setPianoTempo(Math.round(finalBpm));
+            }
           }
 
           pianoPartRef.current = new Tone.Part((time, note) => {
@@ -215,7 +221,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
     } catch (err) {
       console.error("Playback error:", err);
       setIsPlaying(false);
-      toast({ title: "Problem playing", description: "I had some trouble starting the music.", variant: "destructive" });
+      toast({ title: "Studio Error", description: "I had some trouble mixing the tracks. Check your connection.", variant: "destructive" });
     }
   }, [result, stopPlayback, toast, vocalVolume, vocalSpeed, pianoVolume, pianoTempo, isAutoSync]);
 
@@ -248,10 +254,10 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
         try {
           songData = resText ? JSON.parse(resText) : {};
         } catch (e) {
-          throw new Error("The AI artist returned an invalid response.");
+          throw new Error("The Studio engine returned an invalid response.");
         }
 
-        if (!res.ok) throw new Error(songData.message || "The AI artist was unable to complete the song.");
+        if (!res.ok) throw new Error(songData.message || "Synthesis failed. Check Resemble API Key.");
 
         newResult = {
           vocalUri: songData.vocalAudioUri,
@@ -284,7 +290,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
           throw new Error("Voice synthesis engine returned an invalid response.");
         }
 
-        if (!res.ok) throw new Error(speechResult.message || "Voice generation failed.");
+        if (!res.ok) throw new Error(speechResult.message || "Resemble AI generation failed. Verify .env config.");
         
         newResult = { vocalUri: speechResult.media };
       }
@@ -295,18 +301,18 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
         const historyRef = collection(firestore, 'users', user.uid, 'generatedMelodies');
         addDocumentNonBlocking(historyRef, {
           userId: user.uid,
-          title: newResult.title || (data.singMode ? 'Vocal Studio' : 'Voice Speech'),
+          title: newResult.title || (data.singMode ? 'Vocal Studio' : 'Resemble Speech'),
           notes: data.text.substring(0, 50) + (data.text.length > 50 ? '...' : ''),
-          instrument: 'Voice + Piano',
+          instrument: 'Studio Voice',
           generationContext: 'Vocal Studio',
           createdAt: serverTimestamp(),
         });
       }
 
-      toast({ title: 'Ready!', description: 'Your AI performance is ready to play.' });
+      toast({ title: 'Mastering Complete!', description: 'Your Resemble AI performance is ready.' });
     } catch (error: any) {
       console.error("Generation error:", error);
-      toast({ variant: 'destructive', title: 'Studio Error', description: error.message || "The AI artist encountered a problem." });
+      toast({ variant: 'destructive', title: 'Studio Error', description: error.message || "The synthesis engine is currently offline." });
     } finally {
       setIsLoading(false);
     }
@@ -321,14 +327,23 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
   }, [autogen, initialPrompt, form, handleGenerate, isLoading]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <Form {...form}>
         <form onSubmit={form.handleSubmit((data) => handleGenerate(data))} className="space-y-8">
           <FormField control={form.control} name="text" render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-lg font-bold">What should the AI say or sing?</FormLabel>
+              <FormLabel className="text-lg font-bold flex items-center gap-2">
+                <Mic2 className="h-5 w-5 text-primary" />
+                Input Performance Script
+              </FormLabel>
               <FormControl>
-                <Textarea placeholder="Type your text or lyrics here..." {...field} rows={4} disabled={isLoading} className="text-lg bg-background/50" />
+                <Textarea 
+                  placeholder="Enter lyrics for a song or text for a high-fidelity speech performance..." 
+                  {...field} 
+                  rows={4} 
+                  disabled={isLoading} 
+                  className="text-lg bg-background/50 border-primary/20 focus:ring-primary/30" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -339,15 +354,15 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
               <FormItem className="space-y-4">
                 <FormLabel className="text-base font-bold flex items-center gap-2">
                   <Headphones className="h-4 w-4 text-primary" />
-                  Studio Artists (Resemble AI Powered)
+                  Select Studio Artist
                 </FormLabel>
                 <div className="grid grid-cols-2 gap-2">
                   {voices.map((voice) => (
                     <label 
                       key={voice.id} 
                       className={cn(
-                        "flex items-center justify-between p-2 rounded-md border cursor-pointer transition-colors group relative overflow-hidden",
-                        field.value === voice.id ? "bg-primary/10 border-primary shadow-inner" : "bg-muted/30 border-transparent hover:bg-muted/50"
+                        "flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all group relative overflow-hidden",
+                        field.value === voice.id ? "bg-primary/10 border-primary shadow-lg" : "bg-muted/30 border-transparent hover:bg-muted/50"
                       )}
                     >
                       <input 
@@ -360,7 +375,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
                       />
                       <div className="flex items-center gap-1 z-10 truncate pr-1">
                         {voice.premium && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 shrink-0" />}
-                        <span className="text-[10px] font-bold truncate">{voice.label}</span>
+                        <span className="text-[11px] font-bold truncate uppercase tracking-tight">{voice.label}</span>
                       </div>
                       <Button
                         type="button"
@@ -388,94 +403,108 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
 
             <div className="space-y-6">
               <FormField control={form.control} name="singMode" render={({ field }) => (
-                <div className="flex flex-row items-center justify-between rounded-xl border p-6 bg-primary/5 border-primary/20">
+                <div className="flex flex-row items-center justify-between rounded-2xl border p-6 bg-primary/5 border-primary/20 shadow-inner">
                   <div className="space-y-1">
                     <FormLabel className="text-lg font-bold flex items-center gap-2">
                       <Zap className="h-5 w-5 text-primary" />
-                      Professional Grade TTS
+                      Studio Mode
                     </FormLabel>
-                    <p className="text-xs text-muted-foreground">Utilizing Resemble AI v2 API for high-fidelity cloning.</p>
+                    <p className="text-xs text-muted-foreground">Enabled: Piano Accompaniment & Lyrics Matching.</p>
                   </div>
-                  <div className="text-[10px] font-bold text-primary px-2 py-1 bg-primary/10 rounded uppercase">Active</div>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isLoading} />
                 </div>
               )}/>
               
-              <div className="p-4 bg-muted/20 rounded-lg border border-dashed flex items-start gap-3">
+              <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/20 flex items-start gap-3">
                 <Star className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                    <p className="text-xs font-bold text-foreground">Resemble AI Integration</p>
+                    <p className="text-xs font-bold text-foreground">Resemble AI Mastery</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      Sargam AI now leverages Resemble's industry-leading voice cloning tech for studio-quality performances.
+                      All studio voices are generated via Resemble AI v2 for professional clarity and sub-second latency.
                     </p>
                 </div>
               </div>
             </div>
           </div>
 
-          <Button type="submit" disabled={isLoading} size="lg" className="w-full h-16 text-lg font-headline shadow-xl shadow-primary/20 transition-all hover:scale-[1.01]">
-            {isLoading ? <Loader2 className="mr-2 animate-spin h-6 w-6" /> : <Sparkles className="mr-2 h-6 w-6" />}
-            {isLoading ? 'Synthesizing with Resemble AI...' : 'Generate Studio Performance'}
+          <Button type="submit" disabled={isLoading} size="lg" className="w-full h-16 text-xl font-headline shadow-2xl shadow-primary/30 transition-all hover:scale-[1.01] rounded-2xl">
+            {isLoading ? <Loader2 className="mr-3 animate-spin h-7 w-7" /> : <Sparkles className="mr-3 h-7 w-7" />}
+            {isLoading ? 'Synthesizing Performance...' : 'Synthesize AI Master'}
           </Button>
         </form>
       </Form>
 
       {result && (
-        <div className="space-y-10 pt-8 border-t border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-muted/20 p-6 rounded-2xl border border-white/5">
-            <div className="space-y-1">
-              <h3 className="text-2xl font-headline font-bold text-primary">{result.title || 'Studio Output'}</h3>
-              <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">AI Performance Ready</p>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handlePlay} disabled={isPlaying} size="lg" className="h-12 px-8">
-                <Play className="mr-2 h-5 w-5" /> Play
-              </Button>
-              <Button onClick={stopPlayback} disabled={!isPlaying} variant="destructive" size="lg" className="h-12 px-6">
-                <StopCircle className="mr-2 h-5 w-5" /> Stop
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <div className="space-y-6 p-6 rounded-2xl bg-black/20 border border-white/5">
-              <span className="text-sm font-bold flex items-center gap-2"><Volume2 className="h-4 w-4" /> Vocal Mix Controls</span>
-              <div className="space-y-4">
-                <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
-                  <span>Gain</span>
-                  <span>{vocalVolume}dB</span>
+        <div className="space-y-10 pt-8 border-t border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <Card className="bg-primary/5 border-primary/20 border-2 overflow-hidden rounded-3xl relative">
+            <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+            <div className="p-8 flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="space-y-2">
+                <h3 className="text-3xl font-headline font-bold text-primary">{result.title || 'Studio Performance'}</h3>
+                <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black uppercase tracking-widest bg-primary/20 text-primary px-3 py-1 rounded-full">Resemble AI High-Fidelity</span>
+                    <p className="text-xs text-muted-foreground italic">Ready for playback</p>
                 </div>
-                <Slider value={[vocalVolume]} min={-20} max={6} step={1} onValueChange={(val) => setVocalVolume(val[0])} />
-                
-                <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
-                  <span>Playback Rate</span>
-                  <span>{vocalSpeed}x</span>
-                </div>
-                <Slider value={[vocalSpeed]} min={0.5} max={2.0} step={0.1} onValueChange={(val) => setVocalSpeed(val[0])} />
+              </div>
+              <div className="flex gap-4">
+                <Button onClick={handlePlay} disabled={isPlaying} size="lg" className="h-14 px-10 rounded-2xl shadow-xl hover:scale-105 transition-transform">
+                  <Play className="mr-2 h-6 w-6" /> Play Master
+                </Button>
+                <Button onClick={stopPlayback} disabled={!isPlaying} variant="destructive" size="lg" className="h-14 px-8 rounded-2xl shadow-xl hover:scale-105 transition-transform">
+                  <StopCircle className="mr-2 h-6 w-6" /> Stop
+                </Button>
               </div>
             </div>
+          </Card>
 
-            <div className="space-y-6 p-6 rounded-2xl bg-black/20 border border-white/5">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold flex items-center gap-2"><Keyboard className="h-4 w-4" /> Accompaniment Controls</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card className="p-6 bg-muted/10 border-white/5 rounded-3xl">
+              <span className="text-sm font-bold flex items-center gap-2 mb-6"><Volume2 className="h-4 w-4 text-primary" /> Vocal Mixing Deck</span>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] uppercase font-black tracking-widest text-muted-foreground">
+                    <span>Gain Level</span>
+                    <span>{vocalVolume} dB</span>
+                    </div>
+                    <Slider value={[vocalVolume]} min={-20} max={10} step={1} onValueChange={(val) => setVocalVolume(val[0])} />
+                </div>
+                
+                <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] uppercase font-black tracking-widest text-muted-foreground">
+                    <span>Playback Speed</span>
+                    <span>{vocalSpeed}x</span>
+                    </div>
+                    <Slider value={[vocalSpeed]} min={0.5} max={1.5} step={0.05} onValueChange={(val) => setVocalSpeed(val[0])} />
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6 bg-muted/10 border-white/5 rounded-3xl">
+              <div className="flex items-center justify-between mb-6">
+                <span className="text-sm font-bold flex items-center gap-2"><Keyboard className="h-4 w-4 text-primary" /> Instrumentation Deck</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-muted-foreground">AUTO SYNC</span>
+                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Auto Sync</span>
                   <Switch checked={isAutoSync} onCheckedChange={setIsAutoSync} />
                 </div>
               </div>
-              <div className="space-y-4">
-                <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
-                  <span>Piano Gain</span>
-                  <span>{pianoVolume}dB</span>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] uppercase font-black tracking-widest text-muted-foreground">
+                    <span>Piano Presence</span>
+                    <span>{pianoVolume} dB</span>
+                    </div>
+                    <Slider value={[pianoVolume]} min={-40} max={6} step={1} onValueChange={(val) => setPianoVolume(val[0])} />
                 </div>
-                <Slider value={[pianoVolume]} min={-40} max={0} step={1} onValueChange={(val) => setPianoVolume(val[0])} />
                 
-                <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
-                  <span>Manual Tempo</span>
-                  <span>{pianoTempo} BPM</span>
+                <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] uppercase font-black tracking-widest text-muted-foreground">
+                    <span>Performance Tempo</span>
+                    <span>{pianoTempo} BPM</span>
+                    </div>
+                    <Slider value={[pianoTempo]} min={60} max={180} step={1} disabled={isAutoSync} onValueChange={(val) => setPianoTempo(val[0])} />
                 </div>
-                <Slider value={[pianoTempo]} min={60} max={180} step={1} disabled={isAutoSync} onValueChange={(val) => setPianoTempo(val[0])} />
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       )}
