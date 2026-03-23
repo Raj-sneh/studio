@@ -122,21 +122,22 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
     return () => stopPlayback();
   }, [stopPlayback]);
 
-  // --- CREDIT LOGIC ---
-  const checkAndDeductCredit = () => {
+  const checkAndDeductCredit = (isSinging: boolean) => {
+      const cost = isSinging ? 3 : 1;
       const storedCredits = localStorage.getItem("sargam_credits");
       let credits = storedCredits ? parseInt(storedCredits) : 5;
+      if (isNaN(credits)) credits = 0;
       
-      if (credits <= 0) {
+      if (credits < cost) {
           toast({ 
-              title: "Out of Credits", 
-              description: "Refill your credits in the bottom bar to continue using the AI studio.", 
+              title: "Insufficient Credits", 
+              description: `This performance requires ${cost} credits. You currently have ${credits}. Please refill your balance using the credit bar at the bottom.`, 
               variant: "destructive" 
           });
           return false;
       }
       
-      const newTotal = credits - 1;
+      const newTotal = credits - cost;
       localStorage.setItem("sargam_credits", newTotal.toString());
       window.dispatchEvent(new Event('creditsUpdated'));
       return true;
@@ -246,8 +247,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
   }, [result, stopPlayback, toast, vocalVolume, vocalSpeed, pianoVolume, pianoTempo, isAutoSync]);
 
   const handleGenerate = useCallback(async (data: FormData, reinforcementRating?: 'good' | 'bad') => {
-    // Credit Check: generation is strictly blocked if credits <= 0
-    if (!checkAndDeductCredit()) return;
+    if (!checkAndDeductCredit(data.singMode)) return;
 
     setIsLoading(true);
     setResult(null);
@@ -349,11 +349,13 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
     }
   }, [autogen, initialPrompt, form, handleGenerate, isLoading]);
 
+  const currentCost = form.watch('singMode') ? 3 : 1;
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex justify-between items-center px-2">
           <span className="text-xs font-bold text-primary flex items-center gap-1">
-              <Sparkles className="h-3 w-3" /> 1 Credit per performance
+              <Sparkles className="h-3 w-3" /> {currentCost} Credit{currentCost > 1 ? 's' : ''} per performance
           </span>
       </div>
       <Form {...form}>
@@ -437,7 +439,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
                       <Zap className="h-5 w-5 text-primary" />
                       Studio Mode
                     </FormLabel>
-                    <p className="text-xs text-muted-foreground">Enabled: Piano Accompaniment & Lyrics Matching.</p>
+                    <p className="text-xs text-muted-foreground">Enabled: Singing & Piano (3 Credits).</p>
                   </div>
                   <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isLoading} />
                 </div>
@@ -534,6 +536,35 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
               </div>
             </Card>
           </div>
+
+          {reinforcementRating ? null : (
+            <div className="space-y-4 border-t pt-8">
+              <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 space-y-4">
+                  <div className="flex items-center gap-2">
+                      <History className="h-4 w-4 text-primary" />
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-primary">Refine Your Song</h4>
+                  </div>
+                  <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">Is the melody or rhythm not right? Describe what to fix and I'll learn from your rating.</p>
+                      <div className="flex gap-2">
+                          <Input 
+                              placeholder="e.g., 'Make the piano more soulful' or 'The speed is too fast'..." 
+                              value={feedbackComment} 
+                              onChange={(e) => setFeedbackComment(e.target.value)}
+                              className="flex-1 bg-background/50"
+                              disabled={isLoading}
+                          />
+                          <Button variant="outline" size="icon" onClick={() => handleGenerate(form.getValues(), 'good')} title="It's good" disabled={isLoading}>
+                              <ThumbsUp className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="icon" onClick={() => handleGenerate(form.getValues(), 'bad')} title="Needs work" disabled={isLoading}>
+                              <ThumbsDown className="h-4 w-4" />
+                          </Button>
+                      </div>
+                  </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
