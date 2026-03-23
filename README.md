@@ -17,14 +17,14 @@ Sargam is an interactive, AI-powered web application designed to make piano lear
 - **Voice Engine**: Flask (Python), librosa, gTTS (runs on port 8080).
 - **Database**: Firebase (Auth, Firestore).
 
-## 🛠️ Configuration Guide
+## 🔧 Configuration Guide
 
 To fully unlock the AI features, you need to set up your environment variables in a `.env` file:
 
 ### 🎙️ Resemble.ai (Vocal Studio)
-1. **API Key**: Get this from your Resemble.ai Account Settings.
-2. **Project ID**: Found in the URL of your Resemble project (`app.resemble.ai/projects/<ID>`).
-3. **Voice IDs**: Map your specific Resemble Voice UUIDs to the environment variables:
+1. **RESEMBLE_API_KEY**: This is the value in pink from your "API Tokens" page (e.g., `7Kw...`).
+2. **RESEMBLE_PROJECT_ID**: Open a Project in Resemble. Copy the ID from the URL: `app.resemble.ai/projects/<ID>/clips`.
+3. **Voice IDs**: Map your specific Resemble Voice UUIDs (found in the "Voices" tab) to these variables:
    - `RESEMBLE_VOICE_CLIVE_ID`
    - `RESEMBLE_VOICE_CLARA_ID`
    - `RESEMBLE_VOICE_JAMES_ID`
