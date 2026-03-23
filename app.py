@@ -11,10 +11,20 @@ import numpy as np
 app = Flask(__name__)
 CORS(app)
 
-# 🎫 COUPON DATABASE (In-memory for prototype)
+# 🎫 COUPON DATABASE
+# ₹49 -> 100 Credits (Alphanumeric)
+# ₹99 -> 250 Credits (Alphanumeric + @, #, ₹)
 coupons = {
-    "BASIC-7K2LM": {"credits": 100, "used": False},
-    "PRO-9K@2₹": {"credits": 250, "used": False}
+    "S49A1B2": {"credits": 100, "used": False},
+    "MELODY100": {"credits": 100, "used": False},
+    "SKVPRO49": {"credits": 100, "used": False},
+    "TUNE7K2L": {"credits": 100, "used": False},
+    "BEAT49X1": {"credits": 100, "used": False},
+    "MAX@250#₹": {"credits": 250, "used": False},
+    "PRO#SKV@₹99": {"credits": 250, "used": False},
+    "GOLD₹@MAX#": {"credits": 250, "used": False},
+    "VIP#99@₹250": {"credits": 250, "used": False},
+    "ULTRA@₹#99": {"credits": 250, "used": False}
 }
 
 @app.route('/')
