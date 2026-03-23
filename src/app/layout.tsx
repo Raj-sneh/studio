@@ -6,7 +6,6 @@ import type { Metadata } from 'next';
 import Header from "@/components/Header";
 import { Providers } from './providers';
 import { FloatingAssistantButton } from '@/components/FloatingAssistantButton';
-import { Sparkles } from 'lucide-react';
 
 const fontHeadline = Poppins({
   subsets: ['latin'],
@@ -66,13 +65,6 @@ export default function RootLayout({
       <body className={cn("font-body antialiased min-h-screen bg-background", fontHeadline.variable, fontBody.variable)}>
         <Providers>
           <div className="flex flex-col min-h-screen">
-            {/* Announcement Banner */}
-            <div className="bg-primary/20 border-b border-primary/30 py-2 px-4 text-center text-xs font-bold tracking-widest uppercase flex items-center justify-center gap-2">
-              <Sparkles className="h-3 w-3 text-primary animate-pulse" />
-              Sargam AI is completely free for now!
-              <Sparkles className="h-3 w-3 text-primary animate-pulse" />
-            </div>
-            
             <Header />
             <main className="flex-1 container mx-auto px-6 py-16 md:py-24">{children}</main>
             <footer className="py-12 text-center text-sm text-muted-foreground border-t border-border/10 mt-20">
