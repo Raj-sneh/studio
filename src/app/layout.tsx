@@ -97,6 +97,15 @@ export default function RootLayout({
                   </p>
                 </div>
 
+                <!-- 🔹 COUPON REDEMPTION -->
+                <div style="display: flex; flex-direction: column; gap: 8px; border-right: 1px solid hsl(var(--border)); padding-right: 24px;">
+                  <h3 style="margin: 0; font-size: 14px; font-weight: bold; color: hsl(var(--primary)); text-align: center;">🎟️ Redeem Coupon</h3>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="text" id="couponInput" placeholder="Enter code..." style="background: hsl(var(--background)); color: white; border: 1px solid hsl(var(--border)); padding: 6px 12px; border-radius: 8px; font-size: 12px; width: 120px;">
+                    <button onclick="redeemCoupon()" style="background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s;">Redeem</button>
+                  </div>
+                </div>
+
                 <!-- 🔹 PREMIUM REFILL -->
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                   <h3 style="margin: 0; font-size: 14px; font-weight: bold; color: hsl(var(--secondary)); text-align: center;">💎 Get More Credits</h3>
@@ -118,6 +127,11 @@ export default function RootLayout({
               
               <script>
                 // --- GLOBAL CREDIT SYSTEM ---
+                const COUPONS = {
+                    "BASIC-7K2LM": 100,
+                    "PRO-9K@2₹": 250
+                };
+
                 function getCredits() {
                     let c = parseInt(localStorage.getItem("sargam_credits"));
                     if (isNaN(c)) {
@@ -136,11 +150,39 @@ export default function RootLayout({
                     }
                 }
                 
-                // Initialize
-                updateCreditUI();
+                function redeemCoupon() {
+                    const input = document.getElementById("couponInput");
+                    const code = input.value.trim();
+                    
+                    if (!code) {
+                        alert("Please enter a coupon code.");
+                        return;
+                    }
 
-                // Listen for updates from components
-                window.addEventListener('creditsUpdated', updateCreditUI);
+                    const reward = COUPONS[code];
+                    if (!reward) {
+                        alert("❌ Invalid coupon code.");
+                        return;
+                    }
+
+                    const usedCoupons = JSON.parse(localStorage.getItem("sargam_used_coupons") || "[]");
+                    if (usedCoupons.includes(code)) {
+                        alert("⚠️ This coupon has already been used on this device.");
+                        return;
+                    }
+
+                    // Add credits
+                    let current = getCredits();
+                    localStorage.setItem("sargam_credits", current + reward);
+                    
+                    // Mark as used
+                    usedCoupons.push(code);
+                    localStorage.setItem("sargam_used_coupons", JSON.stringify(usedCoupons));
+                    
+                    input.value = "";
+                    window.dispatchEvent(new Event('creditsUpdated'));
+                    alert("✅ Success! " + reward + " credits added to your account. ✨");
+                }
 
                 function buyCredits(amount, count) {
                     const upiId = "snehkumarverma@upi";
@@ -153,8 +195,12 @@ export default function RootLayout({
                     alert(\`🙏 Support Development\\n\\nYour contributions help keep Sargam AI growing. Send any amount to \${upiId} to support Sneh's research! 🚀\`);
                 }
 
+                // Initialize
+                updateCreditUI();
+                window.addEventListener('creditsUpdated', updateCreditUI);
                 window.buyCredits = buyCredits;
                 window.fundProject = fundProject;
+                window.redeemCoupon = redeemCoupon;
               </script>
             `}}
           />
