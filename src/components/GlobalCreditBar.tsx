@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Coins, Sparkles, Ticket, Gem, Coffee, Mail, MessageCircle } from 'lucide-react';
+import { X, Coins, Sparkles, Ticket, Gem, Coffee, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -60,7 +60,17 @@ export function GlobalCreditBar() {
         body: formData,
       });
 
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}`);
+      }
+
+      const resText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(resText);
+      } catch (e) {
+        throw new Error("Invalid response format");
+      }
 
       if (data.status === "success") {
         const current = parseInt(localStorage.getItem("sargam_credits") || "0");
@@ -76,7 +86,8 @@ export function GlobalCreditBar() {
         setCouponStatus({ message: "❌ Invalid coupon", type: 'error' });
       }
     } catch (err) {
-      setCouponStatus({ message: "❌ Offline", type: 'error' });
+      console.error("Redeem Error:", err);
+      setCouponStatus({ message: "❌ Service offline", type: 'error' });
     } finally {
       setIsRedeeming(false);
     }
@@ -94,7 +105,7 @@ export function GlobalCreditBar() {
       <Button 
         variant="ghost" 
         size="icon" 
-        className="absolute top-3 right-3 h-8 w-8 text-muted-foreground hover:text-foreground"
+        className="absolute top-3 right-3 h-8 w-8 text-muted-foreground hover:text-foreground z-10"
         onClick={() => setIsVisible(false)}
       >
         <X className="h-5 w-5" />
@@ -123,7 +134,7 @@ export function GlobalCreditBar() {
             <h2 className="text-sm font-bold text-primary">AI Features Active</h2>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Melody Maker & Vocal Studio (1 Credit per generation).
+            Instant activation via coupon after payment.
           </p>
         </div>
 
@@ -160,7 +171,7 @@ export function GlobalCreditBar() {
         </div>
 
         {/* Premium Refill */}
-        <div className="flex flex-col gap-1 items-center px-6 border-r border-border/50">
+        <div className="flex flex-col gap-1 items-center px-6 border-r border-border/50 relative">
           <h3 className="text-xs font-bold text-secondary flex items-center gap-1">
             <Gem className="h-3 w-3" /> Buy Premium
           </h3>
@@ -178,20 +189,24 @@ export function GlobalCreditBar() {
           </Button>
 
           {showContactInfo && (
-            <div className="mt-2 p-3 bg-secondary/10 border border-secondary/20 rounded-xl text-center space-y-2 animate-in fade-in slide-in-from-bottom-2">
-              <p className="text-[11px] font-bold text-secondary flex items-center justify-center gap-1">
-                📩 Contact us to get premium
-              </p>
-              <div className="flex flex-col gap-1 text-[10px] text-muted-foreground">
-                <span className="flex items-center justify-center gap-1">
-                  <MessageCircle className="h-3 w-3" /> WhatsApp: +91XXXXXXXXXX
-                </span>
-                <span className="flex items-center justify-center gap-1">
-                  <Mail className="h-3 w-3" /> support.sargamskv@gmail.com
-                </span>
+            <div className="absolute bottom-full mb-4 w-64 p-4 bg-card border border-secondary/20 rounded-2xl text-center space-y-3 shadow-2xl animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-bold text-secondary flex items-center gap-1">
+                  📩 Contact for Code
+                </p>
+                <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => setShowContactInfo(false)}>
+                  <X className="h-3 w-3" />
+                </Button>
               </div>
-              <p className="text-[9px] font-medium text-secondary/80">
-                After payment, you will receive a coupon code instantly.
+              <a 
+                href="mailto:support.sargamskv@gmail.com" 
+                className="flex items-center justify-center gap-2 p-3 bg-secondary/10 rounded-xl hover:bg-secondary/20 transition-colors group"
+              >
+                <Mail className="h-4 w-4 text-secondary group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] font-bold text-secondary">support.sargamskv@gmail.com</span>
+              </a>
+              <p className="text-[9px] font-medium text-muted-foreground leading-relaxed">
+                Send ₹49 or ₹99 via UPI to receive your redemption code instantly via email.
               </p>
             </div>
           )}
@@ -199,14 +214,14 @@ export function GlobalCreditBar() {
 
         {/* Funding Section */}
         <div className="flex flex-col gap-1 items-center">
-          <span className="text-[10px] font-bold text-primary uppercase tracking-tighter">Support Sneh</span>
+          <span className="text-[10px] font-bold text-primary uppercase tracking-tighter">Support Research</span>
           <Button 
             variant="outline" 
             size="sm" 
             className="h-8 px-3 text-[10px] border-foreground/20"
             onClick={fundProject}
           >
-            <Coffee className="mr-1 h-3 w-3" /> Fund My Research
+            <Coffee className="mr-1 h-3 w-3" /> Fund Research
           </Button>
         </div>
 
