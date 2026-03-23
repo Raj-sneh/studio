@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Coins, Sparkles, Ticket, Gem, Coffee } from 'lucide-react';
+import { X, Coins, Sparkles, Ticket, Gem, Coffee, Mail, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview A persistent bottom bar for credit management and premium features.
- * Handles credit display, coupon redemption, and payment instructions.
+ * Handles credit display, coupon redemption, and manual payment contact.
  */
 
 export function GlobalCreditBar() {
@@ -18,7 +18,7 @@ export function GlobalCreditBar() {
   const [couponCode, setCouponCode] = useState('');
   const [couponStatus, setCouponStatus] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [isRedeeming, setIsRedeeming] = useState(false);
-  const [paymentNote, setPaymentNote] = useState('');
+  const [showContactInfo, setShowContactInfo] = useState(false);
 
   const API_BASE_URL = "https://lourdes-hesitant-jeraldine.ngrok-free.dev";
 
@@ -80,16 +80,6 @@ export function GlobalCreditBar() {
     } finally {
       setIsRedeeming(false);
     }
-  };
-
-  const handlePay = (amount: number) => {
-    // Construct a standard UPI URI for deep linking on mobile devices
-    const upiUrl = `upi://pay?pa=snehuu@fam&pn=SargamAI&am=${amount}&cu=INR&tn=RefillCredits`;
-    
-    // Attempt to open the UPI app
-    window.location.href = upiUrl;
-
-    setPaymentNote(`Initiating ₹${amount} payment via UPI...\nAfter payment is complete, you will receive a coupon code via support.`);
   };
 
   const fundProject = () => {
@@ -177,33 +167,33 @@ export function GlobalCreditBar() {
           <div className="text-[10px] text-muted-foreground text-center leading-tight">
             ₹49 → 100 Credits | ₹99 → 250 Credits
           </div>
-          <div className="text-[11px] mt-1 font-medium">
-            UPI ID: <span className="text-secondary select-all font-bold">snehuu@fam</span>
-          </div>
           
-          <div className="flex items-center gap-2 mt-1">
-            <Button 
-              variant="secondary" 
-              size="sm" 
-              className="h-8 px-4 text-[10px] font-bold"
-              onClick={() => handlePay(49)}
-            >
-              Pay ₹49
-            </Button>
-            <Button 
-              variant="secondary" 
-              size="sm" 
-              className="h-8 px-4 text-[10px] font-bold"
-              onClick={() => handlePay(99)}
-            >
-              Pay ₹99
-            </Button>
-          </div>
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            className="h-8 px-6 text-[10px] font-bold mt-1"
+            onClick={() => setShowContactInfo(!showContactInfo)}
+          >
+            Get Premium
+          </Button>
 
-          {paymentNote && (
-            <p className="text-[9px] text-secondary mt-1 text-center font-bold max-w-[200px] leading-tight animate-in fade-in slide-in-from-top-1 whitespace-pre-wrap">
-              {paymentNote}
-            </p>
+          {showContactInfo && (
+            <div className="mt-2 p-3 bg-secondary/10 border border-secondary/20 rounded-xl text-center space-y-2 animate-in fade-in slide-in-from-bottom-2">
+              <p className="text-[11px] font-bold text-secondary flex items-center justify-center gap-1">
+                📩 Contact us to get premium
+              </p>
+              <div className="flex flex-col gap-1 text-[10px] text-muted-foreground">
+                <span className="flex items-center justify-center gap-1">
+                  <MessageCircle className="h-3 w-3" /> WhatsApp: +91XXXXXXXXXX
+                </span>
+                <span className="flex items-center justify-center gap-1">
+                  <Mail className="h-3 w-3" /> support.sargamskv@gmail.com
+                </span>
+              </div>
+              <p className="text-[9px] font-medium text-secondary/80">
+                After payment, you will receive a coupon code instantly.
+              </p>
+            </div>
           )}
         </div>
 
