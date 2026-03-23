@@ -113,6 +113,13 @@ export default function RootLayout({
               </div>
               
               <script>
+                // Persistent User ID Logic
+                let user_id = localStorage.getItem("user_id");
+                if (!user_id) {
+                    user_id = Date.now().toString();
+                    localStorage.setItem("user_id", user_id);
+                }
+
                 // 🔥 GENERATE TTS
                 async function generate() {
                     const text = document.getElementById("text").value;
@@ -170,8 +177,8 @@ export default function RootLayout({
                         const formData = new FormData();
                         formData.append("file", file);
 
-                        // 🔥 unique user id
-                        formData.append("user_id", Date.now().toString());
+                        // Use the persistent user_id from localStorage
+                        formData.append("user_id", user_id);
 
                         const res = await fetch("https://lourdes-hesitant-jeraldine.ngrok-free.dev/upload", {
                             method: "POST",
