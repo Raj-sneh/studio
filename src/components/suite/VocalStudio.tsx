@@ -124,16 +124,20 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
 
   // --- CREDIT LOGIC ---
   const checkAndDeductCredit = () => {
-      let credits = parseInt(localStorage.getItem("sargam_credits") || "5");
+      const storedCredits = localStorage.getItem("sargam_credits");
+      let credits = storedCredits ? parseInt(storedCredits) : 5;
+      
       if (credits <= 0) {
           toast({ 
               title: "Out of Credits", 
-              description: "Refill your credits in the bottom bar to continue.", 
+              description: "Refill your credits in the bottom bar to continue using the AI studio.", 
               variant: "destructive" 
           });
           return false;
       }
-      localStorage.setItem("sargam_credits", (credits - 1).toString());
+      
+      const newTotal = credits - 1;
+      localStorage.setItem("sargam_credits", newTotal.toString());
       window.dispatchEvent(new Event('creditsUpdated'));
       return true;
   };
@@ -242,7 +246,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
   }, [result, stopPlayback, toast, vocalVolume, vocalSpeed, pianoVolume, pianoTempo, isAutoSync]);
 
   const handleGenerate = useCallback(async (data: FormData, reinforcementRating?: 'good' | 'bad') => {
-    // Credit Check
+    // Credit Check: generation is strictly blocked if credits <= 0
     if (!checkAndDeductCredit()) return;
 
     setIsLoading(true);

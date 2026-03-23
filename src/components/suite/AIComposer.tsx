@@ -100,16 +100,20 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
 
     // --- CREDIT LOGIC ---
     const checkAndDeductCredit = () => {
-        let credits = parseInt(localStorage.getItem("sargam_credits") || "5");
+        const storedCredits = localStorage.getItem("sargam_credits");
+        let credits = storedCredits ? parseInt(storedCredits) : 5;
+        
         if (credits <= 0) {
             toast({ 
                 title: "Out of Credits", 
-                description: "Refill your credits in the bottom bar to continue.", 
+                description: "You have 0 credits. Please refill your balance using the credit bar at the bottom to continue generating music.", 
                 variant: "destructive" 
             });
             return false;
         }
-        localStorage.setItem("sargam_credits", (credits - 1).toString());
+        
+        const newTotal = credits - 1;
+        localStorage.setItem("sargam_credits", newTotal.toString());
         window.dispatchEvent(new Event('creditsUpdated'));
         return true;
     };
@@ -160,7 +164,7 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
             return;
         }
 
-        // Credit Check
+        // Credit Check: generation is strictly blocked if credits <= 0
         if (!checkAndDeductCredit()) return;
 
         stopPlayback();
