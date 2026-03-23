@@ -133,12 +133,26 @@ export default function RootLayout({
                 }
 
                 async function uploadVoice() {
-                  const fileInput = document.getElementById("voiceFile");
-                  if (!fileInput.files[0]) {
-                    alert("Please select a file first");
-                    return;
-                  }
-                  alert("Voice upload triggered for: " + fileInput.files[0].name);
+                    const file = document.getElementById("voiceFile").files[0];
+                    if (!file) {
+                        alert("Please select a file first");
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append("file", file);
+                    formData.append("user_id", "user123"); // temporary
+
+                    try {
+                        await fetch("https://lourdes-hesitant-jeraldine.ngrok-free.dev/upload", {
+                            method: "POST",
+                            body: formData
+                        });
+                        alert("Voice uploaded ✅");
+                    } catch (err) {
+                        console.error(err);
+                        alert("Upload failed");
+                    }
                 }
               </script>
             `}}
