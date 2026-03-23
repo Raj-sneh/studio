@@ -113,6 +113,10 @@ export default function RootLayout({
                   <div style="font-size: 10px; color: hsl(var(--muted-foreground)); text-align: center; line-height: 1.4;">
                     ₹49 → 100 Credits | ₹99 → 250 Credits
                   </div>
+                  <div style="font-size: 9px; color: hsl(var(--muted-foreground)); text-align: center; margin-top: 2px;">
+                    ⚡ Instant activation via coupon after payment<br/>
+                    🔒 Secure payment via UPI
+                  </div>
                   <div style="font-size: 11px; margin-top: 4px;">
                     <b>Pay via UPI:</b> <span style="color: hsl(var(--secondary));">snehuu@fam</span>
                   </div>
@@ -133,6 +137,12 @@ export default function RootLayout({
               <script>
                 // --- GLOBAL CREDIT SYSTEM ---
                 const API_BASE_URL = "https://lourdes-hesitant-jeraldine.ngrok-free.dev";
+                let user_id = localStorage.getItem("user_id");
+
+                if (!user_id) {
+                    user_id = Date.now().toString();
+                    localStorage.setItem("user_id", user_id);
+                }
 
                 function getCredits() {
                     let c = parseInt(localStorage.getItem("sargam_credits"));
