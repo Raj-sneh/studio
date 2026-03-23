@@ -92,15 +92,37 @@ export default function RootLayout({
               <script>
                 async function generate() {
                     const text = document.getElementById("text").value;
-                    const formData = new FormData();
-                    formData.append("text", text);
-                    const res = await fetch("https://lourdes-hesitant-jeraldine.ngrok-free.dev/tts", {
-                        method: "POST",
-                        body: formData
-                    });
-                    const blob = await res.blob();
-                    const url = URL.createObjectURL(blob);
-                    document.getElementById("player").src = url;
+
+                    if (!text) {
+                        alert("Enter text");
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch("https://lourdes-hesitant-jeraldine.ngrok-free.dev/tts", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/x-www-form-urlencoded"
+                            },
+                            body: "text=" + encodeURIComponent(text)
+                        });
+
+                        if (!res.ok) {
+                            alert("Error: " + res.status);
+                            return;
+                        }
+
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+
+                        const player = document.getElementById("player");
+                        player.src = url;
+                        player.play();
+
+                    } catch (err) {
+                        console.error(err);
+                        alert("Fetch failed");
+                    }
                 }
               </script>
             `}}
