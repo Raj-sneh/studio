@@ -76,8 +76,19 @@ export default function RootLayout({
 
           {/* 🎙️ GLOBAL CREDIT & SUPPORT BAR */}
           <div 
+            id="globalCreditBar"
             className="fixed bottom-0 left-0 w-full z-[100] bg-background/95 backdrop-blur border-t p-4 flex flex-col items-center justify-center gap-4 shadow-2xl"
             dangerouslySetInnerHTML={{ __html: `
+              <!-- ❌ CLOSE BUTTON -->
+              <button 
+                onclick="document.getElementById('globalCreditBar').style.display='none'" 
+                style="position: absolute; top: 12px; right: 12px; background: transparent; border: none; color: hsl(var(--muted-foreground)); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; transition: 0.2s;"
+                onmouseover="this.style.color='white'"
+                onmouseout="this.style.color='hsl(var(--muted-foreground))'"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+
               <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px; width: 100%; max-width: 1200px; margin: 0 auto;">
                 
                 <!-- 🔹 BALANCE SECTION -->
