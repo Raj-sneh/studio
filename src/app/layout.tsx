@@ -108,12 +108,16 @@ export default function RootLayout({
                 </div>
 
                 <!-- 🔹 PREMIUM REFILL -->
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                  <h3 style="margin: 0; font-size: 14px; font-weight: bold; color: hsl(var(--secondary)); text-align: center;">💎 Get More Credits</h3>
-                  <div style="display: flex; align-items: center; gap: 12px;">
-                    <button onclick="buyCredits(49, 100)" style="background: rgba(var(--secondary), 0.1); color: hsl(var(--secondary)); border: 1px solid hsl(var(--secondary)); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s;">₹49 (100 Cr)</button>
-                    <button onclick="buyCredits(99, 250)" style="background: hsl(var(--secondary)); color: hsl(var(--secondary-foreground)); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s;">₹99 (250 Cr)</button>
+                <div style="display: flex; flex-direction: column; gap: 4px; align-items: center; border-right: 1px solid hsl(var(--border)); padding-right: 24px;">
+                  <h3 style="margin: 0; font-size: 14px; font-weight: bold; color: hsl(var(--secondary)); text-align: center;">💎 Buy Premium</h3>
+                  <div style="font-size: 10px; color: hsl(var(--muted-foreground)); text-align: center; line-height: 1.4;">
+                    ₹49 → 100 Credits | ₹99 → 250 Credits
                   </div>
+                  <div style="font-size: 11px; margin-top: 4px;">
+                    <b>Pay via UPI:</b> <span style="color: hsl(var(--secondary));">snehuu@fam</span>
+                  </div>
+                  <button id="payBtn" onclick="pay()" style="margin-top: 4px; background: hsl(var(--secondary)); color: hsl(var(--secondary-foreground)); padding: 6px 16px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s;">Pay Now</button>
+                  <p id="paymentNote" style="font-size: 9px; color: hsl(var(--muted-foreground)); margin: 4px 0 0; text-align: center; max-width: 180px; font-weight: bold;"></p>
                 </div>
 
                 <div style="width: 1px; height: 40px; background: hsl(var(--border));" class="hidden md:block"></div>
@@ -199,10 +203,10 @@ export default function RootLayout({
                     }
                 }
 
-                function buyCredits(amount, count) {
-                    const upiId = "snehkumarverma@upi";
-                    const message = \`💎 PREMIUM UPGRADE\\n\\n1. Send ₹\${amount} via UPI to: \${upiId}\\n2. Email payment proof to: support.sargamskv@gmail.com\\n\\nCredits will be added within 24h. ✨\`;
-                    alert(message);
+                function pay() {
+                    const note = document.getElementById("paymentNote");
+                    note.innerText = "Send ₹49 or ₹99 to snehuu@fam.\\nAfter payment, you will receive a coupon code.";
+                    note.style.color = "hsl(var(--secondary))";
                 }
 
                 function fundProject() {
@@ -213,9 +217,9 @@ export default function RootLayout({
                 // Initialize
                 updateCreditUI();
                 window.addEventListener('creditsUpdated', updateCreditUI);
-                window.buyCredits = buyCredits;
                 window.fundProject = fundProject;
                 window.redeemCoupon = redeemCoupon;
+                window.pay = pay;
               </script>
             `}}
           />
