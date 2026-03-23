@@ -9,7 +9,6 @@ import { useUser } from '@/firebase';
 
 /**
  * @fileOverview A persistent bottom bar for credit management and premium features.
- * Now uses a native Next.js API route for coupon redemption.
  */
 
 export function GlobalCreditBar() {
@@ -50,7 +49,8 @@ export function GlobalCreditBar() {
   }, []);
 
   const handleRedeem = async () => {
-    if (!couponCode.trim()) {
+    const code = couponCode.trim();
+    if (!code) {
       setCouponStatus({ message: "⚠️ Enter code", type: 'info' });
       return;
     }
@@ -61,7 +61,7 @@ export function GlobalCreditBar() {
     }
 
     setIsRedeeming(true);
-    setCouponStatus({ message: "⏳ Validating...", type: 'info' });
+    setCouponStatus({ message: "⏳ Checking...", type: 'info' });
 
     try {
       const res = await fetch('/api/redeem', {
@@ -70,7 +70,7 @@ export function GlobalCreditBar() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          code: couponCode.trim(),
+          code: code,
           userId: user.uid
         }),
       });
@@ -86,11 +86,11 @@ export function GlobalCreditBar() {
         window.dispatchEvent(new Event('creditsUpdated'));
         setCouponStatus({ message: `✅ +${data.credits} Credits!`, type: 'success' });
       } else {
-        setCouponStatus({ message: data.message || "❌ Invalid coupon", type: 'error' });
+        setCouponStatus({ message: data.message || "❌ Invalid code", type: 'error' });
       }
     } catch (err: any) {
       console.error("Redeem Error:", err);
-      setCouponStatus({ message: "❌ Connection error", type: 'error' });
+      setCouponStatus({ message: "❌ Connection issue", type: 'error' });
     } finally {
       setIsRedeeming(false);
     }
@@ -104,7 +104,7 @@ export function GlobalCreditBar() {
   if (!isMounted || !isVisible) return null;
 
   const emailSubject = encodeURIComponent("Request for Sargam AI Premium Coupon");
-  const emailBody = encodeURIComponent("Hi Sneh,\n\nI'm interested in purchasing a premium coupon for Sargam AI. Please provide the payment details for the ₹49 or ₹99 plans.\n\nThank you!");
+  const emailBody = encodeURIComponent("Hi Sneh,\n\nI'm interested in purchasing a premium coupon for Sargam AI. Please provide the details for the ₹49 or ₹99 plans.\n\nThank you!");
   const mailToLink = `mailto:support.sargamskv@gmail.com?subject=${emailSubject}&body=${emailBody}`;
 
   return (
@@ -166,7 +166,7 @@ export function GlobalCreditBar() {
           </div>
           {couponStatus && (
             <p className={cn(
-              "text-[10px] font-bold text-center animate-in fade-in zoom-in-95",
+              "text-[10px] font-bold text-center animate-in fade-in zoom-in-95 mt-1",
               couponStatus.type === 'success' ? "text-primary" : 
               couponStatus.type === 'error' ? "text-destructive" : "text-muted-foreground"
             )}>
@@ -196,7 +196,7 @@ export function GlobalCreditBar() {
             <div className="absolute bottom-full mb-4 w-64 p-4 bg-card border border-secondary/20 rounded-2xl text-center space-y-3 shadow-2xl animate-in fade-in slide-in-from-bottom-2">
               <div className="flex items-center justify-between">
                 <p className="text-[11px] font-bold text-secondary flex items-center gap-1">
-                  📩 Contact for Code
+                  📩 Get Your Code
                 </p>
                 <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => setShowContactInfo(false)}>
                   <X className="h-3 w-3" />
@@ -210,7 +210,7 @@ export function GlobalCreditBar() {
                 <span className="text-[10px] font-bold text-secondary">support.sargamskv@gmail.com</span>
               </a>
               <p className="text-[9px] font-medium text-muted-foreground leading-relaxed">
-                Click the link above to request your premium coupon code via email.
+                Send an email to request your code. You'll receive it instantly after payment verification.
               </p>
             </div>
           )}
