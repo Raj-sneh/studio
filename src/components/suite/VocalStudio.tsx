@@ -122,6 +122,22 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
     return () => stopPlayback();
   }, [stopPlayback]);
 
+  // --- CREDIT LOGIC ---
+  const checkAndDeductCredit = () => {
+      let credits = parseInt(localStorage.getItem("sargam_credits") || "5");
+      if (credits <= 0) {
+          toast({ 
+              title: "Out of Credits", 
+              description: "Refill your credits in the bottom bar to continue.", 
+              variant: "destructive" 
+          });
+          return false;
+      }
+      localStorage.setItem("sargam_credits", (credits - 1).toString());
+      window.dispatchEvent(new Event('creditsUpdated'));
+      return true;
+  };
+
   const handlePreviewVoice = async (voiceId: string, e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
@@ -226,6 +242,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
   }, [result, stopPlayback, toast, vocalVolume, vocalSpeed, pianoVolume, pianoTempo, isAutoSync]);
 
   const handleGenerate = useCallback(async (data: FormData, reinforcementRating?: 'good' | 'bad') => {
+    // Credit Check
+    if (!checkAndDeductCredit()) return;
+
     setIsLoading(true);
     setResult(null);
     stopPlayback();
@@ -328,6 +347,11 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="flex justify-between items-center px-2">
+          <span className="text-xs font-bold text-primary flex items-center gap-1">
+              <Sparkles className="h-3 w-3" /> 1 Credit per performance
+          </span>
+      </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit((data) => handleGenerate(data))} className="space-y-8">
           <FormField control={form.control} name="text" render={({ field }) => (

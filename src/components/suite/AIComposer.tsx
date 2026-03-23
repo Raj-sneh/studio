@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { generateNotes } from '@/ai/flows/generate-notes-flow';
 import type { GenerateNotesOutput, NoteObject } from '@/ai/flows/generate-notes-types';
-import { Loader2, Music, Play, StopCircle, BookOpen, RefreshCw, CheckCircle, ThumbsUp, ThumbsDown, History } from 'lucide-react';
+import { Loader2, Music, Play, StopCircle, BookOpen, RefreshCw, CheckCircle, ThumbsUp, ThumbsDown, History, Sparkles } from 'lucide-react';
 import { getSampler } from '@/lib/samplers';
 import type { InstrumentSynth } from '@/lib/samplers';
 import NoteDisplay from '@/components/note-display';
@@ -83,7 +83,6 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
                 partRef.current = null;
             }
             
-            // Safe cleanup of keys
             setHighlightedKeys([]);
             setMode('idle');
             if (generationState === 'generated') setStatusText('Ready to play or learn.');
@@ -98,6 +97,22 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
         stopPlayback();
       };
     }, [stopPlayback]);
+
+    // --- CREDIT LOGIC ---
+    const checkAndDeductCredit = () => {
+        let credits = parseInt(localStorage.getItem("sargam_credits") || "5");
+        if (credits <= 0) {
+            toast({ 
+                title: "Out of Credits", 
+                description: "Refill your credits in the bottom bar to continue.", 
+                variant: "destructive" 
+            });
+            return false;
+        }
+        localStorage.setItem("sargam_credits", (credits - 1).toString());
+        window.dispatchEvent(new Event('creditsUpdated'));
+        return true;
+    };
     
     const handlePlayDemo = useCallback(async (melody: GenerateNotesOutput) => {
         stopPlayback();
@@ -144,6 +159,10 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
             toast({ title: 'Type something first', variant: 'destructive', description: "Tell me what kind of tune you want." });
             return;
         }
+
+        // Credit Check
+        if (!checkAndDeductCredit()) return;
+
         stopPlayback();
         setGenerationState('loading');
         setGeneratedMelody(null);
@@ -285,6 +304,11 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
     return (
         <Card>
             <CardContent className="space-y-4 pt-6">
+                <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-primary flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" /> 1 Credit per generation
+                    </span>
+                </div>
                 <Textarea
                     placeholder="e.g., 'A happy song' or 'Rainy day tune'"
                     value={prompt}
