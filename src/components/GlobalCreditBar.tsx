@@ -5,6 +5,7 @@ import { X, Coins, Sparkles, Ticket, Gem, Coffee, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { useUser } from '@/firebase';
 
 /**
  * @fileOverview A persistent bottom bar for credit management and premium features.
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils';
  */
 
 export function GlobalCreditBar() {
+  const { user } = useUser();
   const [isMounted, setIsMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [credits, setCredits] = useState(5);
@@ -55,21 +57,23 @@ export function GlobalCreditBar() {
       return;
     }
 
+    if (!user) {
+      setCouponStatus({ message: "❌ Login required", type: 'error' });
+      return;
+    }
+
     setIsRedeeming(true);
     setCouponStatus({ message: "⏳ Checking...", type: 'info' });
 
     try {
       const formData = new FormData();
       formData.append("code", couponCode.trim());
+      formData.append("userId", user.uid);
 
       const res = await fetch(`${API_BASE_URL}/redeem`, {
         method: "POST",
         body: formData,
       });
-
-      if (!res.ok) {
-        throw new Error(`Server returned ${res.status}`);
-      }
 
       const resText = await res.text();
       let data;
@@ -79,18 +83,18 @@ export function GlobalCreditBar() {
         throw new Error("Invalid response format");
       }
 
-      if (data.status === "success") {
+      if (res.ok && data.status === "success") {
         const current = parseInt(localStorage.getItem("sargam_credits") || "0");
         const newTotal = current + data.credits;
         localStorage.setItem("sargam_credits", newTotal.toString());
         
         setCouponCode('');
         window.dispatchEvent(new Event('creditsUpdated'));
-        setCouponStatus({ message: "✅ Coupon applied!", type: 'success' });
+        setCouponStatus({ message: `✅ +${data.credits} Credits!`, type: 'success' });
       } else if (data.status === "used") {
-        setCouponStatus({ message: "❌ Already used", type: 'error' });
+        setCouponStatus({ message: "❌ Already used by you", type: 'error' });
       } else {
-        setCouponStatus({ message: "❌ Invalid coupon", type: 'error' });
+        setCouponStatus({ message: data.message || "❌ Invalid coupon", type: 'error' });
       }
     } catch (err) {
       console.error("Redeem Error:", err);

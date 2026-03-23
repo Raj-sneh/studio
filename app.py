@@ -12,20 +12,23 @@ app = Flask(__name__)
 CORS(app)
 
 # 🎫 COUPON DATABASE
-# ₹49 -> 100 Credits (Alphanumeric)
-# ₹99 -> 250 Credits (Alphanumeric + @, #, ₹)
-coupons = {
-    "S49A1B2": {"credits": 100, "used": False},
-    "MELODY100": {"credits": 100, "used": False},
-    "SKVPRO49": {"credits": 100, "used": False},
-    "TUNE7K2L": {"credits": 100, "used": False},
-    "BEAT49X1": {"credits": 100, "used": False},
-    "MAX@250#₹": {"credits": 250, "used": False},
-    "PRO#SKV@₹99": {"credits": 250, "used": False},
-    "GOLD₹@MAX#": {"credits": 250, "used": False},
-    "VIP#99@₹250": {"credits": 250, "used": False},
-    "ULTRA@₹#99": {"credits": 250, "used": False}
+# Mapping codes to their credit values
+# These are now tracked per user in the 'user_redemptions' store
+coupon_values = {
+    "S49A1B2": 100,
+    "MELODY100": 100,
+    "SKVPRO49": 100,
+    "TUNE7K2L": 100,
+    "BEAT49X1": 100,
+    "MAX@250#₹": 250,
+    "PRO#SKV@₹99": 250,
+    "GOLD₹@MAX#": 250,
+    "VIP#99@₹250": 250,
+    "ULTRA@₹#99": 250
 }
+
+# In-memory store for tracking: { "user_id": ["code1", "code2"] }
+user_redemptions = {}
 
 @app.route('/')
 def home():
@@ -35,20 +38,29 @@ def home():
 def redeem_coupon():
     try:
         code = request.form.get("code")
+        user_id = request.form.get("userId")
         
         if not code:
             return jsonify({"status": "invalid", "message": "No code provided"}), 400
         
-        if code not in coupons:
+        if not user_id:
+            return jsonify({"status": "invalid", "message": "User context missing"}), 400
+        
+        if code not in coupon_values:
             return jsonify({"status": "invalid", "message": "Invalid coupon code"}), 404
 
-        if coupons[code]["used"]:
-            return jsonify({"status": "used", "message": "This coupon has already been redeemed"}), 400
+        # Initialize user history if not exists
+        if user_id not in user_redemptions:
+            user_redemptions[user_id] = []
 
-        credits_to_add = coupons[code]["credits"]
+        # Check if THIS user has used THIS code
+        if code in user_redemptions[user_id]:
+            return jsonify({"status": "used", "message": "You have already redeemed this coupon"}), 400
+
+        credits_to_add = coupon_values[code]
         
-        # Mark as used in this session
-        coupons[code]["used"] = True
+        # Record this redemption for the user
+        user_redemptions[user_id].append(code)
 
         return jsonify({
             "status": "success",
