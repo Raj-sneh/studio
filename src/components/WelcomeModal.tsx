@@ -49,14 +49,14 @@ export function WelcomeModal({ isOpen, onOpenChange, onSaveName, isSaving, curre
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-[400px]">
         <DialogHeader className="items-center text-center">
           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
             <Music className="h-6 w-6 text-primary" />
           </div>
           <DialogTitle className="text-2xl font-headline font-bold">Welcome to Sargam AI</DialogTitle>
           <DialogDescription>
-            Enter your name to start your musical journey.
+            Enter your name to start your musical journey. You can also skip this for now.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
