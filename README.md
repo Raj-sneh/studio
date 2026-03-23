@@ -4,43 +4,39 @@ Sargam is an interactive, AI-powered web application designed to make piano lear
 
 ## ✨ Features
 
-Sargam comes with a rich set of features for aspiring musicians:
-
-### 🎼 Interactive Lessons
-
--   **Song Library**: Choose from a collection of songs like "Twinkle Twinkle Little Star" and "Sargam Practice".
--   **Multiple Instruments**: Lessons are focused on the Piano.
--   **Visual Demo**: Watch an animated demonstration of how to play a song, with notes and keys highlighted in real-time.
--   **Practice & Score**: After the demo, it's your turn! Play the song on the virtual instrument and receive feedback.
-
-### 🎹 Practice Mode
-
--   **Free Play Sandbox**: Freely play and experiment with a high-quality virtual Grand Piano.
--   **Record & Playback**: Capture your creative sessions and play them back to hear your creations.
-
-### 🤖 AI-Powered Tools
-
--   **AI Lyrics to Music**: Turn your original lyrics into a complete song with AI-generated vocals and a piano backing track.
--   **AI Composer**: Describe a melody (e.g., "a melancholic piano tune"), and the AI will generate a unique piano piece for you to listen to and learn.
--   **Text to Speech**: Convert any text into spoken audio or a singing performance.
--   **AI Assistant**: A friendly chatbot, "SKV AI," is available to answer your questions and help you navigate the app.
-
-### 👤 User System
-
--   **Authentication**: Seamlessly integrated with Firebase, allowing users to sign in anonymously as guests or create a full account.
--   **User Profiles**: Users have a personal profile page to view their account details and generation history.
+- **🎹 Virtual Piano**: High-quality Salamander Grand Piano samples for practice and recording.
+- **🎼 Interactive Lessons**: Learn classics and rhymes with real-time feedback and visual demos.
+- **🎙️ Vocal Studio**: High-fidelity AI speech and singing powered by **Resemble.ai**.
+- **👥 Voice Cloner**: Instant AI voice cloning using a custom Python inference engine.
+- **🤖 SKV AI Assistant**: A friendly helper to guide you through the app and answer questions.
 
 ## 🚀 Technology Stack
 
--   **Frontend**: [Next.js](https://nextjs.org/) (with App Router) & [React](https://react.dev/)
--   **UI**: [ShadCN UI](https://ui.shadcn.com/) & [Tailwind CSS](https://tailwindcss.com/)
--   **Backend & Database**: [Firebase](https://firebase.google.com/) (Authentication, Firestore)
--   **Generative AI**: [Google AI & Genkit](https://firebase.google.com/docs/genkit)
--   **Audio Synthesis**: [Tone.js](https://tonejs.github.io/)
+- **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS, ShadCN UI.
+- **AI Backend**: Genkit (Google AI / Gemini 2.5 Flash), Resemble.ai API.
+- **Voice Engine**: Flask (Python), librosa, gTTS (runs on port 8080).
+- **Database**: Firebase (Auth, Firestore).
+
+## 🛠️ Configuration Guide
+
+To fully unlock the AI features, you need to set up your environment variables in a `.env` file:
+
+### 🎙️ Resemble.ai (Vocal Studio)
+1. **API Key**: Get this from your Resemble.ai Account Settings.
+2. **Project ID**: Found in the URL of your Resemble project (`app.resemble.ai/projects/<ID>`).
+3. **Voice IDs**: Map your specific Resemble Voice UUIDs to the environment variables:
+   - `RESEMBLE_VOICE_CLIVE_ID`
+   - `RESEMBLE_VOICE_CLARA_ID`
+   - `RESEMBLE_VOICE_JAMES_ID`
+
+### 👥 Voice Cloner (Python Engine)
+1. Ensure you have Python installed.
+2. Install dependencies: `pip install -r requirements.txt`.
+3. Run the engine: `python app.py`.
+4. The Next.js app will connect to `http://127.0.0.1:8080/clone`.
 
 ## 🔧 Getting Started
 
-1.  **Run the app**: `npm run dev`
-2.  **Explore**: Navigate to the homepage to see the main features.
-    -   Try the **Practice Room** to play the Grand Piano.
-    -   Go to **Lessons** to learn a song.
+1. **Install Frontend**: `npm install`
+2. **Run Frontend**: `npm run dev`
+3. **Run Voice Engine**: `python app.py` (in a separate terminal)
