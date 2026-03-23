@@ -1,7 +1,7 @@
 'use server';
 /**
- * @fileOverview A flow for generating high-quality speech using Inworld AI TTS.
- * This flow provides sub-second latency and superior voice quality.
+ * @fileOverview A flow for generating high-quality speech using Resemble.ai.
+ * Provides high-fidelity voice synthesis via the Resemble.ai API.
  */
 import { ai } from '@/ai/genkit';
 import { TextToSpeechInputSchema, TextToSpeechOutputSchema, type TextToSpeechInput, type TextToSpeechOutput } from './text-to-speech-types';
@@ -10,7 +10,7 @@ export async function textToSpeechFlow(input: TextToSpeechInput): Promise<TextTo
     try {
         return await textToSpeechGenkitFlow(input);
     } catch (error: any) {
-        console.error("Inworld TTS Flow Error:", error);
+        console.error("Resemble.ai TTS Flow Error:", error);
         throw new Error(`Voice generation failed: ${error.message || 'Unknown error'}`);
     }
 }
@@ -24,42 +24,46 @@ const textToSpeechGenkitFlow = ai.defineFlow(
     async (input) => {
         const { text, voice } = input;
         
-        // Mapping UI voices to Inworld Voice IDs
+        // Mapping UI voices to Resemble Voice UUIDs
+        // Note: These should be replaced with your actual Resemble Voice UUIDs
         const voiceMap: Record<string, string> = {
-            clive: 'Clive',
-            clara: 'Clara',
-            james: 'James',
-            alex: 'Alex',
-            marcus: 'Marcus',
-            elena: 'Elena',
-            maya: 'Maya',
-            silas: 'Silas',
-            victor: 'Victor',
-            sophie: 'Sophie',
-            kai: 'Kai',
-            male: 'James',
-            female: 'Clara'
+            clive: process.env.RESEMBLE_VOICE_CLIVE_ID || 'default_uuid',
+            clara: process.env.RESEMBLE_VOICE_CLARA_ID || 'default_uuid',
+            james: process.env.RESEMBLE_VOICE_JAMES_ID || 'default_uuid',
+            alex: 'default_uuid',
+            marcus: 'default_uuid',
+            elena: 'default_uuid',
+            maya: 'default_uuid',
+            silas: 'default_uuid',
+            victor: 'default_uuid',
+            sophie: 'default_uuid',
+            kai: 'default_uuid',
+            male: process.env.RESEMBLE_VOICE_JAMES_ID || 'default_uuid',
+            female: process.env.RESEMBLE_VOICE_CLARA_ID || 'default_uuid'
         };
 
-        const voiceId = voiceMap[voice] || 'Clive';
-        const authToken = process.env.INWORLD_AUTH_TOKEN;
+        const voiceUuid = voiceMap[voice] || voiceMap['clive'];
+        const apiKey = process.env.RESEMBLE_API_KEY;
+        const projectUuid = process.env.RESEMBLE_PROJECT_ID;
 
-        if (!authToken) {
-            throw new Error('Inworld Auth Token is missing in environment variables.');
+        if (!apiKey || !projectUuid) {
+            throw new Error('Resemble API Key or Project ID is missing in environment variables.');
         }
 
-        const url = 'https://api.inworld.ai/tts/v1/voice';
+        // 1. Create the clip
+        const url = `https://app.resemble.ai/api/v2/projects/${projectUuid}/clips`;
         const options = {
             method: 'POST',
             headers: {
-                'Authorization': `Basic ${authToken}`,
+                'Authorization': `Token token=${apiKey}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                text: text,
-                voiceId: voiceId,
-                modelId: "inworld-tts-1.5-max",
-                timestampType: "WORD"
+                title: `Sargam Clip ${Date.now()}`,
+                body: text,
+                voice_uuid: voiceUuid,
+                is_public: false,
+                is_archived: false
             }),
         };
 
@@ -67,18 +71,28 @@ const textToSpeechGenkitFlow = ai.defineFlow(
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `Inworld API error: ${response.status}`);
+            throw new Error(errorData.message || `Resemble API error: ${response.status}`);
         }
 
         const result = await response.json();
-        const audioContent = result.audioContent;
+        const clipUrl = result.item?.link;
 
-        if (!audioContent) {
-            throw new Error('Inworld AI did not return any audio content.');
+        if (!clipUrl) {
+            throw new Error('Resemble AI did not return a clip URL.');
         }
 
+        // 2. Fetch the actual audio file and convert to Base64
+        const audioResponse = await fetch(clipUrl);
+        if (!audioResponse.ok) {
+            throw new Error('Failed to download the generated audio clip.');
+        }
+
+        const arrayBuffer = await audioResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const base64Audio = buffer.toString('base64');
+
         return {
-            media: `data:audio/mpeg;base64,${audioContent}`,
+            media: `data:audio/mpeg;base64,${base64Audio}`,
         };
     }
 );

@@ -50,7 +50,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const voices = [
-  { id: 'clive', label: 'Clive (Premium)', premium: true },
+  { id: 'clive', label: 'Clive (Resemble)', premium: true },
   { id: 'clara', label: 'Clara (Studio)' },
   { id: 'james', label: 'James (Narrator)' },
   { id: 'alex', label: 'Alex (Balanced)' },
@@ -134,7 +134,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: `Hi there, I am ${voiceId}. I'm a professional AI voice artist.`,
+          text: `Hi there, I am ${voiceId}. Powered by Resemble AI.`,
           voice: voiceId,
           sing: false,
         }),
@@ -339,7 +339,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
               <FormItem className="space-y-4">
                 <FormLabel className="text-base font-bold flex items-center gap-2">
                   <Headphones className="h-4 w-4 text-primary" />
-                  Studio Artists (Inworld AI Powered)
+                  Studio Artists (Resemble AI Powered)
                 </FormLabel>
                 <div className="grid grid-cols-2 gap-2">
                   {voices.map((voice) => (
@@ -392,9 +392,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
                   <div className="space-y-1">
                     <FormLabel className="text-lg font-bold flex items-center gap-2">
                       <Zap className="h-5 w-5 text-primary" />
-                      Ultra-Low Latency Mode
+                      Professional Grade TTS
                     </FormLabel>
-                    <p className="text-xs text-muted-foreground">Using Inworld TTS 1.5 Max for sub-second responses.</p>
+                    <p className="text-xs text-muted-foreground">Utilizing Resemble AI v2 API for high-fidelity cloning.</p>
                   </div>
                   <div className="text-[10px] font-bold text-primary px-2 py-1 bg-primary/10 rounded uppercase">Active</div>
                 </div>
@@ -403,9 +403,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
               <div className="p-4 bg-muted/20 rounded-lg border border-dashed flex items-start gap-3">
                 <Star className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                    <p className="text-xs font-bold text-foreground">Inworld AI Integration</p>
+                    <p className="text-xs font-bold text-foreground">Resemble AI Integration</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      Sargam AI now utilizes Inworld's leaderboard-topping voice quality to bring your scripts to life instantly.
+                      Sargam AI now leverages Resemble's industry-leading voice cloning tech for studio-quality performances.
                     </p>
                 </div>
               </div>
@@ -414,7 +414,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
 
           <Button type="submit" disabled={isLoading} size="lg" className="w-full h-16 text-lg font-headline shadow-xl shadow-primary/20 transition-all hover:scale-[1.01]">
             {isLoading ? <Loader2 className="mr-2 animate-spin h-6 w-6" /> : <Sparkles className="mr-2 h-6 w-6" />}
-            {isLoading ? 'Synthesizing with Inworld AI...' : 'Generate Studio Performance'}
+            {isLoading ? 'Synthesizing with Resemble AI...' : 'Generate Studio Performance'}
           </Button>
         </form>
       </Form>
