@@ -81,6 +81,30 @@ export default function RootLayout({
           </div>
           <FloatingAssistantButton />
           <Toaster />
+
+          {/* User Custom Snippet */}
+          <div 
+            className="fixed bottom-0 left-0 w-full z-[100] bg-background/95 backdrop-blur border-t p-4 flex items-center justify-center gap-4"
+            dangerouslySetInnerHTML={{ __html: `
+              <input type="text" id="text" placeholder="Enter text" style="background: black; color: white; border: 1px solid hsl(var(--border)); padding: 8px 12px; border-radius: 6px;">
+              <button id="gen-btn" onclick="generate()" style="background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: opacity 0.2s;">Generate</button>
+              <audio id="player" controls style="height: 40px;"></audio>
+              <script>
+                async function generate() {
+                    const text = document.getElementById("text").value;
+                    const formData = new FormData();
+                    formData.append("text", text);
+                    const res = await fetch("https://lourdes-hesitant-jeraldine.ngrok-free.dev/tts", {
+                        method: "POST",
+                        body: formData
+                    });
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    document.getElementById("player").src = url;
+                }
+              </script>
+            `}}
+          />
         </Providers>
       </body>
     </html>
