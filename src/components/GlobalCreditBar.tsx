@@ -1,0 +1,211 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { X, Coins, Sparkles, Ticket, Gem, Coffee } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+
+/**
+ * @fileOverview A persistent bottom bar for credit management and premium features.
+ * Handles credit display, coupon redemption, and payment instructions.
+ */
+
+export function GlobalCreditBar() {
+  const [isMounted, setIsMounted] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [credits, setCredits] = useState(5);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponStatus, setCouponStatus] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const [paymentNote, setPaymentNote] = useState('');
+
+  const API_BASE_URL = "https://lourdes-hesitant-jeraldine.ngrok-free.dev";
+
+  useEffect(() => {
+    setIsMounted(true);
+    
+    const fetchCredits = () => {
+      const stored = localStorage.getItem("sargam_credits");
+      if (stored) {
+        setCredits(parseInt(stored));
+      }
+    };
+
+    fetchCredits();
+
+    const handleUpdate = () => fetchCredits();
+    window.addEventListener('creditsUpdated', handleUpdate);
+    
+    return () => {
+      window.removeEventListener('creditsUpdated', handleUpdate);
+    };
+  }, []);
+
+  const handleRedeem = async () => {
+    if (!couponCode.trim()) {
+      setCouponStatus({ message: "⚠️ Enter code", type: 'info' });
+      return;
+    }
+
+    setIsRedeeming(true);
+    setCouponStatus({ message: "⏳ Checking...", type: 'info' });
+
+    try {
+      const formData = new FormData();
+      formData.append("code", couponCode.trim());
+
+      const res = await fetch(`${API_BASE_URL}/redeem`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (data.status === "success") {
+        const current = parseInt(localStorage.getItem("sargam_credits") || "0");
+        const newTotal = current + data.credits;
+        localStorage.setItem("sargam_credits", newTotal.toString());
+        
+        setCouponCode('');
+        window.dispatchEvent(new Event('creditsUpdated'));
+        setCouponStatus({ message: "✅ Coupon applied!", type: 'success' });
+      } else if (data.status === "used") {
+        setCouponStatus({ message: "❌ Already used", type: 'error' });
+      } else {
+        setCouponStatus({ message: "❌ Invalid coupon", type: 'error' });
+      }
+    } catch (err) {
+      setCouponStatus({ message: "❌ Offline", type: 'error' });
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
+
+  const handlePay = () => {
+    setPaymentNote("Send ₹49 or ₹99 to snehuu@fam.\nAfter payment, you will receive a coupon code.");
+  };
+
+  const fundProject = () => {
+    const upiId = "snehkumarverma@upi";
+    alert(`🙏 Support Development\n\nYour contributions help keep Sargam AI growing. Send any amount to ${upiId} to support Sneh's research! 🚀`);
+  };
+
+  if (!isMounted || !isVisible) return null;
+
+  return (
+    <div className="fixed bottom-0 left-0 w-full z-[100] bg-background/95 backdrop-blur border-t p-4 shadow-2xl animate-in slide-in-from-bottom duration-300">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        className="absolute top-3 right-3 h-8 w-8 text-muted-foreground hover:text-foreground"
+        onClick={() => setIsVisible(false)}
+      >
+        <X className="h-5 w-5" />
+      </Button>
+
+      <div className="container max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-8 py-2">
+        
+        {/* Balance Section */}
+        <div className="flex flex-col items-center gap-1 px-6 border-r border-border/50">
+          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Your Balance</span>
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              "text-2xl font-bold transition-colors",
+              credits <= 0 ? "text-destructive" : "text-primary"
+            )}>
+              {credits}
+            </span>
+            <span className="text-xs text-muted-foreground">Credits</span>
+          </div>
+        </div>
+
+        {/* Status Message */}
+        <div className="flex-1 min-w-[200px] hidden lg:block">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-bold text-primary">AI Features Active</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Melody Maker & Vocal Studio (1 Credit per generation).
+          </p>
+        </div>
+
+        {/* Coupon Redemption */}
+        <div className="flex flex-col gap-2 px-6 border-r border-border/50">
+          <h3 className="text-xs font-bold text-center flex items-center justify-center gap-1">
+            <Ticket className="h-3 w-3 text-primary" /> Redeem Coupon
+          </h3>
+          <div className="flex items-center gap-2">
+            <Input 
+              placeholder="Enter code..." 
+              className="h-8 w-32 text-xs" 
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value)}
+            />
+            <Button 
+              size="sm" 
+              className="h-8 px-3 text-xs font-bold"
+              onClick={handleRedeem}
+              disabled={isRedeeming}
+            >
+              Redeem
+            </Button>
+          </div>
+          {couponStatus && (
+            <p className={cn(
+              "text-[10px] font-bold text-center animate-in fade-in zoom-in-95",
+              couponStatus.type === 'success' ? "text-primary" : 
+              couponStatus.type === 'error' ? "text-destructive" : "text-muted-foreground"
+            )}>
+              {couponStatus.message}
+            </p>
+          )}
+        </div>
+
+        {/* Premium Refill */}
+        <div className="flex flex-col gap-1 items-center px-6 border-r border-border/50">
+          <h3 className="text-xs font-bold text-secondary flex items-center gap-1">
+            <Gem className="h-3 w-3" /> Buy Premium
+          </h3>
+          <div className="text-[10px] text-muted-foreground text-center leading-tight">
+            ₹49 → 100 Credits | ₹99 → 250 Credits
+          </div>
+          <div className="text-[9px] text-muted-foreground text-center opacity-70">
+            Instant activation via coupon • Secure UPI
+          </div>
+          <div className="text-[11px] mt-1 font-medium">
+            UPI: <span className="text-secondary select-all">snehuu@fam</span>
+          </div>
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            className="h-8 px-4 text-xs font-bold mt-1"
+            onClick={handlePay}
+          >
+            Pay Now
+          </Button>
+          {paymentNote && (
+            <p className="text-[9px] text-secondary mt-1 text-center font-bold max-w-[180px] leading-tight animate-in fade-in slide-in-from-top-1">
+              {paymentNote}
+            </p>
+          )}
+        </div>
+
+        {/* Funding Section */}
+        <div className="flex flex-col gap-1 items-center">
+          <span className="text-[10px] font-bold text-primary uppercase tracking-tighter">Support Sneh</span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-8 px-3 text-[10px] border-foreground/20"
+            onClick={fundProject}
+          >
+            <Coffee className="mr-1 h-3 w-3" /> Fund My Research
+          </Button>
+        </div>
+
+      </div>
+    </div>
+  );
+}
