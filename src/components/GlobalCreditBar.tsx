@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Coins, Sparkles, Ticket, Gem, Coffee, Mail, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { useUser } from '@/firebase';
 
 /**
  * @fileOverview A persistent bottom bar for credit management and premium features.
- * Handles credit display, coupon redemption, and manual payment contact.
+ * Now uses a native Next.js API route for coupon redemption.
  */
 
 export function GlobalCreditBar() {
@@ -21,9 +21,6 @@ export function GlobalCreditBar() {
   const [couponStatus, setCouponStatus] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [showContactInfo, setShowContactInfo] = useState(false);
-
-  // Hardcoded ngrok URL provided by user. 
-  const API_BASE_URL = "https://lourdes-hesitant-jeraldine.ngrok-free.dev";
 
   useEffect(() => {
     setIsMounted(true);
@@ -64,34 +61,21 @@ export function GlobalCreditBar() {
     }
 
     setIsRedeeming(true);
-    setCouponStatus({ message: "⏳ Checking...", type: 'info' });
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    setCouponStatus({ message: "⏳ Validating...", type: 'info' });
 
     try {
-      const formData = new FormData();
-      formData.append("code", couponCode.trim());
-      formData.append("userId", user.uid);
-
-      const res = await fetch(`${API_BASE_URL}/redeem`, {
+      const res = await fetch('/api/redeem', {
         method: "POST",
-        body: formData,
-        signal: controller.signal,
         headers: {
-          "ngrok-skip-browser-warning": "true", 
-        }
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: couponCode.trim(),
+          userId: user.uid
+        }),
       });
 
-      clearTimeout(timeoutId);
-
-      const resText = await res.text();
-      let data;
-      try {
-        data = resText ? JSON.parse(resText) : {};
-      } catch (e) {
-        throw new Error("Invalid response format. Is your Python server running?");
-      }
+      const data = await res.json();
 
       if (res.ok && data.status === "success") {
         const current = parseInt(localStorage.getItem("sargam_credits") || "0");
@@ -101,25 +85,12 @@ export function GlobalCreditBar() {
         setCouponCode('');
         window.dispatchEvent(new Event('creditsUpdated'));
         setCouponStatus({ message: `✅ +${data.credits} Credits!`, type: 'success' });
-      } else if (data.status === "used") {
-        setCouponStatus({ message: "❌ Already used by you", type: 'error' });
       } else {
         setCouponStatus({ message: data.message || "❌ Invalid coupon", type: 'error' });
       }
     } catch (err: any) {
       console.error("Redeem Error:", err);
-      
-      let errorMsg = "❌ Service offline";
-      if (err.name === 'AbortError') {
-        errorMsg = "❌ Request timed out";
-      } else if (err.message.includes('fetch') || err.message.includes('NetworkError')) {
-        errorMsg = "❌ Connection refused. Check Python server.";
-      }
-
-      setCouponStatus({ 
-        message: errorMsg, 
-        type: 'error' 
-      });
+      setCouponStatus({ message: "❌ Connection error", type: 'error' });
     } finally {
       setIsRedeeming(false);
     }
@@ -149,7 +120,6 @@ export function GlobalCreditBar() {
 
       <div className="container max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-8 py-2">
         
-        {/* Balance Section */}
         <div className="flex flex-col items-center gap-1 px-6 border-r border-border/50">
           <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Your Balance</span>
           <div className="flex items-center gap-2">
@@ -163,18 +133,16 @@ export function GlobalCreditBar() {
           </div>
         </div>
 
-        {/* Status Message */}
         <div className="flex-1 min-w-[200px] hidden lg:block">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-bold text-primary">AI Features Active</h2>
+            <h2 className="text-sm font-bold text-primary">AI Creative Studio</h2>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Instant activation via coupon after payment.
+            Redeem your premium codes for instant credits.
           </p>
         </div>
 
-        {/* Coupon Redemption */}
         <div className="flex flex-col gap-2 px-6 border-r border-border/50">
           <h3 className="text-xs font-bold text-center flex items-center justify-center gap-1">
             <Ticket className="h-3 w-3 text-primary" /> Redeem Coupon
@@ -207,7 +175,6 @@ export function GlobalCreditBar() {
           )}
         </div>
 
-        {/* Premium Refill */}
         <div className="flex flex-col gap-1 items-center px-6 border-r border-border/50 relative">
           <h3 className="text-xs font-bold text-secondary flex items-center gap-1">
             <Gem className="h-3 w-3" /> Buy Premium
@@ -249,7 +216,6 @@ export function GlobalCreditBar() {
           )}
         </div>
 
-        {/* Funding Section */}
         <div className="flex flex-col gap-1 items-center">
           <span className="text-[10px] font-bold text-primary uppercase tracking-tighter">Support Research</span>
           <Button 
