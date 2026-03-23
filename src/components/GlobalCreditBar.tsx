@@ -6,10 +6,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
+import { db } from '@/firebase/client';
+import { doc, getDoc, updateDoc, arrayUnion, setDoc, serverTimestamp } from 'firebase/firestore';
 
 /**
  * @fileOverview A persistent bottom bar for credit management and premium features.
+ * Handles secure client-side coupon redemption and premium purchase links.
  */
+
+const COUPON_VALUES: Record<string, number> = {
+  "S49A1B2": 100,
+  "MELODY100": 100,
+  "SKVPRO49": 100,
+  "TUNE7K2L": 100,
+  "BEAT49X1": 100,
+  "MAX@250#₹": 250,
+  "PRO#SKV@₹99": 250,
+  "GOLD₹@MAX#": 250,
+  "VIP#99@₹250": 250,
+  "ULTRA@₹#99": 250
+};
 
 export function GlobalCreditBar() {
   const { user } = useUser();
@@ -61,33 +77,54 @@ export function GlobalCreditBar() {
     }
 
     setIsRedeeming(true);
-    setCouponStatus({ message: "⏳ Checking...", type: 'info' });
+    setCouponStatus({ message: "⏳ Validating...", type: 'info' });
 
     try {
-      const res = await fetch('/api/redeem', {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          code: code,
-          userId: user.uid
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.status === "success") {
-        const current = parseInt(localStorage.getItem("sargam_credits") || "0");
-        const newTotal = current + data.credits;
-        localStorage.setItem("sargam_credits", newTotal.toString());
-        
-        setCouponCode('');
-        window.dispatchEvent(new Event('creditsUpdated'));
-        setCouponStatus({ message: `✅ +${data.credits} Credits!`, type: 'success' });
-      } else {
-        setCouponStatus({ message: data.message || "❌ Invalid code", type: 'error' });
+      // 1. Check if the coupon exists
+      const creditsToGrant = COUPON_VALUES[code];
+      if (!creditsToGrant) {
+        setCouponStatus({ message: "❌ Invalid code", type: 'error' });
+        setIsRedeeming(false);
+        return;
       }
+
+      // 2. Access user profile in Firestore to check usage
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        // Create profile if missing
+        await setDoc(userDocRef, {
+          id: user.uid,
+          createdAt: serverTimestamp(),
+          redeemedCoupons: [code],
+          displayName: user.displayName || 'Guest User'
+        });
+      } else {
+        const userData = userDoc.data();
+        const redeemedCoupons = userData.redeemedCoupons || [];
+
+        if (redeemedCoupons.includes(code)) {
+          setCouponStatus({ message: "❌ Already used!", type: 'error' });
+          setIsRedeeming(false);
+          return;
+        }
+
+        // 3. Mark coupon as used for this user
+        await updateDoc(userDocRef, {
+          redeemedCoupons: arrayUnion(code)
+        });
+      }
+
+      // 4. Update Local Credits
+      const current = parseInt(localStorage.getItem("sargam_credits") || "0");
+      const newTotal = current + creditsToGrant;
+      localStorage.setItem("sargam_credits", newTotal.toString());
+      
+      setCouponCode('');
+      window.dispatchEvent(new Event('creditsUpdated'));
+      setCouponStatus({ message: `✅ +${creditsToGrant} Credits!`, type: 'success' });
+
     } catch (err: any) {
       console.error("Redeem Error:", err);
       setCouponStatus({ message: "❌ Connection issue", type: 'error' });
