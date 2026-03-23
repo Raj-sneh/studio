@@ -102,7 +102,7 @@ export default function RootLayout({
                   <h3 style="margin: 0; font-size: 14px; font-weight: bold; color: hsl(var(--primary)); text-align: center;">🎟️ Redeem Coupon</h3>
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <input type="text" id="couponInput" placeholder="Enter code..." style="background: hsl(var(--background)); color: white; border: 1px solid hsl(var(--border)); padding: 6px 12px; border-radius: 8px; font-size: 12px; width: 120px;">
-                    <button onclick="redeemCoupon()" style="background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s;">Redeem</button>
+                    <button id="redeemBtn" onclick="redeemCoupon()" style="background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s;">Redeem</button>
                   </div>
                 </div>
 
@@ -127,10 +127,7 @@ export default function RootLayout({
               
               <script>
                 // --- GLOBAL CREDIT SYSTEM ---
-                const COUPONS = {
-                    "BASIC-7K2LM": 100,
-                    "PRO-9K@2₹": 250
-                };
+                const API_BASE_URL = "https://lourdes-hesitant-jeraldine.ngrok-free.dev";
 
                 function getCredits() {
                     let c = parseInt(localStorage.getItem("sargam_credits"));
@@ -150,8 +147,9 @@ export default function RootLayout({
                     }
                 }
                 
-                function redeemCoupon() {
+                async function redeemCoupon() {
                     const input = document.getElementById("couponInput");
+                    const btn = document.getElementById("redeemBtn");
                     const code = input.value.trim();
                     
                     if (!code) {
@@ -159,29 +157,38 @@ export default function RootLayout({
                         return;
                     }
 
-                    const reward = COUPONS[code];
-                    if (!reward) {
-                        alert("❌ Invalid coupon code.");
-                        return;
-                    }
+                    btn.disabled = true;
+                    btn.innerText = "⏳...";
 
-                    const usedCoupons = JSON.parse(localStorage.getItem("sargam_used_coupons") || "[]");
-                    if (usedCoupons.includes(code)) {
-                        alert("⚠️ This coupon has already been used on this device.");
-                        return;
-                    }
+                    try {
+                        const formData = new FormData();
+                        formData.append("code", code);
 
-                    // Add credits
-                    let current = getCredits();
-                    localStorage.setItem("sargam_credits", current + reward);
-                    
-                    // Mark as used
-                    usedCoupons.push(code);
-                    localStorage.setItem("sargam_used_coupons", JSON.stringify(usedCoupons));
-                    
-                    input.value = "";
-                    window.dispatchEvent(new Event('creditsUpdated'));
-                    alert("✅ Success! " + reward + " credits added to your account. ✨");
+                        const res = await fetch(\`\${API_BASE_URL}/redeem\`, {
+                            method: "POST",
+                            body: formData
+                        });
+
+                        const data = await res.json();
+
+                        if (data.status === "success") {
+                            // Add credits to local storage
+                            let current = getCredits();
+                            localStorage.setItem("sargam_credits", current + data.credits);
+                            
+                            input.value = "";
+                            window.dispatchEvent(new Event('creditsUpdated'));
+                            alert(\`✅ Success! \${data.credits} credits added to your account. ✨\`);
+                        } else {
+                            alert(\`❌ \${data.message || "Invalid coupon code."}\`);
+                        }
+                    } catch (err) {
+                        console.error("Redeem error:", err);
+                        alert("❌ Backend is offline. Please try again later.");
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerText = "Redeem";
+                    }
                 }
 
                 function buyCredits(amount, count) {
