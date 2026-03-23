@@ -22,6 +22,8 @@ export function GlobalCreditBar() {
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [showContactInfo, setShowContactInfo] = useState(false);
 
+  // Hardcoded ngrok URL provided by user. 
+  // Added ngrok-skip-browser-warning header in fetch to bypass the landing page.
   const API_BASE_URL = "https://lourdes-hesitant-jeraldine.ngrok-free.dev";
 
   useEffect(() => {
@@ -73,6 +75,9 @@ export function GlobalCreditBar() {
       const res = await fetch(`${API_BASE_URL}/redeem`, {
         method: "POST",
         body: formData,
+        headers: {
+          "ngrok-skip-browser-warning": "true", // Bypass ngrok warning page
+        }
       });
 
       const resText = await res.text();
@@ -80,7 +85,7 @@ export function GlobalCreditBar() {
       try {
         data = JSON.parse(resText);
       } catch (e) {
-        throw new Error("Invalid response format");
+        throw new Error("Invalid response format. Is ngrok tunnel open?");
       }
 
       if (res.ok && data.status === "success") {
@@ -96,9 +101,13 @@ export function GlobalCreditBar() {
       } else {
         setCouponStatus({ message: data.message || "❌ Invalid coupon", type: 'error' });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Redeem Error:", err);
-      setCouponStatus({ message: "❌ Service offline", type: 'error' });
+      // Fail gracefully without crashing the app
+      setCouponStatus({ 
+        message: err.message.includes('fetch') ? "❌ Connection Refused" : "❌ Service offline", 
+        type: 'error' 
+      });
     } finally {
       setIsRedeeming(false);
     }
@@ -164,6 +173,7 @@ export function GlobalCreditBar() {
               className="h-8 w-32 text-xs" 
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleRedeem()}
             />
             <Button 
               size="sm" 
@@ -171,7 +181,7 @@ export function GlobalCreditBar() {
               onClick={handleRedeem}
               disabled={isRedeeming}
             >
-              Redeem
+              {isRedeeming ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Redeem'}
             </Button>
           </div>
           {couponStatus && (
@@ -244,3 +254,5 @@ export function GlobalCreditBar() {
     </div>
   );
 }
+
+import { Loader2 } from 'lucide-react';
