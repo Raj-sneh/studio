@@ -13,13 +13,13 @@ const TrainingScriptOutputSchema = z.object({
 export async function generateTrainingParagraphs(): Promise<string[]> {
   const result = await ai.generate({
     model: 'googleai/gemini-2.5-flash',
-    prompt: 'Generate 3 very short (1 sentence each) and expressive sentences that a user can read to provide a high-quality voice sample for cloning. Include different moods: one happy, one calm, and one dramatic.',
+    prompt: 'Generate 3 very short (max 10 words each) and highly expressive sentences that a user can read to provide a high-quality voice sample for cloning. Include different moods: one energetic/happy, one calm/serious, and one questioning/curious.',
     output: { schema: TrainingScriptOutputSchema },
   });
 
   return result.output?.scripts || [
-    "The golden sun sets slowly behind the purple mountains, casting long shadows across the valley.",
-    "I can't believe we actually found the hidden treasure buried beneath the old oak tree!",
-    "Please speak clearly and maintain a consistent volume while reading this training sentence."
+    "I'm so excited to finally start my music journey!",
+    "The piano sounds beautiful in this quiet room.",
+    "Can you hear the magic hidden within the notes?"
   ];
 }
