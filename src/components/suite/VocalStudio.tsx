@@ -87,6 +87,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
   const [isAutoSync, setIsAutoSync] = useState(true);
   
   const [feedbackComment, setFeedbackComment] = useState('');
+  const [hasRated, setHasRated] = useState(false);
 
   const vocalPlayerRef = useRef<Tone.Player | null>(null);
   const pianoPartRef = useRef<Tone.Part | null>(null);
@@ -292,7 +293,10 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
         if (songData.tempo) setPianoTempo(songData.tempo);
         
         if (reinforcementRating) {
+          setHasRated(true);
           setFeedbackComment('');
+        } else {
+          setHasRated(false);
         }
       } else {
         const res = await fetch('/api/text-to-speech', {
@@ -316,6 +320,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
         if (!res.ok) throw new Error(speechResult.message || "Resemble AI generation failed.");
         
         newResult = { vocalUri: speechResult.media };
+        setHasRated(false);
       }
 
       setResult(newResult);
@@ -537,7 +542,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
             </Card>
           </div>
 
-          {!reinforcementRating && (
+          {!hasRated && (
             <div className="space-y-4 border-t pt-8">
               <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 space-y-4">
                   <div className="flex items-center gap-2">
