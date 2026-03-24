@@ -3,3 +3,5 @@ flask-cors
 gtts
 librosa
 numpy
+elevenlabs
+python-dotenv
