@@ -5,8 +5,7 @@ import { X, Coins, Sparkles, Ticket, Gem, Coffee, Mail, Loader2 } from 'lucide-r
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useUser } from '@/firebase';
-import { db } from '@/firebase/client';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, getDoc, updateDoc, arrayUnion, setDoc, serverTimestamp } from 'firebase/firestore';
 
 /**
@@ -29,6 +28,7 @@ const COUPON_VALUES: Record<string, number> = {
 
 export function GlobalCreditBar() {
   const { user } = useUser();
+  const firestore = useFirestore();
   const [isMounted, setIsMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [credits, setCredits] = useState(5);
@@ -71,7 +71,7 @@ export function GlobalCreditBar() {
       return;
     }
 
-    if (!user) {
+    if (!user || !firestore) {
       setCouponStatus({ message: "❌ Login required", type: 'error' });
       return;
     }
@@ -89,7 +89,7 @@ export function GlobalCreditBar() {
       }
 
       // 2. Access user profile in Firestore to check usage
-      const userDocRef = doc(db, 'users', user.uid);
+      const userDocRef = doc(firestore, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
@@ -127,7 +127,7 @@ export function GlobalCreditBar() {
 
     } catch (err: any) {
       console.error("Redeem Error:", err);
-      setCouponStatus({ message: "❌ Connection issue", type: 'error' });
+      setCouponStatus({ message: "❌ Studio issue", type: 'error' });
     } finally {
       setIsRedeeming(false);
     }

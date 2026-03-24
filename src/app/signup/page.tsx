@@ -14,7 +14,7 @@ import {
   ConfirmationResult,
 } from 'firebase/auth';
 
-import { auth } from '@/firebase/client';
+import { useAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -51,6 +51,7 @@ declare global {
 
 export default function SignupPage() {
   const router = useRouter();
+  const auth = useAuth();
 
   const [step, setStep] = useState<'details' | 'otp'>('details');
   const [isLoading, setIsLoading] = useState(false);
@@ -75,6 +76,7 @@ export default function SignupPage() {
   });
 
   const setupRecaptcha = () => {
+    if (!auth) return;
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'normal',
@@ -86,11 +88,13 @@ export default function SignupPage() {
   };
 
   const handleSendOtp = async (values: z.infer<typeof detailsSchema>) => {
+    if (!auth) return;
     try {
       setIsLoading(true);
 
       const phone = values.phoneNumber.replace(/\s/g, '');
       const appVerifier = setupRecaptcha();
+      if (!appVerifier) throw new Error("Recaptcha failed to initialize.");
       const confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier);
 
       window.confirmationResult = confirmationResult;
@@ -110,6 +114,7 @@ export default function SignupPage() {
   };
 
   const handleCreateAccount = async (values: z.infer<typeof otpSchema>) => {
+    if (!auth) return;
     try {
       setIsLoading(true);
 
@@ -269,7 +274,7 @@ export default function SignupPage() {
             <Form {...otpForm}>
               <form onSubmit={otpForm.handleSubmit(handleCreateAccount)} className="space-y-4">
                 <FormField
-                  control={otpForm.control}
+                  control={otpSchema.control}
                   name="otp"
                   render={({ field }) => (
                     <FormItem>

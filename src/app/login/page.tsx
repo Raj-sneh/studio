@@ -15,7 +15,7 @@ import {
   ConfirmationResult,
 } from 'firebase/auth';
 
-import { auth } from '@/firebase/client';
+import { useAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -49,6 +49,7 @@ declare global {
 
 export default function LoginPage() {
   const router = useRouter();
+  const auth = useAuth();
 
   const [tab, setTab] = useState<'email' | 'phone'>('email');
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
@@ -77,6 +78,7 @@ export default function LoginPage() {
   });
 
   const setupRecaptcha = () => {
+    if (!auth) return;
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'normal',
@@ -88,6 +90,7 @@ export default function LoginPage() {
   };
 
   const handleEmailLogin = async (values: z.infer<typeof emailFormSchema>) => {
+    if (!auth) return;
     try {
       setIsLoading(true);
       await signInWithEmailAndPassword(auth, values.email, values.password);
@@ -100,11 +103,13 @@ export default function LoginPage() {
   };
 
   const handleSendOtp = async (values: z.infer<typeof phoneFormSchema>) => {
+    if (!auth) return;
     try {
       setIsLoading(true);
 
       const phone = values.phone.replace(/\s/g, '');
       const appVerifier = setupRecaptcha();
+      if (!appVerifier) throw new Error("Recaptcha initialization failed.");
 
       const confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier);
 
@@ -144,6 +149,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    if (!auth) return;
     try {
       setIsLoading(true);
       const provider = new GoogleAuthProvider();
