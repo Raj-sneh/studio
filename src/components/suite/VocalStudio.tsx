@@ -22,9 +22,8 @@ import {
   ThumbsUp, 
   ThumbsDown,
   PlayCircle,
-  AlertCircle,
-  Star,
-  Mic2
+  Mic2,
+  Star
 } from 'lucide-react';
 import { 
   Form, 
@@ -37,6 +36,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
 import { getSampler } from '@/lib/samplers';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
@@ -179,7 +179,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
       });
     } catch (e: any) {
       console.error("Preview Error:", e);
-      toast({ title: "Preview failed", description: e.message || "Could not play sample. Verify RESEMBLE_VOICE_ID in .env.", variant: "destructive" });
+      toast({ title: "Preview failed", description: e.message || "Could not play sample.", variant: "destructive" });
     } finally {
       setPreviewLoading(null);
     }
@@ -242,7 +242,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
     } catch (err) {
       console.error("Playback error:", err);
       setIsPlaying(false);
-      toast({ title: "Studio Error", description: "I had some trouble mixing the tracks. Check your connection.", variant: "destructive" });
+      toast({ title: "Studio Error", description: "I had some trouble mixing the tracks.", variant: "destructive" });
     }
   }, [result, stopPlayback, toast, vocalVolume, vocalSpeed, pianoVolume, pianoTempo, isAutoSync]);
 
@@ -280,7 +280,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
           throw new Error("The Studio engine returned an invalid response.");
         }
 
-        if (!res.ok) throw new Error(songData.message || "Synthesis failed. Check Resemble API Key.");
+        if (!res.ok) throw new Error(songData.message || "Synthesis failed.");
 
         newResult = {
           vocalUri: songData.vocalAudioUri,
@@ -313,7 +313,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
           throw new Error("Voice synthesis engine returned an invalid response.");
         }
 
-        if (!res.ok) throw new Error(speechResult.message || "Resemble AI generation failed. Verify .env config.");
+        if (!res.ok) throw new Error(speechResult.message || "Resemble AI generation failed.");
         
         newResult = { vocalUri: speechResult.media };
       }
@@ -332,7 +332,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
         });
       }
 
-      toast({ title: 'Mastering Complete!', description: 'Your Resemble AI performance is ready.' });
+      toast({ title: 'Mastering Complete!', description: 'Your AI performance is ready.' });
     } catch (error: any) {
       console.error("Generation error:", error);
       toast({ variant: 'destructive', title: 'Studio Error', description: error.message || "The synthesis engine is currently offline." });
@@ -448,9 +448,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
               <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/20 flex items-start gap-3">
                 <Star className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                    <p className="text-xs font-bold text-foreground">Resemble AI Mastery</p>
+                    <p className="text-xs font-bold text-foreground">AI Studio Mastery</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      All studio voices are generated via Resemble AI v2 for professional clarity and sub-second latency.
+                      All studio voices are generated via high-fidelity neural engines for professional clarity.
                     </p>
                 </div>
               </div>
@@ -472,7 +472,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
               <div className="space-y-2">
                 <h3 className="text-3xl font-headline font-bold text-primary">{result.title || 'Studio Performance'}</h3>
                 <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-primary/20 text-primary px-3 py-1 rounded-full">Resemble AI High-Fidelity</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest bg-primary/20 text-primary px-3 py-1 rounded-full">High-Fidelity Neural Output</span>
                     <p className="text-xs text-muted-foreground italic">Ready for playback</p>
                 </div>
               </div>
@@ -537,7 +537,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
             </Card>
           </div>
 
-          {reinforcementRating ? null : (
+          {!reinforcementRating && (
             <div className="space-y-4 border-t pt-8">
               <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 space-y-4">
                   <div className="flex items-center gap-2">
@@ -548,7 +548,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
                       <p className="text-xs text-muted-foreground">Is the melody or rhythm not right? Describe what to fix and I'll learn from your rating.</p>
                       <div className="flex gap-2">
                           <Input 
-                              placeholder="e.g., 'Make the piano more soulful' or 'The speed is too fast'..." 
+                              placeholder="e.g., 'Make the piano more soulful'..." 
                               value={feedbackComment} 
                               onChange={(e) => setFeedbackComment(e.target.value)}
                               className="flex-1 bg-background/50"
