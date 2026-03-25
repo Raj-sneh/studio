@@ -2,15 +2,21 @@ from fastapi import FastAPI, Form
 from fastapi.responses import FileResponse
 from elevenlabs.client import ElevenLabs
 from dotenv import load_dotenv
+from pyngrok import ngrok
 import uuid
 import os
 
+# Initialize environment
 load_dotenv()
+
+# Start ngrok tunnel on port 8000
+# Note: Ensure NGROK_AUTHTOKEN is set in your environment if required
+public_url = ngrok.connect(8000)
+print("🔥 PUBLIC URL:", public_url)
 
 app = FastAPI()
 
 API_KEY = os.getenv("ELEVENLABS_API_KEY")
-
 elevenlabs = ElevenLabs(api_key=API_KEY)
 
 @app.post("/tts")
