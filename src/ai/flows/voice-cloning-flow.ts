@@ -2,6 +2,7 @@
 'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using ElevenLabs API.
+ * Uses SKV AI for neural analysis and ElevenLabs v3 for high-fidelity synthesis.
  */
 
 import { ai } from '@/ai/genkit';
@@ -129,12 +130,15 @@ const speakWithCloneFlow = ai.defineFlow(
             },
             body: JSON.stringify({
                 text,
-                model_id: 'eleven_v3',
+                model_id: 'eleven_v3', // Using latest v3 for best quality and multilingual support
                 voice_settings: settings
             }),
         });
 
-        if (!response.ok) throw new Error("TTS generation failed.");
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.detail?.message || "TTS generation failed.");
+        }
 
         const buffer = Buffer.from(await response.arrayBuffer());
         return { audioUri: `data:audio/mpeg;base64,${buffer.toString('base64')}` };
@@ -148,7 +152,7 @@ const vocalReplacementFlow = ai.defineFlow(
         outputSchema: VocalReplacementOutputSchema,
     },
     async (input) => {
-        const { audioDataUri, voiceId, settings } = input;
+        const { audioDataUri, voiceId, settings, language } = input;
         const apiKey = process.env.ELEVENLABS_API_KEY;
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
@@ -158,8 +162,13 @@ const vocalReplacementFlow = ai.defineFlow(
 
         const formData = new FormData();
         formData.append('audio', blob, 'input.mp3');
-        formData.append('model_id', 'eleven_v3');
-        formData.append('voice_settings', JSON.stringify(settings));
+        formData.append('model_id', 'eleven_v3'); // Using latest v3 for best voice conversion quality
+        if (settings) {
+            formData.append('voice_settings', JSON.stringify(settings));
+        }
+
+        // Speech-to-speech doesn't strictly take a language parameter, 
+        // but using eleven_v3 ensures the best auto-detection for multilingual input.
 
         const response = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${voiceId}`, {
             method: 'POST',
@@ -168,8 +177,8 @@ const vocalReplacementFlow = ai.defineFlow(
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail?.message || "Vocal replacement failed.");
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.detail?.message || `Vocal replacement failed with status ${response.status}.`);
         }
 
         const outBuffer = Buffer.from(await response.arrayBuffer());
