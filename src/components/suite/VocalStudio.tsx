@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Loader2, Play, StopCircle, Sparkles, Mic2, Upload, FileAudio, Check, BrainCircuit
+  Loader2, Play, StopCircle, Sparkles, Mic2, Upload, FileAudio, Check, BrainCircuit, Globe
 } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -19,10 +19,12 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, query, orderBy } from 'firebase/firestore';
 import { replaceVocals } from '@/ai/flows/voice-cloning-flow';
 import { cn } from '@/lib/utils';
+import { languageOptions } from '@/ai/flows/text-to-speech-types';
 
 const formSchema = z.object({
   text: z.string().optional(),
   voice: z.string(),
+  language: z.string().default('en'),
   singMode: z.boolean().default(false),
   replacementAudio: z.string().optional(),
 });
@@ -51,7 +53,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { text: initialPrompt || '', voice: 'clive', singMode: false },
+    defaultValues: { text: initialPrompt || '', voice: 'clive', language: 'en', singMode: false },
   });
 
   const stopPlayback = useCallback(() => {
@@ -86,7 +88,12 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
         const res = await fetch('/api/text-to-speech', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: data.text, voice: data.voice, sing: data.singMode }),
+          body: JSON.stringify({ 
+            text: data.text, 
+            voice: data.voice, 
+            sing: data.singMode,
+            language: data.language 
+          }),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.message);
@@ -116,7 +123,19 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                     <TabsContent value="tts" className="mt-0">
                         <FormField control={form.control} name="text" render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Synthesis Script</FormLabel>
+                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
+                                    Synthesis Script
+                                    <div className="flex items-center gap-2">
+                                        <Globe className="h-3 w-3 text-primary" />
+                                        <select 
+                                            value={form.watch('language')} 
+                                            onChange={(e) => form.setValue('language', e.target.value)}
+                                            className="bg-transparent text-[10px] border-none focus:ring-0 cursor-pointer text-primary font-bold"
+                                        >
+                                            {languageOptions.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                                        </select>
+                                    </div>
+                                </FormLabel>
                                 <FormControl>
                                     <Textarea placeholder="Type what you want SKV AI to perform..." {...field} className="min-h-[200px] text-lg rounded-3xl bg-muted/20 border-primary/10" />
                                 </FormControl>
@@ -134,7 +153,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                         </div>
                                         <div>
                                             <p className="font-bold text-lg">{field.value ? "Vocal File Loaded" : "Drop Song for Replacement"}</p>
-                                            <p className="text-sm text-muted-foreground max-w-xs mx-auto">SKV AI will analyze the melody and swap the vocals with your selected neural artist.</p>
+                                            <p className="text-sm text-muted-foreground max-w-xs mx-auto">SKV AI will analyze the melody and swap the vocals.</p>
                                         </div>
                                         <Input type="file" accept="audio/*" onChange={handleFileUpload} className="hidden" id="sts-upload" />
                                         <Button asChild type="button" variant="outline" className="rounded-xl border-primary/20">

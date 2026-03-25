@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const voiceOptions = [
-  'clive', // Added Clive as the premium Inworld voice
+  'clive',
   'clara',
   'james',
   'alex',
@@ -19,10 +19,23 @@ export const voiceOptions = [
 ] as const;
 export type VoiceOption = typeof voiceOptions[number];
 
+export const languageOptions = [
+  { label: 'English', value: 'en' },
+  { label: 'Hindi', value: 'hi' },
+  { label: 'Spanish', value: 'es' },
+  { label: 'French', value: 'fr' },
+  { label: 'German', value: 'de' },
+  { label: 'Italian', value: 'it' },
+  { label: 'Japanese', value: 'ja' },
+  { label: 'Korean', value: 'ko' },
+  { label: 'Portuguese', value: 'pt' },
+] as const;
+
 export const TextToSpeechInputSchema = z.object({
   text: z.string().describe('The text to convert to speech.'),
   voice: z.enum(voiceOptions).describe('The selected voice.'),
-  sing: z.boolean().describe('Whether the AI should sing the text (Inworld currently focuses on speech).'),
+  sing: z.boolean().describe('Whether the AI should sing the text.'),
+  language: z.string().optional().default('en').describe('The language code for synthesis.'),
   rate: z.enum(['slow', 'medium', 'fast']).optional().describe('The speaking rate.'),
   multiVoices: z.array(z.string()).optional().describe('List of voice IDs for combined mode.'),
 });
