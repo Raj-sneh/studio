@@ -1,19 +1,53 @@
-import os
-from dotenv import load_dotenv
+from fastapi import FastAPI, Form
+from fastapi.responses import FileResponse
 from elevenlabs.client import ElevenLabs
-from io import BytesIO
+import uuid
+import os
 
-load_dotenv()
+app = FastAPI()
 
+# 🔥 Load API Key from environment or paste it here
 elevenlabs = ElevenLabs(
-  api_key=os.getenv("ELEVENLABS_API_KEY"),
+    api_key=os.getenv("ELEVENLABS_API_KEY", "YOUR_API_KEY_HERE")
 )
 
-voice = elevenlabs.voices.ivc.create(
-    name="My Voice Clone",
-    # Replace with the paths to your audio files.
-    # The more files you add, the better the clone will be.
-    files=[BytesIO(open("/path/to/your/audio/file.mp3", "rb").read())]
-)
+# 🔥 Dummy credit system (change later)
+credits_store = {
+    "user1": 10
+}
 
-print(voice.voice_id)
+@app.post("/tts")
+async def tts(text: str = Form(...), user_id: str = Form(...)):
+
+    # ❌ Empty text check
+    if not text:
+        return {"error": "Enter text"}
+
+    # ❌ Limit text length (VERY IMPORTANT)
+    if len(text) > 200:
+        return {"error": "Text too long"}
+
+    # ❌ Credit check
+    if credits_store.get(user_id, 0) <= 0:
+        return {"error": "No credits left"}
+
+    # 🔥 Deduct credit
+    credits_store[user_id] -= 1
+
+    # 🔥 Generate audio
+    audio = elevenlabs.text_to_speech.convert(
+        text=text,
+        voice_id="JBFqnCBsd6RMkjVDRZzb",  # default voice
+        model_id="eleven_v3",
+        output_format="mp3_44100_128",
+    )
+
+    # 🔥 Save file
+    filename = f"{uuid.uuid4()}.mp3"
+
+    with open(filename, "wb") as f:
+        for chunk in audio:
+            f.write(chunk)
+
+    # 🔥 Return audio
+    return FileResponse(filename, media_type="audio/mpeg")

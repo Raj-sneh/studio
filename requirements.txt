@@ -5,3 +5,6 @@ librosa
 numpy
 elevenlabs
 python-dotenv
+fastapi
+uvicorn
+python-multipart
