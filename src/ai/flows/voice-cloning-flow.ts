@@ -2,7 +2,7 @@
 'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using ElevenLabs API.
- * Uses SKV AI for neural analysis and ElevenLabs v3 for high-fidelity synthesis.
+ * Uses SKV AI for neural analysis and ElevenLabs Multilingual v2 for high-fidelity synthesis.
  */
 
 import { ai } from '@/ai/genkit';
@@ -122,6 +122,7 @@ const speakWithCloneFlow = ai.defineFlow(
         const apiKey = process.env.ELEVENLABS_API_KEY;
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
+        // Using eleven_multilingual_v2 for consistent quality across all languages
         const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
             method: 'POST',
             headers: {
@@ -130,7 +131,7 @@ const speakWithCloneFlow = ai.defineFlow(
             },
             body: JSON.stringify({
                 text,
-                model_id: 'eleven_v3', // Using latest v3 for best quality and multilingual support
+                model_id: 'eleven_multilingual_v2', 
                 voice_settings: settings
             }),
         });
@@ -152,7 +153,7 @@ const vocalReplacementFlow = ai.defineFlow(
         outputSchema: VocalReplacementOutputSchema,
     },
     async (input) => {
-        const { audioDataUri, voiceId, settings, language } = input;
+        const { audioDataUri, voiceId, settings } = input;
         const apiKey = process.env.ELEVENLABS_API_KEY;
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
@@ -162,13 +163,14 @@ const vocalReplacementFlow = ai.defineFlow(
 
         const formData = new FormData();
         formData.append('audio', blob, 'input.mp3');
-        formData.append('model_id', 'eleven_v3'); // Using latest v3 for best voice conversion quality
+        
+        // CRITICAL: Using 'eleven_multilingual_v2' for speech-to-speech
+        // v3 is optimized for TTS, but v2 remains the standard for STS (voice conversion)
+        formData.append('model_id', 'eleven_multilingual_v2'); 
+        
         if (settings) {
             formData.append('voice_settings', JSON.stringify(settings));
         }
-
-        // Speech-to-speech doesn't strictly take a language parameter, 
-        // but using eleven_v3 ensures the best auto-detection for multilingual input.
 
         const response = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${voiceId}`, {
             method: 'POST',
@@ -177,8 +179,14 @@ const vocalReplacementFlow = ai.defineFlow(
         });
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.detail?.message || `Vocal replacement failed with status ${response.status}.`);
+            let errorMessage = `Vocal replacement failed with status ${response.status}.`;
+            try {
+                const errorJson = await response.json();
+                errorMessage = errorJson.detail?.message || errorMessage;
+            } catch (e) {
+                // If response is not JSON, keep default message
+            }
+            throw new Error(errorMessage);
         }
 
         const outBuffer = Buffer.from(await response.arrayBuffer());
