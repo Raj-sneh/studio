@@ -58,6 +58,16 @@ service cloud.firestore {
     }
 
     /**
+     * @description User's saved neural clones.
+     */
+    match /users/{userId}/clonedVoices/{voiceId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
      * @description Publicly available music lessons.
      */
     match /lessons/{lessonId} {
