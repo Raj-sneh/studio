@@ -39,7 +39,7 @@ export function VoiceCloner() {
     similarity: number;
   } | null>(null);
   
-  const [testText, setTestText] = useState("Hello! My voice has been analyzed by AI. Does it sound like me?");
+  const [testText, setTestText] = useState("Hello! My voice has been analyzed by SKV AI. Does it sound like me?");
   const [isGeneratingSpeech, setIsGeneratingSpeech] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -99,7 +99,7 @@ export function VoiceCloner() {
     setIsProcessing(true);
     try {
         const result = await cloneVoice({
-            name: `AI Analyzed Voice ${Date.now()}`,
+            name: `SKV Neural Clone ${Date.now()}`,
             samples: [sample]
         });
         
@@ -157,7 +157,7 @@ export function VoiceCloner() {
             </div>
             <CardTitle className="text-3xl font-headline">Neural Voice Cloner</CardTitle>
             <CardDescription className="max-w-md mx-auto mt-2">
-              Gemini will analyze your pattern to build a high-fidelity neural profile.
+              SKV AI will analyze your pattern to build a high-fidelity neural profile.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8 p-10 text-center">
@@ -222,7 +222,7 @@ export function VoiceCloner() {
               <BrainCircuit className="absolute inset-0 m-auto h-10 w-10 text-primary/50" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-3xl font-bold font-headline">Gemini is analyzing your voice...</h3>
+              <h3 className="text-3xl font-bold font-headline">SKV AI is analyzing your voice...</h3>
               <p className="text-muted-foreground">Extracting pitch, resonance, and emotional patterns from your recording.</p>
             </div>
         </Card>
@@ -236,7 +236,7 @@ export function VoiceCloner() {
                 <Info className="text-primary h-6 w-6" />
               </div>
               <div className="space-y-2">
-                <h3 className="font-bold text-lg">AI Neural Analysis</h3>
+                <h3 className="font-bold text-lg">SKV AI Neural Analysis</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed italic">
                   "{clonedVoiceData.description}"
                 </p>

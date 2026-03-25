@@ -1,6 +1,6 @@
 'use server';
 /**
- * Professional Voice Cloning flow using ElevenLabs API enhanced with Gemini Analysis.
+ * Professional Voice Cloning flow using ElevenLabs API enhanced with SKV AI (Gemini) Analysis.
  */
 
 import { ai } from '@/ai/genkit';
@@ -17,7 +17,7 @@ import {
 } from './voice-cloning-types';
 
 /**
- * Uses Gemini to analyze a voice sample and suggest settings/descriptions.
+ * Uses SKV AI to analyze a voice sample and suggest settings/descriptions.
  */
 const analyzeVoicePrompt = ai.definePrompt({
   name: 'analyzeVoicePrompt',
@@ -29,18 +29,20 @@ const analyzeVoicePrompt = ai.definePrompt({
   },
   output: {
     schema: z.object({
-      description: z.string().describe('A detailed description of the voice tone, pitch, and character.'),
+      description: z.string().describe('A detailed description of the voice tone, pitch, and character. Max 400 chars.'),
       suggestedStability: z.number().describe('Value between 0 and 1.'),
       suggestedSimilarity: z.number().describe('Value between 0 and 1.'),
     })
   },
   prompt: `You are a professional vocal analyst. Analyze the following voice sample (provided as a data URI in the input).
   
-  Describe the voice in detail: its age range, gender, emotional tone, clarity, and any unique characteristics.
+  Describe the voice in detail: its age range, gender, emotional tone, clarity, and unique characteristics.
+  
+  **CRITICAL**: The description MUST be concise and UNDER 400 characters to comply with API limits.
   
   Also, suggest the best neural TTS settings for cloning this voice:
   - Stability: Higher for consistent voices, lower for expressive/dynamic voices.
-  - Similarity Boost: Higher to capture more nuance, but too high can cause artifacts.
+  - Similarity Boost: Higher to capture more nuance.
   
   Vocal Sample: {{media url=sampleDataUri}}
   
@@ -48,7 +50,7 @@ const analyzeVoicePrompt = ai.definePrompt({
 });
 
 /**
- * Creates a voice clone on ElevenLabs using recorded samples, guided by Gemini analysis.
+ * Creates a voice clone on ElevenLabs using recorded samples, guided by SKV AI analysis.
  */
 export async function cloneVoice(input: VoiceCloningInput): Promise<VoiceCloningOutput> {
   return voiceCloningFlow(input);
@@ -75,14 +77,19 @@ const voiceCloningFlow = ai.defineFlow(
       throw new Error("ElevenLabs API key is missing. Please add it to your .env file.");
     }
 
-    // 1. Analyze the first sample using Gemini
+    // 1. Analyze the first sample using SKV AI
     const analysisResponse = await analyzeVoicePrompt({ sampleDataUri: samples[0] });
     const analysis = analysisResponse.output!;
+    
+    // Safety truncation for ElevenLabs 500 char limit
+    const finalDescription = analysis.description.length > 480 
+      ? analysis.description.substring(0, 477) + "..." 
+      : analysis.description;
 
     // 2. Add the voice to ElevenLabs
     const formData = new FormData();
     formData.append('name', name);
-    formData.append('description', analysis.description);
+    formData.append('description', finalDescription);
 
     for (let i = 0; i < samples.length; i++) {
         const dataUri = samples[i];
@@ -109,7 +116,7 @@ const voiceCloningFlow = ai.defineFlow(
     const result = await response.json();
     return { 
       voiceId: result.voice_id,
-      description: analysis.description,
+      description: finalDescription,
       suggestedSettings: {
         stability: analysis.suggestedStability,
         similarity_boost: analysis.suggestedSimilarity
