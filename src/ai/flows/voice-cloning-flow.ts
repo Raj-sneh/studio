@@ -1,9 +1,10 @@
 'use server';
 /**
- * @fileOverview Professional Voice Cloning flow using ElevenLabs API.
+ * Professional Voice Cloning flow using ElevenLabs API enhanced with Gemini Analysis.
  */
 
 import { ai } from '@/ai/genkit';
+import { z } from 'zod';
 import {
   VoiceCloningInputSchema,
   VoiceCloningOutputSchema,
@@ -16,7 +17,38 @@ import {
 } from './voice-cloning-types';
 
 /**
- * Creates a voice clone on ElevenLabs using recorded samples.
+ * Uses Gemini to analyze a voice sample and suggest settings/descriptions.
+ */
+const analyzeVoicePrompt = ai.definePrompt({
+  name: 'analyzeVoicePrompt',
+  model: 'googleai/gemini-2.5-flash',
+  input: {
+    schema: z.object({
+      sampleDataUri: z.string().describe('The audio sample as a data URI.')
+    })
+  },
+  output: {
+    schema: z.object({
+      description: z.string().describe('A detailed description of the voice tone, pitch, and character.'),
+      suggestedStability: z.number().describe('Value between 0 and 1.'),
+      suggestedSimilarity: z.number().describe('Value between 0 and 1.'),
+    })
+  },
+  prompt: `You are a professional vocal analyst. Analyze the following voice sample (provided as a data URI in the input).
+  
+  Describe the voice in detail: its age range, gender, emotional tone, clarity, and any unique characteristics.
+  
+  Also, suggest the best neural TTS settings for cloning this voice:
+  - Stability: Higher for consistent voices, lower for expressive/dynamic voices.
+  - Similarity Boost: Higher to capture more nuance, but too high can cause artifacts.
+  
+  Vocal Sample: {{media url=sampleDataUri}}
+  
+  Return only the JSON analysis.`,
+});
+
+/**
+ * Creates a voice clone on ElevenLabs using recorded samples, guided by Gemini analysis.
  */
 export async function cloneVoice(input: VoiceCloningInput): Promise<VoiceCloningOutput> {
   return voiceCloningFlow(input);
@@ -43,11 +75,15 @@ const voiceCloningFlow = ai.defineFlow(
       throw new Error("ElevenLabs API key is missing. Please add it to your .env file.");
     }
 
+    // 1. Analyze the first sample using Gemini
+    const analysisResponse = await analyzeVoicePrompt({ sampleDataUri: samples[0] });
+    const analysis = analysisResponse.output!;
+
+    // 2. Add the voice to ElevenLabs
     const formData = new FormData();
     formData.append('name', name);
-    formData.append('description', 'Sargam AI Professional Clone');
+    formData.append('description', analysis.description);
 
-    // Convert data URIs to Blobs and append to form data
     for (let i = 0; i < samples.length; i++) {
         const dataUri = samples[i];
         const mimeType = dataUri.split(',')[0].split(':')[1].split(';')[0];
@@ -71,7 +107,14 @@ const voiceCloningFlow = ai.defineFlow(
     }
 
     const result = await response.json();
-    return { voiceId: result.voice_id };
+    return { 
+      voiceId: result.voice_id,
+      description: analysis.description,
+      suggestedSettings: {
+        stability: analysis.suggestedStability,
+        similarity_boost: analysis.suggestedSimilarity
+      }
+    };
   }
 );
 
@@ -82,7 +125,7 @@ const speakWithCloneFlow = ai.defineFlow(
         outputSchema: CloneSpeechOutputSchema,
     },
     async (input) => {
-        const { text, voiceId } = input;
+        const { text, voiceId, settings } = input;
         const apiKey = process.env.ELEVENLABS_API_KEY;
 
         if (!apiKey) {
@@ -100,8 +143,8 @@ const speakWithCloneFlow = ai.defineFlow(
                 text,
                 model_id: 'eleven_multilingual_v2',
                 voice_settings: {
-                    stability: 0.5,
-                    similarity_boost: 0.75,
+                    stability: settings?.stability ?? 0.5,
+                    similarity_boost: settings?.similarity_boost ?? 0.75,
                 }
             }),
         });
