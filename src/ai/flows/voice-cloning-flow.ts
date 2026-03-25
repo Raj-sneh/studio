@@ -1,6 +1,7 @@
+
 'use server';
 /**
- * Professional Voice Cloning flow using ElevenLabs API enhanced with SKV AI (Gemini) Analysis.
+ * Professional Voice Cloning & Vocal Replacement flows using ElevenLabs API.
  */
 
 import { ai } from '@/ai/genkit';
@@ -14,10 +15,14 @@ import {
   CloneSpeechOutputSchema,
   type CloneSpeechInput,
   type CloneSpeechOutput,
+  VocalReplacementInputSchema,
+  VocalReplacementOutputSchema,
+  type VocalReplacementInput,
+  type VocalReplacementOutput,
 } from './voice-cloning-types';
 
 /**
- * Uses SKV AI to analyze a voice sample and suggest settings/descriptions.
+ * Uses SKV AI to analyze a voice sample for neural cloning.
  */
 const analyzeVoicePrompt = ai.definePrompt({
   name: 'analyzeVoicePrompt',
@@ -29,38 +34,26 @@ const analyzeVoicePrompt = ai.definePrompt({
   },
   output: {
     schema: z.object({
-      description: z.string().describe('A detailed description of the voice tone, pitch, and character. Max 400 chars.'),
-      suggestedStability: z.number().describe('Value between 0 and 1.'),
-      suggestedSimilarity: z.number().describe('Value between 0 and 1.'),
+      description: z.string().describe('Detailed vocal description. Max 400 chars.'),
+      suggestedStability: z.number(),
+      suggestedSimilarity: z.number(),
     })
   },
-  prompt: `You are a professional vocal analyst. Analyze the following voice sample (provided as a data URI in the input).
-  
-  Describe the voice in detail: its age range, gender, emotional tone, clarity, and unique characteristics.
-  
-  **CRITICAL**: The description MUST be concise and UNDER 400 characters to comply with API limits.
-  
-  Also, suggest the best neural TTS settings for cloning this voice:
-  - Stability: Higher for consistent voices, lower for expressive/dynamic voices.
-  - Similarity Boost: Higher to capture more nuance.
-  
-  Vocal Sample: {{media url=sampleDataUri}}
-  
-  Return only the JSON analysis.`,
+  prompt: `Analyze this vocal sample. Describe the voice tone, age, gender, and clarity.
+  Keep description under 400 chars. Suggest Stability and Similarity settings for ElevenLabs.
+  Sample: {{media url=sampleDataUri}}`,
 });
 
-/**
- * Creates a voice clone on ElevenLabs using recorded samples, guided by SKV AI analysis.
- */
 export async function cloneVoice(input: VoiceCloningInput): Promise<VoiceCloningOutput> {
   return voiceCloningFlow(input);
 }
 
-/**
- * Generates speech using a previously cloned ElevenLabs Voice ID.
- */
 export async function speakWithClone(input: CloneSpeechInput): Promise<CloneSpeechOutput> {
     return speakWithCloneFlow(input);
+}
+
+export async function replaceVocals(input: VocalReplacementInput): Promise<VocalReplacementOutput> {
+    return vocalReplacementFlow(input);
 }
 
 const voiceCloningFlow = ai.defineFlow(
@@ -73,44 +66,36 @@ const voiceCloningFlow = ai.defineFlow(
     const { name, samples } = input;
     const apiKey = process.env.ELEVENLABS_API_KEY;
 
-    if (!apiKey) {
-      throw new Error("ElevenLabs API key is missing. Please add it to your .env file.");
-    }
+    if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
-    // 1. Analyze the first sample using SKV AI
     const analysisResponse = await analyzeVoicePrompt({ sampleDataUri: samples[0] });
     const analysis = analysisResponse.output!;
     
-    // Safety truncation for ElevenLabs 500 char limit
     const finalDescription = analysis.description.length > 480 
       ? analysis.description.substring(0, 477) + "..." 
       : analysis.description;
 
-    // 2. Add the voice to ElevenLabs
     const formData = new FormData();
     formData.append('name', name);
     formData.append('description', finalDescription);
 
     for (let i = 0; i < samples.length; i++) {
         const dataUri = samples[i];
-        const mimeType = dataUri.split(',')[0].split(':')[1].split(';')[0];
         const base64Data = dataUri.split(',')[1];
         const buffer = Buffer.from(base64Data, 'base64');
-        const blob = new Blob([buffer], { type: mimeType });
-        formData.append('files', blob, `sample_${i}.wav`);
+        const blob = new Blob([buffer], { type: 'audio/mpeg' });
+        formData.append('files', blob, `sample_${i}.mp3`);
     }
 
     const response = await fetch('https://api.elevenlabs.io/v1/voices/add', {
       method: 'POST',
-      headers: {
-        'xi-api-key': apiKey,
-      },
+      headers: { 'xi-api-key': apiKey },
       body: formData,
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail?.message || `ElevenLabs API Error: ${response.status}`);
+      throw new Error(errorData.detail?.message || "Cloning failed.");
     }
 
     const result = await response.json();
@@ -134,39 +119,59 @@ const speakWithCloneFlow = ai.defineFlow(
     async (input) => {
         const { text, voiceId, settings } = input;
         const apiKey = process.env.ELEVENLABS_API_KEY;
-
-        if (!apiKey) {
-            throw new Error("ElevenLabs API key is missing.");
-        }
+        if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
         const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
             method: 'POST',
             headers: {
                 'xi-api-key': apiKey,
                 'Content-Type': 'application/json',
-                'accept': 'audio/mpeg',
             },
             body: JSON.stringify({
                 text,
                 model_id: 'eleven_multilingual_v2',
-                voice_settings: {
-                    stability: settings?.stability ?? 0.5,
-                    similarity_boost: settings?.similarity_boost ?? 0.75,
-                }
+                voice_settings: settings
             }),
         });
 
+        if (!response.ok) throw new Error("TTS generation failed.");
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+        return { audioUri: `data:audio/mpeg;base64,${buffer.toString('base64')}` };
+    }
+);
+
+const vocalReplacementFlow = ai.defineFlow(
+    {
+        name: 'vocalReplacementFlow',
+        inputSchema: VocalReplacementInputSchema,
+        outputSchema: VocalReplacementOutputSchema,
+    },
+    async (input) => {
+        const { audioDataUri, voiceId, settings } = input;
+        const apiKey = process.env.ELEVENLABS_API_KEY;
+        if (!apiKey) throw new Error("ElevenLabs API key is missing.");
+
+        const base64Data = audioDataUri.split(',')[1];
+        const buffer = Buffer.from(base64Data, 'base64');
+        const blob = new Blob([buffer], { type: 'audio/mpeg' });
+
+        const formData = new FormData();
+        formData.append('audio', blob, 'input.mp3');
+        formData.append('voice_settings', JSON.stringify(settings));
+
+        const response = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${voiceId}`, {
+            method: 'POST',
+            headers: { 'xi-api-key': apiKey },
+            body: formData,
+        });
+
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail?.message || "Generation failed.");
+            const error = await response.json();
+            throw new Error(error.detail?.message || "Vocal replacement failed.");
         }
 
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const base64Audio = buffer.toString('base64');
-
-        return {
-            audioUri: `data:audio/mpeg;base64,${base64Audio}`,
-        };
+        const outBuffer = Buffer.from(await response.arrayBuffer());
+        return { audioUri: `data:audio/mpeg;base64,${outBuffer.toString('base64')}` };
     }
 );
