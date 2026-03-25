@@ -18,7 +18,7 @@ import {
     Info
 } from 'lucide-react';
 import { cloneVoice, speakWithClone } from '@/ai/flows/voice-cloning-flow';
-import { generateTrainingParagraphs } from '@/ai/flows/voice-training-flow';
+import { generateTrainingParagraph } from '@/ai/flows/voice-training-flow';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
@@ -27,9 +27,8 @@ export function VoiceCloner() {
   const { toast } = useToast();
   
   const [step, setStep] = useState<'intro' | 'recording' | 'cloning' | 'ready'>('intro');
-  const [scripts, setScripts] = useState<string[]>([]);
-  const [currentScriptIndex, setCurrentScriptIndex] = useState(0);
-  const [samples, setSamples] = useState<string[]>([]);
+  const [script, setScript] = useState<string>("");
+  const [sample, setSample] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -49,11 +48,11 @@ export function VoiceCloner() {
   const startCloningProcess = async () => {
     setIsProcessing(true);
     try {
-        const fetchedScripts = await generateTrainingParagraphs();
-        setScripts(fetchedScripts);
+        const fetchedScript = await generateTrainingParagraph();
+        setScript(fetchedScript);
         setStep('recording');
     } catch (e) {
-        toast({ title: "Error", description: "Could not load scripts.", variant: "destructive" });
+        toast({ title: "Error", description: "Could not load the training script.", variant: "destructive" });
     } finally {
         setIsProcessing(false);
     }
@@ -74,7 +73,7 @@ export function VoiceCloner() {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
         const reader = new FileReader();
         reader.onloadend = () => {
-          setSamples(prev => [...prev, reader.result as string]);
+          setSample(reader.result as string);
         };
         reader.readAsDataURL(audioBlob);
         stream.getTracks().forEach(track => track.stop());
@@ -83,7 +82,7 @@ export function VoiceCloner() {
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
-      toast({ title: "Denied", description: "Microphone access required.", variant: "destructive" });
+      toast({ title: "Denied", description: "Microphone access is required for cloning.", variant: "destructive" });
     }
   };
 
@@ -91,19 +90,17 @@ export function VoiceCloner() {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      if (currentScriptIndex < scripts.length - 1) {
-          setCurrentScriptIndex(prev => prev + 1);
-      }
     }
   };
 
   const handleClone = async () => {
+    if (!sample) return;
     setStep('cloning');
     setIsProcessing(true);
     try {
         const result = await cloneVoice({
             name: `AI Analyzed Voice ${Date.now()}`,
-            samples: samples
+            samples: [sample]
         });
         
         setClonedVoiceData({
@@ -114,7 +111,7 @@ export function VoiceCloner() {
         });
 
         setStep('ready');
-        toast({ title: "Clone Successful", description: "Gemini has finished analyzing your pattern." });
+        toast({ title: "Clone Successful", description: "Your neural profile is ready." });
     } catch (error: any) {
         toast({ title: "Cloning Failed", description: error.message, variant: "destructive" });
         setStep('recording');
@@ -138,7 +135,7 @@ export function VoiceCloner() {
         const audio = new Audio(result.audioUri);
         audio.play();
     } catch (e: any) {
-        toast({ title: "Failed", description: e.message, variant: "destructive" });
+        toast({ title: "Generation Failed", description: e.message, variant: "destructive" });
     } finally {
         setIsGeneratingSpeech(false);
     }
@@ -146,8 +143,7 @@ export function VoiceCloner() {
 
   const reset = () => {
     setStep('intro');
-    setSamples([]);
-    setCurrentScriptIndex(0);
+    setSample(null);
     setClonedVoiceData(null);
   };
 
@@ -161,13 +157,13 @@ export function VoiceCloner() {
             </div>
             <CardTitle className="text-3xl font-headline">Neural Voice Cloner</CardTitle>
             <CardDescription className="max-w-md mx-auto mt-2">
-              Gemini analyzes your recordings to build a professional neural profile.
+              Gemini will analyze your pattern to build a high-fidelity neural profile.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8 p-10 text-center">
              <Button onClick={startCloningProcess} disabled={isProcessing} size="lg" className="h-14 px-10 text-lg font-bold rounded-2xl shadow-xl">
                {isProcessing ? <Loader2 className="mr-2 animate-spin" /> : <Sparkles className="mr-2" />}
-               Analyze My Voice
+               Start Training
              </Button>
           </CardContent>
         </Card>
@@ -179,14 +175,14 @@ export function VoiceCloner() {
             <div className="flex justify-between items-center mb-2">
                 <CardTitle className="flex items-center gap-2">
                   <Mic className="h-5 w-5 text-primary" />
-                  Recording Sample {currentScriptIndex + 1}/3
+                  Neural Pattern Capture
                 </CardTitle>
             </div>
-            <Progress value={(samples.length / 3) * 100} className="h-2" />
+            <Progress value={sample ? 100 : 0} className="h-2" />
           </CardHeader>
           <CardContent className="space-y-10 text-center">
-            <div className="min-h-[140px] flex items-center justify-center p-8 bg-muted/30 rounded-2xl border-2 border-dashed border-primary/20 italic text-2xl leading-relaxed">
-                "{scripts[currentScriptIndex]}"
+            <div className="min-h-[140px] flex items-center justify-center p-8 bg-muted/30 rounded-2xl border-2 border-dashed border-primary/20 italic text-xl md:text-2xl leading-relaxed">
+                "{script}"
             </div>
             <div className="flex flex-col items-center gap-6">
                 <Button 
@@ -201,14 +197,17 @@ export function VoiceCloner() {
                     {isRecording ? <Square className="h-10 w-10" /> : <Mic className="h-10 w-10" />}
                 </Button>
                 <div className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-                  {isRecording ? "Capturing Pattern..." : "Hold to Record"}
+                  {isRecording ? "Capturing Pattern..." : sample ? "Pattern Captured" : "Hold to Record"}
                 </div>
             </div>
-            {samples.length === 3 && !isRecording && (
+            {sample && !isRecording && (
                 <div className="pt-6 border-t border-white/10">
                     <Button onClick={handleClone} disabled={isProcessing} size="lg" className="w-full h-16 text-xl font-bold rounded-2xl shadow-primary/20 shadow-lg">
                         {isProcessing ? <Loader2 className="mr-2 animate-spin" /> : <BrainCircuit className="mr-2" />}
                         Generate Neural Profile
+                    </Button>
+                    <Button variant="ghost" className="mt-4 text-xs" onClick={() => setSample(null)}>
+                      Redo Recording
                     </Button>
                 </div>
             )}
@@ -224,7 +223,7 @@ export function VoiceCloner() {
             </div>
             <div className="space-y-2">
               <h3 className="text-3xl font-bold font-headline">Gemini is analyzing your voice...</h3>
-              <p className="text-muted-foreground">Extracting pitch, resonance, and emotional patterns.</p>
+              <p className="text-muted-foreground">Extracting pitch, resonance, and emotional patterns from your recording.</p>
             </div>
         </Card>
       )}
@@ -237,7 +236,7 @@ export function VoiceCloner() {
                 <Info className="text-primary h-6 w-6" />
               </div>
               <div className="space-y-2">
-                <h3 className="font-bold text-lg">AI Analysis Result</h3>
+                <h3 className="font-bold text-lg">AI Neural Analysis</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed italic">
                   "{clonedVoiceData.description}"
                 </p>
@@ -284,7 +283,7 @@ export function VoiceCloner() {
                 <div className="flex gap-4">
                     <Button onClick={handleSpeak} disabled={isGeneratingSpeech} size="lg" className="flex-1 h-16 text-xl font-bold rounded-2xl shadow-lg">
                         {isGeneratingSpeech ? <Loader2 className="animate-spin mr-2" /> : <Play className="mr-2" />}
-                        Generate Performance
+                        Generate Speech
                     </Button>
                     <Button variant="outline" size="icon" className="h-16 w-16 rounded-2xl" onClick={reset} title="Retrain Profile">
                       <RefreshCw className="h-6 w-6" />
