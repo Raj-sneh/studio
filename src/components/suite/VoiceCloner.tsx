@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef } from 'react';
@@ -18,15 +17,15 @@ import {
     BrainCircuit,
     Upload,
     Save,
-    Trash2
+    Trash2,
+    Music
 } from 'lucide-react';
 import { cloneVoice, speakWithClone } from '@/ai/flows/voice-cloning-flow';
 import { generateTrainingParagraph } from '@/ai/flows/voice-training-flow';
-import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, doc, serverTimestamp } from 'firebase/firestore';
 import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export function VoiceCloner() {
@@ -48,14 +47,14 @@ export function VoiceCloner() {
     similarity: number;
   } | null>(null);
   
-  const [testText, setTestText] = useState("Hello! My voice has been optimized by SKV AI.");
+  const [testText, setTestText] = useState("Hello! My voice has been optimized by SKV AI. I'm ready to sing your melodies.");
   const [isGeneratingSpeech, setIsGeneratingSpeech] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load saved voices
+  // Load saved voices for the current user
   const voicesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'users', user.uid, 'clonedVoices'), orderBy('createdAt', 'desc'));
@@ -69,7 +68,8 @@ export function VoiceCloner() {
         setScript(fetchedScript);
         setStep('recording');
     } catch (e) {
-        toast({ title: "Error", description: "Script failed to load.", variant: "destructive" });
+        // This is now highly unlikely due to server-side fallbacks
+        toast({ title: "Connection Error", description: "SKV AI script failed to load. Please try again.", variant: "destructive" });
     } finally {
         setIsProcessing(false);
     }
@@ -81,7 +81,7 @@ export function VoiceCloner() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setSample(reader.result as string);
-        toast({ title: "File Ready", description: "Audio sample uploaded successfully." });
+        toast({ title: "Sample Loaded", description: "Vocal sample ready for neural analysis." });
       };
       reader.readAsDataURL(file);
     }
@@ -104,7 +104,7 @@ export function VoiceCloner() {
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
-      toast({ title: "Microphone Required", variant: "destructive" });
+      toast({ title: "Mic Access Denied", description: "Please enable your microphone to record training samples.", variant: "destructive" });
     }
   };
 
@@ -117,11 +117,11 @@ export function VoiceCloner() {
 
   const handleClone = async () => {
     if (!sample) return;
-    setStep('cloning');
     setIsProcessing(true);
+    setStep('cloning');
     try {
         const result = await cloneVoice({
-            name: voiceName || `SKV Clone ${Date.now()}`,
+            name: voiceName || `SKV Artist ${Date.now()}`,
             samples: [sample]
         });
         setClonedVoiceData({
@@ -131,6 +131,7 @@ export function VoiceCloner() {
             similarity: result.suggestedSettings.similarity_boost
         });
         setStep('ready');
+        toast({ title: "Neural Profile Ready", description: "Your SKV AI voice clone has been created." });
     } catch (error: any) {
         toast({ title: "Cloning Failed", description: error.message, variant: "destructive" });
         setStep('recording');
@@ -142,26 +143,31 @@ export function VoiceCloner() {
   const saveToProfile = async () => {
     if (!clonedVoiceData || !user || !firestore) return;
     setIsProcessing(true);
-    const voiceDocRef = doc(firestore, 'users', user.uid, 'clonedVoices', clonedVoiceData.id);
-    setDocumentNonBlocking(voiceDocRef, {
-        voiceId: clonedVoiceData.id,
-        name: voiceName || "My Saved Voice",
-        description: clonedVoiceData.description,
-        stability: clonedVoiceData.stability,
-        similarity: clonedVoiceData.similarity,
-        createdAt: serverTimestamp()
-    }, { merge: true });
-    
-    toast({ title: "Saved", description: "Voice added to your Studio profile." });
-    setIsProcessing(false);
-    reset();
+    try {
+        const voiceDocRef = doc(firestore, 'users', user.uid, 'clonedVoices', clonedVoiceData.id);
+        setDocumentNonBlocking(voiceDocRef, {
+            voiceId: clonedVoiceData.id,
+            name: voiceName || "My Neural Artist",
+            description: clonedVoiceData.description,
+            stability: clonedVoiceData.stability,
+            similarity: clonedVoiceData.similarity,
+            createdAt: serverTimestamp()
+        }, { merge: true });
+        
+        toast({ title: "Artist Saved", description: "Voice successfully added to your studio profile." });
+        reset();
+    } catch (e) {
+        toast({ title: "Save Failed", variant: "destructive" });
+    } finally {
+        setIsProcessing(false);
+    }
   };
 
   const deleteVoice = (id: string) => {
     if (!user || !firestore) return;
     const voiceRef = doc(firestore, 'users', user.uid, 'clonedVoices', id);
     deleteDocumentNonBlocking(voiceRef);
-    toast({ title: "Voice Deleted" });
+    toast({ title: "Neural Artist Removed" });
   };
 
   const handleSpeak = async () => {
@@ -178,7 +184,7 @@ export function VoiceCloner() {
         });
         new Audio(result.audioUri).play();
     } catch (e: any) {
-        toast({ title: "Failed", description: e.message, variant: "destructive" });
+        toast({ title: "Synthesis Failed", description: e.message, variant: "destructive" });
     } finally {
         setIsGeneratingSpeech(false);
     }
@@ -192,48 +198,59 @@ export function VoiceCloner() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 space-y-12">
+    <div className="max-w-4xl mx-auto py-8 space-y-12 pb-32">
       {step === 'intro' && (
-        <Card className="border-primary/20 bg-card/40 backdrop-blur-md rounded-3xl">
+        <Card className="border-primary/20 bg-card/40 backdrop-blur-md rounded-3xl overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-6 opacity-10">
+            <Music className="h-32 w-32" />
+          </div>
           <CardHeader className="text-center pt-10">
             <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
               <BrainCircuit className="h-10 w-10 text-primary" />
             </div>
-            <CardTitle className="text-3xl font-headline">Neural Voice Cloner</CardTitle>
+            <CardTitle className="text-3xl font-headline">SKV AI Voice Cloner</CardTitle>
             <CardDescription className="max-w-md mx-auto mt-2">
-              Train SKV AI by recording a sample or uploading an audio file.
+              Train your personal neural artist by recording a performance or uploading an audio file.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8 p-10 text-center">
              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button onClick={startCloningProcess} disabled={isProcessing} size="lg" className="h-14 px-8 rounded-2xl">
+                <Button onClick={startCloningProcess} disabled={isProcessing} size="lg" className="h-14 px-8 rounded-2xl shadow-lg shadow-primary/10">
                     <Sparkles className="mr-2 h-5 w-5" /> Start Neural Training
                 </Button>
                 <div className="relative">
                     <Input type="file" accept="audio/*" onChange={handleFileUpload} className="hidden" id="training-upload" />
-                    <Button asChild variant="outline" size="lg" className="h-14 px-8 rounded-2xl cursor-pointer">
+                    <Button asChild variant="outline" size="lg" className="h-14 px-8 rounded-2xl cursor-pointer border-primary/20 hover:bg-primary/5">
                         <label htmlFor="training-upload">
                             <Upload className="mr-2 h-5 w-5" /> Upload Training File
                         </label>
                     </Button>
                 </div>
              </div>
+             {sample && (
+                <div className="pt-4 animate-in fade-in slide-in-from-bottom-2">
+                    <p className="text-xs text-primary font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                        <Check className="h-3 w-3" /> Sample Ready for Analysis
+                    </p>
+                    <Button onClick={() => setStep('recording')} variant="link" className="text-xs">Proceed to Analysis</Button>
+                </div>
+             )}
           </CardContent>
         </Card>
       )}
 
       {step === 'recording' && (
-        <Card className="border-primary/20 bg-card/40 rounded-3xl p-10">
+        <Card className="border-primary/20 bg-card/40 rounded-3xl p-10 shadow-2xl">
           <CardHeader>
             <div className="flex justify-between items-center mb-2">
                 <CardTitle className="flex items-center gap-2">
-                  <Mic className="h-5 w-5 text-primary" /> Neural Pattern Capture
+                  <Mic className="h-5 w-5 text-primary" /> SKV Neural Pattern Capture
                 </CardTitle>
-                <Button variant="ghost" onClick={reset}>Cancel</Button>
+                <Button variant="ghost" size="sm" onClick={reset} className="rounded-full">Cancel</Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-10 text-center">
-            <div className="min-h-[140px] flex items-center justify-center p-8 bg-muted/30 rounded-2xl border-2 border-dashed border-primary/20 italic text-xl">
+            <div className="min-h-[140px] flex items-center justify-center p-8 bg-muted/30 rounded-3xl border-2 border-dashed border-primary/20 italic text-xl leading-relaxed">
                 "{script}"
             </div>
             <div className="flex flex-col items-center gap-6">
@@ -245,24 +262,28 @@ export function VoiceCloner() {
                     )} 
                     onPointerDown={startRecording} 
                     onPointerUp={stopRecording}
+                    style={{ touchAction: 'none' }}
                 >
                     {isRecording ? <Square className="h-10 w-10" /> : <Mic className="h-10 w-10" />}
                 </Button>
                 <div className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-                  {isRecording ? "Capturing..." : sample ? "Ready to Clone" : "Hold to Record"}
+                  {isRecording ? "Capturing Pattern..." : sample ? "Pattern Captured" : "Hold to Record"}
                 </div>
             </div>
             {sample && (
-                <div className="pt-6 border-t border-white/10 space-y-4">
-                    <Input 
-                        placeholder="Give your voice a name..." 
-                        value={voiceName} 
-                        onChange={(e) => setVoiceName(e.target.value)}
-                        className="h-12 text-center"
-                    />
-                    <Button onClick={handleClone} disabled={isProcessing} size="lg" className="w-full h-16 text-xl font-bold rounded-2xl">
+                <div className="pt-10 border-t border-white/5 space-y-6 animate-in fade-in">
+                    <div className="space-y-2">
+                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Name Your Artist</span>
+                        <Input 
+                            placeholder="e.g., My Studio Voice" 
+                            value={voiceName} 
+                            onChange={(e) => setVoiceName(e.target.value)}
+                            className="h-12 text-center rounded-xl bg-background/50"
+                        />
+                    </div>
+                    <Button onClick={handleClone} disabled={isProcessing} size="lg" className="w-full h-16 text-xl font-bold rounded-2xl shadow-xl shadow-primary/20">
                         {isProcessing ? <Loader2 className="mr-2 animate-spin" /> : <BrainCircuit className="mr-2" />}
-                        Process Neural Profile
+                        Generate Neural Profile
                     </Button>
                 </div>
             )}
@@ -272,35 +293,51 @@ export function VoiceCloner() {
 
       {step === 'cloning' && (
         <Card className="border-none bg-transparent py-24 text-center space-y-8">
-            <Loader2 className="mx-auto h-20 w-20 animate-spin text-primary" />
-            <h3 className="text-2xl font-bold">SKV AI is building your Neural Blueprint...</h3>
+            <div className="relative inline-block">
+                <Loader2 className="mx-auto h-20 w-20 animate-spin text-primary" />
+                <Sparkles className="absolute top-0 right-0 h-6 w-6 text-primary animate-bounce" />
+            </div>
+            <h3 className="text-2xl font-bold font-headline">SKV AI is building your Neural Blueprint...</h3>
+            <p className="text-muted-foreground max-w-xs mx-auto">This takes a few seconds as we analyze your unique vocal DNA.</p>
         </Card>
       )}
 
       {step === 'ready' && clonedVoiceData && (
-        <div className="space-y-6">
-          <Card className="border-primary/20 bg-primary/5 rounded-3xl p-8 border-2">
-            <h3 className="font-bold text-lg mb-2">SKV AI Analysis</h3>
-            <p className="text-sm text-muted-foreground italic">"{clonedVoiceData.description}"</p>
+        <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
+          <Card className="border-primary/20 bg-primary/5 rounded-3xl p-8 border-2 shadow-inner">
+            <h3 className="font-bold text-sm uppercase tracking-widest text-primary mb-3">SKV AI Neural Analysis</h3>
+            <p className="text-lg italic leading-relaxed">"{clonedVoiceData.description}"</p>
           </Card>
-          <Card className="p-10 space-y-8">
-            <div className="grid grid-cols-2 gap-8">
-                <div className="space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Stability</span>
+          
+          <Card className="p-10 rounded-3xl space-y-10 border-primary/10 shadow-2xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Neural Stability</span>
+                        <span className="text-xs font-bold text-primary">{Math.round(clonedVoiceData.stability * 100)}%</span>
+                    </div>
                     <Slider value={[clonedVoiceData.stability]} min={0} max={1} step={0.01} onValueChange={([v]) => setClonedVoiceData({...clonedVoiceData, stability: v})} />
                 </div>
-                <div className="space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Similarity</span>
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Similarity Boost</span>
+                        <span className="text-xs font-bold text-primary">{Math.round(clonedVoiceData.similarity * 100)}%</span>
+                    </div>
                     <Slider value={[clonedVoiceData.similarity]} min={0} max={1} step={0.01} onValueChange={([v]) => setClonedVoiceData({...clonedVoiceData, similarity: v})} />
                 </div>
             </div>
-            <Textarea value={testText} onChange={(e) => setTestText(e.target.value)} className="min-h-[100px] text-lg" />
-            <div className="flex gap-4">
-                <Button onClick={handleSpeak} disabled={isGeneratingSpeech} size="lg" className="flex-1 h-16 rounded-2xl">
-                    {isGeneratingSpeech ? <Loader2 className="animate-spin mr-2" /> : <Play className="mr-2" />} Test Clone
+            
+            <div className="space-y-4">
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Test Script</span>
+                <Textarea value={testText} onChange={(e) => setTestText(e.target.value)} className="min-h-[120px] text-lg rounded-2xl bg-muted/20" />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+                <Button onClick={handleSpeak} disabled={isGeneratingSpeech} size="lg" className="flex-1 h-16 rounded-2xl text-lg font-bold">
+                    {isGeneratingSpeech ? <Loader2 className="animate-spin mr-2" /> : <Play className="mr-2" />} Test Neural Artist
                 </Button>
-                <Button onClick={saveToProfile} variant="secondary" size="lg" className="flex-1 h-16 rounded-2xl">
-                    <Save className="mr-2" /> Save to Profile
+                <Button onClick={saveToProfile} variant="secondary" size="lg" className="flex-1 h-16 rounded-2xl text-lg font-bold">
+                    <Save className="mr-2" /> Save to Studio
                 </Button>
             </div>
           </Card>
@@ -308,26 +345,49 @@ export function VoiceCloner() {
       )}
 
       {/* Saved Voices Library */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold">Your Saved Voices</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-6 pt-10 border-t border-white/5">
+        <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold font-headline">Neural Artist Library</h2>
+            <div className="px-3 py-1 bg-primary/10 rounded-full border border-primary/20 text-[10px] font-bold text-primary uppercase">
+                {savedVoices?.length || 0} Artists
+            </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {savedVoices?.map(voice => (
-                <Card key={voice.id} className="p-6 bg-card/60 backdrop-blur-sm border-primary/10">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h3 className="font-bold text-lg">{voice.name}</h3>
-                            <p className="text-[10px] text-muted-foreground font-mono">{voice.voiceId}</p>
-                            <p className="text-xs text-muted-foreground mt-2 line-clamp-2 italic">{voice.description}</p>
+                <Card key={voice.id} className="group p-6 bg-card/60 backdrop-blur-sm border-primary/5 hover:border-primary/20 transition-all rounded-3xl overflow-hidden relative">
+                    <div className="absolute top-0 right-0 h-24 w-24 bg-primary/5 rounded-bl-full -mr-12 -mt-12 transition-all group-hover:scale-110" />
+                    <div className="flex justify-between items-start relative z-10">
+                        <div className="space-y-1">
+                            <h3 className="font-bold text-xl">{voice.name}</h3>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[9px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">{voice.voiceId}</span>
+                                <span className="text-[9px] text-primary font-bold uppercase">SKV Neural</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-4 line-clamp-3 italic leading-relaxed border-l-2 border-primary/20 pl-3">
+                                {voice.description}
+                            </p>
                         </div>
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteVoice(voice.id)}>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full h-8 w-8" 
+                            onClick={() => deleteVoice(voice.id)}
+                        >
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     </div>
                 </Card>
             ))}
             {(!savedVoices || savedVoices.length === 0) && (
-                <div className="col-span-full py-12 text-center border-2 border-dashed border-primary/10 rounded-3xl text-muted-foreground">
-                    No saved voices yet. Train SKV AI to see them here.
+                <div className="col-span-full py-20 text-center border-2 border-dashed border-primary/10 rounded-3xl bg-muted/5 flex flex-col items-center gap-4">
+                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center opacity-20">
+                        <Mic className="h-6 w-6" />
+                    </div>
+                    <div className="space-y-1">
+                        <p className="font-bold text-lg opacity-60">Your stage is quiet.</p>
+                        <p className="text-sm text-muted-foreground max-w-xs mx-auto">Train SKV AI with your voice to see your neural clones here.</p>
+                    </div>
                 </div>
             )}
         </div>
