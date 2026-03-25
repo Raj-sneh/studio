@@ -2,7 +2,9 @@
 'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using ElevenLabs API.
- * Uses SKV AI for neural analysis and ElevenLabs Multilingual v2 for high-fidelity synthesis.
+ * Uses SKV AI for neural analysis and a hybrid model approach for high-fidelity synthesis and conversion.
+ * - TTS uses 'eleven_multilingual_v2' for superior language support.
+ * - STS (Conversion) uses 'eleven_v3' for high-performance vocal replacement.
  */
 
 import { ai } from '@/ai/genkit';
@@ -122,7 +124,7 @@ const speakWithCloneFlow = ai.defineFlow(
         const apiKey = process.env.ELEVENLABS_API_KEY;
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
-        // Using eleven_multilingual_v2 for consistent quality across all languages
+        // For Text-to-Speech synthesis with multilingual support, 'eleven_multilingual_v2' is superior.
         const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
             method: 'POST',
             headers: {
@@ -164,9 +166,8 @@ const vocalReplacementFlow = ai.defineFlow(
         const formData = new FormData();
         formData.append('audio', blob, 'input.mp3');
         
-        // CRITICAL: Using 'eleven_multilingual_v2' for speech-to-speech
-        // v3 is optimized for TTS, but v2 remains the standard for STS (voice conversion)
-        formData.append('model_id', 'eleven_multilingual_v2'); 
+        // For high-performance Voice Conversion (Speech-to-Speech), 'eleven_v3' (Turbo v2.5) provides the best fidelity.
+        formData.append('model_id', 'eleven_v3'); 
         
         if (settings) {
             formData.append('voice_settings', JSON.stringify(settings));
