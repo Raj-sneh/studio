@@ -148,7 +148,7 @@ const vocalReplacementFlow = ai.defineFlow(
         outputSchema: VocalReplacementOutputSchema,
     },
     async (input) => {
-        const { audioDataUri, voiceId, settings } = input;
+        const { audioDataUri, voiceId, language, settings } = input;
         const apiKey = process.env.ELEVENLABS_API_KEY;
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
@@ -158,6 +158,7 @@ const vocalReplacementFlow = ai.defineFlow(
 
         const formData = new FormData();
         formData.append('audio', blob, 'input.mp3');
+        formData.append('model_id', 'eleven_multilingual_v2'); // Ensure multilingual support for vocals
         formData.append('voice_settings', JSON.stringify(settings));
 
         const response = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${voiceId}`, {

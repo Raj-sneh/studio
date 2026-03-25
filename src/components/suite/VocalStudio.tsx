@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -81,6 +82,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
         const res = await replaceVocals({
           audioDataUri: data.replacementAudio,
           voiceId: data.voice,
+          language: data.language,
           settings: { stability: 0.5, similarity_boost: 0.75 }
         });
         setResult({ vocalUri: res.audioUri, title: "Vocal Transformation" });
@@ -142,7 +144,25 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                             </FormItem>
                         )}/>
                     </TabsContent>
-                    <TabsContent value="replacement" className="mt-0">
+                    <TabsContent value="replacement" className="mt-0 space-y-6">
+                        <FormField control={form.control} name="language" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
+                                    Source Song Language
+                                    <div className="flex items-center gap-2">
+                                        <Globe className="h-3 w-3 text-primary" />
+                                        <select 
+                                            {...field}
+                                            className="bg-transparent text-[10px] border-none focus:ring-0 cursor-pointer text-primary font-bold"
+                                        >
+                                            {languageOptions.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                                        </select>
+                                    </div>
+                                </FormLabel>
+                                <p className="text-[10px] text-muted-foreground">Select the language of the uploaded audio for more accurate neural replacement.</p>
+                            </FormItem>
+                        )}/>
+
                         <FormField control={form.control} name="replacementAudio" render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Original Singer/Song</FormLabel>

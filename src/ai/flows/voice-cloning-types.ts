@@ -35,6 +35,7 @@ export type CloneSpeechOutput = z.infer<typeof CloneSpeechOutputSchema>;
 export const VocalReplacementInputSchema = z.object({
   audioDataUri: z.string().describe("Input audio file to transform."),
   voiceId: z.string(),
+  language: z.string().optional().default('en').describe('The language of the source audio.'),
   settings: z.object({
     stability: z.number().optional(),
     similarity_boost: z.number().optional(),
