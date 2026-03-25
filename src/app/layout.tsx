@@ -6,7 +6,6 @@ import type { Metadata } from 'next';
 import Header from "@/components/Header";
 import { Providers } from './providers';
 import { FloatingAssistantButton } from '@/components/FloatingAssistantButton';
-import { GlobalCreditBar } from '@/components/GlobalCreditBar';
 
 const fontHeadline = Poppins({
   subsets: ['latin'],
@@ -73,7 +72,6 @@ export default function RootLayout({
             </footer>
           </div>
           <FloatingAssistantButton />
-          <GlobalCreditBar />
           <Toaster />
         </Providers>
       </body>

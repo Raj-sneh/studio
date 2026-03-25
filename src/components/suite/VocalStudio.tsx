@@ -10,7 +10,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Loader2, 
-  Music2, 
   Play, 
   StopCircle, 
   Sparkles, 
@@ -127,37 +126,12 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
     return () => stopPlayback();
   }, [stopPlayback]);
 
-  const checkAndDeductCredit = (isSinging: boolean) => {
-      const cost = isSinging ? 3 : 1;
-      const storedCredits = localStorage.getItem("sargam_credits");
-      let credits = storedCredits ? parseInt(storedCredits) : 5;
-      if (isNaN(credits)) credits = 0;
-      
-      if (credits < cost) {
-          toast({ 
-              title: "Insufficient Credits", 
-              description: `This performance requires ${cost} credits. You currently have ${credits}. Please refill your balance using the credit bar at the bottom.`, 
-              variant: "destructive" 
-          });
-          return false;
-      }
-      
-      const newTotal = credits - cost;
-      localStorage.setItem("sargam_credits", newTotal.toString());
-      window.dispatchEvent(new Event('creditsUpdated'));
-      return true;
-  };
-
   const handlePreviewVoice = async (voiceId: string, e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
       e.preventDefault();
     }
     if (previewLoading || isLoading || isPlaying) return;
-    if (voiceId === 'elevenlabs-ext') {
-        toast({ title: "Custom Preview", description: "Use the Generate button to test your external API." });
-        return;
-    }
 
     setPreviewLoading(voiceId);
     try {
@@ -165,7 +139,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: `Checking frequency. I am ${voiceId}, your Resemble AI studio voice.`,
+          text: `Checking frequency. I am ${voiceId}, your studio voice.`,
           voice: voiceId,
           sing: false,
         }),
@@ -176,19 +150,17 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
       try {
         data = resText ? JSON.parse(resText) : {};
       } catch (e) {
-        throw new Error("Invalid voice sample response from Resemble AI.");
+        throw new Error("Invalid voice sample response.");
       }
 
-      if (!res.ok) throw new Error(data.message || "Preview failed. Check API key.");
+      if (!res.ok) throw new Error(data.message || "Preview failed.");
       
       const audio = new Audio(data.media);
       audio.play().catch(err => {
         console.error("Audio playback error:", err);
-        toast({ title: "Playback blocked", description: "Click the play icon again to allow audio.", variant: "destructive" });
       });
     } catch (e: any) {
-      console.error("Preview Error:", e);
-      toast({ title: "Preview failed", description: e.message || "Could not play sample.", variant: "destructive" });
+      toast({ title: "Preview failed", description: e.message, variant: "destructive" });
     } finally {
       setPreviewLoading(null);
     }
@@ -249,15 +221,12 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
       vocalPlayerRef.current.start(0);
       Tone.Transport.start("+0.1");
     } catch (err) {
-      console.error("Playback error:", err);
       setIsPlaying(false);
-      toast({ title: "Studio Error", description: "I had some trouble mixing the tracks.", variant: "destructive" });
+      toast({ title: "Mixer Error", description: "mixing failed.", variant: "destructive" });
     }
   }, [result, stopPlayback, toast, vocalVolume, vocalSpeed, pianoVolume, pianoTempo, isAutoSync]);
 
   const handleGenerate = useCallback(async (data: FormData, reinforcementRating?: 'good' | 'bad') => {
-    if (!checkAndDeductCredit(data.singMode)) return;
-
     setIsLoading(true);
     setResult(null);
     stopPlayback();
@@ -268,7 +237,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
 
       if (data.voice === 'elevenlabs-ext') {
           if (!data.externalUrl) {
-              throw new Error("Please provide your ngrok URL for the custom ElevenLabs server.");
+              throw new Error("Please provide your ngrok URL.");
           }
 
           const apiBase = data.externalUrl.endsWith('/') ? data.externalUrl.slice(0, -1) : data.externalUrl;
@@ -280,7 +249,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
               body: formData,
           });
 
-          if (!res.ok) throw new Error("Could not connect to your ElevenLabs server. Check the URL and ngrok status.");
+          if (!res.ok) throw new Error("Could not connect to external server.");
 
           const blob = await res.blob();
           const reader = new FileReader();
@@ -289,7 +258,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
               reader.readAsDataURL(blob);
           });
 
-          newResult = { vocalUri: mediaUri, title: "Custom ElevenLabs Output" };
+          newResult = { vocalUri: mediaUri, title: "External Output" };
       } else if (data.singMode) {
         const res = await fetch('/api/generate-song', {
           method: 'POST',
@@ -306,12 +275,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
         });
 
         const resText = await res.text();
-        let songData;
-        try {
-          songData = resText ? JSON.parse(resText) : {};
-        } catch (e) {
-          throw new Error("The Studio engine returned an invalid response.");
-        }
+        let songData = JSON.parse(resText);
 
         if (!res.ok) throw new Error(songData.message || "Synthesis failed.");
 
@@ -323,13 +287,8 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
         };
         
         if (songData.tempo) setPianoTempo(songData.tempo);
-        
-        if (reinforcementRating) {
-          setHasRated(true);
-          setFeedbackComment('');
-        } else {
-          setHasRated(false);
-        }
+        setHasRated(!!reinforcementRating);
+        setFeedbackComment('');
       } else {
         const res = await fetch('/api/text-to-speech', {
           method: 'POST',
@@ -342,14 +301,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
         });
 
         const resText = await res.text();
-        let speechResult;
-        try {
-          speechResult = resText ? JSON.parse(resText) : {};
-        } catch (e) {
-          throw new Error("Voice synthesis engine returned an invalid response.");
-        }
+        let speechResult = JSON.parse(resText);
 
-        if (!res.ok) throw new Error(speechResult.message || "Resemble AI generation failed.");
+        if (!res.ok) throw new Error(speechResult.message || "Generation failed.");
         
         newResult = { vocalUri: speechResult.media };
         setHasRated(false);
@@ -361,18 +315,17 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
         const historyRef = collection(firestore, 'users', user.uid, 'generatedMelodies');
         addDocumentNonBlocking(historyRef, {
           userId: user.uid,
-          title: newResult.title || (data.singMode ? 'Vocal Studio' : 'Resemble Speech'),
-          notes: data.text.substring(0, 50) + (data.text.length > 50 ? '...' : ''),
+          title: newResult.title || (data.singMode ? 'Vocal Studio' : 'Speech'),
+          notes: data.text.substring(0, 50) + '...',
           instrument: 'Studio Voice',
           generationContext: 'Vocal Studio',
           createdAt: serverTimestamp(),
         });
       }
 
-      toast({ title: 'Mastering Complete!', description: 'Your AI performance is ready.' });
+      toast({ title: 'Success!', description: 'AI performance ready.' });
     } catch (error: any) {
-      console.error("Generation error:", error);
-      toast({ variant: 'destructive', title: 'Studio Error', description: error.message || "The synthesis engine is currently offline." });
+      toast({ variant: 'destructive', title: 'Studio Error', description: error.message });
     } finally {
       setIsLoading(false);
     }
@@ -386,27 +339,21 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
     }
   }, [autogen, initialPrompt, form, handleGenerate, isLoading]);
 
-  const currentCost = form.watch('singMode') ? 3 : 1;
   const selectedVoice = form.watch('voice');
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex justify-between items-center px-2">
-          <span className="text-xs font-bold text-primary flex items-center gap-1">
-              <Sparkles className="h-3 w-3" /> {currentCost} Credit{currentCost > 1 ? 's' : ''} per performance
-          </span>
-      </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit((data) => handleGenerate(data))} className="space-y-8">
           <FormField control={form.control} name="text" render={({ field }) => (
             <FormItem>
               <FormLabel className="text-lg font-bold flex items-center gap-2">
                 <Mic2 className="h-5 w-5 text-primary" />
-                Input Performance Script
+                Performance Script
               </FormLabel>
               <FormControl>
                 <Textarea 
-                  placeholder="Enter lyrics for a song or text for a high-fidelity speech performance..." 
+                  placeholder="Enter lyrics or text..." 
                   {...field} 
                   rows={4} 
                   disabled={isLoading} 
@@ -419,15 +366,14 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
 
           {selectedVoice === 'elevenlabs-ext' && (
              <FormField control={form.control} name="externalUrl" render={({ field }) => (
-                <FormItem className="animate-in slide-in-from-left-2">
+                <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Globe className="h-4 w-4 text-primary" />
-                    Ngrok Public URL
+                    Ngrok URL
                   </FormLabel>
                   <FormControl>
-                    <Input placeholder="https://abcd123.ngrok-free.app" {...field} className="bg-primary/5" />
+                    <Input placeholder="https://..." {...field} className="bg-primary/5" />
                   </FormControl>
-                  <p className="text-[10px] text-muted-foreground italic">Paste the URL printed in your main.py terminal.</p>
                   <FormMessage />
                 </FormItem>
               )}/>
@@ -449,42 +395,19 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
                         field.value === voice.id ? "bg-primary/10 border-primary shadow-lg" : "bg-muted/30 border-transparent hover:bg-muted/50"
                       )}
                     >
-                      <input 
-                        type="radio" 
-                        className="hidden" 
-                        name="voice" 
-                        value={voice.id} 
-                        checked={field.value === voice.id}
-                        onChange={() => field.onChange(voice.id)}
-                      />
+                      <input type="radio" className="hidden" name="voice" value={voice.id} checked={field.value === voice.id} onChange={() => field.onChange(voice.id)} />
                       <div className="flex items-center gap-1 z-10 truncate pr-1">
-                        {voice.premium && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 shrink-0" />}
-                        {voice.external && <Globe className="h-3 w-3 text-cyan-500 shrink-0" />}
+                        {voice.premium && <Star className="h-3 w-3 text-yellow-500 shrink-0" />}
                         <span className="text-[11px] font-bold truncate uppercase tracking-tight">{voice.label}</span>
                       </div>
                       {!voice.external && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 shrink-0 opacity-40 group-hover:opacity-100 hover:text-primary z-10"
-                          onClick={(e) => handlePreviewVoice(voice.id, e)}
-                          disabled={previewLoading === voice.id}
-                        >
-                          {previewLoading === voice.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <PlayCircle className="h-4 w-4" />
-                          )}
+                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-40 group-hover:opacity-100" onClick={(e) => handlePreviewVoice(voice.id, e)} disabled={previewLoading === voice.id}>
+                          {previewLoading === voice.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
                         </Button>
-                      )}
-                      {field.value === voice.id && (
-                        <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
                       )}
                     </label>
                   ))}
                 </div>
-                <FormMessage />
               </FormItem>
             )}/>
 
@@ -496,69 +419,51 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
                       <Zap className="h-5 w-5 text-primary" />
                       Studio Mode
                     </FormLabel>
-                    <p className="text-xs text-muted-foreground">Enabled: Singing & Piano (3 Credits).</p>
+                    <p className="text-xs text-muted-foreground">Enabled: Singing & Piano accompaniment.</p>
                   </div>
                   <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isLoading || selectedVoice === 'elevenlabs-ext'} />
                 </div>
               )}/>
-              
-              <div className="p-4 bg-muted/20 rounded-2xl border border-dashed border-primary/20 flex items-start gap-3">
-                <Star className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                    <p className="text-xs font-bold text-foreground">AI Studio Mastery</p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      All studio voices are generated via high-fidelity neural engines for professional clarity.
-                    </p>
-                </div>
-              </div>
             </div>
           </div>
 
-          <Button type="submit" disabled={isLoading} size="lg" className="w-full h-16 text-xl font-headline shadow-2xl shadow-primary/30 transition-all hover:scale-[1.01] rounded-2xl">
-            {isLoading ? <Loader2 className="mr-3 animate-spin h-7 w-7" /> : <Sparkles className="mr-3 h-7 w-7" />}
-            {isLoading ? 'Synthesizing Performance...' : 'Synthesize AI Master'}
+          <Button type="submit" disabled={isLoading} size="lg" className="w-full h-16 text-xl font-headline shadow-2xl rounded-2xl">
+            {isLoading ? <Loader2 className="mr-3 animate-spin" /> : <Sparkles className="mr-3" />}
+            {isLoading ? 'Synthesizing...' : 'Synthesize Performance'}
           </Button>
         </form>
       </Form>
 
       {result && (
         <div className="space-y-10 pt-8 border-t border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <Card className="bg-primary/5 border-primary/20 border-2 overflow-hidden rounded-3xl relative">
-            <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
-            <div className="p-8 flex flex-col md:flex-row items-center justify-between gap-8">
+          <Card className="bg-primary/5 border-primary/20 border-2 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-8">
               <div className="space-y-2">
-                <h3 className="text-3xl font-headline font-bold text-primary">{result.title || 'Studio Performance'}</h3>
-                <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-primary/20 text-primary px-3 py-1 rounded-full">High-Fidelity Neural Output</span>
-                    <p className="text-xs text-muted-foreground italic">Ready for playback</p>
-                </div>
+                <h3 className="text-3xl font-headline font-bold text-primary">{result.title || 'Performance'}</h3>
               </div>
               <div className="flex gap-4">
-                <Button onClick={handlePlay} disabled={isPlaying} size="lg" className="h-14 px-10 rounded-2xl shadow-xl hover:scale-105 transition-transform">
-                  <Play className="mr-2 h-6 w-6" /> Play Master
+                <Button onClick={handlePlay} disabled={isPlaying} size="lg" className="h-14 px-10 rounded-2xl">
+                  <Play className="mr-2 h-6 w-6" /> Play
                 </Button>
-                <Button onClick={stopPlayback} disabled={!isPlaying} variant="destructive" size="lg" className="h-14 px-8 rounded-2xl shadow-xl hover:scale-105 transition-transform">
+                <Button onClick={stopPlayback} disabled={!isPlaying} variant="destructive" size="lg" className="h-14 px-8 rounded-2xl">
                   <StopCircle className="mr-2 h-6 w-6" /> Stop
                 </Button>
               </div>
-            </div>
           </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card className="p-6 bg-muted/10 border-white/5 rounded-3xl">
-              <span className="text-sm font-bold flex items-center gap-2 mb-6"><Volume2 className="h-4 w-4 text-primary" /> Vocal Mixing Deck</span>
+              <span className="text-sm font-bold flex items-center gap-2 mb-6"><Volume2 className="h-4 w-4 text-primary" /> Vocal Mixing</span>
               <div className="space-y-6">
                 <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] uppercase font-black tracking-widest text-muted-foreground">
-                    <span>Gain Level</span>
+                    <div className="flex justify-between text-[10px] uppercase font-black text-muted-foreground">
+                    <span>Gain</span>
                     <span>{vocalVolume} dB</span>
                     </div>
                     <Slider value={[vocalVolume]} min={-20} max={10} step={1} onValueChange={(val) => setVocalVolume(val[0])} />
                 </div>
-                
                 <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] uppercase font-black tracking-widest text-muted-foreground">
-                    <span>Playback Speed</span>
+                    <div className="flex justify-between text-[10px] uppercase font-black text-muted-foreground">
+                    <span>Speed</span>
                     <span>{vocalSpeed}x</span>
                     </div>
                     <Slider value={[vocalSpeed]} min={0.5} max={1.5} step={0.05} onValueChange={(val) => setVocalSpeed(val[0])} />
@@ -568,24 +473,23 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
 
             <Card className="p-6 bg-muted/10 border-white/5 rounded-3xl">
               <div className="flex items-center justify-between mb-6">
-                <span className="text-sm font-bold flex items-center gap-2"><Keyboard className="h-4 w-4 text-primary" /> Instrumentation Deck</span>
+                <span className="text-sm font-bold flex items-center gap-2"><Keyboard className="h-4 w-4 text-primary" /> Instrumentation</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Auto Sync</span>
+                  <span className="text-[10px] font-black text-muted-foreground uppercase">Auto Sync</span>
                   <Switch checked={isAutoSync} onCheckedChange={setIsAutoSync} />
                 </div>
               </div>
               <div className="space-y-6">
                 <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] uppercase font-black tracking-widest text-muted-foreground">
+                    <div className="flex justify-between text-[10px] uppercase font-black text-muted-foreground">
                     <span>Piano Presence</span>
                     <span>{pianoVolume} dB</span>
                     </div>
                     <Slider value={[pianoVolume]} min={-40} max={6} step={1} onValueChange={(val) => setPianoVolume(val[0])} />
                 </div>
-                
                 <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] uppercase font-black tracking-widest text-muted-foreground">
-                    <span>Performance Tempo</span>
+                    <div className="flex justify-between text-[10px] uppercase font-black text-muted-foreground">
+                    <span>Tempo</span>
                     <span>{pianoTempo} BPM</span>
                     </div>
                     <Slider value={[pianoTempo]} min={60} max={180} step={1} disabled={isAutoSync} onValueChange={(val) => setPianoTempo(val[0])} />
@@ -597,27 +501,11 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
           {!hasRated && result.notes && (
             <div className="space-y-4 border-t pt-8">
               <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 space-y-4">
-                  <div className="flex items-center gap-2">
-                      <History className="h-4 w-4 text-primary" />
-                      <h4 className="text-sm font-bold uppercase tracking-wider text-primary">Refine Your Song</h4>
-                  </div>
-                  <div className="space-y-3">
-                      <p className="text-xs text-muted-foreground">Is the melody or rhythm not right? Describe what to fix and I'll learn from your rating.</p>
-                      <div className="flex gap-2">
-                          <Input 
-                              placeholder="e.g., 'Make the piano more soulful'..." 
-                              value={feedbackComment} 
-                              onChange={(e) => setFeedbackComment(e.target.value)}
-                              className="flex-1 bg-background/50"
-                              disabled={isLoading}
-                          />
-                          <Button variant="outline" size="icon" onClick={() => handleGenerate(form.getValues(), 'good')} title="It's good" disabled={isLoading}>
-                              <ThumbsUp className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="icon" onClick={() => handleGenerate(form.getValues(), 'bad')} title="Needs work" disabled={isLoading}>
-                              <ThumbsDown className="h-4 w-4" />
-                          </Button>
-                      </div>
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-primary">Refine Your Song</h4>
+                  <div className="flex gap-2">
+                      <Input placeholder="Describe changes..." value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} className="flex-1" disabled={isLoading} />
+                      <Button variant="outline" size="icon" onClick={() => handleGenerate(form.getValues(), 'good')} disabled={isLoading}><ThumbsUp /></Button>
+                      <Button variant="outline" size="icon" onClick={() => handleGenerate(form.getValues(), 'bad')} disabled={isLoading}><ThumbsDown /></Button>
                   </div>
               </div>
             </div>

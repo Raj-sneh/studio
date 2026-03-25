@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { generateNotes } from '@/ai/flows/generate-notes-flow';
 import type { GenerateNotesOutput, NoteObject } from '@/ai/flows/generate-notes-types';
-import { Loader2, Music, Play, StopCircle, BookOpen, RefreshCw, CheckCircle, ThumbsUp, ThumbsDown, History, Sparkles } from 'lucide-react';
+import { Loader2, Music, Play, StopCircle, BookOpen, RefreshCw, CheckCircle, ThumbsUp, ThumbsDown, History } from 'lucide-react';
 import { getSampler } from '@/lib/samplers';
 import type { InstrumentSynth } from '@/lib/samplers';
 import NoteDisplay from '@/components/note-display';
@@ -98,26 +98,6 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
       };
     }, [stopPlayback]);
 
-    // --- CREDIT LOGIC ---
-    const checkAndDeductCredit = () => {
-        const storedCredits = localStorage.getItem("sargam_credits");
-        let credits = storedCredits ? parseInt(storedCredits) : 5;
-        
-        if (credits <= 0) {
-            toast({ 
-                title: "Out of Credits", 
-                description: "You have 0 credits. Please refill your balance using the credit bar at the bottom to continue generating music.", 
-                variant: "destructive" 
-            });
-            return false;
-        }
-        
-        const newTotal = credits - 1;
-        localStorage.setItem("sargam_credits", newTotal.toString());
-        window.dispatchEvent(new Event('creditsUpdated'));
-        return true;
-    };
-    
     const handlePlayDemo = useCallback(async (melody: GenerateNotesOutput) => {
         stopPlayback();
         try {
@@ -163,9 +143,6 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
             toast({ title: 'Type something first', variant: 'destructive', description: "Tell me what kind of tune you want." });
             return;
         }
-
-        // Credit Check: generation is strictly blocked if credits <= 0
-        if (!checkAndDeductCredit()) return;
 
         stopPlayback();
         setGenerationState('loading');
@@ -308,11 +285,6 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
     return (
         <Card>
             <CardContent className="space-y-4 pt-6">
-                <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold text-primary flex items-center gap-1">
-                        <Sparkles className="h-3 w-3" /> 1 Credit per generation
-                    </span>
-                </div>
                 <Textarea
                     placeholder="e.g., 'A happy song' or 'Rainy day tune'"
                     value={prompt}
@@ -323,8 +295,7 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
                 
                 <div className="flex flex-col sm:flex-row gap-2">
                     <Button onClick={() => handleGeneration(false)} disabled={isBusy || mode === 'learn'} className="w-full sm:w-auto">
-                        {generationState === 'loading' ? <Loader2 className="animate-spin mr-2" /> : <Music className="mr-2" />}
-                        {generationState === 'loading' ? 'Thinking...' : 'Make Tune'}
+                        {generationState === 'loading' ? <Loader2 className="animate-spin mr-2" /> : 'Make Tune'}
                     </Button>
                     <Button onClick={() => handlePlayDemo(generatedMelody!)} disabled={!hasGenerated || isBusy || mode === 'learn'}>
                         <Play className="mr-2" /> Play
@@ -341,15 +312,12 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
                 {hasGenerated && (
                     <div className="space-y-4 border-t pt-4">
                         <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 space-y-4">
-                            <div className="flex items-center gap-2">
-                                <History className="h-4 w-4 text-primary" />
-                                <h4 className="text-sm font-bold uppercase tracking-wider text-primary">Reinforcement & Improvement</h4>
-                            </div>
+                            <h4 className="text-sm font-bold uppercase tracking-wider text-primary">Reinforcement & Improvement</h4>
                             <div className="space-y-3">
-                                <p className="text-xs text-muted-foreground">Tell me what to change for the next version. I will learn from your feedback.</p>
+                                <p className="text-xs text-muted-foreground">Tell me what to change for the next version.</p>
                                 <div className="flex gap-2">
                                     <Input 
-                                        placeholder="e.g., 'Fewer high notes' or 'More complex'..." 
+                                        placeholder="e.g., 'Fewer high notes'..." 
                                         value={feedbackComment} 
                                         onChange={(e) => setFeedbackComment(e.target.value)}
                                         className="flex-1 bg-background/50"

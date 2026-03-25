@@ -6,7 +6,7 @@ import { useAuth, useUser } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Music, LogOut, User as UserIcon, Loader2, BookOpen, Wand2, LogIn, ChevronDown, Coins } from "lucide-react";
+import { Music, LogOut, User as UserIcon, Loader2, BookOpen, Wand2, LogIn, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 
@@ -16,15 +16,10 @@ const navLinks = [
   { href: "/suite", label: "AI Studio", icon: Wand2 },
 ];
 
-/**
- * A custom geometric human structure for guest avatars.
- */
 function GeometricGuestIcon() {
   return (
     <svg viewBox="0 0 100 100" className="h-full w-full p-2" xmlns="http://www.w3.org/2000/svg">
-      {/* Head */}
       <circle cx="50" cy="35" r="18" fill="currentColor" />
-      {/* Body (Semicircle) */}
       <path d="M20 85 C 20 55, 80 55, 80 85" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
     </svg>
   );
@@ -36,22 +31,9 @@ export default function Header() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [credits, setCredits] = useState<number>(5);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchCredits = () => {
-      const stored = localStorage.getItem("sargam_credits");
-      if (stored) {
-        setCredits(parseInt(stored));
-      }
-    };
-
-    fetchCredits();
-
-    const handleUpdate = () => fetchCredits();
-    window.addEventListener('creditsUpdated', handleUpdate);
-    
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
@@ -60,7 +42,6 @@ export default function Header() {
     
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      window.removeEventListener('creditsUpdated', handleUpdate);
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
@@ -70,10 +51,6 @@ export default function Header() {
     await signOut(auth);
     setIsMenuOpen(false);
     router.push("/");
-  };
-
-  const handleOpenCreditBar = () => {
-    window.dispatchEvent(new Event('showCreditBar'));
   };
   
   const renderAuthControls = () => {
@@ -165,15 +142,6 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <button 
-            onClick={handleOpenCreditBar}
-            className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20 hover:bg-primary/20 transition-all active:scale-95 group"
-            title="Manage Credits & Buy Premium"
-          >
-            <Coins className="h-4 w-4 text-primary group-hover:rotate-12 transition-transform" />
-            <span className="text-sm font-bold text-primary">{credits}</span>
-            <span className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter hidden sm:inline">Credits</span>
-          </button>
           {renderAuthControls()}
         </div>
       </div>

@@ -47,25 +47,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
     const handleUserSession = async () => {
       if (user) {
-        // --- LOGIN CREDIT BONUS ---
-        // Grant 5 credits if this is the first time logging into this account on this device
-        const bonusKey = `bonus_granted_${user.uid}`;
-        if (!user.isAnonymous && !localStorage.getItem(bonusKey)) {
-          let currentCredits = parseInt(localStorage.getItem("sargam_credits") || "0");
-          if (isNaN(currentCredits)) currentCredits = 0;
-          
-          localStorage.setItem("sargam_credits", (currentCredits + 5).toString());
-          localStorage.setItem(bonusKey, "true");
-          
-          // Notify Header and Footer to update balance
-          window.dispatchEvent(new Event('creditsUpdated'));
-          
-          toast({
-            title: "Login Bonus! ✨",
-            description: "You've received 5 credits for signing in.",
-          });
-        }
-
         const userDocRef = doc(firestore, 'users', user.uid);
         try {
           const docSnap = await getDoc(userDocRef);

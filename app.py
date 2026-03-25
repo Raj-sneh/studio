@@ -1,79 +1,21 @@
 from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
-from gtts import gTTS
 import os
 import wave
 import audioop
 import subprocess
 import librosa
 import numpy as np
+from gtts import gTTS
 
 app = Flask(__name__)
 
-# Enhanced CORS configuration to allow the custom ngrok header
+# Enhanced CORS configuration
 CORS(app, resources={r"/*": {"origins": "*"}}, allow_headers=["Content-Type", "Authorization", "ngrok-skip-browser-warning"])
-
-# 🎫 COUPON DATABASE
-# Mapping codes to their credit values
-# These are now tracked per user in the 'user_redemptions' store
-coupon_values = {
-    "S49A1B2": 100,
-    "MELODY100": 100,
-    "SKVPRO49": 100,
-    "TUNE7K2L": 100,
-    "BEAT49X1": 100,
-    "MAX@250#₹": 250,
-    "PRO#SKV@₹99": 250,
-    "GOLD₹@MAX#": 250,
-    "VIP#99@₹250": 250,
-    "ULTRA@₹#99": 250
-}
-
-# In-memory store for tracking: { "user_id": ["code1", "code2"] }
-user_redemptions = {}
 
 @app.route('/')
 def home():
     return "Sargam AI Voice Backend Running"
-
-@app.route('/redeem', methods=['POST', 'OPTIONS'])
-def redeem_coupon():
-    # Handle CORS preflight explicitly if needed, though Flask-CORS does this
-    if request.method == 'OPTIONS':
-        return jsonify({"status": "ok"}), 200
-
-    try:
-        code = request.form.get("code")
-        user_id = request.form.get("userId")
-        
-        if not code:
-            return jsonify({"status": "invalid", "message": "No code provided"}), 400
-        
-        if not user_id:
-            return jsonify({"status": "invalid", "message": "User context missing"}), 400
-        
-        if code not in coupon_values:
-            return jsonify({"status": "invalid", "message": "Invalid coupon code"}), 404
-
-        # Initialize user history if not exists
-        if user_id not in user_redemptions:
-            user_redemptions[user_id] = []
-
-        # Check if THIS user has used THIS code
-        if code in user_redemptions[user_id]:
-            return jsonify({"status": "used", "message": "You have already redeemed this coupon"}), 400
-
-        credits_to_add = coupon_values[code]
-        
-        # Record this redemption for the user
-        user_redemptions[user_id].append(code)
-
-        return jsonify({
-            "status": "success",
-            "credits": credits_to_add
-        })
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/clone', methods=['POST'])
 def clone():
