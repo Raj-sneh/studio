@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, Middleware
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from elevenlabs.client import ElevenLabs
 from dotenv import load_dotenv
@@ -15,6 +16,15 @@ public_url = ngrok.connect(8000)
 print("🔥 PUBLIC URL:", public_url)
 
 app = FastAPI()
+
+# Enable CORS for the frontend to access this server
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # In production, replace with your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 API_KEY = os.getenv("ELEVENLABS_API_KEY")
 elevenlabs = ElevenLabs(api_key=API_KEY)

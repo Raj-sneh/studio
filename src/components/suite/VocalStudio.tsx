@@ -23,7 +23,8 @@ import {
   ThumbsDown,
   PlayCircle,
   Mic2,
-  Star
+  Star,
+  Globe
 } from 'lucide-react';
 import { 
   Form, 
@@ -46,11 +47,13 @@ const formSchema = z.object({
   text: z.string().min(5, { message: "Please enter at least 5 characters." }),
   voice: z.string(),
   singMode: z.boolean(),
+  externalUrl: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 const voices = [
+  { id: 'elevenlabs-ext', label: 'External ElevenLabs (Custom)', external: true },
   { id: 'clive', label: 'Clive (Premium)', premium: true },
   { id: 'clara', label: 'Clara (Pro)' },
   { id: 'james', label: 'James (Narrator)' },
@@ -99,6 +102,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
       text: initialPrompt || '',
       voice: 'clive',
       singMode: false,
+      externalUrl: '',
     },
   });
 
@@ -150,6 +154,10 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
       e.preventDefault();
     }
     if (previewLoading || isLoading || isPlaying) return;
+    if (voiceId === 'elevenlabs-ext') {
+        toast({ title: "Custom Preview", description: "Use the Generate button to test your external API." });
+        return;
+    }
 
     setPreviewLoading(voiceId);
     try {
@@ -258,7 +266,31 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
       onGenerate();
       let newResult: any = null;
 
-      if (data.singMode) {
+      if (data.voice === 'elevenlabs-ext') {
+          if (!data.externalUrl) {
+              throw new Error("Please provide your ngrok URL for the custom ElevenLabs server.");
+          }
+
+          const apiBase = data.externalUrl.endsWith('/') ? data.externalUrl.slice(0, -1) : data.externalUrl;
+          const formData = new FormData();
+          formData.append('text', data.text);
+
+          const res = await fetch(`${apiBase}/tts`, {
+              method: 'POST',
+              body: formData,
+          });
+
+          if (!res.ok) throw new Error("Could not connect to your ElevenLabs server. Check the URL and ngrok status.");
+
+          const blob = await res.blob();
+          const reader = new FileReader();
+          const mediaUri = await new Promise<string>((resolve) => {
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+          });
+
+          newResult = { vocalUri: mediaUri, title: "Custom ElevenLabs Output" };
+      } else if (data.singMode) {
         const res = await fetch('/api/generate-song', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -355,6 +387,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
   }, [autogen, initialPrompt, form, handleGenerate, isLoading]);
 
   const currentCost = form.watch('singMode') ? 3 : 1;
+  const selectedVoice = form.watch('voice');
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -383,6 +416,22 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
               <FormMessage />
             </FormItem>
           )}/>
+
+          {selectedVoice === 'elevenlabs-ext' && (
+             <FormField control={form.control} name="externalUrl" render={({ field }) => (
+                <FormItem className="animate-in slide-in-from-left-2">
+                  <FormLabel className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-primary" />
+                    Ngrok Public URL
+                  </FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://abcd123.ngrok-free.app" {...field} className="bg-primary/5" />
+                  </FormControl>
+                  <p className="text-[10px] text-muted-foreground italic">Paste the URL printed in your main.py terminal.</p>
+                  <FormMessage />
+                </FormItem>
+              )}/>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <FormField control={form.control} name="voice" render={({ field }) => (
@@ -410,22 +459,25 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
                       />
                       <div className="flex items-center gap-1 z-10 truncate pr-1">
                         {voice.premium && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 shrink-0" />}
+                        {voice.external && <Globe className="h-3 w-3 text-cyan-500 shrink-0" />}
                         <span className="text-[11px] font-bold truncate uppercase tracking-tight">{voice.label}</span>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0 opacity-40 group-hover:opacity-100 hover:text-primary z-10"
-                        onClick={(e) => handlePreviewVoice(voice.id, e)}
-                        disabled={previewLoading === voice.id}
-                      >
-                        {previewLoading === voice.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <PlayCircle className="h-4 w-4" />
-                        )}
-                      </Button>
+                      {!voice.external && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0 opacity-40 group-hover:opacity-100 hover:text-primary z-10"
+                          onClick={(e) => handlePreviewVoice(voice.id, e)}
+                          disabled={previewLoading === voice.id}
+                        >
+                          {previewLoading === voice.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <PlayCircle className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
                       {field.value === voice.id && (
                         <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
                       )}
@@ -446,7 +498,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
                     </FormLabel>
                     <p className="text-xs text-muted-foreground">Enabled: Singing & Piano (3 Credits).</p>
                   </div>
-                  <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isLoading} />
+                  <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isLoading || selectedVoice === 'elevenlabs-ext'} />
                 </div>
               )}/>
               
@@ -542,7 +594,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: VocalStudioP
             </Card>
           </div>
 
-          {!hasRated && (
+          {!hasRated && result.notes && (
             <div className="space-y-4 border-t pt-8">
               <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 space-y-4">
                   <div className="flex items-center gap-2">
