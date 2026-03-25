@@ -18,7 +18,8 @@ import {
     Upload,
     Save,
     Trash2,
-    Music
+    Music,
+    PlusCircle
 } from 'lucide-react';
 import { cloneVoice, speakWithClone } from '@/ai/flows/voice-cloning-flow';
 import { generateTrainingParagraph } from '@/ai/flows/voice-training-flow';
@@ -50,9 +51,14 @@ export function VoiceCloner() {
   const [testText, setTestText] = useState("Hello! My voice has been optimized by SKV AI. I'm ready to sing your melodies.");
   const [isGeneratingSpeech, setIsGeneratingSpeech] = useState(false);
 
+  // Import existing voice state
+  const [importVoiceId, setImportVoiceId] = useState("");
+  const [importName, setImportName] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load saved voices for the current user
   const voicesQuery = useMemoFirebase(() => {
@@ -68,7 +74,6 @@ export function VoiceCloner() {
         setScript(fetchedScript);
         setStep('recording');
     } catch (e) {
-        // This is now highly unlikely due to server-side fallbacks
         toast({ title: "Connection Error", description: "SKV AI script failed to load. Please try again.", variant: "destructive" });
     } finally {
         setIsProcessing(false);
@@ -160,6 +165,35 @@ export function VoiceCloner() {
         toast({ title: "Save Failed", variant: "destructive" });
     } finally {
         setIsProcessing(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importVoiceId || !importName || !user || !firestore) {
+      toast({ title: "Missing Fields", description: "Please provide both Voice ID and a Name.", variant: "destructive" });
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const voiceDocRef = doc(firestore, 'users', user.uid, 'clonedVoices', importVoiceId);
+      setDocumentNonBlocking(voiceDocRef, {
+        voiceId: importVoiceId,
+        name: importName,
+        description: "Manually imported voice artist.",
+        stability: 0.5,
+        similarity: 0.75,
+        createdAt: serverTimestamp()
+      }, { merge: true });
+
+      toast({ title: "Voice Imported", description: `${importName} has been added to your library.` });
+      setImportVoiceId("");
+      setImportName("");
+      setShowImport(false);
+    } catch (e) {
+      toast({ title: "Import Failed", variant: "destructive" });
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -348,10 +382,53 @@ export function VoiceCloner() {
       <div className="space-y-6 pt-10 border-t border-white/5">
         <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold font-headline">Neural Artist Library</h2>
-            <div className="px-3 py-1 bg-primary/10 rounded-full border border-primary/20 text-[10px] font-bold text-primary uppercase">
-                {savedVoices?.length || 0} Artists
+            <div className="flex gap-2">
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowImport(!showImport)}
+                    className="rounded-full border-primary/20 text-[10px] font-bold uppercase tracking-widest"
+                >
+                    <PlusCircle className="mr-2 h-3 w-3" /> Import ID
+                </Button>
+                <div className="px-3 py-1 bg-primary/10 rounded-full border border-primary/20 text-[10px] font-bold text-primary uppercase">
+                    {savedVoices?.length || 0} Artists
+                </div>
             </div>
         </div>
+
+        {showImport && (
+          <Card className="p-6 bg-muted/20 border-primary/10 rounded-3xl animate-in fade-in slide-in-from-top-4">
+            <h3 className="text-sm font-bold uppercase tracking-widest mb-4">Import Existing Voice</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">ElevenLabs Voice ID</span>
+                    <Input 
+                        placeholder="Paste Voice ID here..." 
+                        value={importVoiceId} 
+                        onChange={(e) => setImportVoiceId(e.target.value)}
+                        className="h-10 rounded-xl bg-background/50"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Artist Name</span>
+                    <Input 
+                        placeholder="Name your artist..." 
+                        value={importName} 
+                        onChange={(e) => setImportName(e.target.value)}
+                        className="h-10 rounded-xl bg-background/50"
+                    />
+                </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+                <Button onClick={handleImport} disabled={isImporting} size="sm" className="flex-1 font-bold">
+                    {isImporting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Save className="h-3 w-3 mr-2" />}
+                    Save to Profile
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setShowImport(false)}>Cancel</Button>
+            </div>
+          </Card>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {savedVoices?.map(voice => (
@@ -379,14 +456,14 @@ export function VoiceCloner() {
                     </div>
                 </Card>
             ))}
-            {(!savedVoices || savedVoices.length === 0) && (
+            {(!savedVoices || savedVoices.length === 0) && !showImport && (
                 <div className="col-span-full py-20 text-center border-2 border-dashed border-primary/10 rounded-3xl bg-muted/5 flex flex-col items-center gap-4">
                     <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center opacity-20">
                         <Mic className="h-6 w-6" />
                     </div>
                     <div className="space-y-1">
                         <p className="font-bold text-lg opacity-60">Your stage is quiet.</p>
-                        <p className="text-sm text-muted-foreground max-w-xs mx-auto">Train SKV AI with your voice to see your neural clones here.</p>
+                        <p className="text-sm text-muted-foreground max-w-xs mx-auto">Train SKV AI or import your existing ElevenLabs IDs.</p>
                     </div>
                 </div>
             )}
