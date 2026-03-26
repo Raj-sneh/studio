@@ -212,7 +212,10 @@ const vocalReplacementFlow = ai.defineFlow(
 
         // 1. SEPARATE
         const separateFormData = new FormData();
-        const inputBlob = new Blob([Buffer.from(audioDataUri.split(',')[1], 'base64')], { type: 'audio/wav' });
+        const base64Content = audioDataUri.split(',')[1];
+        if (!base64Content) throw new Error("Invalid audio data format.");
+        
+        const inputBlob = new Blob([Buffer.from(base64Content, 'base64')], { type: 'audio/wav' });
         separateFormData.append('audio', inputBlob, 'input.wav');
 
         let separateResponse;
@@ -222,12 +225,13 @@ const vocalReplacementFlow = ai.defineFlow(
                 body: separateFormData
             });
         } catch (err) {
-            throw new Error(`Voice Engine (Python) is unreachable at ${engineUrl}. Ensure the backend is running.`);
+            console.error("Connection Error to Engine:", err);
+            throw new Error(`Voice Engine (Python) is unreachable at ${engineUrl}. Ensure the backend is running and 'app.py' is active.`);
         }
 
         if (!separateResponse.ok) {
             const errBody = await separateResponse.json().catch(() => ({}));
-            throw new Error(errBody.error || "Separation engine failed. Check Python backend logs.");
+            throw new Error(errBody.error || `Separation engine failed with status ${separateResponse.status}.`);
         }
         
         const { vocals, bgm } = await separateResponse.json();
@@ -253,7 +257,7 @@ const vocalReplacementFlow = ai.defineFlow(
 
         if (!stsResponse.ok) {
             const error = await stsResponse.json().catch(() => ({}));
-            throw new Error(error.detail?.message || `Vocal synthesis failed during replacement.`);
+            throw new Error(error.detail?.message || `Vocal synthesis failed during replacement stage.`);
         }
 
         const aiVocalBuffer = Buffer.from(await stsResponse.arrayBuffer());
@@ -272,10 +276,13 @@ const vocalReplacementFlow = ai.defineFlow(
                 body: mixFormData
             });
         } catch (err) {
-            throw new Error("Failed to connect to Voice Engine for final mixing.");
+            throw new Error("Failed to connect to Voice Engine for final mixing stage.");
         }
 
-        if (!mixResponse.ok) throw new Error("Mixing failed. Ensure FFmpeg is installed on the backend.");
+        if (!mixResponse.ok) {
+            const errMix = await mixResponse.json().catch(() => ({}));
+            throw new Error(errMix.error || "Mixing failed. Ensure FFmpeg is installed on the Python backend.");
+        }
 
         const finalBuffer = Buffer.from(await mixResponse.arrayBuffer());
         return { audioUri: `data:audio/mpeg;base64,${finalBuffer.toString('base64')}` };
