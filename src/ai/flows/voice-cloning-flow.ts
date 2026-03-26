@@ -1,13 +1,12 @@
 'use server';
 /**
- * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash).
- * ElevenLabs is used for initial cloning; Gemini handles synthesis and conversion.
- * Provides high-fidelity, multilingual vocal manipulation.
+ * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash) + ElevenLabs.
+ * ElevenLabs is used for neural cloning and high-fidelity synthesis (sounding like the user).
+ * Gemini handles analysis, structuring, and linguistic optimization for different languages.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import wav from 'wav';
 import {
   VoiceCloningInputSchema,
   VoiceCloningOutputSchema,
@@ -22,32 +21,6 @@ import {
   type VocalReplacementInput,
   type VocalReplacementOutput,
 } from './voice-cloning-types';
-
-/**
- * Utility to convert PCM audio data to WAV format for browser playback.
- */
-async function toWav(
-  pcmData: Buffer,
-  channels = 1,
-  rate = 24000,
-  sampleWidth = 2
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const writer = new wav.Writer({
-      channels,
-      sampleRate: rate,
-      bitDepth: sampleWidth * 8,
-    });
-
-    let bufs = [] as any[];
-    writer.on('error', reject);
-    writer.on('data', (d) => bufs.push(d));
-    writer.on('end', () => resolve(Buffer.concat(bufs).toString('base64')));
-
-    writer.write(pcmData);
-    writer.end();
-  });
-}
 
 /**
  * Uses SKV AI to analyze a voice sample for neural cloning.
@@ -70,6 +43,28 @@ const analyzeVoicePrompt = ai.definePrompt({
   prompt: `Analyze this vocal sample. Describe the voice tone, age, gender, and clarity.
   Keep description under 400 chars. Suggest Stability and Similarity settings for ElevenLabs.
   Sample: {{media url=sampleDataUri}}`,
+});
+
+/**
+ * Uses SKV AI to optimize text for a natural neural performance.
+ */
+const enhancePerformancePrompt = ai.definePrompt({
+  name: 'enhancePerformancePrompt',
+  model: 'googleai/gemini-2.5-flash',
+  input: {
+    schema: z.object({
+      text: z.string(),
+      language: z.string().optional()
+    })
+  },
+  output: {
+    schema: z.object({
+      enhancedText: z.string().describe('The text optimized for natural speech with emotional punctuation.')
+    })
+  },
+  prompt: `You are an expert voice director for SKV AI. Enhance this text for a natural, expressive performance in {{#if language}}{{language}}{{else}}the original language{{/if}}. 
+  Add punctuation (dashes, ellipsis) where pauses would naturally occur to ensure a human-like flow. Do not change the core meaning.
+  Text: {{text}}`,
 });
 
 export async function cloneVoice(input: VoiceCloningInput): Promise<VoiceCloningOutput> {
@@ -96,7 +91,7 @@ const voiceCloningFlow = ai.defineFlow(
 
     if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
-    // Analyze first sample for description
+    // Analyze first sample for description using SKV AI
     const analysisResponse = await analyzeVoicePrompt({ sampleDataUri: samples[0] });
     const analysis = analysisResponse.output!;
     
@@ -147,27 +142,38 @@ const speakWithCloneFlow = ai.defineFlow(
     },
     async (input) => {
         const { text, voiceId, settings } = input;
-        
-        // Use Gemini 2.5 Flash TTS for high-quality synthesis
-        const { media } = await ai.generate({
-          model: 'googleai/gemini-2.5-flash-preview-tts',
-          config: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: { voiceName: 'Algenib' }, // Dynamic selection can be added here
-              },
+        const apiKey = process.env.ELEVENLABS_API_KEY;
+        if (!apiKey) throw new Error("ElevenLabs API key is missing.");
+
+        // Step 1: Use SKV AI to structure and enhance the performance
+        const enhancement = await enhancePerformancePrompt({ text });
+        const optimizedText = enhancement.output?.enhancedText || text;
+
+        // Step 2: Use ElevenLabs for the actual audio generation to ensure it sounds like the user
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+            method: 'POST',
+            headers: {
+                'xi-api-key': apiKey,
+                'Content-Type': 'application/json',
             },
-          },
-          prompt: `Speak the following text with the character profile: ${voiceId}. Text: ${text}`,
+            body: JSON.stringify({
+                text: optimizedText,
+                model_id: 'eleven_multilingual_v2', // v2 is superior for preserving user voice character in global languages
+                voice_settings: {
+                    stability: settings?.stability ?? 0.5,
+                    similarity_boost: settings?.similarity_boost ?? 0.75,
+                }
+            }),
         });
 
-        if (!media) throw new Error('SKV AI failed to generate neural audio.');
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.detail?.message || `TTS failed with status ${response.status}.`);
+        }
 
-        const audioBuffer = Buffer.from(media.url.substring(media.url.indexOf(',') + 1), 'base64');
-        const wavBase64 = await toWav(audioBuffer);
-
-        return { audioUri: `data:audio/wav;base64,${wavBase64}` };
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        return { audioUri: `data:audio/mpeg;base64,${buffer.toString('base64')}` };
     }
 );
 
@@ -178,26 +184,40 @@ const vocalReplacementFlow = ai.defineFlow(
         outputSchema: VocalReplacementOutputSchema,
     },
     async (input) => {
-        const { audioDataUri, voiceId, language } = input;
+        const { audioDataUri, voiceId, settings, language } = input;
+        const apiKey = process.env.ELEVENLABS_API_KEY;
+        if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
-        // Use Gemini 2.5 Flash for Multimodal Vocal Replacement (STS)
-        // We provide the source audio and instructions to replace the voice
-        const { media } = await ai.generate({
-          model: 'googleai/gemini-2.5-flash',
-          config: {
-            responseModalities: ['AUDIO'],
-          },
-          prompt: [
-            { media: { url: audioDataUri, contentType: 'audio/mpeg' } },
-            { text: `Analyze the vocals in this audio file. Replace the singer's voice with the neural characteristics of voice ID ${voiceId}. Maintain exact pitch, melody, and emotional intensity. Language: ${language}. Output the result as high-fidelity audio.` },
-          ],
+        // Step 1: Decode source audio
+        const base64Data = audioDataUri.split(',')[1];
+        const audioBuffer = Buffer.from(base64Data, 'base64');
+        const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+
+        // Step 2: Prepare multipart form for Speech-to-Speech
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'source.mp3');
+        formData.append('model_id', 'eleven_multilingual_v2'); // Best for capturing "exact pitch" and melody
+        formData.append('voice_settings', JSON.stringify({
+            stability: settings?.stability ?? 0.5,
+            similarity_boost: settings?.similarity_boost ?? 0.75,
+        }));
+
+        // Step 3: Execute Neural Voice Conversion
+        const response = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${voiceId}`, {
+            method: 'POST',
+            headers: {
+                'xi-api-key': apiKey,
+            },
+            body: formData,
         });
 
-        if (!media) throw new Error('SKV AI failed to execute vocal replacement.');
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.detail?.message || `Vocal replacement failed with status ${response.status}.`);
+        }
 
-        const audioBuffer = Buffer.from(media.url.substring(media.url.indexOf(',') + 1), 'base64');
-        const wavBase64 = await toWav(audioBuffer);
-
-        return { audioUri: `data:audio/wav;base64,${wavBase64}` };
+        const outArrayBuffer = await response.arrayBuffer();
+        const outBuffer = Buffer.from(outArrayBuffer);
+        return { audioUri: `data:audio/mpeg;base64,${outBuffer.toString('base64')}` };
     }
 );
