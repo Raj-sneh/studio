@@ -1,26 +1,34 @@
-{ pkgs, ... }: {
-  channel = "stable-24.05";
+{ pkgs }: {
+  channel = "stable-23.11";
   packages = [
     pkgs.nodejs_20
     pkgs.python311
-    pkgs.python311Packages.pip
-    pkgs.ffmpeg # Required for processing audio files
+    pkgs.python311Packages.fastapi
+    pkgs.python311Packages.uvicorn
+    pkgs.python311Packages.python-multipart
+    pkgs.python311Packages.requests
+    pkgs.ffmpeg
     pkgs.sox
   ];
-  idx = {
-    extensions = [
-      "christian-kohler.path-intellisense"
-    ];
+  idx.extensions = [
+    "ms-python.python"
+    "ms-vscode.cpptools"
+  ];
+  idx.previews = {
+    enable = true;
     previews = {
-      enable = true;
-      previews = {
-        web = {
-          command = ["npm" "run" "dev" "--" "-p" "$PORT" "--hostname" "0.0.0.0"];
-          manager = "web";
-          env = {
-            PORT = "$PORT";
-          };
-        };
+      web = {
+        command = [
+          "npm"
+          "run"
+          "dev"
+          "--"
+          "--port"
+          "$PORT"
+          "--hostname"
+          "0.0.0.0"
+        ];
+        manager = "web";
       };
     };
   };
