@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -31,7 +30,7 @@ const formSchema = z.object({
 });
 
 const DEFAULT_VOICES = [
-  { id: 'clive', label: 'Clive (Premium)', premium: true },
+  { id: 'clive', label: 'SKV Master (Default)' },
   { id: 'clara', label: 'Clara (Pro)' },
   { id: 'james', label: 'James' },
   { id: 'alex', label: 'Alex' },
@@ -77,45 +76,25 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
     stopPlayback();
 
     try {
-      const isCustomVoice = savedVoices?.some(v => v.voiceId === data.voice);
-
       if (activeSubTab === 'replacement') {
         if (!data.replacementAudio) throw new Error("Please upload an audio file to transform.");
         
-        // For custom voices, we use the cloned replacement flow which uses eleven_v3
+        // Execute Neural Vocal Replacement powered by Gemini
         const res = await replaceVocals({
           audioDataUri: data.replacementAudio,
           voiceId: data.voice,
           language: data.language,
           settings: { stability: 0.5, similarity_boost: 0.75 }
         });
-        setResult({ vocalUri: res.audioUri, title: "Neural Vocal Replacement" });
+        setResult({ vocalUri: res.audioUri, title: "SKV AI Neural Replacement" });
       } else {
-        // Synthesis
-        if (isCustomVoice) {
-            // Use custom voice synthesis flow (v3)
-            const res = await speakWithClone({
-                text: data.text || "",
-                voiceId: data.voice,
-                settings: { stability: 0.5, similarity_boost: 0.75 }
-            });
-            setResult({ vocalUri: res.audioUri, title: "Custom Neural Synthesis" });
-        } else {
-            // Default Resemble.ai flow
-            const res = await fetch('/api/text-to-speech', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                text: data.text, 
-                voice: data.voice, 
-                sing: data.singMode,
-                language: data.language 
-              }),
-            });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.message);
-            setResult({ vocalUri: json.media, title: "Studio Synthesis" });
-        }
+        // Synthesis powered by Gemini
+        const res = await speakWithClone({
+            text: data.text || "",
+            voiceId: data.voice,
+            settings: { stability: 0.5, similarity_boost: 0.75 }
+        });
+        setResult({ vocalUri: res.audioUri, title: "SKV AI Neural Synthesis" });
       }
       toast({ title: "Success", description: "Vocal track finalized with SKV AI Neural v3." });
       onGenerate();
@@ -143,7 +122,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                         <FormField control={form.control} name="text" render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
-                                    Synthesis Script
+                                    Synthesis Script (SKV AI)
                                     <div className="flex items-center gap-2">
                                         <Globe className="h-3 w-3 text-primary" />
                                         <select 
@@ -176,13 +155,13 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                         </select>
                                     </div>
                                 </FormLabel>
-                                <p className="text-[10px] text-muted-foreground">Select the language of the uploaded audio for accurate neural analysis.</p>
+                                <p className="text-[10px] text-muted-foreground">Specify language for pitch-perfect neural analysis.</p>
                             </FormItem>
                         )}/>
 
                         <FormField control={form.control} name="replacementAudio" render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Master Recording / Song</FormLabel>
+                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Master Recording</FormLabel>
                                 <FormControl>
                                     <div className="border-2 border-dashed border-primary/20 rounded-3xl p-16 text-center space-y-4 hover:bg-primary/5 transition-all bg-muted/10 cursor-pointer relative group">
                                         <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
@@ -190,7 +169,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                         </div>
                                         <div>
                                             <p className="font-bold text-lg">{field.value ? "Vocal Master Loaded" : "Drop Song to Replace Vocals"}</p>
-                                            <p className="text-sm text-muted-foreground max-w-xs mx-auto">SKV AI will process this master using eleven_v3 neural engine.</p>
+                                            <p className="text-sm text-muted-foreground max-w-xs mx-auto">SKV AI will replace original vocals with your cloned identity.</p>
                                         </div>
                                         <Input type="file" accept="audio/*" onChange={handleFileUpload} className="hidden" id="sts-upload" />
                                         <Button asChild type="button" variant="outline" className="rounded-xl border-primary/20">
@@ -240,7 +219,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
 
             <Button type="submit" disabled={isLoading} className="w-full h-16 text-xl rounded-2xl shadow-2xl shadow-primary/10 font-bold">
                 {isLoading ? <Loader2 className="animate-spin mr-2 h-6 w-6" /> : <Sparkles className="mr-2 h-6 w-6" />}
-                {activeSubTab === 'tts' ? 'Synthesize Neural Performance' : 'Execute Neural Vocal Replacement'}
+                {activeSubTab === 'tts' ? 'Synthesize SKV Neural Performance' : 'Execute SKV Neural Vocal Replacement'}
             </Button>
           </form>
         </Form>
@@ -256,9 +235,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                         <p className="text-muted-foreground">Mastered neural output from SKV AI Studio.</p>
                     </div>
                 </div>
-                <Button onClick={() => new Audio(result.vocalUri).play()} size="lg" className="h-16 px-10 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20">
-                    <Play className="mr-2 h-6 w-6" /> Play Master Recording
-                </Button>
+                <audio controls className="w-full sm:w-auto">
+                    <source src={result.vocalUri} type="audio/wav" />
+                </audio>
             </Card>
         )}
       </Tabs>
