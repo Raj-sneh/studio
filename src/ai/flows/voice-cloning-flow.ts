@@ -1,7 +1,7 @@
 'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash) + ElevenLabs.
- * ElevenLabs is used for neural cloning and high-fidelity synthesis.
+ * Implements a full separation/replacement/remix pipeline.
  */
 
 import { ai } from '@/ai/genkit';
@@ -114,20 +114,15 @@ const voiceCloningFlow = ai.defineFlow(
 
     for (let i = 0; i < samples.length; i++) {
         const dataUri = samples[i];
-        
-        // Extract MIME type and encoding safely
         const mimeType = dataUri.split(';')[0].split(':')[1] || 'audio/mpeg';
         const base64Data = dataUri.split(',')[1];
         const buffer = Buffer.from(base64Data, 'base64');
         
-        // Match extension to actual recorded format to prevent ElevenLabs "corrupted" errors
         let extension = 'mp3';
         if (mimeType.includes('webm')) extension = 'webm';
         else if (mimeType.includes('wav')) extension = 'wav';
         else if (mimeType.includes('ogg')) extension = 'ogg';
-        else if (mimeType.includes('m4a')) extension = 'm4a';
 
-        // Use Node 20+ compatible Blob for FormData
         const blob = new Blob([buffer], { type: mimeType });
         formData.append('files', blob, `sample_${i}.${extension}`);
     }
@@ -198,6 +193,9 @@ const speakWithCloneFlow = ai.defineFlow(
     }
 );
 
+/**
+ * PRO PIPELINE: Separate -> Replace -> Mix
+ */
 const vocalReplacementFlow = ai.defineFlow(
     {
         name: 'vocalReplacementFlow',
@@ -211,31 +209,59 @@ const vocalReplacementFlow = ai.defineFlow(
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
 
-        const base64Data = audioDataUri.split(',')[1];
-        const audioBuffer = Buffer.from(base64Data, 'base64');
-        const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+        // 1. SEPARATE
+        const separateFormData = new FormData();
+        const inputBlob = new Blob([Buffer.from(audioDataUri.split(',')[1], 'base64')], { type: 'audio/wav' });
+        separateFormData.append('audio', inputBlob, 'input.wav');
 
-        const formData = new FormData();
-        formData.append('audio', audioBlob, 'source.mp3');
-        formData.append('model_id', 'eleven_multilingual_sts_v2'); 
-        formData.append('voice_settings', JSON.stringify({
-            stability: settings?.stability ?? 0.5,
-            similarity_boost: settings?.similarity_boost ?? 0.75,
-        }));
-
-        const response = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${actualVoiceId}`, {
+        const separateResponse = await fetch('http://127.0.0.1:8080/separate', {
             method: 'POST',
-            headers: { 'xi-api-key': apiKey },
-            body: formData,
+            body: separateFormData
         });
 
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.detail?.message || `Vocal replacement failed with status ${response.status}.`);
+        if (!separateResponse.ok) throw new Error("Separation engine failed. Is the Python backend running?");
+        const { vocals, bgm } = await separateResponse.json();
+
+        // 2. REPLACE (Vocal Track Only)
+        const vBuffer = Buffer.from(vocals.split(',')[1], 'base64');
+        const vBlob = new Blob([vBuffer], { type: 'audio/wav' });
+
+        const stsFormData = new FormData();
+        stsFormData.append('audio', vBlob, 'vocals.wav');
+        stsFormData.append('model_id', 'eleven_multilingual_sts_v2'); 
+        stsFormData.append('voice_settings', JSON.stringify({
+            stability: settings?.stability ?? 0.5,
+            similarity_boost: settings?.similarity_boost ?? 0.85, // Higher similarity for "singer" feel
+        }));
+
+        const stsResponse = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${actualVoiceId}`, {
+            method: 'POST',
+            headers: { 'xi-api-key': apiKey },
+            body: stsFormData,
+        });
+
+        if (!stsResponse.ok) {
+            const error = await stsResponse.json().catch(() => ({}));
+            throw new Error(error.detail?.message || `Vocal synthesis failed.`);
         }
 
-        const outArrayBuffer = await response.arrayBuffer();
-        const outBuffer = Buffer.from(outArrayBuffer);
-        return { audioUri: `data:audio/mpeg;base64,${outBuffer.toString('base64')}` };
+        const aiVocalBuffer = Buffer.from(await stsResponse.arrayBuffer());
+        const aiVocalBlob = new Blob([aiVocalBuffer], { type: 'audio/mpeg' });
+
+        // 3. MIX (AI Vocals + Original BGM)
+        const mixFormData = new FormData();
+        mixFormData.append('vocals', aiVocalBlob, 'ai_vocals.mp3');
+        const bgmBlob = new Blob([Buffer.from(bgm.split(',')[1], 'base64')], { type: 'audio/wav' });
+        mixFormData.append('bgm', bgmBlob, 'original_bgm.wav');
+
+        const mixResponse = await fetch('http://127.0.0.1:8080/mix', {
+            method: 'POST',
+            body: mixFormData
+        });
+
+        if (!mixResponse.ok) throw new Error("Mixing failed.");
+
+        const finalBuffer = Buffer.from(await mixResponse.arrayBuffer());
+        return { audioUri: `data:audio/mpeg;base64,${finalBuffer.toString('base64')}` };
     }
 );
