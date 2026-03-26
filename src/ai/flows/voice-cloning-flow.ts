@@ -1,8 +1,7 @@
 'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash) + ElevenLabs.
- * ElevenLabs is used for neural cloning and high-fidelity synthesis (sounding like the user).
- * Gemini handles analysis, structuring, and linguistic optimization for different languages.
+ * ElevenLabs is used for neural cloning and high-fidelity synthesis.
  */
 
 import { ai } from '@/ai/genkit';
@@ -26,7 +25,7 @@ import {
  * Mapping of friendly UI names to real ElevenLabs Studio Voice IDs.
  */
 const DEFAULT_VOICE_MAP: Record<string, string> = {
-  clive: 'JBFqnCBsd6RMkjVDRZzb', // George (Master)
+  clive: 'JBFqnCBsd6RMkjVDRZzb', // George
   clara: '21m00Tcm4TlvDq8ikWAM', // Rachel
   james: 'ErXwUjzD4qc0CPByOn9G', // Antoni
   alex: 'Lcf7eeY9feMlh8o4NoOf', // Charlie
@@ -101,7 +100,7 @@ const voiceCloningFlow = ai.defineFlow(
 
     if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
-    // Analyze first sample for description using SKV AI
+    // Analyze sample for description
     const analysisResponse = await analyzeVoicePrompt({ sampleDataUri: samples[0] });
     const analysis = analysisResponse.output!;
     
@@ -155,15 +154,11 @@ const speakWithCloneFlow = ai.defineFlow(
         const apiKey = process.env.ELEVENLABS_API_KEY;
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
-        // Step 1: Map friendly ID to real ElevenLabs ID if needed
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
 
-        // Step 2: Use SKV AI to structure and enhance the performance
         const enhancement = await enhancePerformancePrompt({ text });
         const optimizedText = enhancement.output?.enhancedText || text;
 
-        // Step 3: Use ElevenLabs for the actual audio generation to ensure it sounds like the user
-        // Using multilingual_v2 for broad language support and natural tone
         const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${actualVoiceId}`, {
             method: 'POST',
             headers: {
@@ -198,38 +193,27 @@ const vocalReplacementFlow = ai.defineFlow(
         outputSchema: VocalReplacementOutputSchema,
     },
     async (input) => {
-        const { audioDataUri, voiceId, settings, language } = input;
+        const { audioDataUri, voiceId, settings } = input;
         const apiKey = process.env.ELEVENLABS_API_KEY;
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
-        // Step 1: Map friendly ID to real ElevenLabs ID if needed
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
 
-        // Step 2: Decode source audio
         const base64Data = audioDataUri.split(',')[1];
         const audioBuffer = Buffer.from(base64Data, 'base64');
         const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
 
-        // Step 3: Prepare multipart form for Speech-to-Speech
         const formData = new FormData();
         formData.append('audio', audioBlob, 'source.mp3');
-        
-        /**
-         * IMPORTANT: 'eleven_multilingual_sts_v2' is the specialized model for Speech-to-Speech (STS).
-         * This model ensures pitch-perfect melody preservation and high-fidelity vocal conversion.
-         */
         formData.append('model_id', 'eleven_multilingual_sts_v2'); 
         formData.append('voice_settings', JSON.stringify({
             stability: settings?.stability ?? 0.5,
             similarity_boost: settings?.similarity_boost ?? 0.75,
         }));
 
-        // Step 4: Execute Neural Voice Conversion
         const response = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${actualVoiceId}`, {
             method: 'POST',
-            headers: {
-                'xi-api-key': apiKey,
-            },
+            headers: { 'xi-api-key': apiKey },
             body: formData,
         });
 

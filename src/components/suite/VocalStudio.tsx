@@ -65,7 +65,10 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => form.setValue('replacementAudio', reader.result as string);
+      reader.onloadend = () => {
+        form.setValue('replacementAudio', reader.result as string);
+        toast({ title: "File Uploaded", description: `${file.name} is ready for replacement.` });
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -79,7 +82,6 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
       if (activeSubTab === 'replacement') {
         if (!data.replacementAudio) throw new Error("Please upload an audio file to transform.");
         
-        // Execute Neural Vocal Replacement powered by SKV AI (ElevenLabs v2 Multilingual)
         const res = await replaceVocals({
           audioDataUri: data.replacementAudio,
           voiceId: data.voice,
@@ -88,7 +90,6 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
         });
         setResult({ vocalUri: res.audioUri, title: "SKV AI Neural Replacement" });
       } else {
-        // Synthesis powered by SKV AI (ElevenLabs v2 Multilingual)
         const res = await speakWithClone({
             text: data.text || "",
             voiceId: data.voice,
@@ -145,17 +146,14 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                             <FormItem>
                                 <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
                                     Source Song Language
-                                    <div className="flex items-center gap-2">
-                                        <Globe className="h-3 w-3 text-primary" />
-                                        <select 
-                                            {...field}
-                                            className="bg-transparent text-[10px] border-none focus:ring-0 cursor-pointer text-primary font-bold"
-                                        >
-                                            {languageOptions.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-                                        </select>
-                                    </div>
                                 </FormLabel>
                                 <p className="text-[10px] text-muted-foreground">Specify language for pitch-perfect neural analysis.</p>
+                                <select 
+                                    {...field}
+                                    className="w-full bg-muted/20 border border-primary/10 rounded-xl px-4 py-2 text-sm focus:outline-none"
+                                >
+                                    {languageOptions.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                                </select>
                             </FormItem>
                         )}/>
 
@@ -168,12 +166,12 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                             {field.value ? <Check className="text-primary h-10 w-10" /> : <Upload className="text-primary h-10 w-10" />}
                                         </div>
                                         <div>
-                                            <p className="font-bold text-lg">{field.value ? "Vocal Master Loaded" : "Drop Song to Replace Vocals"}</p>
+                                            <p className="font-bold text-lg">{field.value ? "File Uploaded" : "Drop Song to Replace Vocals"}</p>
                                             <p className="text-sm text-muted-foreground max-w-xs mx-auto">SKV AI will replace original vocals with your cloned identity.</p>
                                         </div>
                                         <Input type="file" accept="audio/*" onChange={handleFileUpload} className="hidden" id="sts-upload" />
-                                        <Button asChild type="button" variant="outline" className="rounded-xl border-primary/20">
-                                            <label htmlFor="sts-upload">Choose Audio File</label>
+                                        <Button asChild type="button" variant="outline" className="rounded-xl border-primary/20 mt-4">
+                                            <label htmlFor="sts-upload" className="cursor-pointer">{field.value ? "Change File" : "Choose Audio File"}</label>
                                         </Button>
                                     </div>
                                 </FormControl>
@@ -186,7 +184,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                     <FormField control={form.control} name="voice" render={({ field }) => (
                         <FormItem>
                             <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Neural Target Artist</FormLabel>
-                            <div className="grid gap-2 h-[400px] overflow-y-auto pr-2 scrollbar-thin">
+                            <div className="grid gap-2 h-[400px] overflow-y-auto pr-2 scrollbar-thin mt-2">
                                 {savedVoices?.map(v => (
                                     <label key={v.voiceId} className={cn("flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all", field.value === v.voiceId ? "bg-primary/10 border-primary shadow-lg shadow-primary/5" : "bg-muted/20 border-transparent hover:bg-muted/30")}>
                                         <input type="radio" className="hidden" value={v.voiceId} checked={field.value === v.voiceId} onChange={() => field.onChange(v.voiceId)} />
