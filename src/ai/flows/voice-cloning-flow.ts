@@ -163,6 +163,7 @@ const speakWithCloneFlow = ai.defineFlow(
         const optimizedText = enhancement.output?.enhancedText || text;
 
         // Step 3: Use ElevenLabs for the actual audio generation to ensure it sounds like the user
+        // Using multilingual_v2 for broad language support and natural tone
         const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${actualVoiceId}`, {
             method: 'POST',
             headers: {
@@ -171,7 +172,7 @@ const speakWithCloneFlow = ai.defineFlow(
             },
             body: JSON.stringify({
                 text: optimizedText,
-                model_id: 'eleven_multilingual_v2', // v2 is superior for preserving user voice character in global languages
+                model_id: 'eleven_multilingual_v2',
                 voice_settings: {
                     stability: settings?.stability ?? 0.5,
                     similarity_boost: settings?.similarity_boost ?? 0.75,
@@ -212,7 +213,13 @@ const vocalReplacementFlow = ai.defineFlow(
         // Step 3: Prepare multipart form for Speech-to-Speech
         const formData = new FormData();
         formData.append('audio', audioBlob, 'source.mp3');
-        formData.append('model_id', 'eleven_v3'); // v3 is ultra-high fidelity for pitch/melody preservation
+        
+        /**
+         * IMPORTANT: 'eleven_multilingual_v2' is the standard for Speech-to-Speech (STS).
+         * While eleven_v3 is great for TTS, STS requires the robust multilingual_v2 
+         * for pitch-perfect melody preservation.
+         */
+        formData.append('model_id', 'eleven_multilingual_v2'); 
         formData.append('voice_settings', JSON.stringify({
             stability: settings?.stability ?? 0.5,
             similarity_boost: settings?.similarity_boost ?? 0.75,

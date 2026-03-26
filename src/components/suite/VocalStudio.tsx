@@ -79,7 +79,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
       if (activeSubTab === 'replacement') {
         if (!data.replacementAudio) throw new Error("Please upload an audio file to transform.");
         
-        // Execute Neural Vocal Replacement powered by Gemini
+        // Execute Neural Vocal Replacement powered by SKV AI (ElevenLabs v2 Multilingual)
         const res = await replaceVocals({
           audioDataUri: data.replacementAudio,
           voiceId: data.voice,
@@ -88,7 +88,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
         });
         setResult({ vocalUri: res.audioUri, title: "SKV AI Neural Replacement" });
       } else {
-        // Synthesis powered by Gemini
+        // Synthesis powered by SKV AI (ElevenLabs v2 Multilingual)
         const res = await speakWithClone({
             text: data.text || "",
             voiceId: data.voice,
@@ -96,7 +96,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
         });
         setResult({ vocalUri: res.audioUri, title: "SKV AI Neural Synthesis" });
       }
-      toast({ title: "Success", description: "Vocal track finalized with SKV AI Neural v3." });
+      toast({ title: "Success", description: "Vocal track finalized with SKV AI Neural." });
       onGenerate();
     } catch (e: any) {
       console.error("Vocal Studio Run Error:", e);
@@ -190,7 +190,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                 {savedVoices?.map(v => (
                                     <label key={v.voiceId} className={cn("flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all", field.value === v.voiceId ? "bg-primary/10 border-primary shadow-lg shadow-primary/5" : "bg-muted/20 border-transparent hover:bg-muted/30")}>
                                         <input type="radio" className="hidden" value={v.voiceId} checked={field.value === v.voiceId} onChange={() => field.onChange(v.voiceId)} />
-                                        <div className="h-10 w-10 rounded-xl bg-secondary/20 flex items-center justify-center shrink-0">
+                                        <div className="h-10 w-10 rounded-xl bg-secondary/20 flex items-center justify-center shrink-0 shadow-sm">
                                             <BrainCircuit className="h-5 w-5 text-secondary" />
                                         </div>
                                         <div className="truncate">
@@ -219,7 +219,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
 
             <Button type="submit" disabled={isLoading} className="w-full h-16 text-xl rounded-2xl shadow-2xl shadow-primary/10 font-bold">
                 {isLoading ? <Loader2 className="animate-spin mr-2 h-6 w-6" /> : <Sparkles className="mr-2 h-6 w-6" />}
-                {activeSubTab === 'tts' ? 'Synthesize SKV Neural Performance' : 'Execute SKV Neural Vocal Replacement'}
+                {activeSubTab === 'tts' ? 'Synthesize Neural Performance' : 'Execute Neural Vocal Replacement'}
             </Button>
           </form>
         </Form>
@@ -236,7 +236,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                     </div>
                 </div>
                 <audio controls className="w-full sm:w-auto">
-                    <source src={result.vocalUri} type="audio/wav" />
+                    <source src={result.vocalUri} type="audio/mpeg" />
                 </audio>
             </Card>
         )}
