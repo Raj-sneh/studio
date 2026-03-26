@@ -1,4 +1,4 @@
-{ pkgs }: {
+{ pkgs, ... }: {
   channel = "stable-23.11";
   packages = [
     pkgs.nodejs_20
@@ -10,25 +10,27 @@
     pkgs.ffmpeg
     pkgs.sox
   ];
-  idx.extensions = [
-    "ms-python.python"
-    "ms-vscode.cpptools"
-  ];
-  idx.previews = {
-    enable = true;
+  idx = {
+    extensions = [
+      "usernamehw.errorlens"
+      "esbenp.prettier-vscode"
+      "dsznajder.es7-react-js-snippets"
+    ];
+    workspace = {
+      onCreate = {
+        npm-install = "npm install";
+      };
+      onStart = {
+        # Start commands can be added here
+      };
+    };
     previews = {
-      web = {
-        command = [
-          "npm"
-          "run"
-          "dev"
-          "--"
-          "--port"
-          "$PORT"
-          "--hostname"
-          "0.0.0.0"
-        ];
-        manager = "web";
+      enable = true;
+      previews = {
+        web = {
+          command = ["npm" "run" "dev" "--" "--port" "$PORT" "--hostname" "0.0.0.0"];
+          manager = "web";
+        };
       };
     };
   };
