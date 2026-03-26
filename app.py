@@ -21,6 +21,10 @@ def home():
 @app.route('/separate', methods=['POST'])
 def separate():
     """Separates vocals from background music using HPSS."""
+
+@app.route('/download/<filename>')
+def download_file(filename):
+    return send_file(f'temp_audio/{filename}')
     try:
         audio = request.files.get("audio")
         if not audio:

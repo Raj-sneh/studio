@@ -5,10 +5,14 @@
     pkgs.ffmpeg
     pkgs.sox
     (pkgs.python311.withPackages (ps: with ps; [
-      fastapi
-      uvicorn
-      python-multipart
+      flask
+      flask-cors
+      gunicorn
       requests
+      librosa
+      numpy
+      scipy
+      # We removed elevenlabs from here to avoid the "unknown attr" error
     ]))
   ];
   idx = {
@@ -28,7 +32,7 @@
             "--port"
             "$PORT"
             "--hostname"
-            "0.0.0.0"
+            "0.0.0.0" 
           ];
           manager = "web";
         };

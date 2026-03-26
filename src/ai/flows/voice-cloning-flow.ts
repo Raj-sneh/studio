@@ -234,7 +234,7 @@ const vocalReplacementFlow = ai.defineFlow(
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
-        const engineUrl = process.env.VOICE_ENGINE_URL || 'http://localhost:10000';
+        const engineUrl = process.env.VOICE_ENGINE_URL || 'http://127.0.0.1:8080';
 
         // 1. SEPARATE (Vocals vs BGM)
         const separateFormData = new FormData();
@@ -246,13 +246,14 @@ const vocalReplacementFlow = ai.defineFlow(
 
         let separateResponse;
         try {
-            separateResponse = await fetch(`${engineUrl}/separate`, {
+            // FIX: Pointing to the new /clone/separate endpoint on the FastAPI backend
+            separateResponse = await fetch(`${engineUrl}/clone/separate`, {
                 method: 'POST',
                 body: separateFormData
             });
         } catch (err) {
             console.error("Connection Error to Engine:", err);
-            throw new Error(`Voice Engine (Python) is unreachable at ${engineUrl}. Ensure the backend is running and 'app.py' is active.`);
+            throw new Error(`Voice Engine (Python) is unreachable at ${engineUrl}. Ensure the backend is running and main.py is active.`);
         }
 
         if (!separateResponse.ok) {
