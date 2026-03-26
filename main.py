@@ -10,13 +10,7 @@ import os
 load_dotenv()
 
 app = FastAPI()
-from fastapi import FastAPI
 
-app = FastAPI()
-
-@app.get("/")
-def home():
-    return {"status": "Backend is running"}
 # Enable CORS for the frontend to access this server
 app.add_middleware(
     CORSMiddleware,
@@ -29,9 +23,30 @@ app.add_middleware(
 API_KEY = os.getenv("ELEVENLABS_API_KEY")
 elevenlabs = ElevenLabs(api_key=API_KEY)
 
+@app.get("/")
+def home():
+    return {"status": "Backend is running"}
+
+@app.post("/clone")
+def clone():
+    return {"status": "clone working"}
+
+@app.post("/separate")
+def separate_audio():
+    """Endpoint for basic vocal/bgm separation."""
+    return {"vocals": "dummy_vocals_url", "bgm": "dummy_bgm_url"}
+
+@app.post("/clone/separate")
+async def separate():
+    """Requested endpoint for cloning-related separation logic."""
+    return {
+        "vocals": "dummy",
+        "bgm": "dummy"
+    }
+
 @app.post("/tts")
 async def tts(text: str = Form(...)):
-
+    """High-fidelity Text-to-Speech using ElevenLabs."""
     if not text:
         return {"error": "Enter text"}
 
@@ -41,7 +56,7 @@ async def tts(text: str = Form(...)):
     try:
         audio = elevenlabs.text_to_speech.convert(
             text=text,
-            voice_id="JBFqnCBsd6RMkjVDRZzb",
+            voice_id="JBFqnCBsd6RMkjVDRZzb", # Default studio voice
             model_id="eleven_v3",
             output_format="mp3_44100_128",
         )
