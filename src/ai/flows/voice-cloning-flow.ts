@@ -215,11 +215,10 @@ const vocalReplacementFlow = ai.defineFlow(
         formData.append('audio', audioBlob, 'source.mp3');
         
         /**
-         * IMPORTANT: 'eleven_multilingual_v2' is the standard for Speech-to-Speech (STS).
-         * While eleven_v3 is great for TTS, STS requires the robust multilingual_v2 
-         * for pitch-perfect melody preservation.
+         * IMPORTANT: 'eleven_multilingual_sts_v2' is the specialized model for Speech-to-Speech (STS).
+         * This model ensures pitch-perfect melody preservation and high-fidelity vocal conversion.
          */
-        formData.append('model_id', 'eleven_multilingual_v2'); 
+        formData.append('model_id', 'eleven_multilingual_sts_v2'); 
         formData.append('voice_settings', JSON.stringify({
             stability: settings?.stability ?? 0.5,
             similarity_boost: settings?.similarity_boost ?? 0.75,
