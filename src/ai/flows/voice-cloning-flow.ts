@@ -208,21 +208,32 @@ const vocalReplacementFlow = ai.defineFlow(
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
+        const engineUrl = process.env.VOICE_ENGINE_URL || 'http://127.0.0.1:8080';
 
         // 1. SEPARATE
         const separateFormData = new FormData();
         const inputBlob = new Blob([Buffer.from(audioDataUri.split(',')[1], 'base64')], { type: 'audio/wav' });
         separateFormData.append('audio', inputBlob, 'input.wav');
 
-        const separateResponse = await fetch('http://127.0.0.1:8080/separate', {
-            method: 'POST',
-            body: separateFormData
-        });
+        let separateResponse;
+        try {
+            separateResponse = await fetch(`${engineUrl}/separate`, {
+                method: 'POST',
+                body: separateFormData
+            });
+        } catch (err) {
+            throw new Error(`Voice Engine (Python) is unreachable at ${engineUrl}. Ensure the backend is running.`);
+        }
 
-        if (!separateResponse.ok) throw new Error("Separation engine failed. Is the Python backend running?");
+        if (!separateResponse.ok) {
+            const errBody = await separateResponse.json().catch(() => ({}));
+            throw new Error(errBody.error || "Separation engine failed. Check Python backend logs.");
+        }
+        
         const { vocals, bgm } = await separateResponse.json();
 
         // 2. REPLACE (Vocal Track Only)
+        // Use eleven_multilingual_sts_v2 for pitch-perfect singer conversion
         const vBuffer = Buffer.from(vocals.split(',')[1], 'base64');
         const vBlob = new Blob([vBuffer], { type: 'audio/wav' });
 
@@ -231,7 +242,7 @@ const vocalReplacementFlow = ai.defineFlow(
         stsFormData.append('model_id', 'eleven_multilingual_sts_v2'); 
         stsFormData.append('voice_settings', JSON.stringify({
             stability: settings?.stability ?? 0.5,
-            similarity_boost: settings?.similarity_boost ?? 0.85, // Higher similarity for "singer" feel
+            similarity_boost: settings?.similarity_boost ?? 0.85, 
         }));
 
         const stsResponse = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${actualVoiceId}`, {
@@ -242,7 +253,7 @@ const vocalReplacementFlow = ai.defineFlow(
 
         if (!stsResponse.ok) {
             const error = await stsResponse.json().catch(() => ({}));
-            throw new Error(error.detail?.message || `Vocal synthesis failed.`);
+            throw new Error(error.detail?.message || `Vocal synthesis failed during replacement.`);
         }
 
         const aiVocalBuffer = Buffer.from(await stsResponse.arrayBuffer());
@@ -254,12 +265,17 @@ const vocalReplacementFlow = ai.defineFlow(
         const bgmBlob = new Blob([Buffer.from(bgm.split(',')[1], 'base64')], { type: 'audio/wav' });
         mixFormData.append('bgm', bgmBlob, 'original_bgm.wav');
 
-        const mixResponse = await fetch('http://127.0.0.1:8080/mix', {
-            method: 'POST',
-            body: mixFormData
-        });
+        let mixResponse;
+        try {
+            mixResponse = await fetch(`${engineUrl}/mix`, {
+                method: 'POST',
+                body: mixFormData
+            });
+        } catch (err) {
+            throw new Error("Failed to connect to Voice Engine for final mixing.");
+        }
 
-        if (!mixResponse.ok) throw new Error("Mixing failed.");
+        if (!mixResponse.ok) throw new Error("Mixing failed. Ensure FFmpeg is installed on the backend.");
 
         const finalBuffer = Buffer.from(await mixResponse.arrayBuffer());
         return { audioUri: `data:audio/mpeg;base64,${finalBuffer.toString('base64')}` };
