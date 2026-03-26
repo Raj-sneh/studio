@@ -1,73 +1,81 @@
 'use server';
 /**
- * @fileOverview A flow for generating high-quality speech using Resemble.ai.
- * Provides high-fidelity voice synthesis via the Resemble.ai API.
+ * @fileOverview A flow for generating high-quality speech using ElevenLabs.
+ * Provides high-fidelity voice synthesis via the ElevenLabs API, replacing legacy providers.
  */
 import { ai } from '@/ai/genkit';
 import { TextToSpeechInputSchema, TextToSpeechOutputSchema, type TextToSpeechInput, type TextToSpeechOutput } from './text-to-speech-types';
 
+/**
+ * Mapping of friendly UI names to real ElevenLabs Studio Voice IDs.
+ */
+const VOICE_MAP: Record<string, string> = {
+  clive: 'JBFqnCBsd6RMkjVDRZzb', // George
+  clara: '21m00Tcm4TlvDq8ikWAM', // Rachel
+  james: 'ErXwUjzD4qc0CPByOn9G', // Antoni
+  alex: 'Lcf7eeY9feMlh8o4NoOf', // Charlie
+  marcus: 'FGY26y434K1pI7YJ0Isc', // Liam
+  silas: 'onw03Z3tId3YtTjkIovC', // Daniel
+  elena: 'EXAVITQu4vr4xnSDxMaL', // Bella
+  maya: 'ThT5KcBe7VKqW9tB56Ww', // Dorothy
+  victor: 'N2lVS0pAb7tWpHo7A9Gv', // Josh
+  sophie: 'Xb7hH9S7yYf7Jb1JpG6p', // Alice
+  kai: 'iP95p4v4P7i6I9S7yYf7', // Ethan
+  male: 'ErXwUjzD4qc0CPByOn9G',
+  female: '21m00Tcm4TlvDq8ikWAM'
+};
+
 export async function textToSpeechFlow(input: TextToSpeechInput): Promise<TextToSpeechOutput> {
     try {
-        return await textToSpeechGenkitFlow(input);
+        return await elevenLabsTTSGenkitFlow(input);
     } catch (error: any) {
-        console.error("Resemble.ai TTS Flow Error:", error);
+        console.error("ElevenLabs TTS Flow Error:", error);
         throw new Error(`Voice generation failed: ${error.message || 'Unknown error'}`);
     }
 }
 
-const textToSpeechGenkitFlow = ai.defineFlow(
+const elevenLabsTTSGenkitFlow = ai.defineFlow(
     {
-        name: 'textToSpeechGenkitFlow',
+        name: 'elevenLabsTTSGenkitFlow',
         inputSchema: TextToSpeechInputSchema,
         outputSchema: TextToSpeechOutputSchema,
     },
     async (input) => {
-        const { text, voice } = input;
+        const { text, voice, rate, language } = input;
+        const apiKey = process.env.ELEVENLABS_API_KEY;
+
+        if (!apiKey) {
+            throw new Error('ElevenLabs API Key is missing in your .env file.');
+        }
+
+        const voiceId = VOICE_MAP[voice] || VOICE_MAP['clive'];
         
-        // Mapping UI voices to Resemble Voice UUIDs
-        // Ensure these match the Voice IDs in your Resemble Project
-        const voiceMap: Record<string, string> = {
-            clive: process.env.RESEMBLE_VOICE_CLIVE_ID || 'default_uuid',
-            clara: process.env.RESEMBLE_VOICE_CLARA_ID || 'default_uuid',
-            james: process.env.RESEMBLE_VOICE_JAMES_ID || 'default_uuid',
-            alex: 'default_uuid',
-            marcus: 'default_uuid',
-            elena: 'default_uuid',
-            maya: 'default_uuid',
-            silas: 'default_uuid',
-            victor: 'default_uuid',
-            sophie: 'default_uuid',
-            kai: 'default_uuid',
-            male: process.env.RESEMBLE_VOICE_JAMES_ID || 'default_uuid',
-            female: process.env.RESEMBLE_VOICE_CLARA_ID || 'default_uuid'
-        };
+        // 1. Optimize text for natural performance using Gemini (The Director)
+        // We use a simple prompt to add natural pauses based on the language
+        const { text: optimizedText } = await ai.generate({
+            model: 'googleai/gemini-2.5-flash',
+            prompt: `You are a voice director. Add natural punctuation (dashes, ellipsis) to this text to make it sound human and expressive when spoken in ${language || 'English'}. Keep the meaning identical.\n\nText: ${text}`,
+        });
 
-        const voiceUuid = voiceMap[voice] || voiceMap['clive'];
-        const apiKey = process.env.RESEMBLE_API_KEY;
-        const projectUuid = process.env.RESEMBLE_PROJECT_ID;
+        const finalOutputText = optimizedText || text;
 
-        if (!apiKey || !projectUuid) {
-            throw new Error('Resemble API Key or Project ID is missing in your .env file.');
-        }
-
-        if (voiceUuid === 'default_uuid') {
-            console.warn(`Warning: Voice "${voice}" is using a default UUID. Ensure RESEMBLE_VOICE_ID is set.`);
-        }
-
-        // 1. Create the clip via Resemble API v2
-        const url = `https://app.resemble.ai/api/v2/projects/${projectUuid}/clips`;
+        // 2. Synthesis via ElevenLabs
+        const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
         const options = {
             method: 'POST',
             headers: {
-                'Authorization': `Token token=${apiKey}`,
+                'xi-api-key': apiKey,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                title: `Sargam Clip ${Date.now()}`,
-                body: text,
-                voice_uuid: voiceUuid,
-                is_public: false,
-                is_archived: false
+                text: finalOutputText,
+                model_id: 'eleven_multilingual_v2',
+                voice_settings: {
+                    stability: 0.5,
+                    similarity_boost: 0.75,
+                    style: 0.0,
+                    use_speaker_boost: true
+                }
             }),
         };
 
@@ -75,23 +83,10 @@ const textToSpeechGenkitFlow = ai.defineFlow(
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `Resemble API error: ${response.status}`);
+            throw new Error(errorData.detail?.message || `ElevenLabs API error: ${response.status}`);
         }
 
-        const result = await response.json();
-        const clipUrl = result.item?.link;
-
-        if (!clipUrl) {
-            throw new Error('Resemble AI did not return a clip URL. Ensure your Voice UUID is valid.');
-        }
-
-        // 2. Fetch the actual audio file and convert to Base64 for the client
-        const audioResponse = await fetch(clipUrl);
-        if (!audioResponse.ok) {
-            throw new Error('Failed to download the generated audio clip from Resemble servers.');
-        }
-
-        const arrayBuffer = await audioResponse.arrayBuffer();
+        const arrayBuffer = await response.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         const base64Audio = buffer.toString('base64');
 

@@ -6,34 +6,24 @@ Sargam is an interactive, AI-powered web application designed to make piano lear
 
 - **🎹 Virtual Piano**: High-quality Salamander Grand Piano samples for practice and recording.
 - **🎼 Interactive Lessons**: Learn classics and rhymes with real-time feedback and visual demos.
-- **🎙️ Vocal Studio**: High-fidelity AI speech and singing powered by **Resemble.ai**.
-- **👥 Voice Cloner**: Instant AI voice cloning using a custom Python inference engine.
+- **🎙️ Vocal Studio**: High-fidelity AI speech and singing powered by **ElevenLabs**.
+- **👥 Voice Cloner**: Instant AI voice cloning using ElevenLabs and SKV AI (Gemini 2.5 Flash).
 - **🤖 SKV AI Assistant**: A friendly helper to guide you through the app and answer questions.
 
 ## 🚀 Technology Stack
 
 - **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS, ShadCN UI.
-- **AI Backend**: Genkit (Google AI / Gemini 2.5 Flash), Resemble.ai API.
-- **Voice Engine**: Flask (Python), librosa, gTTS (runs on port 8080).
+- **AI Backend**: Genkit (Google AI / Gemini 2.5 Flash), ElevenLabs API.
+- **Voice Engine**: Flask (Python), librosa, FFmpeg (for vocal separation and mixing).
 - **Database**: Firebase (Auth, Firestore).
 
 ## 🔧 Configuration Guide
 
 To fully unlock the AI features, you need to set up your environment variables in a `.env` file:
 
-### 🎙️ Resemble.ai (Vocal Studio)
-1. **RESEMBLE_API_KEY**: This is the value in pink from your "API Tokens" page (e.g., `7Kw...`).
-2. **RESEMBLE_PROJECT_ID**: Open a Project in Resemble. Copy the ID from the URL: `app.resemble.ai/projects/<ID>/clips`.
-3. **Voice IDs**: Map your specific Resemble Voice UUIDs (found in the "Voices" tab) to these variables:
-   - `RESEMBLE_VOICE_CLIVE_ID`
-   - `RESEMBLE_VOICE_CLARA_ID`
-   - `RESEMBLE_VOICE_JAMES_ID`
-
-### 👥 Voice Cloner (Python Engine)
-1. Ensure you have Python installed.
-2. Install dependencies: `pip install -r requirements.txt`.
-3. Run the engine: `python app.py`.
-4. The Next.js app will connect to `http://127.0.0.1:8080/clone`.
+### 🎙️ ElevenLabs (Vocal Studio & Cloner)
+1. **ELEVENLABS_API_KEY**: Your API key from the ElevenLabs dashboard.
+2. **VOICE_ENGINE_URL**: The URL of your Python Voice Engine (e.g., `http://127.0.0.1:8080`).
 
 ## 🔧 Getting Started
 
