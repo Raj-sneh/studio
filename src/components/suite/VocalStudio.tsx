@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Loader2, Play, StopCircle, Sparkles, Mic2, Upload, FileAudio, Check, BrainCircuit, Globe
+  Loader2, Play, StopCircle, Sparkles, Mic2, Upload, FileAudio, Check, BrainCircuit, Globe, Music
 } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,7 @@ const formSchema = z.object({
   language: z.string().default('en'),
   singMode: z.boolean().default(false),
   replacementAudio: z.string().optional(),
+  replacementFileName: z.string().optional(),
 });
 
 const DEFAULT_VOICES = [
@@ -53,7 +54,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { text: initialPrompt || '', voice: 'clive', language: 'en', singMode: false },
+    defaultValues: { text: initialPrompt || '', voice: 'clive', language: 'en', singMode: false, replacementAudio: '', replacementFileName: '' },
   });
 
   const stopPlayback = useCallback(() => {
@@ -66,8 +67,10 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        form.setValue('replacementAudio', reader.result as string);
-        toast({ title: "File Uploaded", description: `${file.name} is ready for replacement.` });
+        const base64 = reader.result as string;
+        form.setValue('replacementAudio', base64, { shouldValidate: true });
+        form.setValue('replacementFileName', file.name, { shouldValidate: true });
+        toast({ title: "File Uploaded", description: `${file.name} is ready for neural transformation.` });
       };
       reader.readAsDataURL(file);
     }
@@ -80,7 +83,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
 
     try {
       if (activeSubTab === 'replacement') {
-        if (!data.replacementAudio) throw new Error("Please upload an audio file to transform.");
+        if (!data.replacementAudio) {
+          throw new Error("Please upload an audio file to transform.");
+        }
         
         const res = await replaceVocals({
           audioDataUri: data.replacementAudio,
@@ -88,16 +93,19 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
           language: data.language,
           settings: { stability: 0.5, similarity_boost: 0.75 }
         });
-        setResult({ vocalUri: res.audioUri, title: "SKV AI Neural Replacement" });
+        setResult({ vocalUri: res.audioUri, title: "Neural Singer Master" });
       } else {
+        if (!data.text) {
+          throw new Error("Please provide a synthesis script.");
+        }
         const res = await speakWithClone({
-            text: data.text || "",
+            text: data.text,
             voiceId: data.voice,
             settings: { stability: 0.5, similarity_boost: 0.75 }
         });
-        setResult({ vocalUri: res.audioUri, title: "SKV AI Neural Synthesis" });
+        setResult({ vocalUri: res.audioUri, title: "Neural Vocal Synthesis" });
       }
-      toast({ title: "Success", description: "Vocal track finalized with SKV AI Neural." });
+      toast({ title: "Mastering Complete", description: "Your AI track is ready." });
       onGenerate();
     } catch (e: any) {
       console.error("Vocal Studio Run Error:", e);
@@ -167,11 +175,18 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                         </div>
                                         <div>
                                             <p className="font-bold text-lg">{field.value ? "File Uploaded" : "Drop Song to Replace Vocals"}</p>
-                                            <p className="text-sm text-muted-foreground max-w-xs mx-auto">SKV AI will replace original vocals with your cloned identity.</p>
+                                            {field.value && (
+                                              <p className="text-xs text-primary font-bold mt-2 truncate max-w-xs mx-auto flex items-center justify-center gap-1">
+                                                <Music className="h-3 w-3" /> {form.watch('replacementFileName')}
+                                              </p>
+                                            )}
+                                            {!field.value && (
+                                              <p className="text-sm text-muted-foreground max-w-xs mx-auto">SKV AI will separate the beats and replace vocals with your neural identity.</p>
+                                            )}
                                         </div>
                                         <Input type="file" accept="audio/*" onChange={handleFileUpload} className="hidden" id="sts-upload" />
                                         <Button asChild type="button" variant="outline" className="rounded-xl border-primary/20 mt-4">
-                                            <label htmlFor="sts-upload" className="cursor-pointer">{field.value ? "Change File" : "Choose Audio File"}</label>
+                                            <label htmlFor="sts-upload" className="cursor-pointer">{field.value ? "Change Recording" : "Choose Master Recording"}</label>
                                         </Button>
                                     </div>
                                 </FormControl>

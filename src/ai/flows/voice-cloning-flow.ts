@@ -1,7 +1,7 @@
 'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash) + ElevenLabs.
- * Implements a full separation/replacement/remix pipeline.
+ * Implements a full separation/replacement/remix pipeline with "Singer Filter" logic.
  */
 
 import { ai } from '@/ai/genkit';
@@ -74,6 +74,32 @@ const enhancePerformancePrompt = ai.definePrompt({
   prompt: `You are an expert voice director for SKV AI. Enhance this text for a natural, expressive performance in {{#if language}}{{language}}{{else}}the original language{{/if}}. 
   Add punctuation (dashes, ellipsis) where pauses would naturally occur to ensure a human-like flow. Do not change the core meaning.
   Text: {{text}}`,
+});
+
+/**
+ * AI Director for "Singer Filter" logic.
+ * Analyzes the source performance to optimize neural conversion.
+ */
+const singerDirectorPrompt = ai.definePrompt({
+  name: 'singerDirectorPrompt',
+  model: 'googleai/gemini-2.5-flash',
+  input: {
+    schema: z.object({
+      vocalDataUri: z.string().describe('The isolated vocal track to analyze.')
+    })
+  },
+  output: {
+    schema: z.object({
+      suggestedStability: z.number().describe('Neural stability setting (0.0 to 1.0).'),
+      suggestedSimilarity: z.number().describe('Neural similarity setting (0.0 to 1.0).'),
+      expressionLevel: z.string().describe('Description of the singing style (e.g., "emotional ballad", "high energy pop").')
+    })
+  },
+  prompt: `You are the SKV AI Musical Director. Analyze this isolated vocal track.
+  Determine the emotional intensity and pitch range. 
+  Suggest the perfect Stability and Similarity Boost settings for an ElevenLabs Speech-to-Speech conversion to ensure the output sounds like a professional singer.
+  
+  Vocal Sample: {{media url=vocalDataUri}}`,
 });
 
 export async function cloneVoice(input: VoiceCloningInput): Promise<VoiceCloningOutput> {
@@ -194,7 +220,7 @@ const speakWithCloneFlow = ai.defineFlow(
 );
 
 /**
- * PRO PIPELINE: Separate -> Replace -> Mix
+ * PRO PIPELINE: Separate -> Analyze -> Replace -> Mix
  */
 const vocalReplacementFlow = ai.defineFlow(
     {
@@ -210,7 +236,7 @@ const vocalReplacementFlow = ai.defineFlow(
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
         const engineUrl = process.env.VOICE_ENGINE_URL || 'http://127.0.0.1:8080';
 
-        // 1. SEPARATE
+        // 1. SEPARATE (Vocals vs BGM)
         const separateFormData = new FormData();
         const base64Content = audioDataUri.split(',')[1];
         if (!base64Content) throw new Error("Invalid audio data format.");
@@ -236,8 +262,11 @@ const vocalReplacementFlow = ai.defineFlow(
         
         const { vocals, bgm } = await separateResponse.json();
 
-        // 2. REPLACE (Vocal Track Only)
-        // Use eleven_multilingual_sts_v2 for pitch-perfect singer conversion
+        // 2. ANALYZE (Singer Filter Analysis)
+        const directorAnalysis = await singerDirectorPrompt({ vocalDataUri: vocals });
+        const analysis = directorAnalysis.output!;
+
+        // 3. REPLACE (Neural Vocal Transformation)
         const vBuffer = Buffer.from(vocals.split(',')[1], 'base64');
         const vBlob = new Blob([vBuffer], { type: 'audio/wav' });
 
@@ -245,8 +274,8 @@ const vocalReplacementFlow = ai.defineFlow(
         stsFormData.append('audio', vBlob, 'vocals.wav');
         stsFormData.append('model_id', 'eleven_multilingual_sts_v2'); 
         stsFormData.append('voice_settings', JSON.stringify({
-            stability: settings?.stability ?? 0.5,
-            similarity_boost: settings?.similarity_boost ?? 0.85, 
+            stability: settings?.stability ?? analysis.suggestedStability,
+            similarity_boost: settings?.similarity_boost ?? analysis.suggestedSimilarity, 
         }));
 
         const stsResponse = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${actualVoiceId}`, {
@@ -263,7 +292,7 @@ const vocalReplacementFlow = ai.defineFlow(
         const aiVocalBuffer = Buffer.from(await stsResponse.arrayBuffer());
         const aiVocalBlob = new Blob([aiVocalBuffer], { type: 'audio/mpeg' });
 
-        // 3. MIX (AI Vocals + Original BGM)
+        // 4. MIX (AI Vocals + Original BGM)
         const mixFormData = new FormData();
         mixFormData.append('vocals', aiVocalBlob, 'ai_vocals.mp3');
         const bgmBlob = new Blob([Buffer.from(bgm.split(',')[1], 'base64')], { type: 'audio/wav' });

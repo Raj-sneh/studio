@@ -3,24 +3,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from elevenlabs.client import ElevenLabs
 from dotenv import load_dotenv
-from pyngrok import ngrok
 import uuid
 import os
 
 # Initialize environment
 load_dotenv()
 
-# Start ngrok tunnel on port 8000
-# Note: Ensure NGROK_AUTHTOKEN is set in your environment if required
-try:
-    public_url = ngrok.connect(8000)
-    print("🔥 PUBLIC URL:", public_url)
-except Exception as e:
-    print("⚠️ ngrok failed to start. Ensure your NGROK_AUTHTOKEN is set or run manually.")
-    print(f"Error: {e}")
+app = FastAPI()
+from fastapi import FastAPI
 
 app = FastAPI()
 
+@app.get("/")
+def home():
+    return {"status": "Backend is running"}
 # Enable CORS for the frontend to access this server
 app.add_middleware(
     CORSMiddleware,
