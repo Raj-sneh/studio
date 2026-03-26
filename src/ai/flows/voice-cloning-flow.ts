@@ -23,6 +23,16 @@ import {
 } from './voice-cloning-types';
 
 /**
+ * Mapping of friendly UI names to real ElevenLabs Studio Voice IDs.
+ */
+const DEFAULT_VOICE_MAP: Record<string, string> = {
+  clive: 'JBFqnCBsd6RMkjVDRZzb', // George (Master)
+  clara: '21m00Tcm4TlvDq8ikWAM', // Rachel
+  james: 'ErXwUjzD4qc0CPByOn9G', // Antoni
+  alex: 'Lcf7eeY9feMlh8o4NoOf', // Charlie
+};
+
+/**
  * Uses SKV AI to analyze a voice sample for neural cloning.
  */
 const analyzeVoicePrompt = ai.definePrompt({
@@ -145,12 +155,15 @@ const speakWithCloneFlow = ai.defineFlow(
         const apiKey = process.env.ELEVENLABS_API_KEY;
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
-        // Step 1: Use SKV AI to structure and enhance the performance
+        // Step 1: Map friendly ID to real ElevenLabs ID if needed
+        const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
+
+        // Step 2: Use SKV AI to structure and enhance the performance
         const enhancement = await enhancePerformancePrompt({ text });
         const optimizedText = enhancement.output?.enhancedText || text;
 
-        // Step 2: Use ElevenLabs for the actual audio generation to ensure it sounds like the user
-        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        // Step 3: Use ElevenLabs for the actual audio generation to ensure it sounds like the user
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${actualVoiceId}`, {
             method: 'POST',
             headers: {
                 'xi-api-key': apiKey,
@@ -188,22 +201,25 @@ const vocalReplacementFlow = ai.defineFlow(
         const apiKey = process.env.ELEVENLABS_API_KEY;
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
-        // Step 1: Decode source audio
+        // Step 1: Map friendly ID to real ElevenLabs ID if needed
+        const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
+
+        // Step 2: Decode source audio
         const base64Data = audioDataUri.split(',')[1];
         const audioBuffer = Buffer.from(base64Data, 'base64');
         const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
 
-        // Step 2: Prepare multipart form for Speech-to-Speech
+        // Step 3: Prepare multipart form for Speech-to-Speech
         const formData = new FormData();
         formData.append('audio', audioBlob, 'source.mp3');
-        formData.append('model_id', 'eleven_multilingual_v2'); // Best for capturing "exact pitch" and melody
+        formData.append('model_id', 'eleven_v3'); // v3 is ultra-high fidelity for pitch/melody preservation
         formData.append('voice_settings', JSON.stringify({
             stability: settings?.stability ?? 0.5,
             similarity_boost: settings?.similarity_boost ?? 0.75,
         }));
 
-        // Step 3: Execute Neural Voice Conversion
-        const response = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${voiceId}`, {
+        // Step 4: Execute Neural Voice Conversion
+        const response = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${actualVoiceId}`, {
             method: 'POST',
             headers: {
                 'xi-api-key': apiKey,
