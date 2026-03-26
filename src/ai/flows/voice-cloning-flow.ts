@@ -114,10 +114,22 @@ const voiceCloningFlow = ai.defineFlow(
 
     for (let i = 0; i < samples.length; i++) {
         const dataUri = samples[i];
+        
+        // Extract MIME type and encoding safely
+        const mimeType = dataUri.split(';')[0].split(':')[1] || 'audio/mpeg';
         const base64Data = dataUri.split(',')[1];
         const buffer = Buffer.from(base64Data, 'base64');
-        const blob = new Blob([buffer], { type: 'audio/mpeg' });
-        formData.append('files', blob, `sample_${i}.mp3`);
+        
+        // Match extension to actual recorded format to prevent ElevenLabs "corrupted" errors
+        let extension = 'mp3';
+        if (mimeType.includes('webm')) extension = 'webm';
+        else if (mimeType.includes('wav')) extension = 'wav';
+        else if (mimeType.includes('ogg')) extension = 'ogg';
+        else if (mimeType.includes('m4a')) extension = 'm4a';
+
+        // Use Node 20+ compatible Blob for FormData
+        const blob = new Blob([buffer], { type: mimeType });
+        formData.append('files', blob, `sample_${i}.${extension}`);
     }
 
     const response = await fetch('https://api.elevenlabs.io/v1/voices/add', {
@@ -128,7 +140,7 @@ const voiceCloningFlow = ai.defineFlow(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail?.message || "Cloning failed.");
+      throw new Error(errorData.detail?.message || "Cloning failed. Ensure audio is clear and long enough.");
     }
 
     const result = await response.json();

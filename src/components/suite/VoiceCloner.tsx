@@ -97,7 +97,8 @@ export function VoiceCloner() {
       audioChunksRef.current = [];
       mediaRecorder.ondataavailable = (e) => audioChunksRef.current.push(e.data);
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mpeg' });
+        // Correctly use the mimeType from the recorder to prevent "corrupted" errors
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
         const reader = new FileReader();
         reader.onloadend = () => {
             setSample(reader.result as string);
@@ -356,7 +357,7 @@ export function VoiceCloner() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {savedVoices?.map(voice => (
-                <Card key={voice.id} className="group p-6 bg-card/60 backdrop-blur-sm border-primary/5 hover:border-primary/20 transition-all rounded-3xl overflow-hidden relative">
+                <Card key={voice.id} className="group p-6 bg-card/60 backdrop-blur-sm border-primary/5 border-primary/10 hover:border-primary/20 transition-all rounded-3xl overflow-hidden relative">
                     <div className="absolute top-0 right-0 h-24 w-24 bg-primary/5 rounded-bl-full -mr-12 -mt-12 transition-all group-hover:scale-110" />
                     <div className="flex justify-between items-start relative z-10">
                         <div className="space-y-1">
