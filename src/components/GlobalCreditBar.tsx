@@ -142,7 +142,7 @@ export function GlobalCreditBar() {
 
   const emailSubject = encodeURIComponent("Request for Sargam AI Premium Coupon");
   const emailBody = encodeURIComponent("Hi Sneh,\n\nI'm interested in purchasing a premium coupon for Sargam AI. Please provide the details for the ₹49 or ₹99 plans.\n\nThank you!");
-  const mailToLink = `mailto:support.sargamskv@gmail.com?subject=${emailSubject}&body=${emailBody}`;
+  const mailToLink = `mailto:hello@sargamskv.in?subject=${emailSubject}&body=${emailBody}`;
 
   return (
     <div className="fixed bottom-0 left-0 w-full z-[100] bg-background/95 backdrop-blur border-t p-4 shadow-2xl animate-in slide-in-from-bottom duration-300">
@@ -244,7 +244,7 @@ export function GlobalCreditBar() {
                 className="flex items-center justify-center gap-2 p-3 bg-secondary/10 rounded-xl hover:bg-secondary/20 transition-colors group"
               >
                 <Mail className="h-4 w-4 text-secondary group-hover:scale-110 transition-transform" />
-                <span className="text-[10px] font-bold text-secondary">support.sargamskv@gmail.com</span>
+                <span className="text-[10px] font-bold text-secondary">hello@sargamskv.in</span>
               </a>
               <p className="text-[9px] font-medium text-muted-foreground leading-relaxed">
                 Send an email to request your code. You'll receive it instantly after payment verification.

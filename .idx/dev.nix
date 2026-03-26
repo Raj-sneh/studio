@@ -12,7 +12,9 @@
       librosa
       numpy
       scipy
-      # We removed elevenlabs from here to avoid the "unknown attr" error
+      fastapi
+      uvicorn
+      python-multipart
     ]))
   ];
   idx = {
@@ -32,7 +34,15 @@
             "--port"
             "$PORT"
             "--hostname"
-            "0.0.0.0" 
+            "0.0.0.0"
+          ];
+          manager = "web";
+        };
+        # Your backend configuration
+        backend = {
+          command = [
+            "python3"
+            "main.py"
           ];
           manager = "web";
         };

@@ -52,8 +52,8 @@ export default function SupportPage() {
                         <div className="space-y-1">
                             <h3 className="font-semibold">Email Support</h3>
                             <p className="text-sm text-muted-foreground">For any technical issues or bug reports, please email us directly.</p>
-                            <a href="mailto:support.sargamskv@gmail.com" className="text-primary font-medium hover:underline">
-                                support.sargamskv@gmail.com
+                            <a href="mailto:hello@sargamskv.in" className="text-primary font-medium hover:underline">
+                                hello@sargamskv.in
                             </a>
                         </div>
                     </div>
