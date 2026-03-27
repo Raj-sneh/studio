@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -133,11 +134,12 @@ async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
     finally:
-        # Final cleanup should happen after response, handled by OS/Cron in prod
+        # Final cleanup should happen after response
         pass
 
 if __name__ == "__main__":
     import uvicorn
     # Respect PORT env var for cloud deployments, default to 8080
     port = int(os.getenv("PORT", 8080))
+    # Standardize on 0.0.0.0 to listen on all interfaces
     uvicorn.run(app, host="0.0.0.0", port=port)

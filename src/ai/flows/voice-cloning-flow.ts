@@ -1,4 +1,5 @@
-'use server';
+
+'use client';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash) + ElevenLabs.
  * Implements a full separation/replacement/remix pipeline with "Singer Filter" logic.
@@ -234,7 +235,7 @@ const vocalReplacementFlow = ai.defineFlow(
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
-        // Standardized port 8080 for cross-service communication
+        // Standardized port 8080 for all backend communication
         const engineUrl = process.env.VOICE_ENGINE_URL || 'http://127.0.0.1:8080';
 
         // 1. SEPARATE (Vocals vs BGM)

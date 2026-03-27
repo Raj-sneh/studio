@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently \"next dev\" \"python main.py\"",
     "build": "next build",
     "export": "next export",
     "start": "next start",
@@ -27,6 +27,7 @@
     "@radix-ui/react-toast": "^1.2.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "concurrently": "^9.1.0",
     "firebase": "^12.10.0",
     "genkit": "^1.0.3",
     "lucide-react": "^0.454.0",
