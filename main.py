@@ -32,7 +32,7 @@ load_dotenv()
 # 2. Argument Parsing for Studio Runner
 # The studio runner may pass --port or --hostname, so we handle them gracefully.
 parser = argparse.ArgumentParser(description="Sargam AI Voice Engine")
-parser.add_argument("--port", type=int, default=8080, help="Port to run the server on")
+parser.add_argument("--port", type=int, default=1000, help="Port to run the server on")
 parser.add_argument("--hostname", type=str, default="0.0.0.0", help="Hostname to bind the server to")
 args, unknown = parser.parse_known_args()
 
@@ -62,6 +62,7 @@ elevenlabs = ElevenLabs(api_key=API_KEY) if ElevenLabs and API_KEY else None
 def home():
     return {
         "status": "Sargam AI Voice Engine is active", 
+        "port": 1000,
         "elevenlabs_active": elevenlabs is not None,
         "librosa_active": librosa is not None
     }
@@ -166,7 +167,7 @@ async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    # Standardize on 8080 for internal studio communication, but respect runner flags
+    # Respect the requested port 1000
     port = int(os.getenv("PORT", args.port))
     host = args.hostname
     print(f"Starting Sargam Voice Engine on {host}:{port}")

@@ -235,8 +235,8 @@ const vocalReplacementFlow = ai.defineFlow(
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
-        // Standardized port 8080 for all backend communication
-        const engineUrl = process.env.VOICE_ENGINE_URL || 'http://127.0.0.1:8080';
+        // Standardized port 1000 for all backend communication
+        const engineUrl = process.env.VOICE_ENGINE_URL || 'http://127.0.0.1:1000';
 
         // 1. SEPARATE (Vocals vs BGM)
         const separateFormData = new FormData();
