@@ -6,7 +6,7 @@ import { useAuth, useUser } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Music, LogOut, User as UserIcon, Loader2, BookOpen, Wand2, LogIn, ChevronDown } from "lucide-react";
+import { Music, LogOut, User as UserIcon, Loader2, BookOpen, Wand2, LogIn, ChevronDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 
@@ -112,39 +112,51 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/10 bg-background/80 backdrop-blur-md">
-      <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="font-headline text-xl font-bold text-foreground tracking-tighter relative">
-                <span className="text-primary">Sargam</span> AI
-            </span>
-          </Link>
-        </div>
-
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-            {navLinks.map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "flex items-center gap-2 transition-all hover:text-primary relative group",
-                   pathname.startsWith(href) ? "text-primary" : "text-muted-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-                {pathname.startsWith(href) && (
-                  <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-primary rounded-full" />
-                )}
-              </Link>
-            ))}
-        </nav>
-
-        <div className="flex items-center gap-4">
-          {renderAuthControls()}
+    <div className="w-full flex flex-col">
+      {/* Respectful AI-Language Trial Banner */}
+      <div className="w-full bg-primary/10 border-b border-primary/20 py-2.5 px-4 overflow-hidden">
+        <div className="container mx-auto flex items-center justify-center gap-3 animate-in fade-in slide-in-from-top duration-1000">
+          <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+          <p className="text-[11px] sm:text-xs font-bold text-primary tracking-wide text-center uppercase">
+            Sargam AI Trial Protocol: Our architects are currently refining the mobile core. 
+            Stay tuned as we prepare to launch the definitive neural music experience.
+          </p>
         </div>
       </div>
-    </header>
+      <header className="sticky top-0 z-50 w-full border-b border-border/10 bg-background/80 backdrop-blur-md">
+        <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
+          <div className="flex items-center gap-6">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="font-headline text-xl font-bold text-foreground tracking-tighter relative">
+                  <span className="text-primary">Sargam</span> AI
+              </span>
+            </Link>
+          </div>
+
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+              {navLinks.map(({ href, label, icon: Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "flex items-center gap-2 transition-all hover:text-primary relative group",
+                     pathname.startsWith(href) ? "text-primary" : "text-muted-foreground"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                  {pathname.startsWith(href) && (
+                    <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-primary rounded-full" />
+                  )}
+                </Link>
+              ))}
+          </nav>
+
+          <div className="flex items-center gap-4">
+            {renderAuthControls()}
+          </div>
+        </div>
+      </header>
+    </div>
   );
 }
