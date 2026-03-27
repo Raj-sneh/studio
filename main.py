@@ -9,28 +9,31 @@ from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from dotenv import load_dotenv
 
-# Robust check for neural dependencies to prevent crash during installation
+# 1. Robust module loading system
+# We catch ImportErrors to prevent the server from crashing during background installation
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("WARNING: 'python-dotenv' not found. Environment variables must be set manually.")
+    load_dotenv = None
+
 try:
     import librosa
     import numpy as np
     import soundfile as sf
 except ImportError:
-    print("WARNING: 'librosa' or 'soundfile' not found. Neural separation features will be unavailable until background installation completes.")
+    print("WARNING: 'librosa' or 'soundfile' not found. Neural features will be unavailable.")
     librosa = None
 
 try:
     from elevenlabs.client import ElevenLabs
 except ImportError:
-    print("WARNING: 'elevenlabs' module not found. Voice synthesis features will be unavailable until background installation completes.")
+    print("WARNING: 'elevenlabs' not found. Voice synthesis will be unavailable.")
     ElevenLabs = None
 
-# 1. Initialize environment
-load_dotenv()
-
-# 2. Argument Parsing for Studio Runner
-# The studio runner may pass --port or --hostname, so we handle them gracefully.
+# 2. Argument Parsing
 parser = argparse.ArgumentParser(description="Sargam AI Voice Engine")
 parser.add_argument("--port", type=int, default=1000, help="Port to run the server on")
 parser.add_argument("--hostname", type=str, default="0.0.0.0", help="Hostname to bind the server to")
@@ -70,7 +73,7 @@ def home():
 @app.post("/tts")
 async def tts(text: str = Form(...)):
     if not elevenlabs:
-        return {"error": "ElevenLabs client not initialized. Check API Key or installation status."}
+        return {"error": "ElevenLabs client not initialized. Check installation status."}
     if not text:
         return {"error": "Enter text"}
     try:
@@ -95,9 +98,9 @@ async def tts(text: str = Form(...)):
 
 @app.post("/clone/separate")
 async def separate(audio: UploadFile = File(...)):
-    """Separates vocals from background music using HPSS."""
+    """Separates vocals from background music."""
     if not librosa:
-        return JSONResponse(status_code=503, content={"error": "Neural engine (librosa) is still initializing. Please try again in 30 seconds."})
+        return JSONResponse(status_code=503, content={"error": "Neural engine is still initializing. Please try again in 30 seconds."})
     
     try:
         task_id = str(uuid.uuid4())
@@ -106,10 +109,7 @@ async def separate(audio: UploadFile = File(...)):
         with open(input_path, "wb") as buffer:
             buffer.write(await audio.read())
 
-        # Load audio
         y, sr = librosa.load(input_path, sr=None)
-
-        # Harmonic-Percussive Source Separation (HPSS)
         y_harmonic, y_percussive = librosa.effects.hpss(y)
 
         vocals_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_vocals.wav")
@@ -118,13 +118,11 @@ async def separate(audio: UploadFile = File(...)):
         sf.write(vocals_path, y_harmonic, sr)
         sf.write(bgm_path_wav, y_percussive, sr)
 
-        # Convert to base64 for the frontend
         with open(vocals_path, "rb") as f:
             vocals_b64 = base64.b64encode(f.read()).decode('utf-8')
         with open(bgm_path_wav, "rb") as f:
             bgm_b64 = base64.b64encode(f.read()).decode('utf-8')
 
-        # Cleanup
         os.remove(input_path)
         os.remove(vocals_path)
         os.remove(bgm_path_wav)
@@ -139,7 +137,7 @@ async def separate(audio: UploadFile = File(...)):
 
 @app.post("/mix")
 async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
-    """Mixes two audio tracks using FFmpeg."""
+    """Mixes audio tracks."""
     try:
         task_id = str(uuid.uuid4())
         v_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_v.wav")
@@ -151,7 +149,6 @@ async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
         with open(b_path, "wb") as b_buf:
             b_buf.write(await bgm.read())
 
-        # FFmpeg Mixing Command
         subprocess.run([
             "ffmpeg", "-y", "-i", v_path, "-i", b_path,
             "-filter_complex", "amix=inputs=2:duration=longest",
@@ -162,8 +159,6 @@ async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
-    finally:
-        pass
 
 if __name__ == "__main__":
     import uvicorn
