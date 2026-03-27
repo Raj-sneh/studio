@@ -7,7 +7,6 @@ import Header from "@/components/Header";
 import { Providers } from './providers';
 import { FloatingAssistantButton } from '@/components/FloatingAssistantButton';
 import { GlobalCreditBar } from '@/components/GlobalCreditBar';
-import Image from 'next/image';
 import { Heart } from 'lucide-react';
 
 const fontHeadline = Poppins({
@@ -57,22 +56,19 @@ export default function RootLayout({
                   <p className="text-muted-foreground leading-relaxed italic">
                     Sargam AI is a labor of love, crafted to bridge the gap between artificial intelligence and musical soul. 
                     Every contribution fuels our research into more complex neural models and brings us one step closer 
-                    to the definitive mobile experience. If Sargam has touched your creative journey or helped you discover 
-                    a new melody, please consider supporting Sneh's vision through a donation. Your kindness helps keep our 
-                    AI servers humming and our research independent.
+                    to the definitive mobile experience. If Sargam has touched your creative journey, 
+                    please consider supporting Sneh's vision through a donation.
                   </p>
                 </div>
 
                 <div className="flex flex-col items-center gap-4 group">
                   <div className="p-4 bg-white rounded-3xl shadow-2xl transition-transform duration-500 group-hover:scale-105">
                     <div className="relative h-64 w-64 overflow-hidden rounded-2xl bg-gray-100 flex items-center justify-center">
-                       <Image 
+                       {/* Using standard img tag for absolute public path reliability */}
+                       <img 
                          src="/upi-qr.png" 
                          alt="UPI QR Code for snehuu@fam" 
-                         width={400}
-                         height={400}
-                         className="object-contain"
-                         priority
+                         className="h-full w-full object-contain p-2"
                        />
                     </div>
                   </div>

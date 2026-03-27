@@ -37,8 +37,8 @@ export function GlobalCreditBar() {
       </Button>
 
       <div className="container max-w-7xl mx-auto flex items-center justify-center gap-6 py-1">
-        <p className="text-sm font-medium text-muted-foreground hidden sm:block">
-          For more credits or research allocation, please contact the developer.
+        <p className="text-sm font-medium text-muted-foreground">
+          For more credits or research allocation, please contact the developer with your application.
         </p>
         <Button 
           variant="default" 
