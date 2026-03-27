@@ -234,7 +234,8 @@ const vocalReplacementFlow = ai.defineFlow(
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
-        const engineUrl = process.env.VOICE_ENGINE_URL || 'http://127.0.0.1:8080';
+        // Default to localhost for internal server-to-server loopback
+        const engineUrl = process.env.VOICE_ENGINE_URL || 'http://127.0.0.1:10000';
 
         // 1. SEPARATE (Vocals vs BGM)
         const separateFormData = new FormData();
@@ -246,7 +247,6 @@ const vocalReplacementFlow = ai.defineFlow(
 
         let separateResponse;
         try {
-            // FIX: Pointing to the new /clone/separate endpoint on the FastAPI backend
             separateResponse = await fetch(`${engineUrl}/clone/separate`, {
                 method: 'POST',
                 body: separateFormData

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Form, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -132,9 +132,10 @@ async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
     finally:
-        # Cleanup would ideally happen after the response
+        # Final cleanup should happen after response, handled by OS/Cron in prod
         pass
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    # Use 0.0.0.0 so IDX can route traffic to it
+    uvicorn.run(app, host="0.0.0.0", port=10000)

@@ -5,23 +5,27 @@
     pkgs.ffmpeg
     pkgs.sox
     (pkgs.python311.withPackages (ps: with ps; [
-      flask
-      flask-cors
-      gunicorn
-      requests
-      librosa
-      numpy
-      scipy
       fastapi
       uvicorn
       python-multipart
+      requests
     ]))
   ];
   idx = {
     extensions = [
-      "mongodb.mongodb-vscode"
-      "ms-python.python"
+      "dsznajder.es7-react-js-snippets"
+      "bradlc.vscode-tailwindcss"
     ];
+    workspace = {
+      onCreate = {
+        npm-install = "npm install";
+        python-setup = "pip install librosa numpy soundfile elevenlabs python-dotenv";
+      };
+      onStart = {
+        # Start the FastAPI voice engine in the background
+        start-voice-engine = "python main.py &";
+      };
+    };
     previews = {
       enable = true;
       previews = {
@@ -35,14 +39,6 @@
             "$PORT"
             "--hostname"
             "0.0.0.0"
-          ];
-          manager = "web";
-        };
-        # Your backend configuration
-        backend = {
-          command = [
-            "python3"
-            "main.py"
           ];
           manager = "web";
         };
