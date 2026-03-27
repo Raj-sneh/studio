@@ -3,9 +3,6 @@ import os
 import sys
 import uuid
 import subprocess
-import librosa
-import numpy as np
-import soundfile as sf
 import base64
 import argparse
 from fastapi import FastAPI, UploadFile, File, Form
@@ -14,11 +11,19 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
-# Try-except for ElevenLabs to provide a better error if the environment is still installing
+# Robust check for neural dependencies to prevent crash during installation
+try:
+    import librosa
+    import numpy as np
+    import soundfile as sf
+except ImportError:
+    print("WARNING: 'librosa' or 'soundfile' not found. Neural separation features will be unavailable until background installation completes.")
+    librosa = None
+
 try:
     from elevenlabs.client import ElevenLabs
 except ImportError:
-    print("WARNING: 'elevenlabs' module not found. Some voice features may be unavailable until dependencies are installed.")
+    print("WARNING: 'elevenlabs' module not found. Voice synthesis features will be unavailable until background installation completes.")
     ElevenLabs = None
 
 # 1. Initialize environment
@@ -55,12 +60,16 @@ elevenlabs = ElevenLabs(api_key=API_KEY) if ElevenLabs and API_KEY else None
 
 @app.get("/")
 def home():
-    return {"status": "Sargam AI Voice Engine is active", "elevenlabs_active": elevenlabs is not None}
+    return {
+        "status": "Sargam AI Voice Engine is active", 
+        "elevenlabs_active": elevenlabs is not None,
+        "librosa_active": librosa is not None
+    }
 
 @app.post("/tts")
 async def tts(text: str = Form(...)):
     if not elevenlabs:
-        return {"error": "ElevenLabs client not initialized. Check API Key."}
+        return {"error": "ElevenLabs client not initialized. Check API Key or installation status."}
     if not text:
         return {"error": "Enter text"}
     try:
@@ -86,6 +95,9 @@ async def tts(text: str = Form(...)):
 @app.post("/clone/separate")
 async def separate(audio: UploadFile = File(...)):
     """Separates vocals from background music using HPSS."""
+    if not librosa:
+        return JSONResponse(status_code=503, content={"error": "Neural engine (librosa) is still initializing. Please try again in 30 seconds."})
+    
     try:
         task_id = str(uuid.uuid4())
         input_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_input.wav")
@@ -154,7 +166,7 @@ async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    # Use args from parser or environment variables
+    # Standardize on 8080 for internal studio communication, but respect runner flags
     port = int(os.getenv("PORT", args.port))
     host = args.hostname
     print(f"Starting Sargam Voice Engine on {host}:{port}")
