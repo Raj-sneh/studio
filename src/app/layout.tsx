@@ -46,11 +46,9 @@ export default function RootLayout({
             <Header />
             <main className="flex-1 container mx-auto px-6 py-16 md:py-24">{children}</main>
             
-            {/* Dedicated Donation & QR Footer Section */}
             <footer className="py-20 bg-muted/20 border-t border-border/10 mt-20 px-6">
               <div className="container mx-auto max-w-4xl flex flex-col items-center gap-12 text-center">
                 
-                {/* Donation Paragraph */}
                 <div className="space-y-4 max-w-2xl">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest">
                     <Heart className="h-3 w-3 fill-primary" /> Support Neural Innovation
@@ -59,12 +57,12 @@ export default function RootLayout({
                   <p className="text-muted-foreground leading-relaxed italic">
                     Sargam AI is a labor of love, crafted to bridge the gap between artificial intelligence and musical soul. 
                     Every contribution fuels our research into more complex neural models and brings us one step closer 
-                    to the definitive mobile experience. If Sargam has touched your creative journey, please consider 
-                    supporting Sneh's vision.
+                    to the definitive mobile experience. If Sargam has touched your creative journey or helped you discover 
+                    a new melody, please consider supporting Sneh's vision through a donation. Your kindness helps keep our 
+                    AI servers humming and our research independent.
                   </p>
                 </div>
 
-                {/* QR Code & UPI Section */}
                 <div className="flex flex-col items-center gap-4 group">
                   <div className="p-4 bg-white rounded-3xl shadow-2xl transition-transform duration-500 group-hover:scale-105">
                     <div className="relative h-64 w-64 overflow-hidden rounded-2xl bg-gray-100 flex items-center justify-center">
@@ -74,7 +72,7 @@ export default function RootLayout({
                          width={400}
                          height={400}
                          className="object-contain"
-                         data-ai-hint="QR code"
+                         priority
                        />
                     </div>
                   </div>
