@@ -1,3 +1,4 @@
+
 import { Poppins, Roboto } from 'next/font/google';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
@@ -8,7 +9,7 @@ import { Providers } from './providers';
 import { FloatingAssistantButton } from '@/components/FloatingAssistantButton';
 import { GlobalCreditBar } from '@/components/GlobalCreditBar';
 import Image from 'next/image';
-import { Heart, Coffee } from 'lucide-react';
+import { Heart } from 'lucide-react';
 
 const fontHeadline = Poppins({
   subsets: ['latin'],
@@ -67,12 +68,17 @@ export default function RootLayout({
                 {/* QR Code & UPI Section */}
                 <div className="flex flex-col items-center gap-4 group">
                   <div className="p-4 bg-white rounded-3xl shadow-2xl transition-transform duration-500 group-hover:scale-105">
-                    <div className="relative h-64 w-64 overflow-hidden rounded-2xl">
+                    <div className="relative h-64 w-64 overflow-hidden rounded-2xl bg-gray-100 flex items-center justify-center">
+                       {/* 
+                         Note: Please upload your actual QR code image to public/upi-qr.png 
+                         to replace this placeholder.
+                       */}
                        <Image 
-                         src="https://picsum.photos/seed/sargam-upi/400/500" 
+                         src="/upi-qr.png" 
                          alt="UPI QR Code for snehuu@fam" 
-                         fill
-                         className="object-cover"
+                         width={400}
+                         height={400}
+                         className="object-contain"
                          data-ai-hint="QR code"
                        />
                     </div>

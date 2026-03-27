@@ -1,34 +1,24 @@
+
 'use client';
 
 import { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { 
-    Mic, 
-    Square, 
-    Play, 
     Sparkles, 
-    Loader2, 
-    Check,
     BrainCircuit,
     Upload,
-    Save,
-    Trash2,
     Music,
     Globe,
     Lock,
     Link as LinkIcon
 } from 'lucide-react';
-import { cloneVoice, speakWithClone } from '@/ai/flows/voice-cloning-flow';
-import { generateTrainingParagraph } from '@/ai/flows/voice-training-flow';
+import { speakWithClone } from '@/ai/flows/voice-cloning-flow';
 import { cn } from '@/lib/utils';
-import { Slider } from '@/components/ui/slider';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc, serverTimestamp } from 'firebase/firestore';
-import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const SUPPORTED_LANGUAGES = [
     "English", "Hindi", "Spanish", "French", "German", "Italian", "Japanese", "Korean", "Portuguese"
@@ -39,26 +29,17 @@ export function VoiceCloner() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  const [step, setStep] = useState<'intro' | 'recording' | 'cloning' | 'ready'>('intro');
-  const [selectedLanguage, setSelectedLanguage] = useState("English");
-  const [script, setScript] = useState<string>("");
-  const [sample, setSample] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [voiceName, setVoiceName] = useState("");
-
-  const [clonedVoiceData, setClonedVoiceData] = useState<{
+  const [step] = useState<'intro' | 'recording' | 'cloning' | 'ready'>('intro');
+  const [selectedLanguage] = useState("English");
+  const [clonedVoiceData] = useState<{
     id: string;
     description: string;
     stability: number;
     similarity: number;
   } | null>(null);
   
-  const [testText, setTestText] = useState("Hello! My voice has been optimized by SKV AI. I'm ready to perform.");
+  const [testText] = useState("Hello! My voice has been optimized by SKV AI. I'm ready to perform.");
   const [isGeneratingSpeech, setIsGeneratingSpeech] = useState(false);
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
 
   const voicesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -66,42 +47,10 @@ export function VoiceCloner() {
   }, [firestore, user]);
   const { data: savedVoices } = useCollection(voicesQuery);
 
-  const startCloningProcess = async () => {
-    // Feature restricted for trial
-    return;
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Feature restricted for trial
-    return;
-  };
-
   const joinWaitingList = () => {
     const subject = encodeURIComponent("Sargam AI: Neural Waiting List Application");
     const body = encodeURIComponent("Hi Sneh,\n\nI'm excited about Sargam AI! I'd love to join the exclusive neural waiting list for the Voice Cloning feature.\n\nThank you!");
     window.location.href = `mailto:hello@sargamskv.in?subject=${subject}&body=${body}`;
-  };
-
-  const startRecording = async () => {
-    return;
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const handleClone = async () => {
-    return;
-  };
-
-  const deleteVoice = (id: string) => {
-    if (!user || !firestore) return;
-    const voiceRef = doc(firestore, 'users', user.uid, 'clonedVoices', id);
-    deleteDocumentNonBlocking(voiceRef);
-    toast({ title: "Neural Artist Removed" });
   };
 
   const handleSpeak = async () => {
@@ -124,42 +73,38 @@ export function VoiceCloner() {
     }
   };
 
-  const reset = () => {
-    setStep('intro');
-    setSample(null);
-    setClonedVoiceData(null);
-    setVoiceName("");
-  };
-
   return (
     <div className="max-w-4xl mx-auto py-8 space-y-12 pb-32 relative">
       {/* Waiting List Overlay - Neural Chain Visual */}
-      <div className="absolute inset-0 z-[60] bg-background/40 backdrop-blur-[2px] rounded-3xl overflow-hidden flex flex-col items-center justify-center p-8 pointer-events-none">
-        {/* Repeating Chain Pattern */}
-        <div className="absolute inset-0 opacity-[0.03] flex items-center justify-center rotate-45 scale-150">
-            <div className="grid grid-cols-8 gap-16">
-                {[...Array(64)].map((_, i) => <LinkIcon key={i} className="h-24 w-24 text-primary" />)}
+      <div className="absolute inset-0 z-[60] bg-background/60 backdrop-blur-[4px] rounded-3xl overflow-hidden flex flex-col items-center justify-center p-8 pointer-events-none">
+        {/* Repeating Heavy Chain Pattern */}
+        <div className="absolute inset-0 opacity-[0.08] flex items-center justify-center rotate-45 scale-150 select-none">
+            <div className="grid grid-cols-10 gap-12">
+                {[...Array(100)].map((_, i) => <LinkIcon key={i} className="h-16 w-16 text-primary stroke-[3px]" />)}
             </div>
         </div>
 
-        <div className="relative z-10 space-y-6 flex flex-col items-center pointer-events-auto text-center max-w-sm">
-            <div className="space-y-2">
-                <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] bg-primary/10 px-4 py-1.5 rounded-full border border-primary/20">
-                    Access Restricted
+        <div className="relative z-10 space-y-8 flex flex-col items-center pointer-events-auto text-center max-w-md">
+            <div className="space-y-4">
+                <span className="text-[11px] font-black text-primary bg-primary/20 px-6 py-2 rounded-full border border-primary/40 shadow-[0_0_20px_rgba(var(--primary),0.3)] animate-pulse uppercase tracking-[0.3em]">
+                    Neural Protocol Restricted
                 </span>
-                <p className="text-sm font-bold text-muted-foreground mt-4">
+                <p className="text-lg font-bold text-foreground">
                     This feature is not for everyone.
                 </p>
             </div>
             
-            <div className="p-8 rounded-3xl bg-card border-2 border-primary/20 shadow-2xl space-y-6">
-                <Lock className="h-12 w-12 text-primary mx-auto animate-pulse" />
-                <h3 className="text-2xl font-bold font-headline">Join Waiting List</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                    Neural cloning requires precision mastering. Secure your position in our next deployment cycle.
-                </p>
-                <Button onClick={joinWaitingList} className="w-full h-14 text-lg font-bold rounded-2xl shadow-xl shadow-primary/20">
-                    Apply for Access
+            <div className="p-10 rounded-[2.5rem] bg-card/90 border-2 border-primary/30 shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-xl space-y-8 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
+                <Lock className="h-16 w-16 text-primary mx-auto transition-transform group-hover:scale-110 duration-500" />
+                <div className="space-y-3">
+                    <h3 className="text-3xl font-bold font-headline tracking-tighter">Join Waiting List</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed font-medium">
+                        Neural cloning requires extreme precision and manual mastering. Secure your position in our next secure deployment cycle.
+                    </p>
+                </div>
+                <Button onClick={joinWaitingList} className="w-full h-16 text-xl font-black rounded-2xl shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-transform">
+                    Apply for Neural Access
                 </Button>
             </div>
         </div>
@@ -206,26 +151,26 @@ export function VoiceCloner() {
         </Card>
       )}
 
-      {/* Other sections remain for preview as requested, but buttons are disabled internally */}
-      <div className="space-y-6 pt-10 border-t border-white/5 opacity-50 grayscale">
+      {/* Library section remains for visual reference */}
+      <div className="space-y-6 pt-10 border-t border-white/5 opacity-40 grayscale pointer-events-none">
         <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold font-headline">Neural Artist Library</h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {savedVoices?.map(voice => (
-                <Card key={voice.id} className="p-6 bg-card/60 rounded-3xl relative">
+                <Card key={voice.id} className="p-6 bg-card/60 rounded-3xl">
                     <div className="flex justify-between items-start">
                         <div className="space-y-1">
                             <h3 className="font-bold text-xl">{voice.name}</h3>
-                            <p className="text-[9px] text-primary font-bold uppercase">Neural Clone</p>
+                            <p className="text-[9px] text-primary font-bold uppercase tracking-widest">Neural Clone Locked</p>
                         </div>
                     </div>
                 </Card>
             ))}
             {(!savedVoices || savedVoices.length === 0) && (
               <div className="col-span-full py-20 text-center border-2 border-dashed border-primary/10 rounded-3xl bg-muted/10">
-                 <p className="text-muted-foreground">Library preview is currently restricted.</p>
+                 <p className="text-muted-foreground text-sm font-medium">Neural Library is currently restricted for trial users.</p>
               </div>
             )}
         </div>
