@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -16,14 +17,7 @@ const navLinks = [
   { href: "/suite", label: "AI Studio", icon: Wand2 },
 ];
 
-function GeometricGuestIcon() {
-  return (
-    <svg viewBox="0 0 100 100" className="h-full w-full p-2" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="35" r="18" fill="currentColor" />
-      <path d="M20 85 C 20 55, 80 55, 80 85" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
-    </svg>
-  );
-}
+const GUEST_AVATAR_URL = "https://firebasestorage.googleapis.com/v0/b/studio-4164192500-df01a.firebasestorage.app/o/1000018646%5B1%5D.png?alt=media&token=2b2f8cea-03cd-477c-bc0d-88988246fdeb";
 
 export default function Header() {
   const pathname = usePathname();
@@ -67,12 +61,12 @@ export default function Header() {
           >
             <Avatar className="h-9 w-9 border-2 border-primary/20 ring-2 ring-background shadow-lg transition-transform hover:scale-105">
               <AvatarImage 
-                src={user.photoURL || undefined} 
+                src={user.photoURL || GUEST_AVATAR_URL} 
                 alt={user.displayName || "User"} 
                 className="object-cover"
               />
               <AvatarFallback className="bg-primary text-primary-foreground flex items-center justify-center">
-                <GeometricGuestIcon />
+                <UserIcon className="h-5 w-5" />
               </AvatarFallback>
             </Avatar>
             {!user.isAnonymous && <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isMenuOpen && "rotate-180")} />}

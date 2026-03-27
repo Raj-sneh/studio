@@ -2,8 +2,8 @@
   "placeholderImages": [
     {
       "id": "user-avatar",
-      "description": "Generic user silhouette placeholder",
-      "imageUrl": "",
+      "description": "Branded guest user avatar",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/studio-4164192500-df01a.firebasestorage.app/o/1000018646%5B1%5D.png?alt=media&token=2b2f8cea-03cd-477c-bc0d-88988246fdeb",
       "imageHint": "user profile"
     },
     {

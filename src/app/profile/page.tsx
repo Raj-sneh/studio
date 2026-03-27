@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -26,19 +27,7 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-/**
- * A custom geometric human structure for guest avatars.
- */
-function GeometricGuestIcon() {
-  return (
-    <svg viewBox="0 0 100 100" className="h-full w-full p-6" xmlns="http://www.w3.org/2000/svg">
-      {/* Head */}
-      <circle cx="50" cy="35" r="18" fill="currentColor" />
-      {/* Body (Semicircle) */}
-      <path d="M20 85 C 20 55, 80 55, 80 85" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" />
-    </svg>
-  );
-}
+const GUEST_AVATAR_URL = "https://firebasestorage.googleapis.com/v0/b/studio-4164192500-df01a.firebasestorage.app/o/1000018646%5B1%5D.png?alt=media&token=2b2f8cea-03cd-477c-bc0d-88988246fdeb";
 
 export default function ProfilePage() {
     const { user } = useUser();
@@ -111,12 +100,12 @@ export default function ProfilePage() {
                 <div className="relative">
                     <Avatar className="h-32 w-32 border-4 border-background shadow-2xl transition-transform duration-500 group-hover:scale-105">
                         <AvatarImage 
-                            src={user?.photoURL || profile?.avatarUrl || undefined} 
+                            src={user?.photoURL || profile?.avatarUrl || GUEST_AVATAR_URL} 
                             alt={user?.displayName || "User"} 
                             className="object-cover"
                         />
                         <AvatarFallback className="bg-primary text-primary-foreground flex items-center justify-center">
-                            <GeometricGuestIcon />
+                            <UserIcon className="h-10 w-10" />
                         </AvatarFallback>
                     </Avatar>
                     <div className="absolute bottom-1 right-1 h-8 w-8 rounded-full bg-primary flex items-center justify-center border-2 border-background shadow-lg">

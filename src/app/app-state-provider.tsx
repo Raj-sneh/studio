@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, type ReactNode, useState, useRef } from 'react';
@@ -11,6 +12,8 @@ import {
 import { doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { WelcomeModal } from '@/components/WelcomeModal';
 import { useToast } from '@/hooks/use-toast';
+
+const GUEST_AVATAR_URL = "https://firebasestorage.googleapis.com/v0/b/studio-4164192500-df01a.firebasestorage.app/o/1000018646%5B1%5D.png?alt=media&token=2b2f8cea-03cd-477c-bc0d-88988246fdeb";
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const { user, isFirebaseReady } = useUser();
@@ -73,7 +76,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
               id: user.uid,
               displayName: user.displayName || 'Guest User',
               email: user.email || `guest_${user.uid}@example.com`,
-              avatarUrl: user.photoURL || null,
+              avatarUrl: user.photoURL || GUEST_AVATAR_URL,
               createdAt: serverTimestamp(),
             };
             
