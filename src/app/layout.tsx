@@ -63,8 +63,7 @@ export default function RootLayout({
 
                 <div className="flex flex-col items-center gap-4 group">
                   <div className="p-4 bg-white rounded-3xl shadow-2xl transition-transform duration-500 group-hover:scale-105">
-                    <div className="relative h-64 w-64 overflow-hidden rounded-2xl bg-gray-100 flex items-center justify-center">
-                       {/* Using standard img tag for absolute public path reliability */}
+                    <div className="relative h-64 w-64 overflow-hidden rounded-2xl bg-gray-100 flex items-center justify-center border-4 border-primary/20">
                        <img 
                          src="/upi-qr.png" 
                          alt="UPI QR Code for snehuu@fam" 
