@@ -1,24 +1,39 @@
 
-from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-from elevenlabs.client import ElevenLabs
-from dotenv import load_dotenv
-import uuid
 import os
+import sys
+import uuid
 import subprocess
 import librosa
 import numpy as np
 import soundfile as sf
 import base64
+import argparse
+from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from dotenv import load_dotenv
+
+# Try-except for ElevenLabs to provide a better error if the environment is still installing
+try:
+    from elevenlabs.client import ElevenLabs
+except ImportError:
+    print("WARNING: 'elevenlabs' module not found. Some voice features may be unavailable until dependencies are installed.")
+    ElevenLabs = None
 
 # 1. Initialize environment
 load_dotenv()
 
+# 2. Argument Parsing for Studio Runner
+# The studio runner may pass --port or --hostname, so we handle them gracefully.
+parser = argparse.ArgumentParser(description="Sargam AI Voice Engine")
+parser.add_argument("--port", type=int, default=8080, help="Port to run the server on")
+parser.add_argument("--hostname", type=str, default="0.0.0.0", help="Hostname to bind the server to")
+args, unknown = parser.parse_known_args()
+
 app = FastAPI()
 
-# 2. Enable CORS
+# 3. Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,23 +42,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. Setup Temp Folder
+# 4. Setup Temp Folder
 UPLOAD_FOLDER = "temp_audio"
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 app.mount("/temp_audio", StaticFiles(directory=UPLOAD_FOLDER), name="temp_audio")
 
-# 4. Initialize AI Client
+# 5. Initialize AI Client
 API_KEY = os.getenv("ELEVENLABS_API_KEY")
-elevenlabs = ElevenLabs(api_key=API_KEY)
+elevenlabs = ElevenLabs(api_key=API_KEY) if ElevenLabs and API_KEY else None
 
 @app.get("/")
 def home():
-    return {"status": "Sargam AI Voice Engine is active"}
+    return {"status": "Sargam AI Voice Engine is active", "elevenlabs_active": elevenlabs is not None}
 
 @app.post("/tts")
 async def tts(text: str = Form(...)):
+    if not elevenlabs:
+        return {"error": "ElevenLabs client not initialized. Check API Key."}
     if not text:
         return {"error": "Enter text"}
     try:
@@ -83,10 +100,9 @@ async def separate(audio: UploadFile = File(...)):
         y_harmonic, y_percussive = librosa.effects.hpss(y)
 
         vocals_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_vocals.wav")
-        bgm_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_bgm.wav")
+        bgm_path_wav = os.path.join(UPLOAD_FOLDER, f"{task_id}_bgm.wav")
 
         sf.write(vocals_path, y_harmonic, sr)
-        bgm_path_wav = os.path.join(UPLOAD_FOLDER, f"{task_id}_bgm.wav")
         sf.write(bgm_path_wav, y_percussive, sr)
 
         # Convert to base64 for the frontend
@@ -134,12 +150,12 @@ async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
     finally:
-        # Final cleanup should happen after response
         pass
 
 if __name__ == "__main__":
     import uvicorn
-    # Respect PORT env var for cloud deployments, default to 8080
-    port = int(os.getenv("PORT", 8080))
-    # Standardize on 0.0.0.0 to listen on all interfaces
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    # Use args from parser or environment variables
+    port = int(os.getenv("PORT", args.port))
+    host = args.hostname
+    print(f"Starting Sargam Voice Engine on {host}:{port}")
+    uvicorn.run(app, host=host, port=port)

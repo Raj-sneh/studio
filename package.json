@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"next dev\" \"python main.py\"",
+    "dev": "concurrently \"next dev\" \"python3 main.py\"",
     "build": "next build",
     "export": "next export",
     "start": "next start",
