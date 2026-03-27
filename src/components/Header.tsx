@@ -3,13 +3,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth, useUser } from "@/firebase";
+import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Music, LogOut, User as UserIcon, Loader2, BookOpen, Wand2, LogIn, ChevronDown, Sparkles } from "lucide-react";
+import { Music, LogOut, User as UserIcon, Loader2, BookOpen, Wand2, LogIn, ChevronDown, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
+import { doc } from "firebase/firestore";
+import type { UserProfile } from "@/types";
 
 const navLinks = [
   { href: "/practice", label: "Practice", icon: Music },
@@ -24,8 +26,14 @@ export default function Header() {
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Fetch user profile for credits
+  const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
+  const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -54,44 +62,61 @@ export default function Header() {
 
     if (user) {
       return (
-        <div className="relative" ref={menuRef}>
-          <button 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none"
-          >
-            <Avatar className="h-9 w-9 border-2 border-primary/20 ring-2 ring-background shadow-lg transition-transform hover:scale-105">
-              <AvatarImage 
-                src={user.photoURL || GUEST_AVATAR_URL} 
-                alt={user.displayName || "User"} 
-                className="object-cover"
-              />
-              <AvatarFallback className="bg-primary text-primary-foreground flex items-center justify-center">
-                <UserIcon className="h-5 w-5" />
-              </AvatarFallback>
-            </Avatar>
-            {!user.isAnonymous && <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isMenuOpen && "rotate-180")} />}
-          </button>
+        <div className="flex items-center gap-4">
+          {/* Credits Display */}
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 transition-all hover:bg-primary/20 cursor-help" title="Neural Research Credits">
+            <Zap className="h-3.5 w-3.5 text-primary fill-primary" />
+            <span className="text-xs font-bold text-primary">
+              {isProfileLoading ? "..." : (profile?.credits ?? 0)}
+            </span>
+          </div>
 
-          {isMenuOpen && (
-            <div className="absolute right-0 mt-3 w-56 rounded-xl border bg-card/95 backdrop-blur-md p-1.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-3 py-2 text-sm font-semibold border-b mb-1 flex flex-col">
-                <span className="truncate">{user.displayName || "Guest User"}</span>
-                <span className="text-[10px] text-muted-foreground font-normal truncate">{user.email || "No email linked"}</span>
+          <div className="relative" ref={menuRef}>
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none"
+            >
+              <Avatar className="h-9 w-9 border-2 border-primary/20 ring-2 ring-background shadow-lg transition-transform hover:scale-105">
+                <AvatarImage 
+                  src={user.photoURL || profile?.avatarUrl || GUEST_AVATAR_URL} 
+                  alt={user.displayName || "User"} 
+                  className="object-cover"
+                />
+                <AvatarFallback className="bg-primary text-primary-foreground flex items-center justify-center">
+                  <UserIcon className="h-5 w-5" />
+                </AvatarFallback>
+              </Avatar>
+              {!user.isAnonymous && <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isMenuOpen && "rotate-180")} />}
+            </button>
+
+            {isMenuOpen && (
+              <div className="absolute right-0 mt-3 w-56 rounded-xl border bg-card/95 backdrop-blur-md p-1.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3 py-2 text-sm font-semibold border-b mb-1 flex flex-col">
+                  <span className="truncate">{profile?.displayName || user.displayName || "Guest User"}</span>
+                  <span className="text-[10px] text-muted-foreground font-normal truncate">{user.email || "No email linked"}</span>
+                </div>
+                
+                {/* Mobile-only credits in menu */}
+                <div className="sm:hidden flex items-center px-3 py-2 text-xs font-bold text-primary border-b mb-1">
+                   <Zap className="mr-2 h-3.5 w-3.5 fill-primary" />
+                   {profile?.credits ?? 0} Credits Available
+                </div>
+
+                <button 
+                  onClick={() => { router.push('/profile'); setIsMenuOpen(false); }}
+                  className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg transition-colors"
+                >
+                  <UserIcon className="mr-3 h-4 w-4 text-primary" /> Profile Settings
+                </button>
+                <button 
+                  onClick={handleLogout}
+                  className="flex w-full items-center px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors mt-1"
+                >
+                  <LogOut className="mr-3 h-4 w-4" /> Logout
+                </button>
               </div>
-              <button 
-                onClick={() => { router.push('/profile'); setIsMenuOpen(false); }}
-                className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg transition-colors"
-              >
-                <UserIcon className="mr-3 h-4 w-4 text-primary" /> Profile Settings
-              </button>
-              <button 
-                onClick={handleLogout}
-                className="flex w-full items-center px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors mt-1"
-              >
-                <LogOut className="mr-3 h-4 w-4" /> Logout
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       );
     }
