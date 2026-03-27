@@ -85,18 +85,19 @@ async def separate(audio: UploadFile = File(...)):
         bgm_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_bgm.wav")
 
         sf.write(vocals_path, y_harmonic, sr)
-        sf.write(bgm_path, y_percussive, sr)
+        bgm_path_wav = os.path.join(UPLOAD_FOLDER, f"{task_id}_bgm.wav")
+        sf.write(bgm_path_wav, y_percussive, sr)
 
         # Convert to base64 for the frontend
         with open(vocals_path, "rb") as f:
             vocals_b64 = base64.b64encode(f.read()).decode('utf-8')
-        with open(bgm_path, "rb") as f:
+        with open(bgm_path_wav, "rb") as f:
             bgm_b64 = base64.b64encode(f.read()).decode('utf-8')
 
         # Cleanup
         os.remove(input_path)
         os.remove(vocals_path)
-        os.remove(bgm_path)
+        os.remove(bgm_path_wav)
 
         return {
             "vocals": f"data:audio/wav;base64,{vocals_b64}",
@@ -137,5 +138,6 @@ async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    # Use 0.0.0.0 so IDX can route traffic to it
-    uvicorn.run(app, host="0.0.0.0", port=10000)
+    # Respect PORT env var for cloud deployments, default to 8080
+    port = int(os.getenv("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)
