@@ -1,17 +1,25 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Mail } from 'lucide-react';
+import { X, Mail, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/types';
 
 /**
- * @fileOverview A simplified persistent bottom bar for the Research Trial phase.
- * Directs users to the developer for all credit-related requests.
+ * @fileOverview A persistent bottom bar showing the user's current research credits.
  */
 
 export function GlobalCreditBar() {
   const [isMounted, setIsMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
+  
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
+  const { data: profile, isLoading } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
     setIsMounted(true);
@@ -36,18 +44,38 @@ export function GlobalCreditBar() {
         <X className="h-4 w-4" />
       </Button>
 
-      <div className="container max-w-7xl mx-auto flex items-center justify-center gap-6 py-1">
-        <p className="text-sm font-medium text-muted-foreground">
-          For more credits or research allocation, please contact the developer with your application.
-        </p>
-        <Button 
-          variant="default" 
-          size="sm" 
-          className="h-10 px-8 shadow-lg shadow-primary/20 text-xs font-bold gap-2 rounded-full"
-          onClick={contactDeveloper}
-        >
-          <Mail className="h-4 w-4" /> Contact Developer
-        </Button>
+      <div className="container max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 py-1">
+        <div className="flex items-center gap-4">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+                <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <div className="text-left">
+                <p className="text-xs font-black uppercase tracking-widest text-primary">Neural Research Allocation</p>
+                <div className="flex items-center gap-2">
+                    {isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : (
+                        <p className="text-lg font-bold text-foreground">
+                            {profile?.credits ?? 0} <span className="text-xs font-normal text-muted-foreground">Credits Available</span>
+                        </p>
+                    )}
+                </div>
+            </div>
+        </div>
+
+        <div className="flex items-center gap-6">
+            <p className="hidden md:block text-xs text-muted-foreground max-w-[200px] leading-tight">
+                For more credits or research allocation, please contact the developer.
+            </p>
+            <Button 
+                variant="default" 
+                size="sm" 
+                className="h-10 px-8 shadow-lg shadow-primary/20 text-xs font-bold gap-2 rounded-full"
+                onClick={contactDeveloper}
+            >
+                <Mail className="h-4 w-4" /> Contact Developer
+            </Button>
+        </div>
       </div>
     </div>
   );

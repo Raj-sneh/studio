@@ -1,5 +1,6 @@
+
 import { db } from '@/firebase/client';
-import { doc, getDoc, setDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion, serverTimestamp, increment } from 'firebase/firestore';
 
 /**
  * @fileOverview Secure Next.js API route for coupon redemption.
@@ -45,7 +46,9 @@ export async function POST(req: Request) {
         id: userId,
         createdAt: serverTimestamp(),
         redeemedCoupons: [code],
-        displayName: 'Guest User'
+        credits: creditsToGrant + 5, // Give the base 5 credits + the coupon amount
+        displayName: 'Guest User',
+        email: `guest_${userId}@example.com`
       });
 
       return Response.json({
@@ -62,9 +65,10 @@ export async function POST(req: Request) {
       return Response.json({ status: "used", message: "You've already used this coupon code." }, { status: 400 });
     }
 
-    // 5. Success: Add code to the list of redeemed coupons for this user
+    // 5. Success: Add code to the list of redeemed coupons and increment credits
     await updateDoc(userDocRef, {
-      redeemedCoupons: arrayUnion(code)
+      redeemedCoupons: arrayUnion(code),
+      credits: increment(creditsToGrant)
     });
 
     return Response.json({

@@ -25,6 +25,10 @@
           "description": "URL to the user's profile picture.",
           "format": "uri"
         },
+        "credits": {
+          "type": "number",
+          "description": "The number of neural research credits available to the user."
+        },
         "createdAt": {
           "type": "string",
           "description": "Timestamp when the account was created.",
@@ -35,7 +39,8 @@
         "id",
         "displayName",
         "email",
-        "createdAt"
+        "createdAt",
+        "credits"
       ]
     },
     "ClonedVoice": {

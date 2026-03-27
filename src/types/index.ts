@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type LessonNote = {
@@ -28,6 +29,7 @@ export type UserProfile = {
   id: string;
   displayName: string;
   email: string;
+  credits: number;
   avatarUrl?: string | null;
   createdAt: Timestamp;
   dob?: Timestamp;
