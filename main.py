@@ -65,7 +65,7 @@ elevenlabs = ElevenLabs(api_key=API_KEY) if ElevenLabs and API_KEY else None
 def home():
     return {
         "status": "Sargam AI Voice Engine is active", 
-        "port": 1000,
+        "port": 9002,
         "elevenlabs_active": elevenlabs is not None,
         "librosa_active": librosa is not None
     }

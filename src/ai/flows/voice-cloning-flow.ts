@@ -1,5 +1,4 @@
-
-'use client';
+'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash) + ElevenLabs.
  * Implements a full separation/replacement/remix pipeline with "Singer Filter" logic.
