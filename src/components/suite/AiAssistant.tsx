@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -149,27 +150,17 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
       try {
         result = resText ? JSON.parse(resText) : {};
       } catch (e) {
-        throw new Error(`Invalid server response: ${resText.substring(0, 100)}`);
+        // Handle non-JSON response from server (e.g. HTML error page)
+        throw new Error("I received an unexpected response from the server. Please try again in a moment.");
       }
       
       if (!res.ok) {
-        throw new Error(result.responseText || result.message || `API request failed with status ${res.status}`);
+        throw new Error(result.responseText || result.message || `API error: ${res.status}`);
       }
       
-      let responseText;
-      let actionUrl;
+      const responseText = result.responseText || "I'm sorry, I couldn't generate a response.";
+      const actionUrl = result.actionUrl;
 
-      if (typeof result === 'string') {
-        responseText = result;
-      } else if (result && typeof result === 'object') {
-        responseText = result.responseText;
-        actionUrl = result.actionUrl;
-      }
-
-      if (typeof responseText !== 'string') {
-        responseText = "Sorry, I received an unexpected response. Please try again.";
-      }
-      
       const botMessage: Message = { role: 'model', content: responseText };
       setMessages(prev => [...prev, botMessage]);
 
@@ -183,7 +174,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
       console.error("AI Assistant Error:", error);
       const errorMessage: Message = {
         role: 'model',
-        content: error.message || "Sorry, I encountered an unexpected error. Please try again.",
+        content: error.message || "I had a quick glitch. Please try saying that again! 🎹",
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {

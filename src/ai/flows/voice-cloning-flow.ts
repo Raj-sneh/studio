@@ -119,9 +119,10 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Vocal
  * Polls the backend health endpoint until the neural engine is ready.
  */
 async function waitForBackend() {
+  const healthUrl = "http://127.0.0.1:1000/health";
   while (true) {
     try {
-      const res = await fetch("http://localhost:1000/health");
+      const res = await fetch(healthUrl, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         if (data.ready) break;
@@ -253,8 +254,8 @@ const vocalReplacementFlow = ai.defineFlow(
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
-        // Standardized port 1000 for all studio internal communication
-        const engineUrl = 'http://localhost:1000';
+        // Standardized on 127.0.0.1:1000 for studio internal communication
+        const engineUrl = 'http://127.0.0.1:1000';
 
         // 0. WAIT FOR NEURAL WARM-UP
         await waitForBackend();
@@ -275,15 +276,16 @@ const vocalReplacementFlow = ai.defineFlow(
             });
         } catch (err) {
             console.error("Connection Error to Engine:", err);
-            throw new Error(`Voice Engine (Python) is unreachable at ${engineUrl}. Ensure the backend is running and main.py is active.`);
+            throw new Error(`Voice Engine (Python) is unreachable at ${engineUrl}. Ensure main.py is running on port 1000.`);
         }
 
+        const separateData = await separateResponse.json().catch(() => ({}));
         if (!separateResponse.ok) {
-            const errBody = await separateResponse.json().catch(() => ({}));
-            throw new Error(errBody.error || `Separation engine failed with status ${separateResponse.status}.`);
+            throw new Error(separateData.error || `Separation engine failed with status ${separateResponse.status}.`);
         }
         
-        const { vocals, bgm } = await separateResponse.json();
+        const { vocals, bgm } = separateData;
+        if (!vocals || !bgm) throw new Error("The neural engine failed to separate the vocal track.");
 
         // 2. ANALYZE (Singer Filter Analysis)
         const directorAnalysis = await singerDirectorPrompt({ vocalDataUri: vocals });

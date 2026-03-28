@@ -11,12 +11,11 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 # 1. Robust module loading system
-# We catch ImportErrors to prevent the server from crashing during background installation
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
-    print("WARNING: 'python-dotenv' not found. Environment variables must be set manually.")
+    print("WARNING: 'python-dotenv' not found.")
     load_dotenv = None
 
 try:
@@ -44,7 +43,7 @@ args, unknown = parser.parse_known_args()
 
 app = FastAPI()
 
-# 3. Enable CORS
+# 3. Enable CORS for local studio development
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -77,15 +76,13 @@ def home():
 def health():
     return {
         "status": "ok",
-        "ready": model_loaded  # True if librosa is active
+        "ready": model_loaded
     }
 
 @app.post("/tts")
 async def tts(text: str = Form(...)):
     if not elevenlabs:
-        return {"error": "ElevenLabs client not initialized. Check installation status."}
-    if not text:
-        return {"error": "Enter text"}
+        return JSONResponse(status_code=503, content={"error": "ElevenLabs client not initialized."})
     try:
         audio = elevenlabs.text_to_speech.convert(
             text=text,
@@ -102,52 +99,54 @@ async def tts(text: str = Form(...)):
                 f.write(chunk)
 
         return {"audio_url": f"/temp_audio/{filename}"}
-
     except Exception as e:
-        return {"error": str(e)}
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.post("/clone/separate")
 async def separate(audio: UploadFile = File(...)):
     """Separates vocals from background music."""
     if not librosa:
-        return JSONResponse(status_code=503, content={"error": "Neural engine is still initializing. Please try again in 30 seconds."})
+        return JSONResponse(status_code=503, content={"error": "Neural engine is still initializing. Please wait 30 seconds."})
     
     try:
         task_id = str(uuid.uuid4())
         input_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_input.wav")
         
+        content = await audio.read()
         with open(input_path, "wb") as buffer:
-            buffer.write(await audio.read())
+            buffer.write(content)
 
+        # Load and process
         y, sr = librosa.load(input_path, sr=None)
         y_harmonic, y_percussive = librosa.effects.hpss(y)
 
         vocals_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_vocals.wav")
-        bgm_path_wav = os.path.join(UPLOAD_FOLDER, f"{task_id}_bgm.wav")
+        bgm_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_bgm.wav")
 
         sf.write(vocals_path, y_harmonic, sr)
-        sf.write(bgm_path_wav, y_percussive, sr)
+        sf.write(bgm_path, y_percussive, sr)
 
         with open(vocals_path, "rb") as f:
             vocals_b64 = base64.b64encode(f.read()).decode('utf-8')
-        with open(bgm_path_wav, "rb") as f:
+        with open(bgm_path, "rb") as f:
             bgm_b64 = base64.b64encode(f.read()).decode('utf-8')
 
+        # Cleanup
         os.remove(input_path)
         os.remove(vocals_path)
-        os.remove(bgm_path_wav)
+        os.remove(bgm_path)
 
         return {
             "vocals": f"data:audio/wav;base64,{vocals_b64}",
             "bgm": f"data:audio/wav;base64,{bgm_b64}"
         }
-
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        print(f"Separation error: {e}")
+        return JSONResponse(status_code=500, content={"error": "Neural separation failed. Ensure audio is clear."})
 
 @app.post("/mix")
 async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
-    """Mixes audio tracks."""
+    """Mixes audio tracks using FFmpeg."""
     try:
         task_id = str(uuid.uuid4())
         v_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_v.wav")
@@ -166,14 +165,14 @@ async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
         ], check=True)
 
         return FileResponse(out_path, media_type="audio/mpeg")
-
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        print(f"Mixing error: {e}")
+        return JSONResponse(status_code=500, content={"error": "Mixing stage failed. Ensure FFmpeg is installed."})
 
 if __name__ == "__main__":
     import uvicorn
-    # Hardcode port 1000 for internal studio consistency as requested
+    # Hardcode port 1000 as requested
     port = 1000
     host = "0.0.0.0"
-    print(f"Starting Sargam Voice Engine on {host}:{port}")
+    print(f"Sargam Engine active on {host}:{port}")
     uvicorn.run(app, host=host, port=port)
