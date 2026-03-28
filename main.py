@@ -142,7 +142,10 @@ async def separate(audio: UploadFile = File(...)):
         }
     except Exception as e:
         print(f"Separation error: {e}")
-        return JSONResponse(status_code=500, content={"error": "Neural separation failed. Ensure audio is clear."})
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Neural separation failed: {str(e)}"}
+        )
 
 @app.post("/mix")
 async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
@@ -167,7 +170,10 @@ async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
         return FileResponse(out_path, media_type="audio/mpeg")
     except Exception as e:
         print(f"Mixing error: {e}")
-        return JSONResponse(status_code=500, content={"error": "Mixing stage failed. Ensure FFmpeg is installed."})
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Mixing stage failed: {str(e)}"}
+        )
 
 if __name__ == "__main__":
     import uvicorn
