@@ -1,3 +1,4 @@
+
 import { getApps, initializeApp, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { initializeFirestore, getFirestore } from 'firebase/firestore';
@@ -12,12 +13,13 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 let db;
 try {
-  // Force long polling for reliable connectivity in cloud environments
+  // Use getFirestore first to check if already initialized with correct settings
+  db = getFirestore(app);
+} catch (e) {
+  // Fallback to initialization if not yet started
   db = initializeFirestore(app, {
     experimentalForceLongPolling: true,
   });
-} catch (e) {
-  db = getFirestore(app);
 }
 
 const auth = getAuth(app);

@@ -46,8 +46,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. Setup Temp Folder
-UPLOAD_FOLDER = "temp_audio"
+# 3. Setup Temp Folder - Move to a hidden folder to avoid triggering Next.js restarts
+UPLOAD_FOLDER = ".temp_audio"
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
