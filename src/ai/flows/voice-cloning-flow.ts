@@ -115,6 +115,29 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Vocal
     return vocalReplacementFlow(input);
 }
 
+/**
+ * Polls the backend health endpoint until the neural engine is ready.
+ */
+async function waitForBackend(engineUrl: string) {
+  const maxRetries = 20;
+  let retries = 0;
+  
+  while (retries < maxRetries) {
+    try {
+      const res = await fetch(`${engineUrl}/health`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ready) return;
+      }
+    } catch (e) {
+      // Server might not be up at all yet
+    }
+    retries++;
+    await new Promise(r => setTimeout(r, 3000));
+  }
+  throw new Error("Neural engine warm-up timed out. Please refresh and try again.");
+}
+
 const voiceCloningFlow = ai.defineFlow(
   {
     name: 'voiceCloningFlow',
@@ -237,6 +260,9 @@ const vocalReplacementFlow = ai.defineFlow(
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
         // Standardized port 1000 for all studio internal communication
         const engineUrl = 'http://127.0.0.1:1000';
+
+        // 0. WAIT FOR NEURAL WARM-UP
+        await waitForBackend(engineUrl);
 
         // 1. SEPARATE (Vocals vs BGM)
         const separateFormData = new FormData();
