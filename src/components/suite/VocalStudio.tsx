@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Loader2, Play, StopCircle, Sparkles, Mic2, Upload, FileAudio, Check, BrainCircuit, Globe, Music
+  Loader2, Play, StopCircle, Sparkles, Mic2, Upload, FileAudio, Check, BrainCircuit, Globe, Music, Link as LinkIcon, Lock
 } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -74,6 +74,12 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const joinWaitingList = () => {
+    const subject = encodeURIComponent("Sargam AI: Neural Vocal Replacement Waiting List");
+    const body = encodeURIComponent("Hi Sneh,\n\nI would like to apply for access to the Neural Vocal Replacement protocol.\n\nThank you!");
+    window.location.href = `mailto:hello@sargamskv.in?subject=${subject}&body=${body}`;
   };
 
   const handleRun = async (data: z.infer<typeof formSchema>) => {
@@ -149,49 +155,65 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                             </FormItem>
                         )}/>
                     </TabsContent>
-                    <TabsContent value="replacement" className="mt-0 space-y-6">
-                        <FormField control={form.control} name="language" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
-                                    Source Song Language
-                                </FormLabel>
-                                <p className="text-[10px] text-muted-foreground">Specify language for pitch-perfect neural analysis.</p>
-                                <select 
-                                    {...field}
-                                    className="w-full bg-muted/20 border border-primary/10 rounded-xl px-4 py-2 text-sm focus:outline-none"
-                                >
-                                    {languageOptions.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-                                </select>
-                            </FormItem>
-                        )}/>
+                    
+                    <TabsContent value="replacement" className="mt-0 space-y-6 relative overflow-hidden rounded-[2rem]">
+                        {/* Diagonal Metal Chains Overlay */}
+                        <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none opacity-30 select-none overflow-hidden">
+                            <div className="absolute rotate-45 flex gap-4">
+                                {[...Array(20)].map((_, i) => <LinkIcon key={`c1-${i}`} className="h-8 w-8 text-primary stroke-[3px]" />)}
+                            </div>
+                            <div className="absolute -rotate-45 flex gap-4">
+                                {[...Array(20)].map((_, i) => <LinkIcon key={`c2-${i}`} className="h-8 w-8 text-primary stroke-[3px]" />)}
+                            </div>
+                        </div>
 
-                        <FormField control={form.control} name="replacementAudio" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Master Recording</FormLabel>
-                                <FormControl>
-                                    <div className="border-2 border-dashed border-primary/20 rounded-3xl p-16 text-center space-y-4 hover:bg-primary/5 transition-all bg-muted/10 cursor-pointer relative group">
-                                        <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-                                            {field.value ? <Check className="text-primary h-10 w-10" /> : <Upload className="text-primary h-10 w-10" />}
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-lg">{field.value ? "File Uploaded" : "Drop Song to Replace Vocals"}</p>
-                                            {field.value && (
-                                              <p className="text-xs text-primary font-bold mt-2 truncate max-w-xs mx-auto flex items-center justify-center gap-1">
-                                                <Music className="h-3 w-3" /> {form.watch('replacementFileName')}
-                                              </p>
-                                            )}
-                                            {!field.value && (
-                                              <p className="text-sm text-muted-foreground max-w-xs mx-auto">SKV AI will separate the beats and replace vocals with your neural identity.</p>
-                                            )}
-                                        </div>
-                                        <Input type="file" accept="audio/*" onChange={handleFileUpload} className="hidden" id="sts-upload" />
-                                        <Button asChild type="button" variant="outline" className="rounded-xl border-primary/20 mt-4">
-                                            <label htmlFor="sts-upload" className="cursor-pointer">{field.value ? "Change Recording" : "Choose Master Recording"}</label>
-                                        </Button>
-                                    </div>
-                                </FormControl>
-                            </FormItem>
-                        )}/>
+                        {/* Restricted Message Overlay */}
+                        <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-background/40 backdrop-blur-md pointer-events-none">
+                            <div className="pointer-events-auto bg-card border border-primary/40 shadow-2xl p-6 rounded-[2rem] text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
+                                <div className="space-y-1">
+                                    <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-1">Neural Protocol Restricted</p>
+                                    <h3 className="text-md font-bold font-headline text-foreground leading-tight">Vocal Replacement Restricted</h3>
+                                </div>
+                                <Lock className="h-8 w-8 text-primary mx-auto opacity-80" />
+                                <div className="space-y-3">
+                                    <p className="text-[11px] text-muted-foreground leading-snug px-2 italic">
+                                        Professional stem separation requires high-tier neural allocation.
+                                    </p>
+                                    <Button type="button" onClick={joinWaitingList} className="w-full h-10 text-xs font-black rounded-xl shadow-xl shadow-primary/20">
+                                        Join Waiting List
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Blurred/Grayed Content behind chains */}
+                        <div className="grayscale opacity-40 blur-sm">
+                          <FormField control={form.control} name="language" render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
+                                      Source Song Language
+                                  </FormLabel>
+                                  <select 
+                                      disabled
+                                      className="w-full bg-muted/20 border border-primary/10 rounded-xl px-4 py-2 text-sm focus:outline-none"
+                                  >
+                                      {languageOptions.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                                  </select>
+                              </FormItem>
+                          )}/>
+
+                          <FormField control={form.control} name="replacementAudio" render={({ field }) => (
+                              <FormItem className="mt-6">
+                                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Master Recording</FormLabel>
+                                  <div className="border-2 border-dashed border-primary/20 rounded-3xl p-16 text-center space-y-4 bg-muted/10">
+                                      <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
+                                          <Upload className="text-primary h-10 w-10" />
+                                      </div>
+                                      <p className="font-bold text-lg">Drop Song to Replace Vocals</p>
+                                  </div>
+                              </FormItem>
+                          )}/>
+                        </div>
                     </TabsContent>
                 </div>
 
@@ -230,9 +252,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                 </div>
             </div>
 
-            <Button type="submit" disabled={isLoading} className="w-full h-16 text-xl rounded-2xl shadow-2xl shadow-primary/10 font-bold">
+            <Button type="submit" disabled={isLoading || activeSubTab === 'replacement'} className="w-full h-16 text-xl rounded-2xl shadow-2xl shadow-primary/10 font-bold">
                 {isLoading ? <Loader2 className="animate-spin mr-2 h-6 w-6" /> : <Sparkles className="mr-2 h-6 w-6" />}
-                {activeSubTab === 'tts' ? 'Synthesize Neural Performance' : 'Execute Neural Vocal Replacement'}
+                {activeSubTab === 'tts' ? 'Synthesize Neural Performance' : 'Neural Protocol Restricted'}
             </Button>
           </form>
         </Form>
@@ -257,3 +279,4 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
     </div>
   );
 }
+
