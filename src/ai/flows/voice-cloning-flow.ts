@@ -118,24 +118,19 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Vocal
 /**
  * Polls the backend health endpoint until the neural engine is ready.
  */
-async function waitForBackend(engineUrl: string) {
-  const maxRetries = 20;
-  let retries = 0;
-  
-  while (retries < maxRetries) {
+async function waitForBackend() {
+  while (true) {
     try {
-      const res = await fetch(`${engineUrl}/health`);
+      const res = await fetch("http://localhost:1000/health");
       if (res.ok) {
         const data = await res.json();
-        if (data.ready) return;
+        if (data.ready) break;
       }
     } catch (e) {
-      // Server might not be up at all yet
+      // Server might not be up at all yet, continue polling
     }
-    retries++;
     await new Promise(r => setTimeout(r, 3000));
   }
-  throw new Error("Neural engine warm-up timed out. Please refresh and try again.");
 }
 
 const voiceCloningFlow = ai.defineFlow(
@@ -259,10 +254,10 @@ const vocalReplacementFlow = ai.defineFlow(
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
         // Standardized port 1000 for all studio internal communication
-        const engineUrl = 'http://127.0.0.1:1000';
+        const engineUrl = 'http://localhost:1000';
 
         // 0. WAIT FOR NEURAL WARM-UP
-        await waitForBackend(engineUrl);
+        await waitForBackend();
 
         // 1. SEPARATE (Vocals vs BGM)
         const separateFormData = new FormData();
@@ -280,7 +275,7 @@ const vocalReplacementFlow = ai.defineFlow(
             });
         } catch (err) {
             console.error("Connection Error to Engine:", err);
-            throw new Error(`Voice Engine (Python) is currently warming up at ${engineUrl}. Please wait a few seconds for the neural libraries to load.`);
+            throw new Error(`Voice Engine (Python) is unreachable at ${engineUrl}. Ensure the backend is running and main.py is active.`);
         }
 
         if (!separateResponse.ok) {
