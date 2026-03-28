@@ -179,7 +179,14 @@ const voiceCloningFlow = ai.defineFlow(
       body: formData,
     });
 
-    const data = await response.json().catch(() => ({}));
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("Non-JSON response from ElevenLabs voices/add:", text);
+      throw new Error("Voice synthesis service returned an invalid response.");
+    }
 
     if (!response.ok) {
       throw new Error(data.detail?.message || "Cloning failed. Ensure audio is clear and long enough.");
@@ -229,7 +236,14 @@ const speakWithCloneFlow = ai.defineFlow(
         });
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+            const errorText = await response.text();
+            let errorData;
+            try {
+                errorData = JSON.parse(errorText);
+            } catch (e) {
+                console.error("Non-JSON error from ElevenLabs TTS:", errorText);
+                throw new Error(`TTS failed with status ${response.status}.`);
+            }
             throw new Error(errorData.detail?.message || `TTS failed with status ${response.status}.`);
         }
 
@@ -320,7 +334,14 @@ const vocalReplacementFlow = ai.defineFlow(
         });
 
         if (!stsResponse.ok) {
-            const stsError = await stsResponse.json().catch(() => ({}));
+            const errorText = await stsResponse.text();
+            let stsError;
+            try {
+                stsError = JSON.parse(errorText);
+            } catch (e) {
+                console.error("Non-JSON error from ElevenLabs STS:", errorText);
+                throw new Error(`Vocal synthesis failed during replacement stage.`);
+            }
             throw new Error(stsError.detail?.message || `Vocal synthesis failed during replacement stage.`);
         }
 
