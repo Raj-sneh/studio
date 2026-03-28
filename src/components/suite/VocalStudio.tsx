@@ -70,7 +70,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
         const base64 = reader.result as string;
         form.setValue('replacementAudio', base64, { shouldValidate: true });
         form.setValue('replacementFileName', file.name, { shouldValidate: true });
-        toast({ title: "File Uploaded", description: `${file.name} is ready for neural transformation.` });
+        toast({ title: "File Uploaded", description: `${file.name} is ready.` });
       };
       reader.readAsDataURL(file);
     }
@@ -90,7 +90,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
     try {
       if (activeSubTab === 'replacement') {
         if (!data.replacementAudio) {
-          throw new Error("Please upload an audio file to transform.");
+          throw new Error("Please upload an audio file first.");
         }
         
         const res = await replaceVocals({
@@ -102,7 +102,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
         setResult({ vocalUri: res.audioUri, title: "Simple" });
       } else {
         if (!data.text) {
-          throw new Error("Please provide a synthesis script.");
+          throw new Error("Please enter some text first.");
         }
         const res = await speakWithClone({
             text: data.text,
@@ -111,11 +111,11 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
         });
         setResult({ vocalUri: res.audioUri, title: "Simple" });
       }
-      toast({ title: "Mastering Complete", description: "Your AI track is ready." });
+      toast({ title: "Done!", description: "Your audio is ready." });
       onGenerate();
     } catch (e: any) {
       console.error("Vocal Studio Run Error:", e);
-      toast({ title: "Studio Error", description: e.message, variant: "destructive" });
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -125,8 +125,8 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
     <div className="space-y-8 max-w-4xl mx-auto pb-24">
       <Tabs value={activeSubTab} onValueChange={(v: any) => setActiveSubTab(v)} className="w-full">
         <TabsList className="grid w-full grid-cols-2 h-14 p-1 bg-muted/40 rounded-2xl mb-8">
-            <TabsTrigger value="tts" className="rounded-xl font-bold">Vocal Synthesis</TabsTrigger>
-            <TabsTrigger value="replacement" className="rounded-xl font-bold">Vocal Replacement</TabsTrigger>
+            <TabsTrigger value="tts" className="rounded-xl font-bold">TTS (Text to Speech)</TabsTrigger>
+            <TabsTrigger value="replacement" className="rounded-xl font-bold">Voice Swap</TabsTrigger>
         </TabsList>
 
         <Form {...form}>
@@ -137,7 +137,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                         <FormField control={form.control} name="text" render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
-                                    Synthesis Script (SKV AI)
+                                    Enter Text
                                     <div className="flex items-center gap-2">
                                         <Globe className="h-3 w-3 text-primary" />
                                         <select 
@@ -150,7 +150,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                     </div>
                                 </FormLabel>
                                 <FormControl>
-                                    <Textarea placeholder="Type what you want SKV AI to perform..." {...field} className="min-h-[200px] text-lg rounded-3xl bg-muted/20 border-primary/10" />
+                                    <Textarea placeholder="Type what you want the AI to say..." {...field} className="min-h-[200px] text-lg rounded-3xl bg-muted/20 border-primary/10" />
                                 </FormControl>
                             </FormItem>
                         )}/>
@@ -169,13 +169,13 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                         <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-background/40 backdrop-blur-md pointer-events-none">
                             <div className="pointer-events-auto bg-card border border-primary/40 shadow-2xl p-6 rounded-[2rem] text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
                                 <div className="space-y-1">
-                                    <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-1">Neural Protocol Restricted</p>
-                                    <h3 className="text-md font-bold font-headline text-foreground leading-tight">Vocal Replacement Restricted</h3>
+                                    <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-1">Restricted</p>
+                                    <h3 className="text-md font-bold font-headline text-foreground leading-tight">Voice Swap Locked</h3>
                                 </div>
                                 <Lock className="h-8 w-8 text-primary mx-auto opacity-80" />
                                 <div className="space-y-3">
                                     <p className="text-[11px] text-muted-foreground leading-snug px-2 italic">
-                                        Professional stem separation requires high-tier neural allocation.
+                                        This feature requires more credits. Join the list to get access.
                                     </p>
                                     <Button type="button" onClick={joinWaitingList} className="w-full h-10 text-xs font-black rounded-xl shadow-xl shadow-primary/20">
                                         Join Waiting List
@@ -188,7 +188,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                           <FormField control={form.control} name="language" render={({ field }) => (
                               <FormItem>
                                   <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
-                                      Source Song Language
+                                      Song Language
                                   </FormLabel>
                                   <select 
                                       disabled
@@ -201,12 +201,12 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
 
                           <FormField control={form.control} name="replacementAudio" render={({ field }) => (
                               <FormItem className="mt-6">
-                                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Master Recording</FormLabel>
+                                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Upload Audio</FormLabel>
                                   <div className="border-2 border-dashed border-primary/20 rounded-3xl p-16 text-center space-y-4 bg-muted/10">
                                       <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
                                           <Upload className="text-primary h-10 w-10" />
                                       </div>
-                                      <p className="font-bold text-lg">Drop Song to Replace Vocals</p>
+                                      <p className="font-bold text-lg">Drop audio to swap voice</p>
                                   </div>
                               </FormItem>
                           )}/>
@@ -217,7 +217,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                 <div className="space-y-6">
                     <FormField control={form.control} name="voice" render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Neural Target Artist</FormLabel>
+                            <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Choose Voice</FormLabel>
                             <div className="grid gap-2 h-[400px] overflow-y-auto pr-2 scrollbar-thin mt-2">
                                 {savedVoices?.map(v => (
                                     <label key={v.voiceId} className={cn("flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all", field.value === v.voiceId ? "bg-primary/10 border-primary shadow-lg shadow-primary/5" : "bg-muted/20 border-transparent hover:bg-muted/30")}>
@@ -227,7 +227,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                         </div>
                                         <div className="truncate">
                                             <p className="text-xs font-bold uppercase truncate">{v.name}</p>
-                                            <p className="text-[10px] text-muted-foreground">My Neural Clone</p>
+                                            <p className="text-[10px] text-muted-foreground">Cloned Voice</p>
                                         </div>
                                     </label>
                                 ))}
@@ -251,24 +251,29 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
 
             <Button type="submit" disabled={isLoading || activeSubTab === 'replacement'} className="w-full h-16 text-xl rounded-2xl shadow-2xl shadow-primary/10 font-bold">
                 {isLoading ? <Loader2 className="animate-spin mr-2 h-6 w-6" /> : <Sparkles className="mr-2 h-6 w-6" />}
-                {activeSubTab === 'tts' ? 'Synthesize Neural Performance' : 'Neural Protocol Restricted'}
+                {activeSubTab === 'tts' ? 'Generate Audio' : 'Restricted'}
             </Button>
           </form>
         </Form>
 
         {result && (
-            <Card key={result.vocalUri} className="p-10 bg-primary/5 border-primary/20 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-8 animate-in fade-in zoom-in-95 duration-500 shadow-xl border-2 mt-8">
-                <div className="flex items-center gap-6">
-                    <div className="h-16 w-16 bg-primary/20 rounded-2xl flex items-center justify-center shadow-inner">
+            <Card key={result.vocalUri} className="p-10 bg-primary/5 border-primary/20 rounded-3xl flex flex-col items-center gap-8 animate-in fade-in zoom-in-95 duration-500 shadow-xl border-2 mt-8">
+                <div className="flex items-center gap-6 w-full">
+                    <div className="h-16 w-16 bg-primary/20 rounded-2xl flex items-center justify-center shadow-inner shrink-0">
                         <FileAudio className="text-primary h-8 w-8" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                         <h3 className="font-bold text-2xl font-headline">{result.title}</h3>
-                        <p className="text-muted-foreground">Mastered neural output from SKV AI Studio.</p>
+                        <p className="text-muted-foreground">Audio track generated by SKV AI.</p>
                     </div>
                 </div>
-                <div className="w-full sm:w-auto">
-                    <audio controls className="w-full" src={result.vocalUri}>
+                <div className="w-full bg-background/50 p-6 rounded-2xl border border-primary/10 shadow-inner">
+                    <audio 
+                      controls 
+                      className="w-full h-14" 
+                      src={result.vocalUri}
+                      key={result.vocalUri}
+                    >
                         Your browser does not support the audio element.
                     </audio>
                 </div>
