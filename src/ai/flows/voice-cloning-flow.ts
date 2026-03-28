@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash) + ElevenLabs.
@@ -180,14 +179,14 @@ const voiceCloningFlow = ai.defineFlow(
       body: formData,
     });
 
+    const data = await response.json().catch(() => ({}));
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail?.message || "Cloning failed. Ensure audio is clear and long enough.");
+      throw new Error(data.detail?.message || "Cloning failed. Ensure audio is clear and long enough.");
     }
 
-    const result = await response.json();
     return { 
-      voiceId: result.voice_id,
+      voiceId: data.voice_id,
       description: finalDescription,
       suggestedSettings: {
         stability: analysis.suggestedStability,
@@ -230,8 +229,8 @@ const speakWithCloneFlow = ai.defineFlow(
         });
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.detail?.message || `TTS failed with status ${response.status}.`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail?.message || `TTS failed with status ${response.status}.`);
         }
 
         const arrayBuffer = await response.arrayBuffer();
@@ -281,18 +280,18 @@ const vocalReplacementFlow = ai.defineFlow(
             throw new Error(`Voice Engine (Python) is unreachable at ${engineUrl}. Ensure main.py is running on port 1000.`);
         }
 
-        // Robust response handling as requested
+        // Robust response handling: consume body only once
+        const separateText = await separateResponse.text();
         let separateData;
         try {
-            separateData = await separateResponse.json();
+            separateData = JSON.parse(separateText);
         } catch (e) {
-            const text = await separateResponse.text();
-            console.error("Non-JSON response:", text);
-            throw new Error("Server returned invalid response");
+            console.error("Non-JSON response from separation engine:", separateText);
+            throw new Error("Separation engine returned an invalid response.");
         }
 
         if (!separateResponse.ok) {
-            throw new Error(separateData?.error || "Server error");
+            throw new Error(separateData?.error || "Separation stage failed.");
         }
         
         const { vocals, bgm } = separateData;
@@ -321,8 +320,8 @@ const vocalReplacementFlow = ai.defineFlow(
         });
 
         if (!stsResponse.ok) {
-            const error = await stsResponse.json().catch(() => ({}));
-            throw new Error(error.detail?.message || `Vocal synthesis failed during replacement stage.`);
+            const stsError = await stsResponse.json().catch(() => ({}));
+            throw new Error(stsError.detail?.message || `Vocal synthesis failed during replacement stage.`);
         }
 
         const aiVocalBuffer = Buffer.from(await stsResponse.arrayBuffer());
@@ -345,15 +344,15 @@ const vocalReplacementFlow = ai.defineFlow(
         }
 
         if (!mixResponse.ok) {
-            let errorData;
+            const mixText = await mixResponse.text();
+            let mixError;
             try {
-                errorData = await mixResponse.json();
+                mixError = JSON.parse(mixText);
             } catch (e) {
-                const text = await mixResponse.text();
-                console.error("Non-JSON error response from mix:", text);
-                throw new Error("Mixing failed with invalid response");
+                console.error("Non-JSON response from mixing engine:", mixText);
+                throw new Error("Mixing engine returned an invalid response.");
             }
-            throw new Error(errorData.error || "Mixing failed.");
+            throw new Error(mixError.error || "Mixing stage failed.");
         }
 
         const finalBuffer = Buffer.from(await mixResponse.arrayBuffer());
