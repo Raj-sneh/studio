@@ -33,6 +33,9 @@ except ImportError:
     print("WARNING: 'elevenlabs' not found. Voice synthesis will be unavailable.")
     ElevenLabs = None
 
+# Track if the neural engine (librosa) is fully loaded
+model_loaded = librosa is not None
+
 # 2. Argument Parsing
 parser = argparse.ArgumentParser(description="Sargam AI Voice Engine")
 parser.add_argument("--port", type=int, default=1000, help="Port to run the server on")
@@ -68,6 +71,13 @@ def home():
         "port": 1000,
         "elevenlabs_active": elevenlabs is not None,
         "librosa_active": librosa is not None
+    }
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok",
+        "ready": model_loaded  # True if librosa is active
     }
 
 @app.post("/tts")
@@ -162,7 +172,7 @@ async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    # Hardcode port 1000 for internal studio consistency
+    # Hardcode port 1000 for internal studio consistency as requested
     port = 1000
     host = "0.0.0.0"
     print(f"Starting Sargam Voice Engine on {host}:{port}")
