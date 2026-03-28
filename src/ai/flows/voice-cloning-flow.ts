@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash) + ElevenLabs.
@@ -123,10 +124,8 @@ async function waitForBackend() {
   while (true) {
     try {
       const res = await fetch(healthUrl, { cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.ready) break;
-      }
+      const data = await res.json();
+      if (data.ready) break;
     } catch (e) {
       // Server might not be up at all yet, continue polling
     }
@@ -182,11 +181,11 @@ const voiceCloningFlow = ai.defineFlow(
     console.log("Status:", response.status);
     console.log("Headers:", response.headers);
 
-    const text = await response.text();
     let data;
     try {
-      data = JSON.parse(text);
+      data = await response.json();
     } catch (e) {
+      const text = await response.text();
       console.error("Non-JSON response from ElevenLabs voices/add:", text);
       throw new Error("Voice synthesis service returned an invalid response.");
     }
@@ -242,11 +241,11 @@ const speakWithCloneFlow = ai.defineFlow(
         console.log("Headers:", response.headers);
 
         if (!response.ok) {
-            const errorText = await response.text();
             let errorData;
             try {
-                errorData = JSON.parse(errorText);
+                errorData = await response.json();
             } catch (e) {
+                const errorText = await response.text();
                 console.error("Non-JSON error from ElevenLabs TTS:", errorText);
                 throw new Error(`TTS failed with status ${response.status}.`);
             }
@@ -299,17 +298,17 @@ const vocalReplacementFlow = ai.defineFlow(
             throw new Error(`Voice Engine is unreachable at ${engineUrl}. Ensure main.py is running on port 1000.`);
         }
 
-        const separateText = await separateResponse.text();
         let separateData;
         try {
-            separateData = JSON.parse(separateText);
+            separateData = await separateResponse.json();
         } catch (e) {
+            const separateText = await separateResponse.text();
             console.error("Non-JSON response from separation engine:", separateText);
             throw new Error("Neural separation engine returned an invalid response.");
         }
 
         if (!separateResponse.ok) {
-            throw new Error(separateData?.error || "Neural engine is warming up. Please try again in a few seconds.");
+            throw new Error(separateData?.error || "Neural engine error. Please try again.");
         }
         
         const { vocals, bgm } = separateData;
@@ -341,11 +340,11 @@ const vocalReplacementFlow = ai.defineFlow(
         console.log("Headers (STS):", stsResponse.headers);
 
         if (!stsResponse.ok) {
-            const errorText = await stsResponse.text();
             let stsError;
             try {
-                stsError = JSON.parse(errorText);
+                stsError = await stsResponse.json();
             } catch (e) {
+                const errorText = await stsResponse.text();
                 console.error("Non-JSON error from ElevenLabs STS:", errorText);
                 throw new Error(`Vocal synthesis failed during neural transformation stage.`);
             }
@@ -374,11 +373,11 @@ const vocalReplacementFlow = ai.defineFlow(
         }
 
         if (!mixResponse.ok) {
-            const mixText = await mixResponse.text();
             let mixError;
             try {
-                mixError = JSON.parse(mixText);
+                mixError = await mixResponse.json();
             } catch (e) {
+                const mixText = await mixResponse.text();
                 console.error("Non-JSON response from mixing engine:", mixText);
                 throw new Error("Mastering engine returned an invalid response.");
             }

@@ -1,0 +1,30 @@
+
+{
+  "project_info": {
+    "project_number": "398550479414",
+    "firebase_url": "https://studio-4164192500-df01a.firebaseio.com",
+    "project_id": "studio-4164192500-df01a",
+    "storage_bucket": "studio-4164192500-df01a.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:398550479414:web:063da5df7b2e9904b65e97",
+        "android_client_info": {
+          "package_name": "com.sargamai.app"
+        }
+      },
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1SoZG8KK0rApVGVhWeTYJ3TO5F_sz2H4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

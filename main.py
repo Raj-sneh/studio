@@ -1,3 +1,4 @@
+
 import os
 import sys
 import uuid
@@ -34,15 +35,9 @@ except ImportError:
 # Track if the neural engine (librosa) is fully loaded
 model_loaded = librosa is not None
 
-# 2. Argument Parsing
-parser = argparse.ArgumentParser(description="Sargam AI Voice Engine")
-parser.add_argument("--port", type=int, default=1000, help="Port to run the server on")
-parser.add_argument("--hostname", type=str, default="0.0.0.0", help="Hostname to bind the server to")
-args, unknown = parser.parse_known_args()
-
 app = FastAPI()
 
-# 3. Enable CORS for local studio development
+# 2. Enable CORS for local studio development
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -51,14 +46,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 4. Setup Temp Folder
+# 3. Setup Temp Folder
 UPLOAD_FOLDER = "temp_audio"
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 app.mount("/temp_audio", StaticFiles(directory=UPLOAD_FOLDER), name="temp_audio")
 
-# 5. Initialize AI Client
+# 4. Initialize AI Client
 API_KEY = os.getenv("ELEVENLABS_API_KEY")
 elevenlabs = ElevenLabs(api_key=API_KEY) if ElevenLabs and API_KEY else None
 
@@ -176,7 +171,7 @@ async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    # Hardcode port 1000 as requested
+    # Standardized port 1000 for internal communication
     port = 1000
     host = "0.0.0.0"
     print(f"Sargam Engine active on {host}:{port}")
