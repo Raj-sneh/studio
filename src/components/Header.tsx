@@ -60,10 +60,10 @@ export default function Header() {
       return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
     }
 
-    if (user) {
+    // Only show the profile menu if the user is NOT anonymous (i.e., they have properly logged in)
+    if (user && !user.isAnonymous) {
       return (
         <div className="flex items-center gap-4">
-          {/* Credits Display */}
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 transition-all hover:bg-primary/20 cursor-help" title="Neural Research Credits">
             <Zap className="h-3.5 w-3.5 text-primary fill-primary" />
             <span className="text-xs font-bold text-primary">
@@ -86,17 +86,16 @@ export default function Header() {
                   <UserIcon className="h-5 w-5" />
                 </AvatarFallback>
               </Avatar>
-              {!user.isAnonymous && <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isMenuOpen && "rotate-180")} />}
+              <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isMenuOpen && "rotate-180")} />
             </button>
 
             {isMenuOpen && (
               <div className="absolute right-0 mt-3 w-56 rounded-xl border bg-card/95 backdrop-blur-md p-1.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
                 <div className="px-3 py-2 text-sm font-semibold border-b mb-1 flex flex-col">
-                  <span className="truncate">{profile?.displayName || user.displayName || "Guest User"}</span>
+                  <span className="truncate">{profile?.displayName || user.displayName || "Logged In User"}</span>
                   <span className="text-[10px] text-muted-foreground font-normal truncate">{user.email || "No email linked"}</span>
                 </div>
                 
-                {/* Mobile-only credits in menu */}
                 <div className="sm:hidden flex items-center px-3 py-2 text-xs font-bold text-primary border-b mb-1">
                    <Zap className="mr-2 h-3.5 w-3.5 fill-primary" />
                    {profile?.credits ?? 0} Credits Available
@@ -121,10 +120,11 @@ export default function Header() {
       );
     }
     
+    // If Guest (Anonymous) or null, show Login button
     return (
-      <Button asChild variant="ghost" size="sm" className="text-primary font-bold">
+      <Button asChild variant="default" size="sm" className="font-bold rounded-full px-6 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
         <Link href="/login">
-          <LogIn className="mr-2 h-4 w-4" /> Login
+          <LogIn className="mr-2 h-4 w-4" /> Sign In
         </Link>
       </Button>
     );
@@ -132,7 +132,6 @@ export default function Header() {
 
   return (
     <div className="w-full flex flex-col">
-      {/* Respectful AI-Language Trial Banner */}
       <div className="w-full bg-primary/10 border-b border-primary/20 py-2.5 px-4 overflow-hidden">
         <div className="container mx-auto flex items-center justify-center gap-3 animate-in fade-in slide-in-from-top duration-1000">
           <Sparkles className="h-4 w-4 text-primary animate-pulse" />

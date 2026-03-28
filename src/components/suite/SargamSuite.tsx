@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,7 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AIComposer } from '@/components/suite/AIComposer';
 import { VocalStudio } from '@/components/suite/VocalStudio';
 import { VoiceCloner } from '@/components/suite/VoiceCloner';
-import { Music, Mic, UserRoundPlus } from 'lucide-react';
+import { Music, Mic, UserRoundPlus, AlertCircle, LogIn } from 'lucide-react';
+import { useUser } from '@/firebase';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 /**
  * Defines the available tabs in the AI Creative Studio.
@@ -21,6 +25,7 @@ const TABS = [
  * The unified UI for the AI Creative Studio.
  */
 export function SargamSuite() {
+    const { user } = useUser();
     const searchParams = useSearchParams();
     const requestedTab = searchParams.get('tab');
     const initialPrompt = searchParams.get('prompt');
@@ -37,6 +42,8 @@ export function SargamSuite() {
         }
     }, [requestedTab]);
 
+    const isGuest = user?.isAnonymous;
+
     return (
         <div className="space-y-16 pb-20">
             <div className="space-y-8">
@@ -46,6 +53,26 @@ export function SargamSuite() {
                         Create unique piano melodies, generate vocal tracks, or clone voices with our AI-powered tools.
                     </p>
                 </div>
+
+                {/* Guest Mode Banner */}
+                {isGuest && (
+                    <div className="max-w-4xl mx-auto p-4 rounded-2xl bg-primary/5 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top duration-500">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                <AlertCircle className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-sm font-bold text-foreground">You are in Guest Mode</p>
+                                <p className="text-xs text-muted-foreground">Sign in to save your melodies and research history permanently.</p>
+                            </div>
+                        </div>
+                        <Button asChild variant="outline" size="sm" className="rounded-full px-6">
+                            <Link href="/login">
+                                <LogIn className="mr-2 h-4 w-4" /> Login Now
+                            </Link>
+                        </Button>
+                    </div>
+                )}
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-4xl mx-auto">
                     <div className="flex justify-center mb-8">
