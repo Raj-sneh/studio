@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash) + ElevenLabs.
@@ -253,7 +254,7 @@ const vocalReplacementFlow = ai.defineFlow(
             });
         } catch (err) {
             console.error("Connection Error to Engine:", err);
-            throw new Error(`Voice Engine (Python) is unreachable at ${engineUrl}. Ensure the backend is running and main.py is active.`);
+            throw new Error(`Voice Engine (Python) is currently warming up at ${engineUrl}. Please wait a few seconds for the neural libraries to load.`);
         }
 
         if (!separateResponse.ok) {

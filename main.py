@@ -65,7 +65,7 @@ elevenlabs = ElevenLabs(api_key=API_KEY) if ElevenLabs and API_KEY else None
 def home():
     return {
         "status": "Sargam AI Voice Engine is active", 
-        "port": 9002,
+        "port": 1000,
         "elevenlabs_active": elevenlabs is not None,
         "librosa_active": librosa is not None
     }
@@ -162,8 +162,8 @@ async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    # Respect the requested port 1000
-    port = int(os.getenv("PORT", args.port))
-    host = args.hostname
+    # Hardcode port 1000 for internal studio consistency
+    port = 1000
+    host = "0.0.0.0"
     print(f"Starting Sargam Voice Engine on {host}:{port}")
     uvicorn.run(app, host=host, port=port)
