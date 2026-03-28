@@ -37,6 +37,8 @@ const DEFAULT_VOICES = [
   { id: 'alex', label: 'Alex' },
 ];
 
+const ADMIN_EMAIL = 'snehkumarverma2011@gmail.com';
+
 export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPrompt?: string | null; autogen?: boolean; onGenerate: () => void; }) {
   const { toast } = useToast();
   const { user } = useUser();
@@ -45,6 +47,8 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [activeSubTab, setActiveSubTab] = useState<'tts' | 'replacement'>('tts');
+
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   const voicesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -157,41 +161,47 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                     </TabsContent>
                     
                     <TabsContent value="replacement" className="mt-0 space-y-6 relative overflow-hidden rounded-[2rem]">
-                        <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none opacity-30 select-none overflow-hidden">
-                            <div className="absolute rotate-45 flex gap-4">
-                                {[...Array(20)].map((_, i) => <LinkIcon key={`c1-${i}`} className="h-8 w-8 text-primary stroke-[3px]" />)}
-                            </div>
-                            <div className="absolute -rotate-45 flex gap-4">
-                                {[...Array(20)].map((_, i) => <LinkIcon key={`c2-${i}`} className="h-8 w-8 text-primary stroke-[3px]" />)}
-                            </div>
-                        </div>
-
-                        <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-background/40 backdrop-blur-md pointer-events-none">
-                            <div className="pointer-events-auto bg-card border border-primary/40 shadow-2xl p-6 rounded-[2rem] text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
-                                <div className="space-y-1">
-                                    <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-1">Restricted</p>
-                                    <h3 className="text-md font-bold font-headline text-foreground leading-tight">Voice Swap Locked</h3>
+                        {!isAdmin && (
+                          <>
+                            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none opacity-30 select-none overflow-hidden">
+                                <div className="absolute rotate-45 flex gap-4">
+                                    {[...Array(20)].map((_, i) => <LinkIcon key={`c1-${i}`} className="h-8 w-8 text-primary stroke-[3px]" />)}
                                 </div>
-                                <Lock className="h-8 w-8 text-primary mx-auto opacity-80" />
-                                <div className="space-y-3">
-                                    <p className="text-[11px] text-muted-foreground leading-snug px-2 italic">
-                                        This feature requires more credits. Join the list to get access.
-                                    </p>
-                                    <Button type="button" onClick={joinWaitingList} className="w-full h-10 text-xs font-black rounded-xl shadow-xl shadow-primary/20">
-                                        Join Waiting List
-                                    </Button>
+                                <div className="absolute -rotate-45 flex gap-4">
+                                    {[...Array(20)].map((_, i) => <LinkIcon key={`c2-${i}`} className="h-8 w-8 text-primary stroke-[3px]" />)}
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="grayscale opacity-40 blur-sm">
+                            <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-background/40 backdrop-blur-md pointer-events-none">
+                                <div className="pointer-events-auto bg-card border border-primary/40 shadow-2xl p-6 rounded-[2rem] text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
+                                    <div className="space-y-1">
+                                        <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-1">Restricted</p>
+                                        <h3 className="text-md font-bold font-headline text-foreground leading-tight">Voice Swap Locked</h3>
+                                    </div>
+                                    <Lock className="h-8 w-8 text-primary mx-auto opacity-80" />
+                                    <div className="space-y-3">
+                                        <p className="text-[11px] text-muted-foreground leading-snug px-2 italic">
+                                            This feature requires more credits. Join the list to get access.
+                                        </p>
+                                        <Button type="button" onClick={joinWaitingList} className="w-full h-10 text-xs font-black rounded-xl shadow-xl shadow-primary/20">
+                                            Join Waiting List
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                          </>
+                        )}
+
+                        <div className={cn(!isAdmin && "grayscale opacity-40 blur-sm")}>
                           <FormField control={form.control} name="language" render={({ field }) => (
                               <FormItem>
                                   <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
                                       Song Language
                                   </FormLabel>
                                   <select 
-                                      disabled
+                                      value={field.value}
+                                      onChange={(e) => field.onChange(e.target.value)}
+                                      disabled={!isAdmin}
                                       className="w-full bg-muted/20 border border-primary/10 rounded-xl px-4 py-2 text-sm focus:outline-none"
                                   >
                                       {languageOptions.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
@@ -202,11 +212,20 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                           <FormField control={form.control} name="replacementAudio" render={({ field }) => (
                               <FormItem className="mt-6">
                                   <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Upload Audio</FormLabel>
-                                  <div className="border-2 border-dashed border-primary/20 rounded-3xl p-16 text-center space-y-4 bg-muted/10">
+                                  <div className="relative border-2 border-dashed border-primary/20 rounded-3xl p-16 text-center space-y-4 bg-muted/10 transition-colors hover:bg-muted/20">
+                                      <input 
+                                        type="file" 
+                                        accept="audio/*" 
+                                        className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed" 
+                                        onChange={handleFileUpload}
+                                        disabled={!isAdmin}
+                                      />
                                       <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
                                           <Upload className="text-primary h-10 w-10" />
                                       </div>
-                                      <p className="font-bold text-lg">Drop audio to swap voice</p>
+                                      <p className="font-bold text-lg">
+                                        {form.watch('replacementFileName') || 'Drop audio to swap voice'}
+                                      </p>
                                   </div>
                               </FormItem>
                           )}/>
@@ -249,9 +268,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                 </div>
             </div>
 
-            <Button type="submit" disabled={isLoading || activeSubTab === 'replacement'} className="w-full h-16 text-xl rounded-2xl shadow-2xl shadow-primary/10 font-bold">
+            <Button type="submit" disabled={isLoading || (activeSubTab === 'replacement' && !isAdmin)} className="w-full h-16 text-xl rounded-2xl shadow-2xl shadow-primary/10 font-bold">
                 {isLoading ? <Loader2 className="animate-spin mr-2 h-6 w-6" /> : <Sparkles className="mr-2 h-6 w-6" />}
-                {activeSubTab === 'tts' ? 'Generate Audio' : 'Restricted'}
+                {activeSubTab === 'tts' || isAdmin ? 'Generate Audio' : 'Restricted'}
             </Button>
           </form>
         </Form>
