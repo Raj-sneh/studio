@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server';
 import { db } from '@/firebase/client';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, serverTimestamp, increment, Firestore } from 'firebase/firestore';
 
@@ -22,67 +23,70 @@ const couponValues: Record<string, number> = {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    if (!body) {
+       return NextResponse.json({ status: "invalid", message: "Invalid request body" }, { status: 400 });
+    }
+
     const { code, userId } = body;
 
     if (!code || !userId) {
-      return Response.json({ status: "invalid", message: "Missing code or user ID" }, { status: 400 });
+      return NextResponse.json({ status: "invalid", message: "Missing code or user ID" }, { status: 400 });
     }
 
     // Explicitly use the Firestore instance from our client singleton
     const firestore: Firestore = db;
 
-    // 1. Check if the coupon exists in our simple database
+    // 1. Check if the coupon exists
     const creditsToGrant = couponValues[code];
     if (!creditsToGrant) {
-      return Response.json({ status: "invalid", message: "That's not a valid coupon code." }, { status: 404 });
+      return NextResponse.json({ status: "invalid", message: "That's not a valid coupon code." }, { status: 404 });
     }
 
-    // 2. Access the user document in Firestore
+    // 2. Access the user document
     const userDocRef = doc(firestore, 'users', userId);
     const userDoc = await getDoc(userDocRef);
 
-    // 3. Handle if the user doc doesn't exist yet (e.g. first-time guest)
+    // 3. Handle if the user doc doesn't exist yet
     if (!userDoc.exists()) {
-      // Create a skeleton doc so we can track redemptions
       await setDoc(userDocRef, {
         id: userId,
         createdAt: serverTimestamp(),
         redeemedCoupons: [code],
-        credits: creditsToGrant + 5, // Give the base 5 credits + the coupon amount
+        credits: creditsToGrant + 5,
         displayName: 'Guest User',
         email: `guest_${userId}@example.com`
       });
 
-      return Response.json({
+      return NextResponse.json({
         status: "success",
         credits: creditsToGrant
       });
     }
 
-    // 4. Check if this specific user has already used THIS code
+    // 4. Check for double redemption
     const userData = userDoc.data();
     const redeemedCoupons = userData.redeemedCoupons || [];
 
     if (redeemedCoupons.includes(code)) {
-      return Response.json({ status: "used", message: "You've already used this coupon code." }, { status: 400 });
+      return NextResponse.json({ status: "used", message: "You've already used this coupon code." }, { status: 400 });
     }
 
-    // 5. Success: Add code to the list of redeemed coupons and increment credits
+    // 5. Success
     await updateDoc(userDocRef, {
       redeemedCoupons: arrayUnion(code),
       credits: increment(creditsToGrant)
     });
 
-    return Response.json({
+    return NextResponse.json({
       status: "success",
       credits: creditsToGrant
     });
 
   } catch (error: any) {
     console.error("Redemption API Error:", error);
-    return Response.json({ 
+    return NextResponse.json({ 
       status: "error", 
-      message: "Studio server is having a moment. Please try again in a bit." 
+      message: error.message || "An unexpected error occurred during redemption."
     }, { status: 500 });
   }
 }

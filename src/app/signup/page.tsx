@@ -274,7 +274,7 @@ export default function SignupPage() {
             <Form {...otpForm}>
               <form onSubmit={otpForm.handleSubmit(handleCreateAccount)} className="space-y-4">
                 <FormField
-                  control={otpSchema.control}
+                  control={otpForm.control}
                   name="otp"
                   render={({ field }) => (
                     <FormItem>
