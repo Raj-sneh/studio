@@ -7,6 +7,7 @@ import { generateArrangement } from './generate-arrangement-flow';
 import { textToSpeechFlow } from './text-to-speech-flow';
 import { GenerateSongInputSchema, GenerateSongOutputSchema, type GenerateSongInput, type GenerateSongOutput } from './lyrics-to-music-types';
 import { z } from 'zod';
+import { type VoiceOption } from './text-to-speech-types';
 
 // A simple tool to create a title for the song
 const generateTitlePrompt = ai.definePrompt({
@@ -64,8 +65,9 @@ const generateSongFlow = ai.defineFlow(
 
     const vocals = await textToSpeechFlow({
         text: lyrics,
-        voice: vocalStyle,
+        voice: vocalStyle as VoiceOption,
         sing: true,
+        language: 'en',
         rate: 'medium',
     });
 
