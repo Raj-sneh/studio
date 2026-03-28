@@ -1,6 +1,5 @@
-
 import { db } from '@/firebase/client';
-import { doc, getDoc, setDoc, updateDoc, arrayUnion, serverTimestamp, increment } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion, serverTimestamp, increment, Firestore } from 'firebase/firestore';
 
 /**
  * @fileOverview Secure Next.js API route for coupon redemption.
@@ -29,6 +28,9 @@ export async function POST(req: Request) {
       return Response.json({ status: "invalid", message: "Missing code or user ID" }, { status: 400 });
     }
 
+    // Explicitly use the Firestore instance from our client singleton
+    const firestore: Firestore = db;
+
     // 1. Check if the coupon exists in our simple database
     const creditsToGrant = couponValues[code];
     if (!creditsToGrant) {
@@ -36,7 +38,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Access the user document in Firestore
-    const userDocRef = doc(db, 'users', userId);
+    const userDocRef = doc(firestore, 'users', userId);
     const userDoc = await getDoc(userDocRef);
 
     // 3. Handle if the user doc doesn't exist yet (e.g. first-time guest)
