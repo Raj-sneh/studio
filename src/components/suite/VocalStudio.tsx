@@ -99,7 +99,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
           language: data.language,
           settings: { stability: 0.5, similarity_boost: 0.75 }
         });
-        setResult({ vocalUri: res.audioUri, title: "Neural Singer Master" });
+        setResult({ vocalUri: res.audioUri, title: "Simple" });
       } else {
         if (!data.text) {
           throw new Error("Please provide a synthesis script.");
@@ -109,7 +109,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
             voiceId: data.voice,
             settings: { stability: 0.5, similarity_boost: 0.75 }
         });
-        setResult({ vocalUri: res.audioUri, title: "Neural Vocal Synthesis" });
+        setResult({ vocalUri: res.audioUri, title: "Simple" });
       }
       toast({ title: "Mastering Complete", description: "Your AI track is ready." });
       onGenerate();
@@ -157,7 +157,6 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                     </TabsContent>
                     
                     <TabsContent value="replacement" className="mt-0 space-y-6 relative overflow-hidden rounded-[2rem]">
-                        {/* Diagonal Metal Chains Overlay */}
                         <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none opacity-30 select-none overflow-hidden">
                             <div className="absolute rotate-45 flex gap-4">
                                 {[...Array(20)].map((_, i) => <LinkIcon key={`c1-${i}`} className="h-8 w-8 text-primary stroke-[3px]" />)}
@@ -167,7 +166,6 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                             </div>
                         </div>
 
-                        {/* Restricted Message Overlay */}
                         <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-background/40 backdrop-blur-md pointer-events-none">
                             <div className="pointer-events-auto bg-card border border-primary/40 shadow-2xl p-6 rounded-[2rem] text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
                                 <div className="space-y-1">
@@ -186,7 +184,6 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                             </div>
                         </div>
 
-                        {/* Blurred/Grayed Content behind chains */}
                         <div className="grayscale opacity-40 blur-sm">
                           <FormField control={form.control} name="language" render={({ field }) => (
                               <FormItem>
@@ -260,7 +257,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
         </Form>
 
         {result && (
-            <Card className="p-10 bg-primary/5 border-primary/20 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-8 animate-in fade-in zoom-in-95 duration-500 shadow-xl border-2 mt-8">
+            <Card key={result.vocalUri} className="p-10 bg-primary/5 border-primary/20 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-8 animate-in fade-in zoom-in-95 duration-500 shadow-xl border-2 mt-8">
                 <div className="flex items-center gap-6">
                     <div className="h-16 w-16 bg-primary/20 rounded-2xl flex items-center justify-center shadow-inner">
                         <FileAudio className="text-primary h-8 w-8" />
@@ -270,13 +267,14 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                         <p className="text-muted-foreground">Mastered neural output from SKV AI Studio.</p>
                     </div>
                 </div>
-                <audio controls className="w-full sm:w-auto">
-                    <source src={result.vocalUri} type="audio/mpeg" />
-                </audio>
+                <div className="w-full sm:w-auto">
+                    <audio controls className="w-full" src={result.vocalUri}>
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
             </Card>
         )}
       </Tabs>
     </div>
   );
 }
-
