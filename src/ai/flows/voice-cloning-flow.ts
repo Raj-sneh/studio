@@ -117,6 +117,7 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Vocal
 
 /**
  * Polls the backend health endpoint until the neural engine is ready.
+ * Standardized on 127.0.0.1:1000 for studio internal communication.
  */
 async function waitForBackend() {
   const healthUrl = "http://127.0.0.1:1000/health";
@@ -269,8 +270,9 @@ const vocalReplacementFlow = ai.defineFlow(
         separateFormData.append('audio', inputBlob, 'input.wav');
 
         let separateResponse;
+        const separateUrl = `${engineUrl}/clone/separate`;
         try {
-            separateResponse = await fetch(`${engineUrl}/clone/separate`, {
+            separateResponse = await fetch(separateUrl, {
                 method: 'POST',
                 body: separateFormData
             });
@@ -279,9 +281,18 @@ const vocalReplacementFlow = ai.defineFlow(
             throw new Error(`Voice Engine (Python) is unreachable at ${engineUrl}. Ensure main.py is running on port 1000.`);
         }
 
-        const separateData = await separateResponse.json().catch(() => ({}));
+        // Robust response handling as requested
+        let separateData;
+        try {
+            separateData = await separateResponse.json();
+        } catch (e) {
+            const text = await separateResponse.text();
+            console.error("Non-JSON response:", text);
+            throw new Error("Server returned invalid response");
+        }
+
         if (!separateResponse.ok) {
-            throw new Error(separateData.error || `Separation engine failed with status ${separateResponse.status}.`);
+            throw new Error(separateData?.error || "Server error");
         }
         
         const { vocals, bgm } = separateData;
@@ -334,8 +345,15 @@ const vocalReplacementFlow = ai.defineFlow(
         }
 
         if (!mixResponse.ok) {
-            const errMix = await mixResponse.json().catch(() => ({}));
-            throw new Error(errMix.error || "Mixing failed. Ensure FFmpeg is installed on the Python backend.");
+            let errorData;
+            try {
+                errorData = await mixResponse.json();
+            } catch (e) {
+                const text = await mixResponse.text();
+                console.error("Non-JSON error response from mix:", text);
+                throw new Error("Mixing failed with invalid response");
+            }
+            throw new Error(errorData.error || "Mixing failed.");
         }
 
         const finalBuffer = Buffer.from(await mixResponse.arrayBuffer());
