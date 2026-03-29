@@ -1,4 +1,3 @@
-
 import os
 import sys
 import uuid
@@ -58,9 +57,17 @@ SUBSCRIPTIONS = {
     "pro": {"credits": 500, "price": 299},
 }
 
+# Source of truth for costs
+ACTION_COSTS = {
+    "melody": 5,
+    "vocal_studio": 2,
+    "vocal_swap": 10,
+    "voice_clone": 20
+}
+
 @app.get("/")
 def home():
-    return {"status": "Sargam Neural Engine Active", "version": "2.2.0"}
+    return {"status": "Sargam Neural Engine Active", "version": "2.3.0"}
 
 @app.get("/health")
 def health():
@@ -68,6 +75,7 @@ def health():
 
 @app.get("/credits/status/{user_id}")
 async def get_status(user_id: str):
+    """Pings user status and resets daily credits if necessary."""
     if not db:
         return JSONResponse(status_code=500, content={"error": "Database offline"})
     
@@ -88,15 +96,15 @@ async def get_status(user_id: str):
     if not last_reset:
         should_reset = True
     else:
-        if isinstance(last_reset, datetime):
-            last_reset_dt = last_reset
-        else:
+        # Normalize timestamp
+        last_reset_dt = last_reset
+        if not isinstance(last_reset, datetime):
             try:
-                # Firestore timestamps can be tricky in Python admin SDK
-                last_reset_dt = last_reset if isinstance(last_reset, datetime) else datetime.fromisoformat(str(last_reset))
+                last_reset_dt = datetime.fromisoformat(str(last_reset))
             except:
                 last_reset_dt = now
         
+        # Check if 24 hours passed
         if (now - last_reset_dt).days >= 1:
             should_reset = True
             
@@ -116,6 +124,7 @@ async def get_status(user_id: str):
 
 @app.post("/credits/use")
 async def use_credits(user_id: str = Body(..., embed=True), amount: int = Body(..., embed=True)):
+    """Deducts credits from user account."""
     if not db:
         return JSONResponse(status_code=500, content={"error": "Database offline"})
         
@@ -138,17 +147,17 @@ async def use_credits(user_id: str = Body(..., embed=True), amount: int = Body(.
 @app.post("/payments/create-order")
 async def create_order(user_id: str = Body(...), item_id: str = Body(...), type: str = Body(...)):
     """Creates a Razorpay order for a specific credit pack or subscription."""
-    amount = 0
+    amount_in_paise = 0
     if type == "pack":
-        amount = CREDIT_PACKS.get(item_id, {}).get("price", 0) * 100 # In paise
+        amount_in_paise = CREDIT_PACKS.get(item_id, {}).get("price", 0) * 100
     elif type == "plan":
-        amount = SUBSCRIPTIONS.get(item_id, {}).get("price", 0) * 100
+        amount_in_paise = SUBSCRIPTIONS.get(item_id, {}).get("price", 0) * 100
     
-    if amount == 0:
-        return JSONResponse(status_code=400, content={"error": "Invalid item"})
+    if amount_in_paise == 0:
+        return JSONResponse(status_code=400, content={"error": "Invalid item or zero price"})
 
-    data = {
-        "amount": amount,
+    order_data = {
+        "amount": amount_in_paise,
         "currency": "INR",
         "receipt": f"receipt_{uuid.uuid4().hex[:6]}",
         "notes": {
@@ -159,10 +168,11 @@ async def create_order(user_id: str = Body(...), item_id: str = Body(...), type:
     }
     
     try:
-        order = client.order.create(data=data)
+        order = client.order.create(data=order_data)
         return order
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        print(f"RAZORPAY ORDER ERROR: {e}")
+        return JSONResponse(status_code=500, content={"error": "Could not create Razorpay order"})
 
 @app.post("/payments/verify")
 async def verify_payment(
@@ -213,4 +223,7 @@ async def verify_payment(
 
 if __name__ == "__main__":
     import uvicorn
+    # Hidden folder for temp files to avoid Next.js watcher restarts
+    if not os.path.exists('.engine_temp'):
+        os.makedirs('.engine_temp')
     uvicorn.run(app, host="0.0.0.0", port=1000)

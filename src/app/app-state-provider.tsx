@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, type ReactNode, useState, useRef } from 'react';
@@ -46,11 +45,25 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  /**
+   * Daily Credit Sync: Pings the Python engine to handle daily credit resets.
+   */
+  const syncCreditsWithBackend = async (uid: string) => {
+    try {
+      await fetch(`http://127.0.0.1:1000/credits/status/${uid}`, { cache: 'no-store' });
+    } catch (e) {
+      console.warn("Credit sync failed: Backend might be offline.");
+    }
+  };
+
   useEffect(() => {
     if (!isFirebaseReady || !auth || !firestore) return;
 
     const handleUserSession = async () => {
       if (user) {
+        // Sync daily credits on every session start/refresh
+        syncCreditsWithBackend(user.uid);
+
         const userDocRef = doc(firestore, 'users', user.uid);
         try {
           const docSnap = await getDoc(userDocRef);
@@ -58,17 +71,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           if (docSnap.exists()) {
             const userProfile = docSnap.data();
             
-            // Sync photoURL if it exists in auth but not in firestore
             if (user.photoURL && userProfile.avatarUrl !== user.photoURL) {
               updateDoc(userDocRef, { avatarUrl: user.photoURL });
             }
 
-            // Sync credits for old users who might not have them
             if (userProfile.credits === undefined) {
               updateDoc(userDocRef, { credits: INITIAL_CREDITS });
             }
 
-            // Show modal if name is still generic
             if (
               (userProfile.displayName === 'Guest User' || userProfile.displayName === 'New User') &&
               !sessionStorage.getItem('welcomeModalShown')
@@ -77,13 +87,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
               sessionStorage.setItem('welcomeModalShown', 'true');
             }
           } else {
-             // New user creation
              const userData = {
               id: user.uid,
               displayName: user.displayName || 'Guest User',
               email: user.email || `guest_${user.uid}@example.com`,
               avatarUrl: user.photoURL || GUEST_AVATAR_URL,
               credits: INITIAL_CREDITS,
+              plan: 'free',
               createdAt: serverTimestamp(),
             };
             
@@ -98,11 +108,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           console.warn("Session retrieval failed:", e);
         }
       } else if (!isInitialSignInRef.current) {
-        // Prevent infinite sign-in loops
         isInitialSignInRef.current = true;
         initiateAnonymousSignIn(auth).catch((err) => {
           console.error("Anonymous sign-in failed:", err);
-          // Wait 2 seconds before allowing another attempt if it failed
           setTimeout(() => { isInitialSignInRef.current = false; }, 2000);
         });
       }
