@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
@@ -14,7 +13,7 @@ const PLANS = [
   {
     id: 'free',
     name: 'Free',
-    price: '₹0',
+    price: '0',
     description: 'Perfect for starters exploring sound.',
     icon: Zap,
     credits: '5 Credits / day',
@@ -30,7 +29,7 @@ const PLANS = [
   {
     id: 'creator',
     name: 'Creator',
-    price: '₹99',
+    price: '99',
     description: 'Unleash your creative potential.',
     icon: Sparkles,
     credits: '50 Credits / day',
@@ -48,7 +47,7 @@ const PLANS = [
   {
     id: 'pro',
     name: 'Pro',
-    price: '₹299',
+    price: '299',
     description: 'The definitive music research tools.',
     icon: Rocket,
     credits: '500 Credits / day',
@@ -90,11 +89,17 @@ export default function PricingPage() {
       const orderRes = await fetch('http://127.0.0.1:1000/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.uid, item_id: itemId, type })
+        body: JSON.stringify({ 
+          user_id: user.uid, 
+          item_id: itemId, 
+          type: type 
+        })
       });
 
       const orderData = await orderRes.json();
-      if (!orderRes.ok) throw new Error(orderData.error);
+      if (!orderRes.ok) {
+        throw new Error(orderData.error || "Failed to create order");
+      }
 
       // 2. Open Razorpay Checkout
       const options = {
@@ -105,25 +110,36 @@ export default function PricingPage() {
         description: type === 'plan' ? `Upgrade to ${itemId}` : `${itemId} Credits Pack`,
         order_id: orderData.id,
         handler: async function (response: any) {
-          // 3. Verify on backend
-          const verifyRes = await fetch('http://127.0.0.1:1000/payments/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              user_id: user.uid,
-              item_id: itemId,
-              type
-            })
-          });
+          setIsProcessing(itemId);
+          try {
+            // 3. Verify on backend
+            const verifyRes = await fetch('http://127.0.0.1:1000/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                user_id: user.uid,
+                item_id: itemId,
+                type: type
+              })
+            });
 
-          if (verifyRes.ok) {
-            toast({ title: "Success!", description: "Your account has been updated." });
-            router.refresh();
-          } else {
-            toast({ title: "Verification Failed", variant: "destructive" });
+            if (verifyRes.ok) {
+              toast({ title: "Success!", description: "Your account has been updated." });
+              router.refresh();
+              setTimeout(() => {
+                window.location.reload();
+              }, 1500);
+            } else {
+              const verifyData = await verifyRes.json();
+              throw new Error(verifyData.error || "Payment verification failed");
+            }
+          } catch (err: any) {
+            toast({ title: "Verification Failed", description: err.message, variant: "destructive" });
+          } finally {
+            setIsProcessing(null);
           }
         },
         prefill: {
@@ -133,6 +149,11 @@ export default function PricingPage() {
         theme: {
           color: "#00ffff",
         },
+        modal: {
+          ondismiss: function() {
+            setIsProcessing(null);
+          }
+        }
       };
 
       const rzp = new (window as any).Razorpay(options);
@@ -140,7 +161,6 @@ export default function PricingPage() {
 
     } catch (e: any) {
       toast({ title: "Payment Error", description: e.message, variant: "destructive" });
-    } finally {
       setIsProcessing(null);
     }
   };
@@ -174,7 +194,7 @@ export default function PricingPage() {
               </div>
               <CardDescription className="min-h-[40px]">{plan.description}</CardDescription>
               <div className="mt-6">
-                <span className="text-4xl font-black">{plan.price}</span>
+                <span className="text-4xl font-black">₹{plan.price}</span>
                 <span className="text-muted-foreground">/ mo</span>
               </div>
               <div className="mt-2 text-xs font-black text-primary uppercase tracking-widest bg-primary/10 w-fit px-3 py-1 rounded-full border border-primary/20">

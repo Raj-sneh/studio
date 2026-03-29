@@ -5,9 +5,10 @@ import subprocess
 import base64
 import razorpay
 from datetime import datetime, timezone
-from fastapi import FastAPI, UploadFile, File, Form, Body, Request
+from fastapi import FastAPI, UploadFile, File, Form, Body, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
 import firebase_admin
 from firebase_admin import credentials, firestore
 from dotenv import load_dotenv
@@ -28,10 +29,15 @@ except Exception as e:
 RAZOR_KEY_ID = os.environ.get("RAZORPAY_KEY_ID") or os.environ.get("NEXT_PUBLIC_RAZORPAY_KEY_ID", "rzp_test_placeholder")
 RAZOR_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "placeholder_secret")
 
-client = razorpay.Client(auth=(RAZOR_KEY_ID, RAZOR_KEY_SECRET))
+try:
+    client = razorpay.Client(auth=(RAZOR_KEY_ID, RAZOR_KEY_SECRET))
+except Exception as e:
+    print(f"RAZORPAY INIT ERROR: {e}")
+    client = None
 
 app = FastAPI()
 
+# Robust CORS Configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -57,21 +63,31 @@ SUBSCRIPTIONS = {
     "pro": {"credits": 500, "price": 299},
 }
 
-# Source of truth for costs
-ACTION_COSTS = {
-    "melody": 5,
-    "vocal_studio": 2,
-    "vocal_swap": 10,
-    "voice_clone": 20
-}
+# --- MODELS ---
+class UseCreditRequest(BaseModel):
+    user_id: str
+    amount: int
+
+class OrderRequest(BaseModel):
+    user_id: str
+    item_id: str
+    type: str
+
+class VerifyRequest(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+    user_id: str
+    item_id: str
+    type: str
 
 @app.get("/")
 def home():
-    return {"status": "Sargam Neural Engine Active", "version": "2.3.0"}
+    return {"status": "Sargam Neural Engine Active", "version": "2.3.1"}
 
 @app.get("/health")
 def health():
-    return {"ready": True, "database": db is not None}
+    return {"ready": True, "database": db is not None, "payments": client is not None}
 
 @app.get("/credits/status/{user_id}")
 async def get_status(user_id: str):
@@ -100,7 +116,11 @@ async def get_status(user_id: str):
         last_reset_dt = last_reset
         if not isinstance(last_reset, datetime):
             try:
-                last_reset_dt = datetime.fromisoformat(str(last_reset))
+                # Handle Firestore Timestamps vs ISO strings
+                if hasattr(last_reset, 'to_datetime'):
+                    last_reset_dt = last_reset.to_datetime()
+                else:
+                    last_reset_dt = datetime.fromisoformat(str(last_reset).replace('Z', '+00:00'))
             except:
                 last_reset_dt = now
         
@@ -123,12 +143,12 @@ async def get_status(user_id: str):
     }
 
 @app.post("/credits/use")
-async def use_credits(user_id: str = Body(..., embed=True), amount: int = Body(..., embed=True)):
+async def use_credits(req: UseCreditRequest):
     """Deducts credits from user account."""
     if not db:
         return JSONResponse(status_code=500, content={"error": "Database offline"})
         
-    user_ref = db.collection('users').document(user_id)
+    user_ref = db.collection('users').document(req.user_id)
     user_doc = user_ref.get()
     
     if not user_doc.exists:
@@ -136,22 +156,25 @@ async def use_credits(user_id: str = Body(..., embed=True), amount: int = Body(.
         
     current_credits = user_doc.to_dict().get('credits', 0)
     
-    if current_credits < amount:
+    if current_credits < req.amount:
         return JSONResponse(status_code=402, content={"error": "Insufficient credits"})
         
-    user_ref.update({'credits': current_credits - amount})
-    return {"status": "success", "remaining": current_credits - amount}
+    user_ref.update({'credits': current_credits - req.amount})
+    return {"status": "success", "remaining": current_credits - req.amount}
 
 # --- RAZORPAY ENDPOINTS ---
 
 @app.post("/payments/create-order")
-async def create_order(user_id: str = Body(...), item_id: str = Body(...), type: str = Body(...)):
+async def create_order(req: OrderRequest):
     """Creates a Razorpay order for a specific credit pack or subscription."""
+    if not client:
+        return JSONResponse(status_code=503, content={"error": "Razorpay service unavailable"})
+
     amount_in_paise = 0
-    if type == "pack":
-        amount_in_paise = CREDIT_PACKS.get(item_id, {}).get("price", 0) * 100
-    elif type == "plan":
-        amount_in_paise = SUBSCRIPTIONS.get(item_id, {}).get("price", 0) * 100
+    if req.type == "pack":
+        amount_in_paise = CREDIT_PACKS.get(req.item_id, {}).get("price", 0) * 100
+    elif req.type == "plan":
+        amount_in_paise = SUBSCRIPTIONS.get(req.item_id, {}).get("price", 0) * 100
     
     if amount_in_paise == 0:
         return JSONResponse(status_code=400, content={"error": "Invalid item or zero price"})
@@ -161,9 +184,9 @@ async def create_order(user_id: str = Body(...), item_id: str = Body(...), type:
         "currency": "INR",
         "receipt": f"receipt_{uuid.uuid4().hex[:6]}",
         "notes": {
-            "userId": user_id,
-            "itemId": item_id,
-            "type": type
+            "userId": req.user_id,
+            "itemId": req.item_id,
+            "type": req.type
         }
     }
     
@@ -172,49 +195,45 @@ async def create_order(user_id: str = Body(...), item_id: str = Body(...), type:
         return order
     except Exception as e:
         print(f"RAZORPAY ORDER ERROR: {e}")
-        return JSONResponse(status_code=500, content={"error": "Could not create Razorpay order"})
+        return JSONResponse(status_code=500, content={"error": f"Razorpay error: {str(e)}"})
 
 @app.post("/payments/verify")
-async def verify_payment(
-    razorpay_order_id: str = Body(...),
-    razorpay_payment_id: str = Body(...),
-    razorpay_signature: str = Body(...),
-    user_id: str = Body(...),
-    item_id: str = Body(...),
-    type: str = Body(...)
-):
+async def verify_payment(req: VerifyRequest):
     """Verifies Razorpay signature and updates user credits/plan."""
+    if not client:
+        return JSONResponse(status_code=503, content={"error": "Razorpay service unavailable"})
+
     params_dict = {
-        'razorpay_order_id': razorpay_order_id,
-        'razorpay_payment_id': razorpay_payment_id,
-        'razorpay_signature': razorpay_signature
+        'razorpay_order_id': req.razorpay_order_id,
+        'razorpay_payment_id': req.razorpay_payment_id,
+        'razorpay_signature': req.razorpay_signature
     }
 
     try:
         client.utility.verify_payment_signature(params_dict)
     except Exception:
-        return JSONResponse(status_code=400, content={"error": "Invalid signature"})
+        return JSONResponse(status_code=400, content={"error": "Invalid payment signature"})
 
     if not db:
         return JSONResponse(status_code=500, content={"error": "Database offline"})
 
-    user_ref = db.collection('users').document(user_id)
+    user_ref = db.collection('users').document(req.user_id)
     user_doc = user_ref.get()
     
     if not user_doc.exists:
         return JSONResponse(status_code=404, content={"error": "User not found"})
 
-    if type == "pack":
-        pack_data = CREDIT_PACKS.get(item_id)
+    if req.type == "pack":
+        pack_data = CREDIT_PACKS.get(req.item_id)
         if pack_data:
             user_ref.update({
                 'credits': firestore.Increment(pack_data['credits'])
             })
-    elif type == "plan":
-        plan_data = SUBSCRIPTIONS.get(item_id)
+    elif req.type == "plan":
+        plan_data = SUBSCRIPTIONS.get(req.item_id)
         if plan_data:
             user_ref.update({
-                'plan': item_id,
+                'plan': req.item_id,
                 'credits': plan_data['credits'],
                 'lastReset': datetime.now(timezone.utc)
             })
