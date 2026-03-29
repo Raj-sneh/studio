@@ -249,5 +249,6 @@ async def verify_payment(req: VerifyRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    # Using Port 8081 as Port 1000 is a privileged port often blocked locally
-    uvicorn.run(app, host="0.0.0.0", port=8081)
+    # Using Port 8080 as the standardized backend port
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)

@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 
 /**
- * Proxy route for checking credit status and triggering daily resets.
+ * Proxy route for checking credit status via the Python backend on 127.0.0.1:8080.
  */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -13,7 +13,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const response = await fetch(`http://localhost:8081/credits/status/${userId}`, {
+    const response = await fetch(`http://127.0.0.1:8080/credits/status/${userId}`, {
       cache: 'no-store'
     });
     
