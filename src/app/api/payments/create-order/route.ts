@@ -3,13 +3,16 @@ import { NextResponse } from 'next/server';
 
 /**
  * Proxy route for creating a Razorpay order via the Python backend.
- * Targets the internal Python server on localhost:8080.
+ * Uses NEURAL_ENGINE_URL environment variable with fallback to localhost.
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    const response = await fetch('http://localhost:8080/payments/create-order', {
+    // Support for both uppercase and lowercase env variables as requested
+    const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.neural_engine_url || "http://localhost:8080";
+    
+    const response = await fetch(`${baseUrl}/payments/create-order`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -29,7 +32,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Proxy create-order error:", error);
     return NextResponse.json(
-        { error: `Could not connect to the Neural Engine: ${error.message || 'fetch failed'}. Ensure the Python server is running on port 8080.` }, 
+        { error: `Could not connect to the Neural Engine: ${error.message || 'fetch failed'}.` }, 
         { status: 500 }
     );
   }

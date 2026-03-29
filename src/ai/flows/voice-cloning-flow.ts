@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash) + ElevenLabs.
@@ -116,10 +117,11 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Vocal
 
 /**
  * Polling logic to wait for the neural engine to finish warming up.
- * Standardized on localhost:1000 for studio internal communication.
  */
 async function waitForBackend() {
-  const healthUrl = "http://localhost:1000/health";
+  const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.neural_engine_url || "http://localhost:8080";
+  const healthUrl = `${baseUrl}/health`;
+  
   while (true) {
     try {
       const res = await fetch(healthUrl, { cache: 'no-store' });
@@ -178,7 +180,6 @@ const voiceCloningFlow = ai.defineFlow(
     });
 
     console.log("Status:", response.status);
-    console.log("Headers:", response.headers);
 
     let data;
     try {
@@ -236,9 +237,6 @@ const speakWithCloneFlow = ai.defineFlow(
             }),
         });
 
-        console.log("Status:", response.status);
-        console.log("Headers:", response.headers);
-
         if (!response.ok) {
             let errorData;
             try {
@@ -272,7 +270,7 @@ const vocalReplacementFlow = ai.defineFlow(
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
-        const engineUrl = 'http://localhost:1000';
+        const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.neural_engine_url || "http://localhost:8080";
 
         // 0. WAIT FOR NEURAL WARM-UP
         await waitForBackend();
@@ -287,14 +285,12 @@ const vocalReplacementFlow = ai.defineFlow(
 
         let separateResponse;
         try {
-            separateResponse = await fetch(`${engineUrl}/clone/separate`, {
+            separateResponse = await fetch(`${baseUrl}/separate`, {
                 method: 'POST',
                 body: separateFormData
             });
-            console.log("Status (Separate):", separateResponse.status);
-            console.log("Headers (Separate):", separateResponse.headers);
         } catch (err) {
-            throw new Error(`Voice Engine is unreachable at ${engineUrl}. Ensure main.py is running on port 1000.`);
+            throw new Error(`Voice Engine is unreachable. Ensure the Python server is running.`);
         }
 
         let separateData;
@@ -335,9 +331,6 @@ const vocalReplacementFlow = ai.defineFlow(
             body: stsFormData,
         });
 
-        console.log("Status (STS):", stsResponse.status);
-        console.log("Headers (STS):", stsResponse.headers);
-
         if (!stsResponse.ok) {
             let stsError;
             try {
@@ -361,12 +354,10 @@ const vocalReplacementFlow = ai.defineFlow(
 
         let mixResponse;
         try {
-            mixResponse = await fetch(`${engineUrl}/mix`, {
+            mixResponse = await fetch(`${baseUrl}/mix`, {
                 method: 'POST',
                 body: mixFormData
             });
-            console.log("Status (Mix):", mixResponse.status);
-            console.log("Headers (Mix):", mixResponse.headers);
         } catch (err) {
             throw new Error("Failed to connect to Voice Engine for final mastering stage.");
         }

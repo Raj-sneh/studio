@@ -3,11 +3,15 @@ import { NextResponse } from 'next/server';
 
 /**
  * Proxy route for verifying a Razorpay payment via the Python backend.
+ * Uses NEURAL_ENGINE_URL environment variable.
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const response = await fetch('http://localhost:8080/payments/verify', {
+    
+    const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.neural_engine_url || "http://localhost:8080";
+
+    const response = await fetch(`${baseUrl}/payments/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

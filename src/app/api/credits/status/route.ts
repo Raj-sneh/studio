@@ -2,7 +2,8 @@
 import { NextResponse } from 'next/server';
 
 /**
- * Proxy route for checking credit status via the Python backend on localhost:8080.
+ * Proxy route for checking credit status via the Python backend.
+ * Uses NEURAL_ENGINE_URL environment variable.
  */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -13,7 +14,9 @@ export async function GET(req: Request) {
   }
 
   try {
-    const response = await fetch(`http://localhost:8080/credits/status/${userId}`, {
+    const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.neural_engine_url || "http://localhost:8080";
+
+    const response = await fetch(`${baseUrl}/credits/status/${userId}`, {
       cache: 'no-store'
     });
     
