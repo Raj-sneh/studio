@@ -90,8 +90,8 @@ export default function PricingPage() {
     const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
 
     try {
-      // 1. Create order by calling the Python URL directly
-      const orderRes = await fetch(`${baseUrl}/api/payments/create-order`, {
+      // 1. Create order by calling your NEW Python URL directly (Now with CORS)
+      const orderRes = await fetch(`${baseUrl}/api/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -119,7 +119,7 @@ export default function PricingPage() {
           setIsProcessing(itemId);
           try {
             // 3. Verify directly via the Python backend
-            const verifyRes = await fetch(`${baseUrl}/api/payments/verify`, {
+            const verifyRes = await fetch(`${baseUrl}/api/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

@@ -1,15 +1,10 @@
 
 import os
-import sys
 import uuid
-import subprocess
-import base64
 import razorpay
 from datetime import datetime, timezone
-from fastapi import FastAPI, UploadFile, File, Form, Body, Request, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel
+from flask import Flask, jsonify, request
+from flask_cors import CORS
 import firebase_admin
 from firebase_admin import credentials, firestore
 from dotenv import load_dotenv
@@ -17,22 +12,18 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# 1. Initialize Firebase Admin with Robust Logic
-try:
-    if not firebase_admin._apps:
-        # This checks if we are on Cloud Run or local
-        if os.environ.get("K_SERVICE"): 
-            # We are on Cloud Run: Use default credentials
-            firebase_admin.initialize_app()
-        else:
-            # We are in Studio/Local: Explicitly specify the project ID
-            firebase_admin.initialize_app(options={
-                'projectId': 'studio-4164192500-df01a',
-            })
-    db = firestore.client()
-except Exception as e:
-    print(f"FIREBASE ADMIN ERROR: {e}")
-    db = None
+# 1. Initialize Firebase with Robust Logic (Studio/Cloud Run compatible)
+if not firebase_admin._apps:
+    # This checks if we are on Cloud Run or local
+    if os.environ.get("K_SERVICE"): 
+        # We are on Cloud Run: Use default credentials
+        firebase_admin.initialize_app()
+    else:
+        # We are in Studio/Local: Explicitly specify the project ID
+        firebase_admin.initialize_app(options={
+            'projectId': 'studio-4164192500-df01a',
+        })
+db = firestore.client()
 
 # 2. Initialize Razorpay
 RAZOR_KEY_ID = os.environ.get("RAZORPAY_KEY_ID") or os.environ.get("NEXT_PUBLIC_RAZORPAY_KEY_ID", "rzp_test_placeholder")
@@ -44,16 +35,9 @@ except Exception as e:
     print(f"RAZORPAY INIT ERROR: {e}")
     client = None
 
-app = FastAPI()
-
-# Robust CORS Configuration for direct browser access
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = Flask(__name__)
+# This allows your Next.js site to talk to this Python server directly
+CORS(app) 
 
 PLAN_LIMITS = {
     "free": 5,
@@ -72,43 +56,25 @@ SUBSCRIPTIONS = {
     "pro": {"credits": 500, "price": 299},
 }
 
-# --- MODELS ---
-class UseCreditRequest(BaseModel):
-    user_id: str
-    amount: int
-
-class OrderRequest(BaseModel):
-    user_id: str
-    item_id: str
-    type: str
-
-class VerifyRequest(BaseModel):
-    razorpay_order_id: str
-    razorpay_payment_id: str
-    razorpay_signature: str
-    user_id: str
-    item_id: str
-    type: str
-
-@app.get("/")
+@app.route("/")
 def home():
-    return {"status": "Sargam Neural Engine Active", "version": "2.3.1"}
+    return jsonify({"status": "Sargam Neural Engine Active", "version": "2.4.0"})
 
-@app.get("/health")
+@app.route("/health")
 def health():
-    return {"ready": True, "database": db is not None, "payments": client is not None}
+    return jsonify({"ready": True, "database": db is not None, "payments": client is not None})
 
-@app.get("/api/credits/status/{user_id}")
-async def get_status(user_id: str):
+@app.route("/api/credits/status/<user_id>", methods=['GET'])
+def get_status(user_id):
     """Pings user status and resets daily credits if necessary."""
     if not db:
-        return JSONResponse(status_code=500, content={"error": "Database offline"})
+        return jsonify({"error": "Database offline"}), 500
     
     user_ref = db.collection('users').document(user_id)
     user_doc = user_ref.get()
     
     if not user_doc.exists:
-        return JSONResponse(status_code=404, content={"error": "User not found"})
+        return jsonify({"error": "User not found"}), 404
     
     data = user_doc.to_dict()
     plan = data.get('plan', 'free')
@@ -141,117 +107,127 @@ async def get_status(user_id: str):
             'lastReset': now
         })
         
-    return {
+    return jsonify({
         "userId": user_id,
         "plan": plan,
         "credits": credits,
         "limit": PLAN_LIMITS.get(plan)
-    }
+    })
 
-@app.post("/api/credits/use")
-async def use_credits(req: UseCreditRequest):
+@app.route("/api/credits/use", methods=['POST'])
+def use_credits():
     """Deducts credits from user account."""
     if not db:
-        return JSONResponse(status_code=500, content={"error": "Database offline"})
+        return jsonify({"error": "Database offline"}), 500
         
-    user_ref = db.collection('users').document(req.user_id)
+    req = request.json
+    user_id = req.get('user_id')
+    amount = req.get('amount')
+
+    user_ref = db.collection('users').document(user_id)
     user_doc = user_ref.get()
     
     if not user_doc.exists:
-        return JSONResponse(status_code=404, content={"error": "User not found"})
+        return jsonify({"error": "User not found"}), 404
         
     current_credits = user_doc.to_dict().get('credits', 0)
     
-    if current_credits < req.amount:
-        return JSONResponse(status_code=402, content={"error": "Insufficient credits"})
+    if current_credits < amount:
+        return jsonify({"error": "Insufficient credits"}), 402
         
-    user_ref.update({'credits': current_credits - req.amount})
-    return {"status": "success", "remaining": current_credits - req.amount}
+    user_ref.update({'credits': current_credits - amount})
+    return jsonify({"status": "success", "remaining": current_credits - amount})
 
-# --- RAZORPAY ENDPOINTS ---
-
-@app.post("/api/payments/create-order")
-async def create_order(req: OrderRequest):
+@app.route('/api/create-order', methods=['POST'])
+def create_order():
     """Creates a Razorpay order for a specific credit pack or subscription."""
     if not client:
-        return JSONResponse(status_code=503, content={"error": "Razorpay service unavailable on server"})
+        return jsonify({"error": "Razorpay service unavailable"}), 503
+
+    req = request.json
+    user_id = req.get('user_id')
+    item_id = req.get('item_id')
+    order_type = req.get('type') # 'pack' or 'plan'
 
     amount_in_paise = 0
-    if req.type == "pack":
-        item = CREDIT_PACKS.get(req.item_id)
-        if not item:
-            return JSONResponse(status_code=400, content={"error": f"Invalid Pack ID: {req.item_id}"})
-        amount_in_paise = item["price"] * 100
-    elif req.type == "plan":
-        item = SUBSCRIPTIONS.get(req.item_id)
-        if not item:
-            return JSONResponse(status_code=400, content={"error": f"Invalid Plan ID: {req.item_id}"})
-        amount_in_paise = item["price"] * 100
+    if order_type == "pack":
+        item = CREDIT_PACKS.get(item_id)
+        if item:
+            amount_in_paise = item["price"] * 100
+    elif order_type == "plan":
+        item = SUBSCRIPTIONS.get(item_id)
+        if item:
+            amount_in_paise = item["price"] * 100
     
     if amount_in_paise == 0:
-        return JSONResponse(status_code=400, content={"error": "Invalid item or zero price configured"})
+        return jsonify({"error": "Invalid item or zero price configured"}), 400
 
     order_data = {
         "amount": amount_in_paise,
         "currency": "INR",
         "receipt": f"receipt_{uuid.uuid4().hex[:6]}",
         "notes": {
-            "userId": req.user_id,
-            "itemId": req.item_id,
-            "type": req.type
+            "userId": user_id,
+            "itemId": item_id,
+            "type": order_type
         }
     }
     
     try:
         order = client.order.create(data=order_data)
-        return order
+        return jsonify(order)
     except Exception as e:
         print(f"RAZORPAY ORDER ERROR: {e}")
-        return JSONResponse(status_code=500, content={"error": f"Razorpay API error: {str(e)}"})
+        return jsonify({"error": f"Razorpay API error: {str(e)}"}), 500
 
-@app.post("/api/payments/verify")
-async def verify_payment(req: VerifyRequest):
+@app.route('/api/verify', methods=['POST'])
+def verify_payment():
     """Verifies Razorpay signature and updates user credits/plan."""
     if not client:
-        return JSONResponse(status_code=503, content={"error": "Razorpay service unavailable"})
+        return jsonify({"error": "Razorpay service unavailable"}), 503
 
+    req = request.json
     params_dict = {
-        'razorpay_order_id': req.razorpay_order_id,
-        'razorpay_payment_id': req.razorpay_payment_id,
-        'razorpay_signature': req.razorpay_signature
+        'razorpay_order_id': req.get('razorpay_order_id'),
+        'razorpay_payment_id': req.get('razorpay_payment_id'),
+        'razorpay_signature': req.get('razorpay_signature')
     }
 
     try:
         client.utility.verify_payment_signature(params_dict)
     except Exception:
-        return JSONResponse(status_code=400, content={"error": "Invalid payment signature"})
+        return jsonify({"error": "Invalid payment signature"}), 400
 
     if not db:
-        return JSONResponse(status_code=500, content={"error": "Database offline"})
+        return jsonify({"error": "Database offline"}), 500
 
-    user_ref = db.collection('users').document(req.user_id)
+    user_id = req.get('user_id')
+    item_id = req.get('item_id')
+    order_type = req.get('type')
+
+    user_ref = db.collection('users').document(user_id)
     user_doc = user_ref.get()
     
     if not user_doc.exists:
-        return JSONResponse(status_code=404, content={"error": "User not found"})
+        return jsonify({"error": "User not found"}), 404
 
-    if req.type == "pack":
-        pack_data = CREDIT_PACKS.get(req.item_id)
+    if order_type == "pack":
+        pack_data = CREDIT_PACKS.get(item_id)
         if pack_data:
             user_ref.update({
                 'credits': firestore.Increment(pack_data['credits'])
             })
-    elif req.type == "plan":
-        plan_data = SUBSCRIPTIONS.get(req.item_id)
+    elif order_type == "plan":
+        plan_data = SUBSCRIPTIONS.get(item_id)
         if plan_data:
             user_ref.update({
-                'plan': req.item_id,
+                'plan': item_id,
                 'credits': plan_data['credits'],
                 'lastReset': datetime.now(timezone.utc)
             })
 
-    return {"status": "success", "message": "Payment verified and account updated"}
+    return jsonify({"status": "success", "message": "Payment verified and account updated"})
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
