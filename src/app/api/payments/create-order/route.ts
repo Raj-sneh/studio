@@ -1,14 +1,16 @@
+
 import { NextResponse } from 'next/server';
 
 /**
  * Proxy route for creating a Razorpay order via the Python backend.
  * Bypasses browser CORS and Mixed Content restrictions.
- * Now targets Port 8081 to avoid local privileged port restrictions.
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const response = await fetch('http://127.0.0.1:8081/payments/create-order', {
+    
+    // Using localhost:8081 for reliable internal loopback communication
+    const response = await fetch('http://localhost:8081/payments/create-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -24,6 +26,7 @@ export async function POST(req: Request) {
     return NextResponse.json(data);
   } catch (error: any) {
     console.error("Proxy create-order error:", error);
-    return NextResponse.json({ error: "Could not connect to the Neural Engine." }, { status: 500 });
+    // Explicit error message to help pinpoint connection failures
+    return NextResponse.json({ error: `Could not connect to the Neural Engine: ${error.message}` }, { status: 500 });
   }
 }
