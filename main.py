@@ -20,7 +20,15 @@ load_dotenv()
 # 1. Initialize Firebase Admin
 try:
     if not firebase_admin._apps:
-        firebase_admin.initialize_app()
+        # This checks if we are on Cloud Run or local
+        if os.environ.get("K_SERVICE"): 
+            # We are on Cloud Run: Use default credentials
+            firebase_admin.initialize_app()
+        else:
+            # We are in Studio/Local: Explicitly specify the project ID
+            firebase_admin.initialize_app(options={
+                'projectId': 'studio-4164192500-df01a',
+            })
     db = firestore.client()
 except Exception as e:
     print(f"FIREBASE ADMIN ERROR: {e}")
@@ -249,5 +257,5 @@ async def verify_payment(req: VerifyRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    # Standardizing on port 8080 for all backend operations.
+    # Consistently using port 8080 for all neural engine backend tasks.
     uvicorn.run(app, host="0.0.0.0", port=8080)
