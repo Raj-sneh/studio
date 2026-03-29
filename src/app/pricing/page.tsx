@@ -98,6 +98,7 @@ export default function PricingPage() {
       });
 
       const orderData = await orderRes.json();
+      
       if (!orderRes.ok) {
         throw new Error(orderData.error || `Payment initiation failed.`);
       }
