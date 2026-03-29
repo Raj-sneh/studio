@@ -119,7 +119,7 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Vocal
  * Polling logic to wait for the neural engine to finish warming up.
  */
 async function waitForBackend() {
-  const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.neural_engine_url || "http://localhost:8080";
+  const baseUrl = process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
   const healthUrl = `${baseUrl}/health`;
   
   while (true) {
@@ -270,7 +270,7 @@ const vocalReplacementFlow = ai.defineFlow(
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
-        const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.neural_engine_url || "http://localhost:8080";
+        const baseUrl = process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
 
         // 0. WAIT FOR NEURAL WARM-UP
         await waitForBackend();

@@ -9,8 +9,8 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    // Support for both uppercase and lowercase env variables as requested
-    const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.neural_engine_url || "http://localhost:8080";
+    // Strictly using uppercase environment variable as requested
+    const baseUrl = process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
     
     const response = await fetch(`${baseUrl}/payments/create-order`, {
       method: 'POST',

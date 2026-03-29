@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.neural_engine_url || "http://localhost:8080";
+    const baseUrl = process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
 
     const response = await fetch(`${baseUrl}/credits/status/${userId}`, {
       cache: 'no-store'
