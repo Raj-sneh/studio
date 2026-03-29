@@ -8,7 +8,8 @@ import soundfile as sf
 import uuid
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+# Enable CORS for all routes
+CORS(app)
 
 UPLOAD_FOLDER = 'temp_audio'
 if not os.path.exists(UPLOAD_FOLDER):
@@ -21,10 +22,6 @@ def home():
 @app.route('/separate', methods=['POST'])
 def separate():
     """Separates vocals from background music using HPSS."""
-
-@app.route('/download/<filename>')
-def download_file(filename):
-    return send_file(f'temp_audio/{filename}')
     try:
         audio = request.files.get("audio")
         if not audio:
@@ -38,8 +35,6 @@ def download_file(filename):
         y, sr = librosa.load(input_path, sr=None)
 
         # Harmonic-Percussive Source Separation (HPSS)
-        # In a real studio environment, this would be Spleeter or Demucs, 
-        # but HPSS is a solid library-native proxy for spectral separation.
         y_harmonic, y_percussive = librosa.effects.hpss(y)
 
         vocals_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_vocals.wav")
@@ -48,9 +43,6 @@ def download_file(filename):
         sf.write(vocals_path, y_harmonic, sr)
         sf.write(bgm_path, y_percussive, sr)
 
-        # Convert to data URIs or just return paths for internal use
-        # For this prototype, we return the audio files in a single zip or base64
-        # But to keep it simple for the Next.js flow, we return base64
         import base64
         with open(vocals_path, "rb") as f:
             vocals_b64 = base64.b64encode(f.read()).decode('utf-8')
@@ -89,8 +81,6 @@ def mix():
         bgm.save(b_path)
 
         # Use FFmpeg to mix and normalize
-        # -filter_complex amix: combine
-        # -ac 2: stereo
         subprocess.run([
             "ffmpeg", "-y", "-i", v_path, "-i", b_path,
             "-filter_complex", "amix=inputs=2:duration=longest",
@@ -101,9 +91,6 @@ def mix():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    finally:
-        # Cleanup occurs after send_file in a real app, but for now:
-        pass
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
