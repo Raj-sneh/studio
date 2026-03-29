@@ -251,4 +251,5 @@ if __name__ == "__main__":
     # Hidden folder for temp files to avoid Next.js watcher restarts
     if not os.path.exists('.engine_temp'):
         os.makedirs('.engine_temp')
-    uvicorn.run(app, host="0.0.0.0", port=1000)
+    # Using Port 8081 as Port 1000 is a privileged port often blocked locally
+    uvicorn.run(app, host="0.0.0.0", port=8081)
