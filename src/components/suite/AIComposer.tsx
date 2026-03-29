@@ -101,7 +101,7 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
 
         try {
             // 1. SECURE CREDIT CHECK IN BACKEND
-            const creditRes = await fetch('http://0.0.0.0:1000/credits/use', {
+            const creditRes = await fetch('http://localhost:1000/credits/use', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: user.uid, amount: MELODY_COST })

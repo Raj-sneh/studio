@@ -50,9 +50,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
    */
   const syncCreditsWithBackend = async (uid: string) => {
     try {
-      await fetch(`http://0.0.0.0:1000/credits/status/${uid}`, { cache: 'no-store' });
+      await fetch(`http://localhost:1000/credits/status/${uid}`, { cache: 'no-store' });
     } catch (e) {
-      console.warn("Credit sync failed: Could not connect to Neural Engine at 0.0.0.0:1000");
+      console.warn("Credit sync failed: Could not connect to Neural Engine at localhost:1000");
     }
   };
 

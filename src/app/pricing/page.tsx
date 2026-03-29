@@ -86,7 +86,7 @@ export default function PricingPage() {
     setIsProcessing(itemId);
     try {
       // 1. Create order on Python backend
-      const orderRes = await fetch('http://0.0.0.0:1000/payments/create-order', {
+      const orderRes = await fetch('http://localhost:1000/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -113,7 +113,7 @@ export default function PricingPage() {
           setIsProcessing(itemId);
           try {
             // 3. Verify on backend
-            const verifyRes = await fetch('http://0.0.0.0:1000/payments/verify', {
+            const verifyRes = await fetch('http://localhost:1000/payments/verify', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -167,7 +167,7 @@ export default function PricingPage() {
       console.error("Payment Initiation Error:", e);
       let errorMsg = e.message;
       if (e.message === 'Failed to fetch') {
-          errorMsg = "Could not connect to the Neural Engine (0.0.0.0:1000). Is your backend running?";
+          errorMsg = "Could not connect to the Neural Engine (localhost:1000). Is your backend running?";
       }
       toast({ title: "Payment Error", description: errorMsg, variant: "destructive" });
       setIsProcessing(null);

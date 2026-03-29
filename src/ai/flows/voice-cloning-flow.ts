@@ -116,10 +116,10 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Vocal
 
 /**
  * Polling logic to wait for the neural engine to finish warming up.
- * Standardized on 0.0.0.0:1000 for studio internal communication.
+ * Standardized on localhost:1000 for studio internal communication.
  */
 async function waitForBackend() {
-  const healthUrl = "http://0.0.0.0:1000/health";
+  const healthUrl = "http://localhost:1000/health";
   while (true) {
     try {
       const res = await fetch(healthUrl, { cache: 'no-store' });
@@ -272,7 +272,7 @@ const vocalReplacementFlow = ai.defineFlow(
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
-        const engineUrl = 'http://0.0.0.0:1000';
+        const engineUrl = 'http://localhost:1000';
 
         // 0. WAIT FOR NEURAL WARM-UP
         await waitForBackend();
