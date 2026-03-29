@@ -86,7 +86,7 @@ export default function PricingPage() {
     setIsProcessing(itemId);
     try {
       // 1. Create order on Python backend
-      const orderRes = await fetch('http://127.0.0.1:1000/payments/create-order', {
+      const orderRes = await fetch('http://0.0.0.0:1000/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -113,7 +113,7 @@ export default function PricingPage() {
           setIsProcessing(itemId);
           try {
             // 3. Verify on backend
-            const verifyRes = await fetch('http://127.0.0.1:1000/payments/verify', {
+            const verifyRes = await fetch('http://0.0.0.0:1000/payments/verify', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

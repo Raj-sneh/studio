@@ -50,7 +50,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
    */
   const syncCreditsWithBackend = async (uid: string) => {
     try {
-      await fetch(`http://127.0.0.1:1000/credits/status/${uid}`, { cache: 'no-store' });
+      await fetch(`http://0.0.0.0:1000/credits/status/${uid}`, { cache: 'no-store' });
     } catch (e) {
       console.warn("Credit sync failed: Backend might be offline.");
     }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -102,7 +101,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
       const cost = activeSubTab === 'replacement' ? SWAP_COST : TTS_COST;
 
       // 1. SECURE CREDIT CHECK
-      const creditRes = await fetch('http://127.0.0.1:1000/credits/use', {
+      const creditRes = await fetch('http://0.0.0.0:1000/credits/use', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.uid, amount: cost })
