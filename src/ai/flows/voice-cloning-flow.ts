@@ -118,20 +118,20 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Vocal
 /**
  * Polling logic to wait for the neural engine to finish warming up.
  */
-async function waitForBackend() {
-  const baseUrl = process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
+async function waitForBackend(baseUrl: string) {
   const healthUrl = `${baseUrl}/health`;
   
-  while (true) {
+  for (let i = 0; i < 10; i++) {
     try {
       const res = await fetch(healthUrl, { cache: 'no-store' });
       const data = await res.json();
-      if (data.ready) break;
+      if (data.ready) return;
     } catch (e) {
       // Server might not be up at all yet, continue polling
     }
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, 2000));
   }
+  throw new Error("Neural Engine (Python) is not responding. Please ensure the Python server is running.");
 }
 
 const voiceCloningFlow = ai.defineFlow(
@@ -179,14 +179,10 @@ const voiceCloningFlow = ai.defineFlow(
       body: formData,
     });
 
-    console.log("Status:", response.status);
-
     let data;
     try {
       data = await response.json();
     } catch (e) {
-      const text = await response.text();
-      console.error("Non-JSON response from ElevenLabs voices/add:", text);
       throw new Error("Voice synthesis service returned an invalid response.");
     }
 
@@ -242,8 +238,6 @@ const speakWithCloneFlow = ai.defineFlow(
             try {
                 errorData = await response.json();
             } catch (e) {
-                const errorText = await response.text();
-                console.error("Non-JSON error from ElevenLabs TTS:", errorText);
                 throw new Error(`TTS failed with status ${response.status}.`);
             }
             throw new Error(errorData.detail?.message || `TTS failed with status ${response.status}.`);
@@ -257,6 +251,7 @@ const speakWithCloneFlow = ai.defineFlow(
 
 /**
  * PRO PIPELINE: Separate -> Analyze -> Replace -> Mix
+ * Strictly targets the VOICE_ENGINE_URL (app.py) for separation/mixing.
  */
 const vocalReplacementFlow = ai.defineFlow(
     {
@@ -270,10 +265,12 @@ const vocalReplacementFlow = ai.defineFlow(
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
-        const baseUrl = process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
+        
+        // Voice Engine (app.py) might be on a different port than main.py
+        const baseUrl = process.env.VOICE_ENGINE_URL || process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
 
         // 0. WAIT FOR NEURAL WARM-UP
-        await waitForBackend();
+        await waitForBackend(baseUrl);
 
         // 1. SEPARATE (Vocals vs BGM)
         const separateFormData = new FormData();
@@ -283,27 +280,20 @@ const vocalReplacementFlow = ai.defineFlow(
         const inputBlob = new Blob([Buffer.from(base64Content, 'base64')], { type: 'audio/wav' });
         separateFormData.append('audio', inputBlob, 'input.wav');
 
-        let separateResponse;
-        try {
-            separateResponse = await fetch(`${baseUrl}/separate`, {
-                method: 'POST',
-                body: separateFormData
-            });
-        } catch (err) {
-            throw new Error(`Voice Engine is unreachable. Ensure the Python server is running.`);
-        }
+        let separateResponse = await fetch(`${baseUrl}/separate`, {
+            method: 'POST',
+            body: separateFormData
+        });
 
         let separateData;
         try {
             separateData = await separateResponse.json();
         } catch (e) {
-            const separateText = await separateResponse.text();
-            console.error("Non-JSON response from separation engine:", separateText);
             throw new Error("Neural separation engine returned an invalid response.");
         }
 
         if (!separateResponse.ok) {
-            throw new Error(separateData?.error || "Neural engine error. Please try again.");
+            throw new Error(separateData?.error || "Neural engine error during separation.");
         }
         
         const { vocals, bgm } = separateData;
@@ -336,8 +326,6 @@ const vocalReplacementFlow = ai.defineFlow(
             try {
                 stsError = await stsResponse.json();
             } catch (e) {
-                const errorText = await stsResponse.text();
-                console.error("Non-JSON error from ElevenLabs STS:", errorText);
                 throw new Error(`Vocal synthesis failed during neural transformation stage.`);
             }
             throw new Error(stsError.detail?.message || `Vocal synthesis failed during neural transformation stage.`);
@@ -352,23 +340,16 @@ const vocalReplacementFlow = ai.defineFlow(
         const bgmBlob = new Blob([Buffer.from(bgm.split(',')[1], 'base64')], { type: 'audio/wav' });
         mixFormData.append('bgm', bgmBlob, 'original_bgm.wav');
 
-        let mixResponse;
-        try {
-            mixResponse = await fetch(`${baseUrl}/mix`, {
-                method: 'POST',
-                body: mixFormData
-            });
-        } catch (err) {
-            throw new Error("Failed to connect to Voice Engine for final mastering stage.");
-        }
+        let mixResponse = await fetch(`${baseUrl}/mix`, {
+            method: 'POST',
+            body: mixFormData
+        });
 
         if (!mixResponse.ok) {
             let mixError;
             try {
                 mixError = await mixResponse.json();
             } catch (e) {
-                const mixText = await mixResponse.text();
-                console.error("Non-JSON response from mixing engine:", mixText);
                 throw new Error("Mastering engine returned an invalid response.");
             }
             throw new Error(mixError.error || "Mastering stage failed.");

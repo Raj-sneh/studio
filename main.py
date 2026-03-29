@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# 1. Initialize Firebase Admin
+# 1. Initialize Firebase Admin with Robust Logic
 try:
     if not firebase_admin._apps:
         # This checks if we are on Cloud Run or local
@@ -46,7 +46,7 @@ except Exception as e:
 
 app = FastAPI()
 
-# Robust CORS Configuration
+# Robust CORS Configuration for direct browser access
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -121,11 +121,9 @@ async def get_status(user_id: str):
     if not last_reset:
         should_reset = True
     else:
-        # Normalize timestamp
         last_reset_dt = last_reset
         if not isinstance(last_reset, datetime):
             try:
-                # Handle Firestore Timestamps vs ISO strings
                 if hasattr(last_reset, 'to_datetime'):
                     last_reset_dt = last_reset.to_datetime()
                 else:
@@ -133,7 +131,6 @@ async def get_status(user_id: str):
             except:
                 last_reset_dt = now
         
-        # Check if 24 hours passed
         if (now - last_reset_dt).days >= 1:
             should_reset = True
             
@@ -257,5 +254,4 @@ async def verify_payment(req: VerifyRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    # Consistently using port 8080 for all neural engine backend tasks.
     uvicorn.run(app, host="0.0.0.0", port=8080)

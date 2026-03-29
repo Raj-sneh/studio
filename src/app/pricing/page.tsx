@@ -85,9 +85,13 @@ export default function PricingPage() {
     if (itemId === 'free') return;
 
     setIsProcessing(itemId);
+    
+    // This ensures it uses the live URL on the web and localhost in Studio
+    const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
+
     try {
-      // 1. Create order via Next.js Proxy
-      const orderRes = await fetch('/api/payments/create-order', {
+      // 1. Create order by calling the Python URL directly
+      const orderRes = await fetch(`${baseUrl}/api/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -114,8 +118,8 @@ export default function PricingPage() {
         handler: async function (response: any) {
           setIsProcessing(itemId);
           try {
-            // 3. Verify via Next.js Proxy
-            const verifyRes = await fetch('/api/payments/verify', {
+            // 3. Verify directly via the Python backend
+            const verifyRes = await fetch(`${baseUrl}/api/payments/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -169,7 +173,7 @@ export default function PricingPage() {
       console.error("Payment Initiation Error:", e);
       toast({ 
         title: "Payment Error", 
-        description: e.message || "Could not connect to the payment gateway.", 
+        description: e.message || "Could not connect to the Neural Engine.", 
         variant: "destructive" 
       });
       setIsProcessing(null);

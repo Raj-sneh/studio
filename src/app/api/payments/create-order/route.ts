@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 /**
  * Proxy route for creating a Razorpay order via the Python backend.
- * Strictly uses NEURAL_ENGINE_URL environment variable and /api prefix.
+ * Explicitly uses the uppercase NEURAL_ENGINE_URL for internal routing.
  */
 export async function POST(req: Request) {
   try {

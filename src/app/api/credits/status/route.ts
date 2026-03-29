@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server';
 
 /**
  * Proxy route for checking credit status via the Python backend.
- * Strictly uses NEURAL_ENGINE_URL environment variable and /api prefix.
  */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
