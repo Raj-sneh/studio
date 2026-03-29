@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -9,10 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Loader2, Play, StopCircle, Sparkles, Mic2, Upload, FileAudio, Check, BrainCircuit, Globe, Music, Link as LinkIcon, Lock
+  Loader2, Play, StopCircle, Sparkles, Mic2, Upload, FileAudio, Check, BrainCircuit, Globe, Music, Link as LinkIcon, Lock, Zap
 } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -38,6 +38,8 @@ const DEFAULT_VOICES = [
 ];
 
 const ADMIN_EMAIL = 'snehkumarverma2011@gmail.com';
+const TTS_COST = 2;
+const SWAP_COST = 10;
 
 export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPrompt?: string | null; autogen?: boolean; onGenerate: () => void; }) {
   const { toast } = useToast();
@@ -87,11 +89,30 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
   };
 
   const handleRun = async (data: z.infer<typeof formSchema>) => {
+    if (!user) {
+        toast({ title: "Sign in required", variant: "destructive" });
+        return;
+    }
+
     setIsLoading(true);
     setResult(null);
     stopPlayback();
 
     try {
+      const cost = activeSubTab === 'replacement' ? SWAP_COST : TTS_COST;
+
+      // 1. SECURE CREDIT CHECK
+      const creditRes = await fetch('http://127.0.0.1:1000/credits/use', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.uid, amount: cost })
+      });
+
+      if (!creditRes.ok) {
+        const errorData = await creditRes.json();
+        throw new Error(errorData.error || "Insufficient credits.");
+      }
+
       if (activeSubTab === 'replacement') {
         if (!data.replacementAudio) {
           throw new Error("Please upload an audio file first.");
@@ -143,6 +164,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                 <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
                                     Enter Text
                                     <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary mr-4">
+                                            <Zap className="h-3 w-3 fill-primary" /> {TTS_COST} Credits
+                                        </div>
                                         <Globe className="h-3 w-3 text-primary" />
                                         <select 
                                             value={form.watch('language')} 
@@ -197,6 +221,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                               <FormItem>
                                   <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
                                       Song Language
+                                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary">
+                                          <Zap className="h-3 w-3 fill-primary" /> {SWAP_COST} Credits
+                                      </div>
                                   </FormLabel>
                                   <select 
                                       value={field.value}

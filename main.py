@@ -8,16 +8,14 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, UploadFile, File, Form, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-# 1. Initialize Firebase Admin (Required for secure server-side credit checks)
+# 1. Initialize Firebase Admin
 try:
     if not firebase_admin._apps:
-        # Use Application Default Credentials or look for service account
-        cred = credentials.ApplicationDefault()
-        firebase_admin.initialize_app(cred)
+        # For production/studio environments, this will use local credentials or environment variables
+        firebase_admin.initialize_app()
     db = firestore.client()
 except Exception as e:
     print(f"FIREBASE ADMIN ERROR: {e}")
@@ -33,10 +31,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-UPLOAD_FOLDER = ".temp_audio"
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-
 PLAN_LIMITS = {
     "free": 5,
     "creator": 50,
@@ -45,7 +39,11 @@ PLAN_LIMITS = {
 
 @app.get("/")
 def home():
-    return {"status": "Sargam Neural Engine Active", "version": "2.0.0"}
+    return {"status": "Sargam Neural Engine Active", "version": "2.1.0"}
+
+@app.get("/health")
+def health():
+    return {"ready": True, "database": db is not None}
 
 @app.get("/credits/status/{user_id}")
 async def get_status(user_id: str):
@@ -72,7 +70,14 @@ async def get_status(user_id: str):
         should_reset = True
     else:
         # Handle firestore timestamp conversion
-        last_reset_dt = last_reset if isinstance(last_reset, datetime) else datetime.fromisoformat(str(last_reset))
+        if isinstance(last_reset, datetime):
+            last_reset_dt = last_reset
+        else:
+            try:
+                last_reset_dt = datetime.fromisoformat(str(last_reset))
+            except:
+                last_reset_dt = now # Fallback
+        
         if (now - last_reset_dt).days >= 1:
             should_reset = True
             
@@ -91,7 +96,7 @@ async def get_status(user_id: str):
     }
 
 @app.post("/credits/use")
-async def use_credits(user_id: str = Body(...), amount: int = Body(...)):
+async def use_credits(user_id: str = Body(..., embed=True), amount: int = Body(..., embed=True)):
     """Securely deducts credits from a user account."""
     if not db:
         return JSONResponse(status_code=500, content={"error": "Database offline"})
@@ -105,7 +110,7 @@ async def use_credits(user_id: str = Body(...), amount: int = Body(...)):
     current_credits = user_doc.to_dict().get('credits', 0)
     
     if current_credits < amount:
-        return JSONResponse(status_code=402, content={"error": "Insufficient credits"})
+        return JSONResponse(status_code=402, content={"error": f"Insufficient credits. Need {amount}, have {current_credits}"})
         
     user_ref.update({
         'credits': current_credits - amount
@@ -114,11 +119,14 @@ async def use_credits(user_id: str = Body(...), amount: int = Body(...)):
     return {"status": "success", "remaining": current_credits - amount}
 
 @app.post("/credits/upgrade")
-async def upgrade_plan(user_id: str = Body(...), plan: str = Body(...)):
+async def upgrade_plan(user_id: str = Body(..., embed=True), plan: str = Body(..., embed=True)):
     """Upgrades a user to a premium plan."""
     if plan not in PLAN_LIMITS:
         return JSONResponse(status_code=400, content={"error": "Invalid plan"})
         
+    if not db:
+        return JSONResponse(status_code=500, content={"error": "Database offline"})
+
     user_ref = db.collection('users').document(user_id)
     user_ref.update({
         'plan': plan,
