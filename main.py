@@ -11,6 +11,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 import firebase_admin
 from firebase_admin import credentials, firestore
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # 1. Initialize Firebase Admin
 try:
@@ -21,8 +25,8 @@ except Exception as e:
     print(f"FIREBASE ADMIN ERROR: {e}")
     db = None
 
-# 2. Initialize Razorpay (Add your keys to .env)
-RAZOR_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "rzp_test_placeholder")
+# 2. Initialize Razorpay
+RAZOR_KEY_ID = os.environ.get("RAZORPAY_KEY_ID") or os.environ.get("NEXT_PUBLIC_RAZORPAY_KEY_ID", "rzp_test_placeholder")
 RAZOR_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "placeholder_secret")
 
 client = razorpay.Client(auth=(RAZOR_KEY_ID, RAZOR_KEY_SECRET))
@@ -88,7 +92,8 @@ async def get_status(user_id: str):
             last_reset_dt = last_reset
         else:
             try:
-                last_reset_dt = datetime.fromisoformat(str(last_reset))
+                # Firestore timestamps can be tricky in Python admin SDK
+                last_reset_dt = last_reset if isinstance(last_reset, datetime) else datetime.fromisoformat(str(last_reset))
             except:
                 last_reset_dt = now
         
@@ -189,8 +194,6 @@ async def verify_payment(
     if not user_doc.exists:
         return JSONResponse(status_code=404, content={"error": "User not found"})
 
-    current_data = user_doc.to_dict()
-    
     if type == "pack":
         pack_data = CREDIT_PACKS.get(item_id)
         if pack_data:
