@@ -2,12 +2,12 @@
 import { NextResponse } from 'next/server';
 
 /**
- * Proxy route for deducting credits via the Python backend on 127.0.0.1:8080.
+ * Proxy route for deducting credits via the Python backend on localhost:8080.
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const response = await fetch('http://127.0.0.1:8080/credits/use', {
+    const response = await fetch('http://localhost:8080/credits/use', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
