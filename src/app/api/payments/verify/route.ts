@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const response = await fetch('http://localhost:1000/payments/verify', {
+    const response = await fetch('http://127.0.0.1:1000/payments/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
