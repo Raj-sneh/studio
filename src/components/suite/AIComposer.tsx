@@ -51,7 +51,6 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
     const partRef = useRef<Tone.Part | null>(null);
     const holdIntervalRef = useRef<any>(null);
     const isHoldingRef = useRef(false);
-    const initialAutoRunDone = useRef(false);
 
     const sortedNotes = useMemo(() => {
         if (!generatedMelody || !generatedMelody.notes) return [];
@@ -100,8 +99,8 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
         setStatusText('Checking credits...');
 
         try {
-            // 1. SECURE CREDIT CHECK IN BACKEND
-            const creditRes = await fetch('http://localhost:1000/credits/use', {
+            // 1. SECURE CREDIT CHECK via Next.js Proxy
+            const creditRes = await fetch('/api/credits/use', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: user.uid, amount: MELODY_COST })
@@ -149,7 +148,6 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
         }
     }, [prompt, feedbackComment, toast, stopPlayback, onGenerate, user, firestore]);
 
-    const highlightedLearnKeys = currentNote ? [currentNote.key] : [];
     const lessonNoteStringsForDisplay = useMemo(() => sortedNotes.map(n => n.key), [sortedNotes]);
 
     return (

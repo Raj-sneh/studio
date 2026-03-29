@@ -100,8 +100,8 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
     try {
       const cost = activeSubTab === 'replacement' ? SWAP_COST : TTS_COST;
 
-      // 1. SECURE CREDIT CHECK
-      const creditRes = await fetch('http://localhost:1000/credits/use', {
+      // 1. SECURE CREDIT CHECK via Next.js Proxy
+      const creditRes = await fetch('/api/credits/use', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.uid, amount: cost })

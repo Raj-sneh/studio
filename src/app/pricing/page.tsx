@@ -85,8 +85,8 @@ export default function PricingPage() {
 
     setIsProcessing(itemId);
     try {
-      // 1. Create order on Python backend
-      const orderRes = await fetch('http://localhost:1000/payments/create-order', {
+      // 1. Create order via Next.js Proxy
+      const orderRes = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -98,7 +98,7 @@ export default function PricingPage() {
 
       const orderData = await orderRes.json();
       if (!orderRes.ok) {
-        throw new Error(orderData.error || `Server Error (${orderRes.status}): Could not create order.`);
+        throw new Error(orderData.error || `Server Error: Could not create order.`);
       }
 
       // 2. Open Razorpay Checkout
@@ -112,8 +112,8 @@ export default function PricingPage() {
         handler: async function (response: any) {
           setIsProcessing(itemId);
           try {
-            // 3. Verify on backend
-            const verifyRes = await fetch('http://localhost:1000/payments/verify', {
+            // 3. Verify via Next.js Proxy
+            const verifyRes = await fetch('/api/payments/verify', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -134,7 +134,7 @@ export default function PricingPage() {
               }, 1500);
             } else {
               const verifyData = await verifyRes.json();
-              throw new Error(verifyData.error || "Payment verification failed on server.");
+              throw new Error(verifyData.error || "Payment verification failed.");
             }
           } catch (err: any) {
             toast({ title: "Verification Failed", description: err.message, variant: "destructive" });
@@ -157,7 +157,7 @@ export default function PricingPage() {
       };
 
       if (typeof (window as any).Razorpay === 'undefined') {
-          throw new Error("Razorpay script not loaded. Please check your internet connection.");
+          throw new Error("Razorpay script not loaded.");
       }
 
       const rzp = new (window as any).Razorpay(options);
@@ -165,11 +165,7 @@ export default function PricingPage() {
 
     } catch (e: any) {
       console.error("Payment Initiation Error:", e);
-      let errorMsg = e.message;
-      if (e.message === 'Failed to fetch') {
-          errorMsg = "Could not connect to the Neural Engine (localhost:1000). Is your backend running?";
-      }
-      toast({ title: "Payment Error", description: errorMsg, variant: "destructive" });
+      toast({ title: "Payment Error", description: e.message, variant: "destructive" });
       setIsProcessing(null);
     }
   };

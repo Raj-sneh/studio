@@ -46,13 +46,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * Daily Credit Sync: Pings the Python engine to handle daily credit resets.
+   * Daily Credit Sync: Pings the proxy engine to handle daily credit resets via Python backend.
    */
   const syncCreditsWithBackend = async (uid: string) => {
     try {
-      await fetch(`http://localhost:1000/credits/status/${uid}`, { cache: 'no-store' });
+      // Calling Next.js Proxy instead of direct localhost
+      await fetch(`/api/credits/status?userId=${uid}`, { cache: 'no-store' });
     } catch (e) {
-      console.warn("Credit sync failed: Could not connect to Neural Engine at localhost:1000");
+      console.warn("Credit sync failed: Could not connect to internal Neural Engine proxy.");
     }
   };
 
