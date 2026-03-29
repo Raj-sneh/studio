@@ -52,7 +52,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     try {
       await fetch(`http://0.0.0.0:1000/credits/status/${uid}`, { cache: 'no-store' });
     } catch (e) {
-      console.warn("Credit sync failed: Backend might be offline.");
+      console.warn("Credit sync failed: Could not connect to Neural Engine at 0.0.0.0:1000");
     }
   };
 

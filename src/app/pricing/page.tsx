@@ -98,7 +98,7 @@ export default function PricingPage() {
 
       const orderData = await orderRes.json();
       if (!orderRes.ok) {
-        throw new Error(orderData.error || "Failed to create order");
+        throw new Error(orderData.error || `Server Error (${orderRes.status}): Could not create order.`);
       }
 
       // 2. Open Razorpay Checkout
@@ -134,7 +134,7 @@ export default function PricingPage() {
               }, 1500);
             } else {
               const verifyData = await verifyRes.json();
-              throw new Error(verifyData.error || "Payment verification failed");
+              throw new Error(verifyData.error || "Payment verification failed on server.");
             }
           } catch (err: any) {
             toast({ title: "Verification Failed", description: err.message, variant: "destructive" });
@@ -156,18 +156,27 @@ export default function PricingPage() {
         }
       };
 
+      if (typeof (window as any).Razorpay === 'undefined') {
+          throw new Error("Razorpay script not loaded. Please check your internet connection.");
+      }
+
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
 
     } catch (e: any) {
-      toast({ title: "Payment Error", description: e.message, variant: "destructive" });
+      console.error("Payment Initiation Error:", e);
+      let errorMsg = e.message;
+      if (e.message === 'Failed to fetch') {
+          errorMsg = "Could not connect to the Neural Engine (0.0.0.0:1000). Is your backend running?";
+      }
+      toast({ title: "Payment Error", description: errorMsg, variant: "destructive" });
       setIsProcessing(null);
     }
   };
 
   return (
     <div className="space-y-16 pb-20">
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <h1 className="font-headline text-5xl font-bold tracking-tight text-foreground">Premium Access</h1>

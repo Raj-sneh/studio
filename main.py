@@ -168,16 +168,22 @@ async def use_credits(req: UseCreditRequest):
 async def create_order(req: OrderRequest):
     """Creates a Razorpay order for a specific credit pack or subscription."""
     if not client:
-        return JSONResponse(status_code=503, content={"error": "Razorpay service unavailable"})
+        return JSONResponse(status_code=503, content={"error": "Razorpay service unavailable on server"})
 
     amount_in_paise = 0
     if req.type == "pack":
-        amount_in_paise = CREDIT_PACKS.get(req.item_id, {}).get("price", 0) * 100
+        item = CREDIT_PACKS.get(req.item_id)
+        if not item:
+            return JSONResponse(status_code=400, content={"error": f"Invalid Pack ID: {req.item_id}"})
+        amount_in_paise = item["price"] * 100
     elif req.type == "plan":
-        amount_in_paise = SUBSCRIPTIONS.get(req.item_id, {}).get("price", 0) * 100
+        item = SUBSCRIPTIONS.get(req.item_id)
+        if not item:
+            return JSONResponse(status_code=400, content={"error": f"Invalid Plan ID: {req.item_id}"})
+        amount_in_paise = item["price"] * 100
     
     if amount_in_paise == 0:
-        return JSONResponse(status_code=400, content={"error": "Invalid item or zero price"})
+        return JSONResponse(status_code=400, content={"error": "Invalid item or zero price configured"})
 
     order_data = {
         "amount": amount_in_paise,
@@ -195,7 +201,7 @@ async def create_order(req: OrderRequest):
         return order
     except Exception as e:
         print(f"RAZORPAY ORDER ERROR: {e}")
-        return JSONResponse(status_code=500, content={"error": f"Razorpay error: {str(e)}"})
+        return JSONResponse(status_code=500, content={"error": f"Razorpay API error: {str(e)}"})
 
 @app.post("/payments/verify")
 async def verify_payment(req: VerifyRequest):
