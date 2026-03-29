@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Check, Zap, Sparkles, Rocket, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,7 +99,7 @@ export default function PricingPage() {
 
       const orderData = await orderRes.json();
       if (!orderRes.ok) {
-        throw new Error(orderData.error || `Server Error: Could not create order.`);
+        throw new Error(orderData.error || `Payment initiation failed.`);
       }
 
       // 2. Open Razorpay Checkout
@@ -157,7 +158,7 @@ export default function PricingPage() {
       };
 
       if (typeof (window as any).Razorpay === 'undefined') {
-          throw new Error("Razorpay script not loaded.");
+          throw new Error("Razorpay script not loaded. Please refresh and try again.");
       }
 
       const rzp = new (window as any).Razorpay(options);
@@ -165,7 +166,11 @@ export default function PricingPage() {
 
     } catch (e: any) {
       console.error("Payment Initiation Error:", e);
-      toast({ title: "Payment Error", description: e.message, variant: "destructive" });
+      toast({ 
+        title: "Payment Error", 
+        description: e.message || "Could not connect to the payment gateway.", 
+        variant: "destructive" 
+      });
       setIsProcessing(null);
     }
   };
