@@ -4,8 +4,9 @@ import sys
 import uuid
 import subprocess
 import base64
+import razorpay
 from datetime import datetime, timezone
-from fastapi import FastAPI, UploadFile, File, Form, Body
+from fastapi import FastAPI, UploadFile, File, Form, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 import firebase_admin
@@ -14,12 +15,17 @@ from firebase_admin import credentials, firestore
 # 1. Initialize Firebase Admin
 try:
     if not firebase_admin._apps:
-        # For production/studio environments, this will use local credentials or environment variables
         firebase_admin.initialize_app()
     db = firestore.client()
 except Exception as e:
     print(f"FIREBASE ADMIN ERROR: {e}")
     db = None
+
+# 2. Initialize Razorpay (Add your keys to .env)
+RAZOR_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "rzp_test_placeholder")
+RAZOR_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "placeholder_secret")
+
+client = razorpay.Client(auth=(RAZOR_KEY_ID, RAZOR_KEY_SECRET))
 
 app = FastAPI()
 
@@ -37,9 +43,20 @@ PLAN_LIMITS = {
     "pro": 500
 }
 
+CREDIT_PACKS = {
+    "pack_20": {"credits": 20, "price": 10},
+    "pack_120": {"credits": 120, "price": 50},
+    "pack_300": {"credits": 300, "price": 100},
+}
+
+SUBSCRIPTIONS = {
+    "creator": {"credits": 50, "price": 99},
+    "pro": {"credits": 500, "price": 299},
+}
+
 @app.get("/")
 def home():
-    return {"status": "Sargam Neural Engine Active", "version": "2.1.0"}
+    return {"status": "Sargam Neural Engine Active", "version": "2.2.0"}
 
 @app.get("/health")
 def health():
@@ -47,7 +64,6 @@ def health():
 
 @app.get("/credits/status/{user_id}")
 async def get_status(user_id: str):
-    """Gets user plan and handles daily credit reset logic."""
     if not db:
         return JSONResponse(status_code=500, content={"error": "Database offline"})
     
@@ -62,21 +78,19 @@ async def get_status(user_id: str):
     credits = data.get('credits', 0)
     last_reset = data.get('lastReset')
     
-    # Check if reset is needed (Once per 24h)
     now = datetime.now(timezone.utc)
     should_reset = False
     
     if not last_reset:
         should_reset = True
     else:
-        # Handle firestore timestamp conversion
         if isinstance(last_reset, datetime):
             last_reset_dt = last_reset
         else:
             try:
                 last_reset_dt = datetime.fromisoformat(str(last_reset))
             except:
-                last_reset_dt = now # Fallback
+                last_reset_dt = now
         
         if (now - last_reset_dt).days >= 1:
             should_reset = True
@@ -97,7 +111,6 @@ async def get_status(user_id: str):
 
 @app.post("/credits/use")
 async def use_credits(user_id: str = Body(..., embed=True), amount: int = Body(..., embed=True)):
-    """Securely deducts credits from a user account."""
     if not db:
         return JSONResponse(status_code=500, content={"error": "Database offline"})
         
@@ -110,31 +123,90 @@ async def use_credits(user_id: str = Body(..., embed=True), amount: int = Body(.
     current_credits = user_doc.to_dict().get('credits', 0)
     
     if current_credits < amount:
-        return JSONResponse(status_code=402, content={"error": f"Insufficient credits. Need {amount}, have {current_credits}"})
+        return JSONResponse(status_code=402, content={"error": "Insufficient credits"})
         
-    user_ref.update({
-        'credits': current_credits - amount
-    })
-    
+    user_ref.update({'credits': current_credits - amount})
     return {"status": "success", "remaining": current_credits - amount}
 
-@app.post("/credits/upgrade")
-async def upgrade_plan(user_id: str = Body(..., embed=True), plan: str = Body(..., embed=True)):
-    """Upgrades a user to a premium plan."""
-    if plan not in PLAN_LIMITS:
-        return JSONResponse(status_code=400, content={"error": "Invalid plan"})
-        
+# --- RAZORPAY ENDPOINTS ---
+
+@app.post("/payments/create-order")
+async def create_order(user_id: str = Body(...), item_id: str = Body(...), type: str = Body(...)):
+    """Creates a Razorpay order for a specific credit pack or subscription."""
+    amount = 0
+    if type == "pack":
+        amount = CREDIT_PACKS.get(item_id, {}).get("price", 0) * 100 # In paise
+    elif type == "plan":
+        amount = SUBSCRIPTIONS.get(item_id, {}).get("price", 0) * 100
+    
+    if amount == 0:
+        return JSONResponse(status_code=400, content={"error": "Invalid item"})
+
+    data = {
+        "amount": amount,
+        "currency": "INR",
+        "receipt": f"receipt_{uuid.uuid4().hex[:6]}",
+        "notes": {
+            "userId": user_id,
+            "itemId": item_id,
+            "type": type
+        }
+    }
+    
+    try:
+        order = client.order.create(data=data)
+        return order
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.post("/payments/verify")
+async def verify_payment(
+    razorpay_order_id: str = Body(...),
+    razorpay_payment_id: str = Body(...),
+    razorpay_signature: str = Body(...),
+    user_id: str = Body(...),
+    item_id: str = Body(...),
+    type: str = Body(...)
+):
+    """Verifies Razorpay signature and updates user credits/plan."""
+    params_dict = {
+        'razorpay_order_id': razorpay_order_id,
+        'razorpay_payment_id': razorpay_payment_id,
+        'razorpay_signature': razorpay_signature
+    }
+
+    try:
+        client.utility.verify_payment_signature(params_dict)
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid signature"})
+
     if not db:
         return JSONResponse(status_code=500, content={"error": "Database offline"})
 
     user_ref = db.collection('users').document(user_id)
-    user_ref.update({
-        'plan': plan,
-        'credits': PLAN_LIMITS[plan],
-        'lastReset': datetime.now(timezone.utc)
-    })
+    user_doc = user_ref.get()
     
-    return {"status": "success", "plan": plan}
+    if not user_doc.exists:
+        return JSONResponse(status_code=404, content={"error": "User not found"})
+
+    current_data = user_doc.to_dict()
+    
+    if type == "pack":
+        pack_data = CREDIT_PACKS.get(item_id)
+        if pack_data:
+            user_ref.update({
+                'credits': firestore.Increment(pack_data['credits'])
+            })
+    elif type == "plan":
+        plan_data = SUBSCRIPTIONS.get(item_id)
+        if plan_data:
+            user_ref.update({
+                'plan': item_id,
+                'credits': plan_data['credits'],
+                'lastReset': datetime.now(timezone.utc)
+            })
+
+    return {"status": "success", "message": "Payment verified and account updated"}
 
 if __name__ == "__main__":
     import uvicorn

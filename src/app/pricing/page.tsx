@@ -1,12 +1,14 @@
 
 'use client';
 
-import { Check, Zap, Sparkles, Rocket, ArrowRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Check, Zap, Sparkles, Rocket, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
+import Script from 'next/script';
 
 const PLANS = [
   {
@@ -62,43 +64,95 @@ const PLANS = [
   }
 ];
 
+const PACKS = [
+    { id: 'pack_20', credits: 20, price: 10 },
+    { id: 'pack_120', credits: 120, price: 50 },
+    { id: 'pack_300', credits: 300, price: 100 },
+];
+
 export default function PricingPage() {
   const { user } = useUser();
   const router = useRouter();
   const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
-  const handleUpgrade = async (planId: string) => {
+  const handlePayment = async (itemId: string, type: 'plan' | 'pack') => {
     if (!user) {
       router.push('/login');
       return;
     }
 
-    if (planId === 'free') return;
+    if (itemId === 'free') return;
 
+    setIsProcessing(itemId);
     try {
-      // In a real app, this would redirect to Razorpay or Stripe
-      // For this prototype, we call our backend directly
-      const res = await fetch('http://127.0.0.1:1000/credits/upgrade', {
+      // 1. Create order on Python backend
+      const orderRes = await fetch('http://127.0.0.1:1000/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.uid, plan: planId })
+        body: JSON.stringify({ user_id: user.uid, item_id: itemId, type })
       });
 
-      if (res.ok) {
-        toast({ title: "Plan Upgraded!", description: `You are now on the ${planId} plan.` });
-        router.refresh();
-      }
-    } catch (e) {
-      toast({ title: "Error", description: "Payment processing failed.", variant: "destructive" });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error);
+
+      // 2. Open Razorpay Checkout
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder",
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "Sargam AI",
+        description: type === 'plan' ? `Upgrade to ${itemId}` : `${itemId} Credits Pack`,
+        order_id: orderData.id,
+        handler: async function (response: any) {
+          // 3. Verify on backend
+          const verifyRes = await fetch('http://127.0.0.1:1000/payments/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              user_id: user.uid,
+              item_id: itemId,
+              type
+            })
+          });
+
+          if (verifyRes.ok) {
+            toast({ title: "Success!", description: "Your account has been updated." });
+            router.refresh();
+          } else {
+            toast({ title: "Verification Failed", variant: "destructive" });
+          }
+        },
+        prefill: {
+          name: user.displayName || "User",
+          email: user.email || "",
+        },
+        theme: {
+          color: "#00ffff",
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+
+    } catch (e: any) {
+      toast({ title: "Payment Error", description: e.message, variant: "destructive" });
+    } finally {
+      setIsProcessing(null);
     }
   };
 
   return (
     <div className="space-y-16 pb-20">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+      
       <div className="text-center max-w-3xl mx-auto space-y-4">
-        <h1 className="font-headline text-5xl font-bold tracking-tight">Flexible Pricing</h1>
-        <p className="text-xl text-muted-foreground">
-          Empower your musical journey with neural innovation. Choose the plan that fits your creative scale.
+        <h1 className="font-headline text-5xl font-bold tracking-tight text-foreground">Premium Access</h1>
+        <p className="text-xl text-muted-foreground leading-relaxed">
+          Scale your creative output with advanced neural tools and high-fidelity synthesis.
         </p>
       </div>
 
@@ -106,7 +160,7 @@ export default function PricingPage() {
         {PLANS.map((plan) => (
           <Card 
             key={plan.id} 
-            className={`relative flex flex-col h-full border-primary/10 bg-card/50 backdrop-blur-sm transition-all hover:-translate-y-2 hover:shadow-2xl ${plan.popular ? 'border-primary ring-2 ring-primary/20' : ''}`}
+            className={`relative flex flex-col h-full border-primary/10 bg-card/50 backdrop-blur-md transition-all hover:-translate-y-2 hover:shadow-2xl ${plan.popular ? 'border-primary ring-2 ring-primary/20' : ''}`}
           >
             {plan.popular && (
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest">
@@ -116,14 +170,14 @@ export default function PricingPage() {
             <CardHeader className="p-8">
               <div className="flex items-center gap-2 mb-2">
                 <plan.icon className={`h-6 w-6 ${plan.color}`} />
-                <CardTitle className="text-2xl font-headline">{plan.name}</CardTitle>
+                <CardTitle className="text-2xl font-headline font-bold">{plan.name}</CardTitle>
               </div>
               <CardDescription className="min-h-[40px]">{plan.description}</CardDescription>
               <div className="mt-6">
                 <span className="text-4xl font-black">{plan.price}</span>
-                <span className="text-muted-foreground">/ month</span>
+                <span className="text-muted-foreground">/ mo</span>
               </div>
-              <div className="mt-2 text-sm font-bold text-primary uppercase tracking-wider">
+              <div className="mt-2 text-xs font-black text-primary uppercase tracking-widest bg-primary/10 w-fit px-3 py-1 rounded-full border border-primary/20">
                 {plan.credits}
               </div>
             </CardHeader>
@@ -139,41 +193,47 @@ export default function PricingPage() {
             </CardContent>
             <CardFooter className="p-8 pt-0">
               <Button 
-                onClick={() => handleUpgrade(plan.id)}
+                onClick={() => handlePayment(plan.id, 'plan')}
+                disabled={isProcessing === plan.id}
                 className="w-full h-12 rounded-xl font-bold text-lg"
                 variant={plan.popular ? 'default' : 'outline'}
               >
-                {plan.buttonText}
+                {isProcessing === plan.id ? <Loader2 className="animate-spin h-5 w-5" /> : plan.buttonText}
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
 
-      {/* Credit Packs Section */}
       <section className="max-w-4xl mx-auto px-4 pt-10">
         <div className="text-center space-y-4 mb-10">
-          <h2 className="text-3xl font-bold font-headline">Need more credits?</h2>
-          <p className="text-muted-foreground">Instant credit top-ups for your urgent projects.</p>
+          <h2 className="text-3xl font-bold font-headline">Credit Top-ups</h2>
+          <p className="text-muted-foreground">Instant neural research allocation for urgent projects.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <Button variant="outline" className="h-24 flex flex-col rounded-2xl border-primary/10 hover:bg-primary/5">
-             <span className="text-lg font-black text-primary">₹10</span>
-             <span className="text-xs text-muted-foreground">20 Credits</span>
-          </Button>
-          <Button variant="outline" className="h-24 flex flex-col rounded-2xl border-primary/10 hover:bg-primary/5 ring-2 ring-primary/20">
-             <span className="text-lg font-black text-primary">₹50</span>
-             <span className="text-xs text-muted-foreground">120 Credits</span>
-          </Button>
-          <Button variant="outline" className="h-24 flex flex-col rounded-2xl border-primary/10 hover:bg-primary/5">
-             <span className="text-lg font-black text-primary">₹100</span>
-             <span className="text-xs text-muted-foreground">300 Credits</span>
-          </Button>
+          {PACKS.map(pack => (
+            <Button 
+              key={pack.id}
+              variant="outline" 
+              onClick={() => handlePayment(pack.id, 'pack')}
+              disabled={isProcessing === pack.id}
+              className="h-24 flex flex-col gap-1 rounded-2xl border-primary/10 hover:bg-primary/5 transition-all group"
+            >
+               {isProcessing === pack.id ? (
+                 <Loader2 className="animate-spin h-6 w-6" />
+               ) : (
+                 <>
+                   <span className="text-2xl font-black text-primary group-hover:scale-110 transition-transform">₹{pack.price}</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{pack.credits} Neural Credits</span>
+                 </>
+               )}
+            </Button>
+          ))}
         </div>
       </section>
 
-      <div className="text-center text-xs text-muted-foreground italic">
-        * Credits reset at 00:00 UTC every day. Unused daily credits do not carry over.
+      <div className="text-center text-[10px] text-muted-foreground italic uppercase tracking-widest opacity-50">
+        * Neural allocations reset at 00:00 UTC. One-time packs do not expire.
       </div>
     </div>
   );
