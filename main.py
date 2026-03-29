@@ -90,7 +90,7 @@ def home():
 def health():
     return {"ready": True, "database": db is not None, "payments": client is not None}
 
-@app.get("/credits/status/{user_id}")
+@app.get("/api/credits/status/{user_id}")
 async def get_status(user_id: str):
     """Pings user status and resets daily credits if necessary."""
     if not db:
@@ -143,7 +143,7 @@ async def get_status(user_id: str):
         "limit": PLAN_LIMITS.get(plan)
     }
 
-@app.post("/credits/use")
+@app.post("/api/credits/use")
 async def use_credits(req: UseCreditRequest):
     """Deducts credits from user account."""
     if not db:
@@ -165,7 +165,7 @@ async def use_credits(req: UseCreditRequest):
 
 # --- RAZORPAY ENDPOINTS ---
 
-@app.post("/payments/create-order")
+@app.post("/api/payments/create-order")
 async def create_order(req: OrderRequest):
     """Creates a Razorpay order for a specific credit pack or subscription."""
     if not client:
@@ -204,7 +204,7 @@ async def create_order(req: OrderRequest):
         print(f"RAZORPAY ORDER ERROR: {e}")
         return JSONResponse(status_code=500, content={"error": f"Razorpay API error: {str(e)}"})
 
-@app.post("/payments/verify")
+@app.post("/api/payments/verify")
 async def verify_payment(req: VerifyRequest):
     """Verifies Razorpay signature and updates user credits/plan."""
     if not client:

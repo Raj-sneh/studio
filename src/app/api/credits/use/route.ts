@@ -1,8 +1,9 @@
+
 import { NextResponse } from 'next/server';
 
 /**
  * Proxy route for deducting credits via the Python backend.
- * Strictly uses NEURAL_ENGINE_URL environment variable.
+ * Strictly uses NEURAL_ENGINE_URL environment variable and /api prefix.
  */
 export async function POST(req: Request) {
   try {
@@ -10,7 +11,7 @@ export async function POST(req: Request) {
     
     const baseUrl = process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
 
-    const response = await fetch(`${baseUrl}/credits/use`, {
+    const response = await fetch(`${baseUrl}/api/credits/use`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
