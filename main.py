@@ -4,40 +4,27 @@ import sys
 import uuid
 import subprocess
 import base64
-import argparse
-from fastapi import FastAPI, UploadFile, File, Form
+from datetime import datetime, timezone
+from fastapi import FastAPI, UploadFile, File, Form, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+import firebase_admin
+from firebase_admin import credentials, firestore
 
-# 1. Robust module loading system
+# 1. Initialize Firebase Admin (Required for secure server-side credit checks)
 try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    print("WARNING: 'python-dotenv' not found.")
-    load_dotenv = None
-
-try:
-    import librosa
-    import numpy as np
-    import soundfile as sf
-except ImportError:
-    print("WARNING: 'librosa' or 'soundfile' not found. Neural features will be unavailable.")
-    librosa = None
-
-try:
-    from elevenlabs.client import ElevenLabs
-except ImportError:
-    print("WARNING: 'elevenlabs' not found. Voice synthesis will be unavailable.")
-    ElevenLabs = None
-
-# Track if the neural engine (librosa) is fully loaded
-model_loaded = librosa is not None
+    if not firebase_admin._apps:
+        # Use Application Default Credentials or look for service account
+        cred = credentials.ApplicationDefault()
+        firebase_admin.initialize_app(cred)
+    db = firestore.client()
+except Exception as e:
+    print(f"FIREBASE ADMIN ERROR: {e}")
+    db = None
 
 app = FastAPI()
 
-# 2. Enable CORS for local studio development
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -46,133 +33,101 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. Setup Temp Folder - Move to a hidden folder to avoid triggering Next.js restarts
 UPLOAD_FOLDER = ".temp_audio"
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-app.mount("/temp_audio", StaticFiles(directory=UPLOAD_FOLDER), name="temp_audio")
-
-# 4. Initialize AI Client
-API_KEY = os.getenv("ELEVENLABS_API_KEY")
-elevenlabs = ElevenLabs(api_key=API_KEY) if ElevenLabs and API_KEY else None
+PLAN_LIMITS = {
+    "free": 5,
+    "creator": 50,
+    "pro": 500
+}
 
 @app.get("/")
 def home():
-    return {
-        "status": "Sargam AI Voice Engine is active", 
-        "port": 1000,
-        "elevenlabs_active": elevenlabs is not None,
-        "librosa_active": librosa is not None
-    }
+    return {"status": "Sargam Neural Engine Active", "version": "2.0.0"}
 
-@app.get("/health")
-def health():
-    return {
-        "status": "ok",
-        "ready": model_loaded
-    }
-
-@app.post("/tts")
-async def tts(text: str = Form(...)):
-    if not elevenlabs:
-        return JSONResponse(status_code=503, content={"error": "ElevenLabs client not initialized."})
-    try:
-        audio = elevenlabs.text_to_speech.convert(
-            text=text,
-            voice_id="JBFqnCBsd6RMkjVDRZzb",
-            model_id="eleven_multilingual_v2",
-            output_format="mp3_44100_128",
-        )
-
-        filename = f"{uuid.uuid4()}.mp3"
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-
-        with open(filepath, "wb") as f:
-            for chunk in audio:
-                f.write(chunk)
-
-        return {"audio_url": f"/temp_audio/{filename}"}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-@app.post("/clone/separate")
-async def separate(audio: UploadFile = File(...)):
-    """Separates vocals from background music."""
-    if not librosa:
-        return JSONResponse(status_code=503, content={"error": "Neural engine is still initializing. Please wait 30 seconds."})
+@app.get("/credits/status/{user_id}")
+async def get_status(user_id: str):
+    """Gets user plan and handles daily credit reset logic."""
+    if not db:
+        return JSONResponse(status_code=500, content={"error": "Database offline"})
     
-    try:
-        task_id = str(uuid.uuid4())
-        input_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_input.wav")
+    user_ref = db.collection('users').document(user_id)
+    user_doc = user_ref.get()
+    
+    if not user_doc.exists:
+        return JSONResponse(status_code=404, content={"error": "User not found"})
+    
+    data = user_doc.to_dict()
+    plan = data.get('plan', 'free')
+    credits = data.get('credits', 0)
+    last_reset = data.get('lastReset')
+    
+    # Check if reset is needed (Once per 24h)
+    now = datetime.now(timezone.utc)
+    should_reset = False
+    
+    if not last_reset:
+        should_reset = True
+    else:
+        # Handle firestore timestamp conversion
+        last_reset_dt = last_reset if isinstance(last_reset, datetime) else datetime.fromisoformat(str(last_reset))
+        if (now - last_reset_dt).days >= 1:
+            should_reset = True
+            
+    if should_reset:
+        credits = PLAN_LIMITS.get(plan, 5)
+        user_ref.update({
+            'credits': credits,
+            'lastReset': now
+        })
         
-        content = await audio.read()
-        with open(input_path, "wb") as buffer:
-            buffer.write(content)
+    return {
+        "userId": user_id,
+        "plan": plan,
+        "credits": credits,
+        "limit": PLAN_LIMITS.get(plan)
+    }
 
-        # Load and process
-        y, sr = librosa.load(input_path, sr=None)
-        y_harmonic, y_percussive = librosa.effects.hpss(y)
+@app.post("/credits/use")
+async def use_credits(user_id: str = Body(...), amount: int = Body(...)):
+    """Securely deducts credits from a user account."""
+    if not db:
+        return JSONResponse(status_code=500, content={"error": "Database offline"})
+        
+    user_ref = db.collection('users').document(user_id)
+    user_doc = user_ref.get()
+    
+    if not user_doc.exists:
+        return JSONResponse(status_code=404, content={"error": "User not found"})
+        
+    current_credits = user_doc.to_dict().get('credits', 0)
+    
+    if current_credits < amount:
+        return JSONResponse(status_code=402, content={"error": "Insufficient credits"})
+        
+    user_ref.update({
+        'credits': current_credits - amount
+    })
+    
+    return {"status": "success", "remaining": current_credits - amount}
 
-        vocals_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_vocals.wav")
-        bgm_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_bgm.wav")
-
-        sf.write(vocals_path, y_harmonic, sr)
-        sf.write(bgm_path, y_percussive, sr)
-
-        with open(vocals_path, "rb") as f:
-            vocals_b64 = base64.b64encode(f.read()).decode('utf-8')
-        with open(bgm_path, "rb") as f:
-            bgm_b64 = base64.b64encode(f.read()).decode('utf-8')
-
-        # Cleanup
-        os.remove(input_path)
-        os.remove(vocals_path)
-        os.remove(bgm_path)
-
-        return {
-            "vocals": f"data:audio/wav;base64,{vocals_b64}",
-            "bgm": f"data:audio/wav;base64,{bgm_b64}"
-        }
-    except Exception as e:
-        print(f"Separation error: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={"error": f"Neural separation failed: {str(e)}"}
-        )
-
-@app.post("/mix")
-async def mix(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
-    """Mixes audio tracks using FFmpeg."""
-    try:
-        task_id = str(uuid.uuid4())
-        v_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_v.wav")
-        b_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_b.wav")
-        out_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_master.mp3")
-
-        with open(v_path, "wb") as v_buf:
-            v_buf.write(await vocals.read())
-        with open(b_path, "wb") as b_buf:
-            b_buf.write(await bgm.read())
-
-        subprocess.run([
-            "ffmpeg", "-y", "-i", v_path, "-i", b_path,
-            "-filter_complex", "amix=inputs=2:duration=longest",
-            "-ac", "2", out_path
-        ], check=True)
-
-        return FileResponse(out_path, media_type="audio/mpeg")
-    except Exception as e:
-        print(f"Mixing error: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={"error": f"Mixing stage failed: {str(e)}"}
-        )
+@app.post("/credits/upgrade")
+async def upgrade_plan(user_id: str = Body(...), plan: str = Body(...)):
+    """Upgrades a user to a premium plan."""
+    if plan not in PLAN_LIMITS:
+        return JSONResponse(status_code=400, content={"error": "Invalid plan"})
+        
+    user_ref = db.collection('users').document(user_id)
+    user_ref.update({
+        'plan': plan,
+        'credits': PLAN_LIMITS[plan],
+        'lastReset': datetime.now(timezone.utc)
+    })
+    
+    return {"status": "success", "plan": plan}
 
 if __name__ == "__main__":
     import uvicorn
-    # Standardized port 1000 for internal communication
-    port = 1000
-    host = "0.0.0.0"
-    print(f"Sargam Engine active on {host}:{port}")
-    uvicorn.run(app, host=host, port=port)
+    uvicorn.run(app, host="0.0.0.0", port=1000)

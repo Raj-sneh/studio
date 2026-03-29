@@ -2,15 +2,9 @@
 import type { Timestamp } from 'firebase/firestore';
 
 export type LessonNote = {
-  key: string | string[]; // Can be a single note or an array for chords
-  duration: string; // Tone.js duration, e.g., '8n', '4n'
-  time: string; // Tone.js time, e.g. '0:0:1'
-};
-
-export type UserPlayedNote = {
   key: string | string[];
   duration: string;
-  time: number; // Time in seconds
+  time: string;
 };
 
 export type Instrument = 'piano';
@@ -25,11 +19,15 @@ export type Lesson = {
   imageId: string;
 };
 
+export type UserPlan = 'free' | 'creator' | 'pro';
+
 export type UserProfile = {
   id: string;
   displayName: string;
   email: string;
   credits: number;
+  plan: UserPlan;
+  lastReset?: Timestamp;
   avatarUrl?: string | null;
   createdAt: Timestamp;
   dob?: Timestamp;

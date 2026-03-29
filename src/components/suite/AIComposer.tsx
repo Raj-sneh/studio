@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback, useEffect, useRef, lazy, Suspense, useMemo } from 'react';
@@ -7,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { generateNotes } from '@/ai/flows/generate-notes-flow';
 import type { GenerateNotesOutput, NoteObject } from '@/ai/flows/generate-notes-types';
-import { Loader2, Music, Play, StopCircle, BookOpen, RefreshCw, CheckCircle, ThumbsUp, ThumbsDown, History } from 'lucide-react';
+import { Loader2, Music, Play, StopCircle, BookOpen, RefreshCw, CheckCircle, ThumbsUp, ThumbsDown, History, Zap } from 'lucide-react';
 import { getSampler } from '@/lib/samplers';
 import type { InstrumentSynth } from '@/lib/samplers';
 import NoteDisplay from '@/components/note-display';
@@ -19,13 +20,7 @@ import { collection, serverTimestamp } from 'firebase/firestore';
 const Piano = lazy(() => import('@/components/Piano'));
 
 const HOLD_NOTE_THRESHOLD_MS = 100;
-
-interface AIComposerProps {
-  initialPrompt?: string | null;
-  autogen?: boolean;
-  autoplay?: boolean;
-  onGenerate: () => void;
-}
+const MELODY_COST = 5;
 
 function InstrumentLoader() {
   return (
@@ -36,7 +31,7 @@ function InstrumentLoader() {
   );
 }
 
-export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIComposerProps) {
+export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { initialPrompt?: string | null; autogen?: boolean; autoplay?: boolean; onGenerate: () => void; }) {
     const { toast } = useToast();
     const { user } = useUser();
     const firestore = useFirestore();
@@ -91,68 +86,38 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
         }
     }, [generationState]);
 
-    useEffect(() => {
-      return () => {
-        if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
-        stopPlayback();
-      };
-    }, [stopPlayback]);
-
-    const handlePlayDemo = useCallback(async (melody: GenerateNotesOutput) => {
-        stopPlayback();
-        try {
-          await Tone.start();
-          setMode('demo');
-          setStatusText('Playing the tune...');
-
-          const pianoSampler = await getSampler('piano') as InstrumentSynth;
-          samplerRef.current = pianoSampler;
-          
-          Tone.Transport.bpm.value = melody.tempo;
-
-          const part = new Tone.Part((time, note) => {
-              if (samplerRef.current && !samplerRef.current.disposed) {
-                  samplerRef.current.triggerAttackRelease(note.key, note.duration, time);
-              }
-              Tone.Draw.schedule(() => {
-                  setHighlightedKeys([note.key]);
-              }, time);
-          }, sortedNotes).start(0);
-          partRef.current = part;
-
-          const totalDuration = sortedNotes.reduce((max, note) => {
-            try {
-              return Math.max(max, Tone.Time(note.time).toSeconds() + Tone.Time(note.duration).toSeconds());
-            } catch(e) { return max; }
-          }, 0);
-
-          Tone.Transport.scheduleOnce(() => {
-              stopPlayback();
-              setStatusText('Finished playing.');
-          }, totalDuration + 0.5);
-          
-          Tone.Transport.start();
-        } catch (err) {
-          console.error("Demo playback failed:", err);
-          stopPlayback();
-        }
-    }, [stopPlayback, sortedNotes]);
-
     const handleGeneration = useCallback(async (isAutoRun: boolean = false, rating?: 'good' | 'bad') => {
+        if (!user) {
+            toast({ title: 'Sign in required', variant: 'destructive' });
+            return;
+        }
         if (!prompt.trim()) {
-            toast({ title: 'Type something first', variant: 'destructive', description: "Tell me what kind of tune you want." });
+            toast({ title: 'Type something first', variant: 'destructive' });
             return;
         }
 
         stopPlayback();
         setGenerationState('loading');
-        setGeneratedMelody(null);
-        
-        const isReinforcing = !!rating;
-        setStatusText(isReinforcing ? 'Learning from feedback...' : 'Thinking of a melody...');
-        
+        setStatusText('Checking credits...');
+
         try {
+            // 1. SECURE CREDIT CHECK IN BACKEND
+            const creditRes = await fetch('http://127.0.0.1:1000/credits/use', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: user.uid, amount: MELODY_COST })
+            });
+
+            if (!creditRes.ok) {
+                const errorData = await creditRes.json();
+                toast({ title: "Insufficient Credits", description: errorData.error, variant: "destructive" });
+                setGenerationState('idle');
+                return;
+            }
+
+            setStatusText('Thinking of a melody...');
             onGenerate(); 
+
             const feedback = rating ? {
                 previousPrompt: prompt,
                 rating,
@@ -161,206 +126,74 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: AIC
 
             const result = await generateNotes({ text: prompt, feedback });
             if (!result || !result.notes || result.notes.length === 0) {
-                throw new Error('Could not create a tune for this. Try another idea.');
+                throw new Error('Could not create a tune for this.');
             }
             
-            setStatusText('Setting up the piano...');
-            samplerRef.current = await getSampler('piano') as InstrumentSynth;
-
             setGeneratedMelody(result);
             setGenerationState('generated');
-            setStatusText('Your tune is ready! Play it or learn it.');
-            setFeedbackComment('');
+            setStatusText('Your tune is ready!');
 
-            if (user && firestore) {
+            if (firestore) {
                 const historyRef = collection(firestore, 'users', user.uid, 'generatedMelodies');
                 addDocumentNonBlocking(historyRef, {
                     userId: user.uid,
-                    title: prompt.substring(0, 30) + (prompt.length > 30 ? '...' : ''),
+                    title: prompt.substring(0, 30),
                     notes: result.notes.map(n => n.key),
                     instrument: 'Piano',
                     generationContext: 'Melody Maker',
                     createdAt: serverTimestamp(),
                 });
             }
-            
-            if (isAutoRun && autoplay) {
-                setTimeout(() => handlePlayDemo(result), 1000);
-            }
         } catch (err: any) {
-            console.error('AI Composer (Notes) Error:', err);
             toast({ title: 'Oops!', description: err.message, variant: 'destructive' });
             setGenerationState('idle');
-            setStatusText("Something didn't go quite right. Let's try again.");
         }
-    }, [prompt, feedbackComment, toast, autoplay, stopPlayback, handlePlayDemo, onGenerate, user, firestore]);
+    }, [prompt, feedbackComment, toast, stopPlayback, onGenerate, user, firestore]);
 
-    useEffect(() => {
-        if (autogen && initialPrompt && !initialAutoRunDone.current) {
-            initialAutoRunDone.current = true;
-            handleGeneration(true);
-        }
-    }, [autogen, initialPrompt, handleGeneration]);
-    
-    const currentNote: NoteObject | null = useMemo(() => {
-        if (mode !== 'learn' || currentNoteIndex === null || currentNoteIndex >= sortedNotes.length) {
-          return null;
-        }
-        return sortedNotes[currentNoteIndex];
-    }, [mode, currentNoteIndex, sortedNotes]);
-
-    const isHoldNote = useMemo(() => {
-        if (!currentNote) return false;
-        try {
-          return Tone.Time(currentNote.duration).toMilliseconds() > HOLD_NOTE_THRESHOLD_MS;
-        } catch(e) { return false; }
-    }, [currentNote]);
-    
-    useEffect(() => {
-        if (mode === 'learn' && currentNoteIndex === null) {
-          if (generatedMelody && generatedMelody.notes.length > 0) {
-            toast({ title: "Great job!", description: "You played it perfectly! ✨" });
-          }
-          setMode('idle');
-          setStatusText('Well done! Want to try again?');
-        }
-    }, [currentNoteIndex, mode, generatedMelody, toast]);
-
-    const advanceToNextNote = useCallback(() => {
-        if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
-        isHoldingRef.current = false;
-        setHoldState(null);
-        setCurrentNoteIndex(prev => (prev === null ? null : (prev + 1 >= sortedNotes.length ? null : prev + 1)));
-    }, [sortedNotes.length]);
-
-    const handleNoteDown = useCallback((playedKey: string) => {
-        if (mode !== 'learn' || !currentNote) return;
-
-        if (playedKey === currentNote.key) {
-            if (isHoldNote) {
-                isHoldingRef.current = true;
-                const startTime = Date.now();
-                const holdDurationMs = Tone.Time(currentNote.duration).toMilliseconds();
-                if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
-                holdIntervalRef.current = setInterval(() => {
-                    const progress = Math.min(100, ((Date.now() - startTime) / holdDurationMs) * 100);
-                    setHoldState({ key: currentNote.key, progress });
-                    if (progress >= 100) advanceToNextNote();
-                }, 16);
-            } else {
-                advanceToNextNote();
-            }
-        }
-    }, [mode, currentNote, isHoldNote, advanceToNextNote]);
-
-    const handleNoteUp = useCallback((playedKey: string) => {
-        if (mode !== 'learn' || !currentNote || !isHoldingRef.current || playedKey !== currentNote.key) return;
-        isHoldingRef.current = false;
-        if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
-        if (holdState && holdState.progress < 100) {
-            setHoldState(null);
-            toast({ title: "Keep holding!", description: "Wait until the bar is full.", variant: "destructive" });
-        }
-    }, [mode, currentNote, holdState, toast]);
-
-    const startOrResetLesson = async () => {
-        try {
-          await Tone.start();
-          stopPlayback();
-          setMode('learn');
-          setCurrentNoteIndex(0);
-          setHoldState(null);
-          isHoldingRef.current = false;
-          if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
-          toast({ title: 'Ready!', description: 'Play the glowing key to start.' });
-          setStatusText('Play the glowing key...');
-        } catch(e) { console.error("Lesson start error:", e); }
-    };
-
-    const isBusy = generationState === 'loading' || mode === 'demo';
-    const hasGenerated = generationState === 'generated';
     const highlightedLearnKeys = currentNote ? [currentNote.key] : [];
     const lessonNoteStringsForDisplay = useMemo(() => sortedNotes.map(n => n.key), [sortedNotes]);
 
     return (
-        <Card>
+        <Card className="border-primary/10 overflow-hidden">
             <CardContent className="space-y-4 pt-6">
+                <div className="flex justify-between items-center px-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Prompt Description</label>
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary">
+                        <Zap className="h-3 w-3 fill-primary" /> {MELODY_COST} Credits
+                    </div>
+                </div>
                 <Textarea
                     placeholder="e.g., 'A happy song' or 'Rainy day tune'"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    disabled={isBusy}
-                    className="min-h-[80px]"
+                    disabled={generationState === 'loading'}
+                    className="min-h-[80px] rounded-2xl bg-muted/20 border-primary/5 focus:border-primary/20"
                 />
                 
                 <div className="flex flex-col sm:flex-row gap-2">
-                    <Button onClick={() => handleGeneration(false)} disabled={isBusy || mode === 'learn'} className="w-full sm:w-auto">
-                        {generationState === 'loading' ? <Loader2 className="animate-spin mr-2" /> : 'Make Tune'}
-                    </Button>
-                    <Button onClick={() => handlePlayDemo(generatedMelody!)} disabled={!hasGenerated || isBusy || mode === 'learn'}>
-                        <Play className="mr-2" /> Play
-                    </Button>
-                    <Button onClick={startOrResetLesson} disabled={!hasGenerated || isBusy}>
-                        {mode === 'learn' ? <RefreshCw className="mr-2" /> : <BookOpen className="mr-2" />}
-                        {mode === 'learn' ? 'Restart' : 'Learn'}
-                    </Button>
-                    <Button onClick={stopPlayback} disabled={!isBusy && mode === 'idle'} variant="destructive" className="w-full sm:w-auto">
-                        <StopCircle className="mr-2" /> Stop
+                    <Button onClick={() => handleGeneration(false)} disabled={generationState === 'loading'} className="w-full sm:w-auto h-12 rounded-xl font-bold shadow-xl shadow-primary/10">
+                        {generationState === 'loading' ? <Loader2 className="animate-spin mr-2" /> : <Music className="mr-2 h-4 w-4" />}
+                        Generate
                     </Button>
                 </div>
 
-                {hasGenerated && (
-                    <div className="space-y-4 border-t pt-4">
-                        <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 space-y-4">
-                            <h4 className="text-sm font-bold uppercase tracking-wider text-primary">Reinforcement & Improvement</h4>
-                            <div className="space-y-3">
-                                <p className="text-xs text-muted-foreground">Tell me what to change for the next version.</p>
-                                <div className="flex gap-2">
-                                    <Input 
-                                        placeholder="e.g., 'Fewer high notes'..." 
-                                        value={feedbackComment} 
-                                        onChange={(e) => setFeedbackComment(e.target.value)}
-                                        className="flex-1 bg-background/50"
-                                        disabled={isBusy}
-                                    />
-                                    <Button variant="outline" size="icon" onClick={() => handleGeneration(false, 'good')} title="It's good" disabled={isBusy}>
-                                        <ThumbsUp className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="outline" size="icon" onClick={() => handleGeneration(false, 'bad')} title="Needs work" disabled={isBusy}>
-                                        <ThumbsDown className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                
-                <div className="text-center p-4 mb-2 border rounded-lg h-16 flex items-center justify-center bg-muted/50">
-                    <p className="text-lg font-semibold">
-                        {mode === 'learn' && currentNote ? (
-                            <span className="animate-pulse">Press: {currentNote.key}</span>
-                        ) : mode === 'learn' && currentNoteIndex === null && hasGenerated ? (
-                             <span className="text-green-500 flex items-center gap-2"><CheckCircle /> Done!</span>
-                        ) : (
-                            <span className="text-muted-foreground">{statusText}</span>
-                        )}
+                <div className="text-center p-4 mb-2 border rounded-xl h-16 flex items-center justify-center bg-muted/20 border-primary/5">
+                    <p className="text-sm font-bold">
+                        <span className="text-muted-foreground italic">{statusText}</span>
                     </p>
                 </div>
 
-                {hasGenerated && (
+                {generatedMelody && (
                     <NoteDisplay notes={lessonNoteStringsForDisplay} currentNoteIndex={mode === 'learn' ? currentNoteIndex : null} />
                 )}
 
-                <div className="flex-1 min-h-[300px] md:min-h-[350px] bg-card rounded-lg flex items-center justify-center p-1 md:p-4 mt-4 border shadow-inner">
+                <div className="flex-1 min-h-[300px] bg-card rounded-2xl flex items-center justify-center p-4 mt-4 border border-primary/5 shadow-inner">
                     <Suspense fallback={<InstrumentLoader />}>
                         <Piano 
-                            onNoteDown={handleNoteDown}
-                            onNoteUp={handleNoteUp}
-                            highlightedKeys={mode === 'demo' ? highlightedKeys : highlightedLearnKeys}
-                            activeKeys={mode === 'learn' ? highlightedLearnKeys : null}
-                            disabled={mode !== 'learn'}
-                            holdState={mode === 'learn' ? holdState : null}
-                            interactiveMode={mode === 'learn'}
+                            onNoteDown={() => {}}
+                            onNoteUp={() => {}}
+                            highlightedKeys={highlightedKeys}
+                            interactiveMode={false}
                         />
                     </Suspense>
                 </div>
