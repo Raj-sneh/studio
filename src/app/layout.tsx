@@ -71,23 +71,6 @@ export default function RootLayout({
             <footer className="py-12 bg-muted/20 border-t border-border/10 mt-20 px-6">
               <div className="container mx-auto max-w-4xl flex flex-col items-center gap-10 text-center">
                 
-                {/* QR Code Section */}
-                <div className="flex flex-col items-center gap-4 group">
-                  <div className="p-4 bg-white rounded-3xl shadow-2xl transition-transform duration-500 hover:scale-105 border-4 border-primary/20">
-                    <div className="relative h-64 w-64 overflow-hidden rounded-2xl bg-gray-100 flex items-center justify-center">
-                       <img 
-                         src="https://firebasestorage.googleapis.com/v0/b/studio-4164192500-df01a.firebasestorage.app/o/upi-qr.png.jpg?alt=media&token=32be5ec3-371c-4144-be40-1a55a5917be8" 
-                         alt="UPI QR Code for payment" 
-                         className="h-full w-full object-contain p-2"
-                       />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-lg font-bold text-foreground">Official Sargam AI UPI</p>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Verified Merchant Account</p>
-                  </div>
-                </div>
-
                 <div className="space-y-4">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest">
                     <Heart className="h-3 w-3 fill-primary" /> Support Neural Innovation
