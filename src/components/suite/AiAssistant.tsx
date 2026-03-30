@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -14,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Bot, Loader2, Send, User, Trash2, ImagePlus, X } from 'lucide-react';
+import { Bot, Loader2, Send, User, Trash2, ImagePlus, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import type { UserProfile } from '@/types';
@@ -60,6 +59,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -72,14 +72,24 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     defaultValues: { prompt: '' },
   });
 
-  const scrollToBottom = () => {
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (scrollAreaRef.current) {
-        const viewport = scrollAreaRef.current.querySelector('div');
+        const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
         if (viewport) {
             viewport.scrollTo({
                 top: viewport.scrollHeight,
-                behavior: 'smooth'
+                behavior
             });
+        }
+    }
+  };
+
+  const handleScroll = () => {
+    if (scrollAreaRef.current) {
+        const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+        if (viewport) {
+            const isAtBottom = viewport.scrollHeight - viewport.scrollTop <= viewport.clientHeight + 100;
+            setShowScrollButton(!isAtBottom);
         }
     }
   };
@@ -101,6 +111,14 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (viewport) {
+        viewport.addEventListener('scroll', handleScroll);
+        return () => viewport.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -141,7 +159,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
           history: historyForApi,
           prompt: data.prompt,
           userName: userProfile?.displayName,
-          userId: user?.uid, // SEND UID FOR ACTIONS
+          userId: user?.uid,
           photoDataUri: imageToSend,
         }),
       });
@@ -211,9 +229,9 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
              Ask me anything about music or how to use Sargam.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow flex flex-col gap-4 overflow-hidden px-4">
+      <CardContent className="flex-grow flex flex-col gap-4 overflow-hidden px-4 relative">
         <ScrollArea className="flex-grow pr-4 -mr-4" ref={scrollAreaRef}>
-            <div className="space-y-4">
+            <div className="space-y-4 pb-4">
                 {messages.map((message, index) => (
                     <div key={index} className={cn("flex items-start gap-3", message.role === 'user' ? 'justify-end' : '')}>
                         {message.role === 'model' && (
@@ -255,6 +273,18 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
                 )}
             </div>
         </ScrollArea>
+
+        {showScrollButton && (
+            <Button
+                size="icon"
+                variant="secondary"
+                className="absolute bottom-20 right-8 h-10 w-10 rounded-full shadow-lg border border-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-200 z-50"
+                onClick={() => scrollToBottom()}
+            >
+                <ChevronDown className="h-5 w-5 text-primary" />
+            </Button>
+        )}
+
         <div className="mt-auto pt-4 border-t space-y-4">
           {selectedImage && (
             <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted">
