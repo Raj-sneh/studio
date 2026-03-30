@@ -54,6 +54,7 @@ PRICES = {
 }
 
 # Credit mapping for plans and packs
+# FIXED: Now correctly reflects your requested 1000/5000 tiers and packs
 CREDITS_MAP = {
     "creator": 1000,
     "pro": 5000,
@@ -65,6 +66,10 @@ CREDITS_MAP = {
 @app.get("/")
 async def home():
     return {"status": "Neural Engine Active", "version": "3.1.0", "engine": "FastAPI"}
+
+@app.get("/health")
+async def health():
+    return {"ready": True}
 
 @app.post("/api/create-order")
 async def create_order(request: Request):
@@ -155,6 +160,7 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
             user_id = notes.get('userId')
             item_id = notes.get('itemId')
             
+            # FIXED: Uses the dynamic map instead of defaulting to 500
             credits_to_add = CREDITS_MAP.get(item_id, 0)
             
             if user_id and credits_to_add > 0:
@@ -167,7 +173,7 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
                     updates['plan'] = item_id
                     
                 user_ref.update(updates)
-                print(f"✅ SUCCESS: Webhook {event} processed. Added {credits_to_add} credits to {user_id}")
+                print(f"✅ SUCCESS: Webhook {event} processed. Added {credits_to_add} credits to {user_id} for {item_id}")
 
         return {"status": "ok"}
     except Exception as e:
@@ -176,7 +182,6 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
 
 @app.post("/api/verify")
 async def verify_payment(request: Request):
-    # This remains for manual frontend verification if needed
     try:
         data = await request.json()
         user_id = data.get('user_id')
