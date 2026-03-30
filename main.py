@@ -97,7 +97,7 @@ async def create_order(request: Request):
 async def create_qr(request: Request):
     try:
         data = await request.json()
-        user_id = data.get('user_id')
+        user_id = data.get('userId')
         item_id = data.get('item_id', 'pro')
         amount_in_rupees = PRICES.get(item_id, 299)
         
@@ -106,11 +106,11 @@ async def create_qr(request: Request):
         
         qr_code = client.qr_code.create(data={
             "type": "upi_qr",
-            "name": f"Sargam Pro - {user_id}",
+            "name": f"Sargam {item_id.capitalize()} - {user_id}",
             "usage": "single_use",
             "fixed_amount": True,
             "payment_amount": amount_in_paise,
-            "description": "Subscription for Sargam AI",
+            "description": f"Subscription for Sargam AI - {item_id}",
             "notes": {
                 "userId": user_id,
                 "itemId": item_id
@@ -140,8 +140,11 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
         data = json.loads(payload)
         event = data.get('event')
         
-        if event == 'order.paid' or event == 'payment.captured':
-            entity = data['payload'].get('order', {}).get('entity') or data['payload'].get('payment', {}).get('entity')
+        if event == 'order.paid' or event == 'payment.captured' or event == 'qr_code.payment_captured':
+            entity = data['payload'].get('order', {}).get('entity') or \
+                     data['payload'].get('payment', {}).get('entity') or \
+                     data['payload'].get('qr_code', {}).get('entity')
+            
             notes = entity.get('notes', {})
             user_id = notes.get('userId')
             item_id = notes.get('itemId')
