@@ -2,14 +2,10 @@
   channel = "stable-23.11";
   packages = [
     pkgs.nodejs_20
+    pkgs.python311
+    pkgs.python311Packages.pip
     pkgs.ffmpeg
     pkgs.sox
-    (pkgs.python311.withPackages (ps: with ps; [
-      fastapi
-      uvicorn
-      python-multipart
-      requests
-    ]))
   ];
   idx = {
     extensions = [
@@ -18,12 +14,20 @@
     ];
     workspace = {
       onCreate = {
+        # 1. Install Node dependencies
         npm-install = "npm install";
-        python-setup = "pip install librosa numpy soundfile elevenlabs python-dotenv";
+        
+        # 2. Create Python virtual environment and install ALL libraries
+        # This avoids the "externally-managed-environment" and "undefined variable" errors
+        python-setup = ''
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install fastapi uvicorn python-multipart requests librosa numpy soundfile elevenlabs python-dotenv firebase-admin razorpay flask-cors
+        '';
       };
       onStart = {
-        # Start the FastAPI voice engine in the background
-        start-voice-engine = "python main.py &";
+        # Start the Python engine using the version inside our virtual environment
+        start-voice-engine = "./.venv/bin/python main.py &";
       };
     };
     previews = {
