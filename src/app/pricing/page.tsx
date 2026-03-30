@@ -1,14 +1,12 @@
-
 'use client';
 
-import { useState, useEffect } from "react";
-import { Check, Zap, Sparkles, Rocket, Loader2, QrCode, CreditCard } from "lucide-react";
+import { useState } from "react";
+import { Check, Zap, Sparkles, Rocket, Loader2, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Script from 'next/script';
 
 const PLANS = [
@@ -74,56 +72,6 @@ export default function PricingPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
-  const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
-  const [selectedItemName, setSelectedItemName] = useState("");
-  const [selectedPrice, setSelectedPrice] = useState("");
-
-  const handleQrPayment = async (itemId: string, price: string, itemName: string) => {
-    if (!user || user.isAnonymous) {
-      toast({ title: "Account Required", description: "Please sign up to upgrade.", variant: "destructive" });
-      router.push('/login');
-      return;
-    }
-
-    setIsProcessing(`${itemId}_qr`);
-    setSelectedItemName(itemName);
-    setSelectedPrice(price);
-
-    const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
-    
-    // Debug Log for Protocol Safety
-    console.log("Attempting QR fetch from:", baseUrl);
-    if (baseUrl.includes("localhost") && window.location.protocol === "https:") {
-       toast({ title: "Protocol Error", description: "Insecure localhost access from HTTPS site.", variant: "destructive" });
-       setIsProcessing(null);
-       return;
-    }
-
-    try {
-      const res = await fetch(`${baseUrl}/api/create-qr`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          item_id: itemId, 
-          userId: user.uid,
-          amount: parseInt(price)
-        }),
-      });
-
-      const data = await res.json();
-      if (data.image_url) {
-        setQrImageUrl(data.image_url);
-        toast({ title: "QR Generated", description: "Please scan to complete payment." });
-      } else {
-        throw new Error(data.error || "Failed to generate QR code.");
-      }
-    } catch (e: any) {
-      console.error("QR Generation Failed:", e);
-      toast({ title: "QR Error", description: e.message || "Could not connect to the Neural Engine.", variant: "destructive" });
-    } finally {
-      setIsProcessing(null);
-    }
-  };
 
   const handlePayment = async (itemId: string, type: 'plan' | 'pack') => {
     if (!user || user.isAnonymous) {
@@ -265,16 +213,6 @@ export default function PricingPage() {
               >
                 {isProcessing === plan.id ? <Loader2 className="animate-spin h-5 w-5" /> : <><CreditCard className="mr-2 h-4 w-4"/> {plan.buttonText}</>}
               </Button>
-              {plan.id !== 'free' && (
-                <Button 
-                    variant="ghost" 
-                    className="w-full text-xs font-bold text-primary hover:bg-primary/10"
-                    onClick={() => handleQrPayment(plan.id, plan.price, plan.name)}
-                    disabled={isProcessing === `${plan.id}_qr`}
-                >
-                    {isProcessing === `${plan.id}_qr` ? <Loader2 className="animate-spin h-4 w-4" /> : <><QrCode className="mr-2 h-3 w-3" /> Pay via UPI QR</>}
-                </Button>
-              )}
             </CardFooter>
           </Card>
         ))}
@@ -282,9 +220,6 @@ export default function PricingPage() {
 
       <section className="max-w-4xl mx-auto px-4 pt-10">
         <div className="text-center space-y-4 mb-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest border border-primary/20">
-                <QrCode className="h-3 w-3" /> UPI Supported
-            </div>
             <h2 className="text-3xl font-bold font-headline">Credit Top-ups</h2>
             <p className="text-muted-foreground">Instant neural allocation for urgent research projects.</p>
         </div>
@@ -306,51 +241,10 @@ export default function PricingPage() {
                         </>
                     )}
                 </Button>
-                <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary"
-                    onClick={() => handleQrPayment(pack.id, pack.price.toString(), `${pack.credits} Credits`)}
-                    disabled={isProcessing === `${pack.id}_qr`}
-                >
-                    {isProcessing === `${pack.id}_qr` ? <Loader2 className="animate-spin h-3 w-3" /> : "Scan QR"}
-                </Button>
             </div>
           ))}
         </div>
       </section>
-
-      {/* UPI QR Modal */}
-      <Dialog open={!!qrImageUrl} onOpenChange={() => setQrImageUrl(null)}>
-        <DialogContent className="sm:max-w-md bg-white text-black p-8 rounded-[2rem] border-none shadow-2xl">
-          <DialogHeader className="items-center text-center">
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-                <QrCode className="h-6 w-6 text-primary" />
-            </div>
-            <DialogTitle className="text-2xl font-black font-headline">Scan to Pay ₹{selectedPrice}</DialogTitle>
-            <DialogDescription className="text-gray-500 font-medium">
-                Use any UPI app (GPay, PhonePe, etc.) to upgrade to {selectedItemName}.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-6 py-4">
-            <div className="p-4 bg-gray-50 rounded-3xl border-2 border-gray-100 shadow-inner relative group">
-                {qrImageUrl && <img src={qrImageUrl} alt="Razorpay QR Code" className="w-64 h-64 transition-transform group-hover:scale-[1.02]" />}
-                <div className="absolute inset-0 border-4 border-primary/5 rounded-3xl pointer-events-none" />
-            </div>
-            <div className="space-y-2 text-center">
-                <p className="text-sm font-bold text-primary flex items-center justify-center gap-2">
-                    <Sparkles className="h-4 w-4 fill-primary" /> Credits update automatically
-                </p>
-                <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
-                    Verified Secure Neural Transaction
-                </p>
-            </div>
-          </div>
-          <Button onClick={() => setQrImageUrl(null)} variant="secondary" className="w-full h-12 rounded-xl font-bold bg-gray-100 hover:bg-gray-200 text-gray-700">
-            Cancel
-          </Button>
-        </DialogContent>
-      </Dialog>
 
       <div className="text-center text-[10px] text-muted-foreground italic uppercase tracking-widest opacity-50 pb-20">
         * Neural allocations reset monthly. One-time packs do not expire.

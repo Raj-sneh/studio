@@ -1,4 +1,3 @@
-
 import os
 import uuid
 import json
@@ -98,42 +97,6 @@ async def create_order(request: Request):
         print(f"PAYMENT ERROR: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
-@app.post("/api/create-qr")
-async def create_qr(request: Request):
-    try:
-        data = await request.json()
-        user_id = data.get('userId')
-        item_id = data.get('item_id', 'pro')
-        
-        # Ensure amount is an integer
-        amount_in_rupees = int(data.get('amount') or PRICES.get(item_id, 299))
-        
-        if not user_id:
-            return JSONResponse(content={"error": "User ID is required"}, status_code=400)
-
-        # Razorpay expects amount in paise (1 Rupee = 100 Paise)
-        amount_in_paise = amount_in_rupees * 100
-        
-        qr_code = client.qr_code.create(data={
-            "type": "upi_qr",
-            "name": f"Sargam AI - {user_id}",
-            "usage": "single_use",
-            "fixed_amount": True,
-            "payment_amount": amount_in_paise,
-            "description": f"Credits for {user_id}",
-            "notes": {
-                "userId": user_id,
-                "itemId": item_id,
-                "amount": str(amount_in_rupees)
-            }
-        })
-        
-        print(f"✅ QR Created: {qr_code['id']} for User: {user_id} (₹{amount_in_rupees})")
-        return qr_code
-    except Exception as e:
-        print(f"QR ERROR: {str(e)}")
-        return JSONResponse(content={"error": "Razorpay QR Error", "details": str(e)}, status_code=500)
-
 @app.post("/api/webhook")
 async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(None)):
     payload = await request.body()
@@ -157,9 +120,6 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
         if event in ['order.paid', 'payment.captured']:
             entity = data['payload'].get('order', {}).get('entity') or \
                      data['payload'].get('payment', {}).get('entity')
-        
-        elif event == 'qr_code.credited':
-            entity = data['payload'].get('qr_code', {}).get('entity')
             
         elif event == 'payment.failed':
             payment_entity = data['payload']['payment']['entity']
