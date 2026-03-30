@@ -62,14 +62,27 @@ const applyEmergencyCoupon = ai.defineTool(
   },
   async ({ userId, code }) => {
     const couponValues: Record<string, number> = {
+      // --- NEW 5 COUPONS ---
+      "SKV1000NEW": 1000,
+      "PIANO2024X": 1000,
+      "PRO@NEURAL#1": 5000,
+      "SONIC$SKV#25": 5000,
+      "MASTER@VOICE$": 5000,
+
       // RANDOMIZED CREATOR PACKS (1000 Credits)
       "CrEaT0r99x": 1000,
       "MaGic123S": 1000,
       "skvCreaTor7": 1000,
+      "NeuralArt88": 1000,
+      "PianoPack99": 1000,
+      
       // RANDOMIZED PRO PACKS (5000 Credits)
       "Pr0@Sargam#": 5000,
       "N3ur@l$5000": 5000,
       "SKV#V0ice@99": 5000,
+      "Elite$Artist#1": 5000,
+      "Master@SKV#77": 5000,
+
       // LEGACY
       "SKV-PRO-1": 5000,
       "SKV-CREATOR-1": 1000,
@@ -120,6 +133,7 @@ const sargamBotSystemPrompt = `You are Sargam AI, a friendly and highly intellig
 **EMERGENCY COUPONS (SECRET COMMAND):**
 - Recognize randomized codes: Creator (Letters/Nums), Pro (Letters/Nums/@#$).
 - Example codes: CrEaT0r99x (1000), Pr0@Sargam# (5000).
+- New patterns: PRO@NEURAL#1, SONIC$SKV#25.
 - Use "applyEmergencyCoupon" tool IMMEDIATELY if user provides a code or mentions a payment failure emergency.
 
 **URL FORMATS:**

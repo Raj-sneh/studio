@@ -9,14 +9,21 @@ import { doc, getDoc, setDoc, updateDoc, arrayUnion, serverTimestamp, increment,
  */
 
 const couponValues: Record<string, number> = {
-  // RANDOMIZED CREATOR PACKS (1000 Credits) - Letters and Numbers
+  // --- NEW 5 COUPONS ---
+  "SKV1000NEW": 1000,
+  "PIANO2024X": 1000,
+  "PRO@NEURAL#1": 5000,
+  "SONIC$SKV#25": 5000,
+  "MASTER@VOICE$": 5000,
+
+  // RANDOMIZED CREATOR PACKS (1000 Credits)
   "CrEaT0r99x": 1000,
   "MaGic123S": 1000,
   "skvCreaTor7": 1000,
   "NeuralArt88": 1000,
   "PianoPack99": 1000,
   
-  // RANDOMIZED PRO PACKS (5000 Credits) - Letters, Numbers, Special Characters (@#$)
+  // RANDOMIZED PRO PACKS (5000 Credits)
   "Pr0@Sargam#": 5000,
   "N3ur@l$5000": 5000,
   "SKV#V0ice@99": 5000,
