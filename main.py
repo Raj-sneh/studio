@@ -64,7 +64,7 @@ CREDITS_MAP = {
 
 @app.get("/")
 async def home():
-    return {"status": "Neural Engine Active", "version": "3.0.0", "engine": "FastAPI"}
+    return {"status": "Neural Engine Active", "version": "3.1.0", "engine": "FastAPI"}
 
 @app.post("/api/create-order")
 async def create_order(request: Request):
@@ -140,11 +140,17 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
         data = json.loads(payload)
         event = data.get('event')
         
-        if event == 'order.paid' or event == 'payment.captured' or event == 'qr_code.payment_captured':
+        # Standard Order or Payment Events
+        entity = None
+        if event in ['order.paid', 'payment.captured']:
             entity = data['payload'].get('order', {}).get('entity') or \
-                     data['payload'].get('payment', {}).get('entity') or \
-                     data['payload'].get('qr_code', {}).get('entity')
+                     data['payload'].get('payment', {}).get('entity')
+        
+        # QR Code Specific Event
+        elif event == 'qr_code.credited':
+            entity = data['payload'].get('qr_code', {}).get('entity')
             
+        if entity:
             notes = entity.get('notes', {})
             user_id = notes.get('userId')
             item_id = notes.get('itemId')
@@ -156,11 +162,12 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
                 updates = {
                     'credits': firestore.Increment(credits_to_add)
                 }
+                # If it's a plan upgrade (not just a pack), update the plan name
                 if 'pack' not in item_id:
                     updates['plan'] = item_id
                     
                 user_ref.update(updates)
-                print(f"SUCCESS: Added {credits_to_add} credits to user {user_id}")
+                print(f"✅ SUCCESS: Webhook {event} processed. Added {credits_to_add} credits to {user_id}")
 
         return {"status": "ok"}
     except Exception as e:
@@ -169,6 +176,7 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
 
 @app.post("/api/verify")
 async def verify_payment(request: Request):
+    # This remains for manual frontend verification if needed
     try:
         data = await request.json()
         user_id = data.get('user_id')

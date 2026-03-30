@@ -308,16 +308,20 @@ export default function PricingPage() {
 
       {/* UPI QR Modal */}
       <Dialog open={!!qrImageUrl} onOpenChange={() => setQrImageUrl(null)}>
-        <DialogContent className="sm:max-w-md bg-white text-black p-8 rounded-[2rem] border-none">
+        <DialogContent className="sm:max-w-md bg-white text-black p-8 rounded-[2rem] border-none shadow-2xl">
           <DialogHeader className="items-center text-center">
+            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                <QrCode className="h-6 w-6 text-primary" />
+            </div>
             <DialogTitle className="text-2xl font-black font-headline">Scan to Pay ₹{selectedPrice}</DialogTitle>
             <DialogDescription className="text-gray-500 font-medium">
-                Using any UPI app to upgrade to {selectedItemName}.
+                Use any UPI app (GPay, PhonePe, etc.) to upgrade to {selectedItemName}.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-6 py-4">
-            <div className="p-4 bg-gray-50 rounded-3xl border-2 border-gray-100 shadow-inner">
-                {qrImageUrl && <img src={qrImageUrl} alt="Razorpay QR Code" className="w-64 h-64" />}
+            <div className="p-4 bg-gray-50 rounded-3xl border-2 border-gray-100 shadow-inner relative group">
+                {qrImageUrl && <img src={qrImageUrl} alt="Razorpay QR Code" className="w-64 h-64 transition-transform group-hover:scale-[1.02]" />}
+                <div className="absolute inset-0 border-4 border-primary/5 rounded-3xl pointer-events-none" />
             </div>
             <div className="space-y-2 text-center">
                 <p className="text-sm font-bold text-primary flex items-center justify-center gap-2">
