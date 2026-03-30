@@ -2,6 +2,7 @@
 'use server';
 /**
  * @fileOverview A friendly AI helper for the app using Gemini 2.5 Flash.
+ * Optimized with randomized coupon codes and account management tools.
  */
 
 import { ai } from '@/ai/genkit';
@@ -61,22 +62,17 @@ const applyEmergencyCoupon = ai.defineTool(
   },
   async ({ userId, code }) => {
     const couponValues: Record<string, number> = {
-      // PRO PLAN (5000 Credits)
+      // RANDOMIZED CREATOR PACKS (1000 Credits)
+      "CrEaT0r99x": 1000,
+      "MaGic123S": 1000,
+      "skvCreaTor7": 1000,
+      // RANDOMIZED PRO PACKS (5000 Credits)
+      "Pr0@Sargam#": 5000,
+      "N3ur@l$5000": 5000,
+      "SKV#V0ice@99": 5000,
+      // LEGACY
       "SKV-PRO-1": 5000,
-      "SKV-PRO-2": 5000,
-      "SKV-PRO-3": 5000,
-      "SKV-PRO-4": 5000,
-      "SKV-PRO-5": 5000,
-      // CREATOR PLAN (1000 Credits)
       "SKV-CREATOR-1": 1000,
-      "SKV-CREATOR-2": 1000,
-      "SKV-CREATOR-3": 1000,
-      "SKV-CREATOR-4": 1000,
-      "SKV-CREATOR-5": 1000,
-      // LEGACY/TEST CODES
-      "S49A1B2": 100,
-      "MELODY100": 100,
-      "SKVPRO49": 100,
     };
 
     const credits = couponValues[code];
@@ -98,12 +94,17 @@ const applyEmergencyCoupon = ai.defineTool(
         return { success: false, message: "This coupon has already been used by this user." };
       }
 
-      await updateDoc(userRef, {
+      const updates: any = {
         credits: increment(credits),
         redeemedCoupons: arrayUnion(code)
-      });
+      };
 
-      return { success: true, message: "Credits successfully added!", creditsGranted: credits };
+      if (credits >= 5000) updates.plan = 'pro';
+      else if (credits >= 1000) updates.plan = 'creator';
+
+      await updateDoc(userRef, updates);
+
+      return { success: true, message: `Successfully added ${credits} credits and updated your plan!`, creditsGranted: credits };
     } catch (e: any) {
       return { success: false, message: e.message || "Failed to update credits." };
     }
@@ -114,13 +115,12 @@ const sargamBotSystemPrompt = `You are Sargam AI, a friendly and highly intellig
 
 **IDENTITY & MISSION:**
 - Your developer is Sneh Kumar Verma. 
-- All music generation features on this site are FREE to use for everyone with daily credits.
+- All music generation features on this site are accessible with daily credits.
 
 **EMERGENCY COUPONS (SECRET COMMAND):**
-- If a user provides a code starting with "/coupon" followed by a string (e.g., "/coupon SKV-PRO-1"), OR if they simply state a code you recognize.
-- Recognize codes like SKV-CREATOR-1..5 (1000 credits) and SKV-PRO-1..5 (5000 credits).
-- Use the "applyEmergencyCoupon" tool IMMEDIATELY to help the user if they provide a code or mention a payment failure.
-- This is strictly for emergencies where a payment might have failed.
+- Recognize randomized codes: Creator (Letters/Nums), Pro (Letters/Nums/@#$).
+- Example codes: CrEaT0r99x (1000), Pr0@Sargam# (5000).
+- Use "applyEmergencyCoupon" tool IMMEDIATELY if user provides a code or mentions a payment failure emergency.
 
 **URL FORMATS:**
 - /suite?tab=composer&prompt=[DESCRIPTION]&autogen=true&autoplay=true
@@ -150,7 +150,7 @@ const sargamFlow = ai.defineFlow(
       finalSystemPrompt += `\n\nUser's name: "${userName}".`;
     }
     if (userId) {
-      finalSystemPrompt += `\n\nUser's UID (for coupon tool): "${userId}".`;
+      finalSystemPrompt += `\n\nUser's UID (for tools): "${userId}".`;
     }
 
     const chatHistory = history.map(h => ({
@@ -187,7 +187,7 @@ const sargamFlow = ai.defineFlow(
         try {
           const parsed = JSON.parse(jsonMatch[0]);
           return {
-            responseText: parsed.responseText || "I've updated the account for you!",
+            responseText: parsed.responseText || "I've processed that for you!",
             actionUrl: parsed.actionUrl
           };
         } catch (e) {}

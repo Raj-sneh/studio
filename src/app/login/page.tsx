@@ -13,6 +13,7 @@ import {
   signInWithPhoneNumber,
   GoogleAuthProvider,
   ConfirmationResult,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 
 import { useAuth } from '@/firebase';
@@ -21,6 +22,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
 
 const emailFormSchema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -50,6 +52,7 @@ declare global {
 export default function LoginPage() {
   const router = useRouter();
   const auth = useAuth();
+  const { toast } = useToast();
 
   const [tab, setTab] = useState<'email' | 'phone'>('email');
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
@@ -96,7 +99,26 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       router.push('/suite');
     } catch (error: any) {
-      alert(error?.message || 'Email login failed');
+      toast({ title: "Login Failed", description: error?.message || 'Invalid email or password', variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const email = emailForm.getValues('email');
+    if (!email) {
+      toast({ title: "Email Required", description: "Please enter your email address first.", variant: "destructive" });
+      return;
+    }
+    if (!auth) return;
+    
+    try {
+      setIsLoading(true);
+      await sendPasswordResetEmail(auth, email);
+      toast({ title: "Reset Email Sent", description: "Check your inbox for instructions." });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -117,7 +139,7 @@ export default function LoginPage() {
       setStep('otp');
     } catch (error: any) {
       console.error('OTP send error:', error);
-      alert(error?.message || 'Could not send OTP');
+      toast({ title: "Failed to send OTP", description: error?.message, variant: "destructive" });
 
       if (window.recaptchaVerifier) {
         window.recaptchaVerifier.clear();
@@ -133,7 +155,7 @@ export default function LoginPage() {
       setIsLoading(true);
 
       if (!window.confirmationResult) {
-        alert('OTP session expired. Send OTP again.');
+        toast({ title: "Session Expired", description: "Please send OTP again.", variant: "destructive" });
         setStep('phone');
         return;
       }
@@ -142,7 +164,7 @@ export default function LoginPage() {
       router.push('/suite');
     } catch (error: any) {
       console.error('OTP verify error:', error);
-      alert(error?.message || 'Invalid OTP');
+      toast({ title: "Invalid OTP", description: "The code you entered is incorrect.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +178,7 @@ export default function LoginPage() {
       await signInWithPopup(auth, provider);
       router.push('/suite');
     } catch (error: any) {
-      alert(error?.message || 'Google sign in failed');
+      toast({ title: "Google Sign-In Failed", description: error?.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -212,7 +234,17 @@ export default function LoginPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Password</FormLabel>
+                        <Button 
+                          type="button" 
+                          variant="link" 
+                          onClick={handleForgotPassword}
+                          className="p-0 h-auto text-xs text-primary"
+                        >
+                          Forgot password?
+                        </Button>
+                      </div>
                       <FormControl>
                         <Input
                           type="password"
@@ -225,7 +257,7 @@ export default function LoginPage() {
                   )}
                 />
 
-                <Button type="submit" disabled={isLoading} className="w-full">
+                <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg">
                   {isLoading ? 'Signing in...' : 'Sign In'}
                 </Button>
               </form>
@@ -255,7 +287,7 @@ export default function LoginPage() {
 
                 <div id="recaptcha-container" className="flex justify-center overflow-hidden" />
 
-                <Button type="submit" disabled={isLoading} className="w-full">
+                <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg">
                   {isLoading ? 'Sending OTP...' : 'Send Verification Code'}
                 </Button>
               </form>
@@ -305,7 +337,7 @@ export default function LoginPage() {
                     Back
                   </Button>
 
-                  <Button type="submit" disabled={isLoading} className="w-full">
+                  <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg">
                     {isLoading ? 'Verifying...' : 'Verify OTP & Sign In'}
                   </Button>
                 </div>
@@ -325,7 +357,7 @@ export default function LoginPage() {
           <Button
             type="button"
             variant="outline"
-            className="w-full bg-transparent border-[#2c1a57] text-white"
+            className="w-full h-12 bg-transparent border-[#2c1a57] text-white"
             onClick={handleGoogleLogin}
             disabled={isLoading}
           >

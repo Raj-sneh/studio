@@ -1,3 +1,4 @@
+
 import os
 import uuid
 import json
@@ -63,7 +64,7 @@ CREDITS_MAP = {
 
 @app.get("/")
 async def home():
-    return {"status": "Sargam Neural Engine Active", "version": "3.5.0", "engine": "FastAPI"}
+    return {"status": "Sargam Neural Engine Active", "version": "3.6.0", "engine": "FastAPI"}
 
 @app.get("/health")
 async def health():
@@ -90,7 +91,7 @@ async def get_credits_status(user_id: str):
 
 @app.post("/api/credits/use")
 async def use_credits(request: Request):
-    """Deducts credits from a user's account with insufficient funds check."""
+    """Deducts credits from a user's account with a thread-safe Firestore transaction."""
     try:
         data = await request.json()
         user_id = data.get('user_id')
@@ -101,18 +102,18 @@ async def use_credits(request: Request):
             
         user_ref = db.collection('users').document(user_id)
 
-        # Transactional update to prevent negative credits
+        # Transactional update to prevent negative credits and ensure data consistency
         transaction = db.transaction()
 
         @firestore.transactional
         def deduct_in_transaction(transaction, user_ref, amount):
             snapshot = user_ref.get(transaction=transaction)
             if not snapshot.exists:
-                return {"error": "User not found"}
+                return {"error": "User not found in database."}
             
             current_credits = snapshot.get('credits', 0)
             if current_credits < amount:
-                return {"error": f"Insufficient credits. You need {amount} but only have {current_credits}."}
+                return {"error": f"Insufficient credits. Required: {amount}, Available: {current_credits}."}
             
             transaction.update(user_ref, {
                 'credits': firestore.Increment(-amount)
@@ -122,17 +123,19 @@ async def use_credits(request: Request):
         result = deduct_in_transaction(transaction, user_ref, amount)
         
         if "error" in result:
+            print(f"❌ DEDUCTION FAILED for {user_id}: {result['error']}")
             return JSONResponse(content={"error": result["error"]}, status_code=400)
             
         print(f"✅ CREDITS USED: {amount} deducted from {user_id}. Remaining: {result['remaining']}")
         return result
         
     except Exception as e:
-        print(f"DEDUCTION ERROR: {e}")
-        return JSONResponse(content={"error": f"Internal deduction error: {str(e)}"}, status_code=500)
+        print(f"CRITICAL DEDUCTION ERROR: {e}")
+        return JSONResponse(content={"error": f"Internal deduction service error: {str(e)}"}, status_code=500)
 
-@app.post("/api/create-order")
+@app.post("/api/payments/create-order")
 async def create_order(request: Request):
+    """Initiates a Razorpay order for plan upgrades or credit packs."""
     try:
         data = await request.json()
         user_id = data.get('user_id')
@@ -144,7 +147,7 @@ async def create_order(request: Request):
         order_data = {
             "amount": amount_in_paise,
             "currency": "INR",
-            "receipt": f"receipt_{uuid.uuid4().hex[:10]}",
+            "receipt": f"rcpt_{uuid.uuid4().hex[:10]}",
             "notes": {
                 "userId": user_id,
                 "itemId": item_id
@@ -159,62 +162,9 @@ async def create_order(request: Request):
         print(f"PAYMENT ERROR: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
-@app.post("/api/webhook")
-async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(None)):
-    payload = await request.body()
-    
-    if RAZORPAY_WEBHOOK_SECRET and x_razorpay_signature:
-        expected_signature = hmac.new(
-            RAZORPAY_WEBHOOK_SECRET.encode(),
-            payload,
-            hashlib.sha256
-        ).hexdigest()
-        
-        if not hmac.compare_digest(expected_signature, x_razorpay_signature):
-            print("SECURITY ALERT: Invalid Webhook Signature!")
-            return JSONResponse(content={"status": "failed", "message": "Invalid signature"}, status_code=400)
-
-    try:
-        data = json.loads(payload)
-        event = data.get('event')
-        
-        entity = None
-        if event in ['order.paid', 'payment.captured']:
-            entity = data['payload'].get('order', {}).get('entity') or \
-                     data['payload'].get('payment', {}).get('entity')
-            
-        elif event == 'payment.failed':
-            payment_entity = data['payload']['payment']['entity']
-            reason = payment_entity.get('error_description', 'Unknown failure')
-            user_id = payment_entity.get('notes', {}).get('userId', 'Unknown')
-            print(f"❌ Payment Failed for user {user_id}. Reason: {reason}")
-            return {"status": "ok"}
-
-        if entity:
-            notes = entity.get('notes', {})
-            user_id = notes.get('userId')
-            item_id = notes.get('itemId')
-            
-            credits_to_add = CREDITS_MAP.get(item_id, 0)
-            
-            if user_id and credits_to_add > 0:
-                user_ref = db.collection('users').document(user_id)
-                updates = {
-                    'credits': firestore.Increment(credits_to_add)
-                }
-                if 'pack' not in item_id:
-                    updates['plan'] = item_id
-                    
-                user_ref.update(updates)
-                print(f"✅ SUCCESS: Webhook {event} processed. Added {credits_to_add} credits to {user_id} for {item_id}")
-
-        return {"status": "ok"}
-    except Exception as e:
-        print(f"WEBHOOK ERROR: {e}")
-        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
-
-@app.post("/api/verify")
+@app.post("/api/payments/verify")
 async def verify_payment(request: Request):
+    """Manual verification of a Razorpay payment after checkout."""
     try:
         data = await request.json()
         user_id = data.get('user_id')
@@ -230,10 +180,12 @@ async def verify_payment(request: Request):
             if 'pack' not in item_id:
                 updates['plan'] = item_id
             user_ref.update(updates)
+            print(f"✅ Payment Verified: Granted {credits_to_add} to {user_id}")
 
-        return {"status": "success", "message": "Credits synchronized."}
+        return {"status": "success", "message": "Neural credits synchronized."}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        print(f"VERIFICATION ERROR: {e}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 if __name__ == "__main__":
     import uvicorn

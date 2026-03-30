@@ -5,20 +5,27 @@ import { doc, getDoc, setDoc, updateDoc, arrayUnion, serverTimestamp, increment,
 
 /**
  * @fileOverview Secure Next.js API route for coupon redemption.
- * Handles the logic for validating and granting credits to users.
+ * Includes randomized complex coupon patterns for Creator and Pro packs.
  */
 
 const couponValues: Record<string, number> = {
+  // RANDOMIZED CREATOR PACKS (1000 Credits) - Letters and Numbers
+  "CrEaT0r99x": 1000,
+  "MaGic123S": 1000,
+  "skvCreaTor7": 1000,
+  "NeuralArt88": 1000,
+  "PianoPack99": 1000,
+  
+  // RANDOMIZED PRO PACKS (5000 Credits) - Letters, Numbers, Special Characters (@#$)
+  "Pr0@Sargam#": 5000,
+  "N3ur@l$5000": 5000,
+  "SKV#V0ice@99": 5000,
+  "Elite$Artist#1": 5000,
+  "Master@SKV#77": 5000,
+
+  // LEGACY/TEST CODES
   "SKV-PRO-1": 5000,
-  "SKV-PRO-2": 5000,
-  "SKV-PRO-3": 5000,
-  "SKV-PRO-4": 5000,
-  "SKV-PRO-5": 5000,
   "SKV-CREATOR-1": 1000,
-  "SKV-CREATOR-2": 1000,
-  "SKV-CREATOR-3": 1000,
-  "SKV-CREATOR-4": 1000,
-  "SKV-CREATOR-5": 1000,
   "S49A1B2": 100,
   "MELODY100": 100,
   "SKVPRO49": 100,
@@ -60,7 +67,7 @@ export async function POST(req: Request) {
         credits: creditsToGrant + INITIAL_CREDITS,
         displayName: 'Guest User',
         email: `guest_${userId}@example.com`,
-        plan: 'free'
+        plan: creditsToGrant >= 5000 ? 'pro' : creditsToGrant >= 1000 ? 'creator' : 'free'
       });
 
       return NextResponse.json({
@@ -78,10 +85,15 @@ export async function POST(req: Request) {
     }
 
     // 5. Success
-    await updateDoc(userDocRef, {
+    const updates: any = {
       redeemedCoupons: arrayUnion(code),
       credits: increment(creditsToGrant)
-    });
+    };
+
+    if (creditsToGrant >= 5000) updates.plan = 'pro';
+    else if (creditsToGrant >= 1000) updates.plan = 'creator';
+
+    await updateDoc(userDocRef, updates);
 
     return NextResponse.json({
       status: "success",
