@@ -64,7 +64,7 @@ CREDITS_MAP = {
 
 @app.get("/")
 async def home():
-    return {"status": "Neural Engine Active", "version": "2.8.0", "engine": "FastAPI"}
+    return {"status": "Neural Engine Active", "version": "3.0.0", "engine": "FastAPI"}
 
 @app.post("/api/create-order")
 async def create_order(request: Request):
@@ -91,21 +91,40 @@ async def create_order(request: Request):
 
     except Exception as e:
         print(f"PAYMENT ERROR: {e}")
-        # Fallback for local testing if Razorpay key is invalid
-        return {
-            "id": f"test_order_{uuid.uuid4().hex[:8]}",
-            "amount": 29900,
-            "currency": "INR",
-            "status": "created",
-            "error": str(e)
-        }
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+@app.post("/api/create-qr")
+async def create_qr(request: Request):
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        item_id = data.get('item_id', 'pro')
+        amount_in_rupees = PRICES.get(item_id, 299)
+        
+        # Razorpay expects amount in paise
+        amount_in_paise = int(amount_in_rupees) * 100
+        
+        qr_code = client.qr_code.create(data={
+            "type": "upi_qr",
+            "name": f"Sargam Pro - {user_id}",
+            "usage": "single_use",
+            "fixed_amount": True,
+            "payment_amount": amount_in_paise,
+            "description": "Subscription for Sargam AI",
+            "notes": {
+                "userId": user_id,
+                "itemId": item_id
+            }
+        })
+        return qr_code
+    except Exception as e:
+        print(f"QR ERROR: {e}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 @app.post("/api/webhook")
 async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(None)):
-    """Handles Razorpay webhooks with secure signature verification."""
     payload = await request.body()
     
-    # 1. Verify Signature
     if RAZORPAY_WEBHOOK_SECRET and x_razorpay_signature:
         expected_signature = hmac.new(
             RAZORPAY_WEBHOOK_SECRET.encode(),
@@ -117,14 +136,13 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
             print("SECURITY ALERT: Invalid Webhook Signature!")
             return JSONResponse(content={"status": "failed", "message": "Invalid signature"}, status_code=400)
 
-    # 2. Process Event
     try:
         data = json.loads(payload)
         event = data.get('event')
         
-        if event == 'order.paid':
-            order_entity = data['payload']['order']['entity']
-            notes = order_entity.get('notes', {})
+        if event == 'order.paid' or event == 'payment.captured':
+            entity = data['payload'].get('order', {}).get('entity') or data['payload'].get('payment', {}).get('entity')
+            notes = entity.get('notes', {})
             user_id = notes.get('userId')
             item_id = notes.get('itemId')
             
@@ -141,20 +159,13 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
                 user_ref.update(updates)
                 print(f"SUCCESS: Added {credits_to_add} credits to user {user_id}")
 
-        elif event == 'payment.failed':
-            payment_entity = data['payload']['payment']['entity']
-            reason = payment_entity.get('error_description', 'Unknown error')
-            user_id = payment_entity.get('notes', {}).get('userId')
-            print(f"FAILURE: Payment failed for user {user_id}. Reason: {reason}")
-
         return {"status": "ok"}
     except Exception as e:
-        print(f"WEBHOOK PROCESSING ERROR: {e}")
+        print(f"WEBHOOK ERROR: {e}")
         return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
 
 @app.post("/api/verify")
 async def verify_payment(request: Request):
-    """Fallback manual verification endpoint."""
     try:
         data = await request.json()
         user_id = data.get('user_id')

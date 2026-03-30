@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from "react";
-import { Check, Zap, Sparkles, Rocket, Loader2 } from "lucide-react";
+import { Check, Zap, Sparkles, Rocket, Loader2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser } from '@/firebase';
@@ -75,11 +75,10 @@ export default function PricingPage() {
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const handlePayment = async (itemId: string, type: 'plan' | 'pack') => {
-    // REQUIRE FULL SIGNUP BEFORE PAYMENT (No anonymous payments)
     if (!user || user.isAnonymous) {
       toast({
         title: "Account Required",
-        description: "Please sign up or login with Email/Google to upgrade your plan.",
+        description: "Please sign up or login to your permanent account to upgrade.",
         variant: "destructive"
       });
       router.push('/login');
@@ -90,17 +89,14 @@ export default function PricingPage() {
 
     setIsProcessing(itemId);
     
-    // Dynamic Base URL for Neural Engine
+    // Explicitly uses the NEURAL_ENGINE_URL for internal routing.
     const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
     
-    // DEBUG LOG: Track which backend we are hitting
-    console.log("Attempting to fetch from:", baseUrl);
-
     // Protocol Safety Check
     if (baseUrl.includes("localhost") && typeof window !== 'undefined' && window.location.protocol === "https:") {
         toast({
             title: "Connection Alert",
-            description: "Trying to connect to localhost from a live HTTPS site. Please check your environment variables.",
+            description: "Trying to connect to localhost from a live HTTPS site. Check environment variables.",
             variant: "destructive"
         });
         setIsProcessing(null);
@@ -108,6 +104,8 @@ export default function PricingPage() {
     }
 
     try {
+      console.log("Acting towards Neural Engine at:", baseUrl);
+      
       const orderRes = await fetch(`${baseUrl}/api/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -126,7 +124,7 @@ export default function PricingPage() {
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder",
-        amount: orderData.amount || 50000,
+        amount: orderData.amount,
         currency: orderData.currency || "INR",
         name: "Sargam AI",
         description: type === 'plan' ? `Upgrade to ${itemId}` : `${itemId} Credits Pack`,
@@ -148,14 +146,11 @@ export default function PricingPage() {
             });
 
             if (verifyRes.ok) {
-              toast({ title: "Success!", description: "Your account has been updated." });
+              toast({ title: "Success!", description: "Neural credits provisioned." });
               router.refresh();
-              setTimeout(() => {
-                window.location.reload();
-              }, 1500);
+              setTimeout(() => { window.location.reload(); }, 1000);
             } else {
-              const verifyData = await verifyRes.json();
-              throw new Error(verifyData.error || "Payment verification failed.");
+              throw new Error("Verification failed.");
             }
           } catch (err: any) {
             toast({ title: "Verification Failed", description: err.message, variant: "destructive" });
@@ -164,21 +159,15 @@ export default function PricingPage() {
           }
         },
         prefill: {
-          name: user.displayName || "User",
+          name: user.displayName || "Artist",
           email: user.email || "",
         },
-        theme: {
-          color: "#00ffff",
-        },
-        modal: {
-          ondismiss: function() {
-            setIsProcessing(null);
-          }
-        }
+        theme: { color: "#00ffff" },
+        modal: { ondismiss: () => setIsProcessing(null) }
       };
 
       if (typeof (window as any).Razorpay === 'undefined') {
-          throw new Error("Razorpay script not loaded. Please refresh and try again.");
+          throw new Error("Razorpay not loaded.");
       }
 
       const rzp = new (window as any).Razorpay(options);
@@ -196,13 +185,13 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="space-y-16 pb-20">
+    <div className="space-y-16 pb-32">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       
       <div className="text-center max-w-3xl mx-auto space-y-4">
-        <h1 className="font-headline text-5xl font-bold tracking-tight text-foreground">Premium Access</h1>
+        <h1 className="font-headline text-5xl font-bold tracking-tight text-foreground leading-tight">Professional Neural Access</h1>
         <p className="text-xl text-muted-foreground leading-relaxed">
-          Scale your creative output with advanced neural tools and high-fidelity synthesis.
+          Unlock high-fidelity synthesis and advanced vocal research tools.
         </p>
       </div>
 
@@ -214,7 +203,7 @@ export default function PricingPage() {
           >
             {plan.popular && (
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest">
-                Most Popular
+                Recommended
               </div>
             )}
             <CardHeader className="p-8">
@@ -223,12 +212,12 @@ export default function PricingPage() {
                 <CardTitle className="text-2xl font-headline font-bold">{plan.name}</CardTitle>
               </div>
               <CardDescription className="min-h-[40px]">{plan.description}</CardDescription>
-              <div className="mt-6">
+              <div className="mt-6 flex items-baseline gap-1">
                 <span className="text-4xl font-black">₹{plan.price}</span>
-                <span className="text-muted-foreground">/ mo</span>
+                <span className="text-muted-foreground text-sm">/ mo</span>
               </div>
-              <div className="mt-2 text-xs font-black text-primary uppercase tracking-widest bg-primary/10 w-fit px-3 py-1 rounded-full border border-primary/20">
-                {plan.credits}
+              <div className="mt-4 text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 w-fit px-3 py-1 rounded-full border border-primary/20">
+                {plan.credits} Neural Allocation
               </div>
             </CardHeader>
             <CardContent className="flex-grow p-8 pt-0">
@@ -244,8 +233,8 @@ export default function PricingPage() {
             <CardFooter className="p-8 pt-0">
               <Button 
                 onClick={() => handlePayment(plan.id, 'plan')}
-                disabled={isProcessing === plan.id}
-                className="w-full h-12 rounded-xl font-bold text-lg"
+                disabled={isProcessing === plan.id || plan.id === 'free'}
+                className="w-full h-12 rounded-xl font-bold text-lg shadow-lg shadow-primary/10"
                 variant={plan.popular ? 'default' : 'outline'}
               >
                 {isProcessing === plan.id ? <Loader2 className="animate-spin h-5 w-5" /> : plan.buttonText}
@@ -257,8 +246,11 @@ export default function PricingPage() {
 
       <section className="max-w-4xl mx-auto px-4 pt-10">
         <div className="text-center space-y-4 mb-10">
-          <h2 className="text-3xl font-bold font-headline">Credit Top-ups</h2>
-          <p className="text-muted-foreground">Instant neural research allocation for urgent projects.</p>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest border border-primary/20">
+                <QrCode className="h-3 w-3" /> UPI Supported
+            </div>
+            <h2 className="text-3xl font-bold font-headline">Credit Top-ups</h2>
+            <p className="text-muted-foreground">Instant neural allocation for urgent research projects.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {PACKS.map(pack => (
@@ -267,14 +259,14 @@ export default function PricingPage() {
               variant="outline" 
               onClick={() => handlePayment(pack.id, 'pack')}
               disabled={isProcessing === pack.id}
-              className="h-24 flex flex-col gap-1 rounded-2xl border-primary/10 hover:bg-primary/5 transition-all group"
+              className="h-28 flex flex-col gap-1 rounded-2xl border-primary/10 hover:bg-primary/5 transition-all group relative overflow-hidden"
             >
                {isProcessing === pack.id ? (
                  <Loader2 className="animate-spin h-6 w-6" />
                ) : (
                  <>
-                   <span className="text-2xl font-black text-primary group-hover:scale-110 transition-transform">₹{pack.price}</span>
-                   <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{pack.credits} Neural Credits</span>
+                   <span className="text-3xl font-black text-primary group-hover:scale-110 transition-transform">₹{pack.price}</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{pack.credits} Credits</span>
                  </>
                )}
             </Button>
@@ -282,8 +274,8 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <div className="text-center text-[10px] text-muted-foreground italic uppercase tracking-widest opacity-50">
-        * Neural allocations reset at 00:00 UTC. One-time packs do not expire.
+      <div className="text-center text-[10px] text-muted-foreground italic uppercase tracking-widest opacity-50 pb-20">
+        * Neural allocations reset monthly. One-time packs do not expire.
       </div>
     </div>
   );
