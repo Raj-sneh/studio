@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A friendly AI helper for the app using Gemini 2.5 Flash.
@@ -46,10 +47,10 @@ const getLessonLibrary = ai.defineTool(
 const applyEmergencyCoupon = ai.defineTool(
   {
     name: 'applyEmergencyCoupon',
-    description: 'Apply a special coupon code to grant a user credits. Use this if the user provides a secret code or if there is a payment emergency.',
+    description: 'Apply a special coupon code to grant a user credits. Use this if the user provides a secret code in the format /coupon=CODE or /coupon = CODE.',
     inputSchema: z.object({
       userId: z.string().describe('The UID of the user.'),
-      code: z.string().describe('The secret coupon code.'),
+      code: z.string().describe('The secret coupon code to validate.'),
     }),
     outputSchema: z.object({
       success: z.boolean(),
@@ -63,7 +64,7 @@ const applyEmergencyCoupon = ai.defineTool(
       const response = await fetch(`${baseUrl}/api/redeem`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, code }),
+        body: JSON.stringify({ userId, code: code.trim() }),
         cache: 'no-store'
       });
 
@@ -91,8 +92,8 @@ const sargamBotSystemPrompt = `You are Sargam AI, a friendly and highly intellig
 
 **COUPON COMMAND (CRITICAL):**
 - Users apply secret codes using the format: /coupon=CODE or /coupon = CODE.
-- If you see this syntax in the user's prompt, extract the CODE and call the "applyEmergencyCoupon" tool IMMEDIATELY.
-- If the tool indicates success, celebrate with the user! If it fails, explain why clearly.
+- If you see this syntax in the user's prompt (e.g., "/coupon=SKV-PRO-1"), extract the CODE and call the "applyEmergencyCoupon" tool IMMEDIATELY.
+- Always inform the user if the coupon was applied successfully or if there was an error.
 
 **URL FORMATS:**
 - /suite?tab=composer&prompt=[DESCRIPTION]&autogen=true&autoplay=true
@@ -104,7 +105,7 @@ const sargamBotSystemPrompt = `You are Sargam AI, a friendly and highly intellig
 **RESPONSE FORMAT:**
 You MUST respond with a valid JSON object containing:
 1. "responseText": Your message (intelligent, friendly, and helpful).
-2. "actionUrl": (Optional) A relative URL string, or null if no action needed.
+2. "actionUrl": (Optional) A relative URL string, or null if no action needed. Ensure this is always present even if null.
 
 Return ONLY the JSON.`;
 
@@ -160,7 +161,7 @@ const sargamFlow = ai.defineFlow(
           const parsed = JSON.parse(jsonMatch[0]);
           return {
             responseText: parsed.responseText || "I've processed that for you!",
-            actionUrl: parsed.actionUrl || null
+            actionUrl: parsed.actionUrl === undefined ? null : parsed.actionUrl
           };
         } catch (e) {}
       }

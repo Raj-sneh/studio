@@ -62,30 +62,25 @@ CREDITS_MAP = {
     "pack_300": 300
 }
 
-# Neural Coupons
+# Neural Coupons - Simplified with direct lookup
+# 5 Creator Coupons (1,000 credits, Alphanumeric)
+# 5 Pro Coupons (5,000 credits, Alphanumeric + @#$)
 COUPONS = {
     "SKV1000NEW": 1000,
-    "PIANO2024X": 1000,
-    "PRO@NEURAL#1": 5000,
-    "SONIC$SKV#25": 5000,
-    "MASTER@VOICE$": 5000,
     "CrEaT0r99x": 1000,
     "MaGic123S": 1000,
     "skvCreaTor7": 1000,
-    "NeuralArt88": 1000,
-    "PianoPack99": 1000,
-    "Pr0@Sargam#": 5000,
-    "N3ur@l$5000": 5000,
-    "SKV#V0ice@99": 5000,
-    "Elite$Artist#1": 5000,
-    "Master@SKV#77": 5000,
-    "SKV-PRO-1": 5000,
     "SKV-CREATOR-1": 1000,
+    "PRO@NEURAL#1": 5000,
+    "SONIC$SKV#25": 5000,
+    "MASTER@VOICE$": 5000,
+    "SKV#V0ice@99": 5000,
+    "SKV-PRO-1": 5000,
 }
 
 @app.get("/")
 async def home():
-    return {"status": "Sargam Neural Engine Active", "version": "3.7.0", "engine": "FastAPI"}
+    return {"status": "Sargam Neural Engine Active", "version": "3.8.0", "engine": "FastAPI"}
 
 @app.get("/health")
 async def health():
@@ -133,11 +128,13 @@ async def redeem_coupon(request: Request):
         data = await request.json()
         user_id = data.get('userId')
         code = data.get('code')
+        
         if not user_id or not code:
             return JSONResponse(content={"error": "Missing user ID or code"}, status_code=400)
         
-        credits = COUPONS.get(code)
-        if not credits:
+        # Simple if/elif/else logic via dictionary lookup
+        credits_to_add = COUPONS.get(code)
+        if not credits_to_add:
             return JSONResponse(content={"error": "Invalid coupon code."}, status_code=404)
             
         user_ref = db.collection('users').document(user_id)
@@ -148,19 +145,25 @@ async def redeem_coupon(request: Request):
             if not snapshot.exists: return {"error": "User account not found."}
             user_data = snapshot.to_dict()
             redeemed = user_data.get('redeemedCoupons', [])
-            if code in redeemed: return {"error": "Coupon already used."}
+            
+            # Reusing same code is restricted per user
+            if code in redeemed: 
+                return {"error": "Coupon already used."}
             
             updates = {
                 'credits': firestore.Increment(credits_to_add),
                 'redeemedCoupons': firestore.ArrayUnion([code])
             }
-            if credits_to_add >= 5000: updates['plan'] = 'pro'
-            elif credits_to_add >= 1000: updates['plan'] = 'creator'
+            # Auto-upgrade plan based on credits
+            if credits_to_add >= 5000: 
+                updates['plan'] = 'pro'
+            elif credits_to_add >= 1000: 
+                updates['plan'] = 'creator'
             
             transaction.update(user_ref, updates)
             return {"success": True, "credits": credits_to_add}
 
-        result = redeem_in_transaction(db.transaction(), user_ref, code, credits)
+        result = redeem_in_transaction(db.transaction(), user_ref, code, credits_to_add)
         if "error" in result: return JSONResponse(content={"error": result["error"]}, status_code=400)
         return result
     except Exception as e:
