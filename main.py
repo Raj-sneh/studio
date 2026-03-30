@@ -2,8 +2,11 @@
 import os
 import uuid
 import json
+import hmac
+import hashlib
 import razorpay
 from fastapi import FastAPI, Request, HTTPException, Header
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -14,12 +17,9 @@ load_dotenv()
 
 # --- Robust Firebase Initialization ---
 if not firebase_admin._apps:
-    # This checks if we are on Cloud Run or local
     if os.environ.get("K_SERVICE"): 
-        # We are on Cloud Run: Use default credentials
         firebase_admin.initialize_app()
     else:
-        # We are in Studio/Local: Explicitly specify the project ID
         firebase_admin.initialize_app(options={
             'projectId': 'studio-4164192500-df01a',
         })
@@ -29,17 +29,15 @@ db = firestore.client()
 # --- Razorpay Initialization ---
 RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "rzp_test_placeholder")
 RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "secret_placeholder")
-# Webhook secret for signature verification (Set this in Razorpay dashboard and Env)
 RAZORPAY_WEBHOOK_SECRET = os.environ.get("RAZORPAY_WEBHOOK_SECRET", "")
 
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 app = FastAPI()
 
-# --- CORS Middleware ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace "*" with your actual domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -65,27 +63,18 @@ CREDITS_MAP = {
 
 @app.get("/")
 async def home():
-    return {"status": "Neural Engine Active", "version": "2.7.0", "engine": "FastAPI"}
-
-@app.get("/health")
-async def health():
-    return {"ready": True, "database": db is not None}
+    return {"status": "Neural Engine Active", "version": "2.8.0", "engine": "FastAPI"}
 
 @app.post("/api/payments/create-order")
 async def create_order(request: Request):
-    """Creates a real order via Razorpay."""
     try:
         data = await request.json()
         user_id = data.get('user_id')
         item_id = data.get('item_id', 'pro')
         
-        # 1. Determine the price in Rupees
         amount_in_rupees = PRICES.get(item_id, 299)
-        
-        # 2. Convert Rupees to Paise (Razorpay requirement)
         amount_in_paise = int(amount_in_rupees) * 100
         
-        # 3. Create the Razorpay Order
         order_data = {
             "amount": amount_in_paise,
             "currency": "INR",
@@ -111,50 +100,58 @@ async def create_order(request: Request):
 
 @app.post("/api/webhook")
 async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(None)):
-    """Handles Razorpay webhooks for paid and failed events."""
+    """Handles Razorpay webhooks with secure signature verification."""
     payload = await request.body()
     
-    # Verify signature if secret is provided
+    # 1. Verify Signature
     if RAZORPAY_WEBHOOK_SECRET and x_razorpay_signature:
-        try:
-            client.utility.verify_webhook_signature(payload.decode('utf-8'), x_razorpay_signature, RAZORPAY_WEBHOOK_SECRET)
-        except Exception:
-            raise HTTPException(status_code=400, detail="Invalid signature")
-
-    data = json.loads(payload)
-    event = data.get('event')
-    
-    if event == 'order.paid':
-        order_entity = data['payload']['order']['entity']
-        notes = order_entity.get('notes', {})
-        user_id = notes.get('userId')
-        item_id = notes.get('itemId')
+        expected_signature = hmac.new(
+            RAZORPAY_WEBHOOK_SECRET.encode(),
+            payload,
+            hashlib.sha256
+        ).hexdigest()
         
-        credits_to_add = CREDITS_MAP.get(item_id, 0)
+        if not hmac.compare_digest(expected_signature, x_razorpay_signature):
+            print("SECURITY ALERT: Invalid Webhook Signature!")
+            return JSONResponse(content={"status": "failed", "message": "Invalid signature"}, status_code=400)
+
+    # 2. Process Event
+    try:
+        data = json.loads(payload)
+        event = data.get('event')
         
-        if user_id and credits_to_add > 0:
-            user_ref = db.collection('users').document(user_id)
-            updates = {
-                'credits': firestore.Increment(credits_to_add)
-            }
-            # Only update plan if it's not a one-time pack
-            if 'pack' not in item_id:
-                updates['plan'] = item_id
-                
-            user_ref.update(updates)
-            print(f"SUCCESS: Added {credits_to_add} credits to user {user_id}")
+        if event == 'order.paid':
+            order_entity = data['payload']['order']['entity']
+            notes = order_entity.get('notes', {})
+            user_id = notes.get('userId')
+            item_id = notes.get('itemId')
+            
+            credits_to_add = CREDITS_MAP.get(item_id, 0)
+            
+            if user_id and credits_to_add > 0:
+                user_ref = db.collection('users').document(user_id)
+                updates = {
+                    'credits': firestore.Increment(credits_to_add)
+                }
+                if 'pack' not in item_id:
+                    updates['plan'] = item_id
+                    
+                user_ref.update(updates)
+                print(f"SUCCESS: Added {credits_to_add} credits to user {user_id}")
 
-    elif event == 'payment.failed':
-        payment_entity = data['payload']['payment']['entity']
-        reason = payment_entity.get('error_description', 'Unknown error')
-        user_id = payment_entity.get('notes', {}).get('userId')
-        print(f"FAILURE: Payment failed for user {user_id}. Reason: {reason}")
+        elif event == 'payment.failed':
+            payment_entity = data['payload']['payment']['entity']
+            reason = payment_entity.get('error_description', 'Unknown error')
+            user_id = payment_entity.get('notes', {}).get('userId')
+            print(f"FAILURE: Payment failed for user {user_id}. Reason: {reason}")
 
-    return {"status": "ok"}
+        return {"status": "ok"}
+    except Exception as e:
+        print(f"WEBHOOK PROCESSING ERROR: {e}")
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
 
 @app.post("/api/payments/verify")
 async def verify_payment(request: Request):
-    """Manual verification fallback."""
     try:
         data = await request.json()
         user_id = data.get('user_id')

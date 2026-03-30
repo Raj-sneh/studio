@@ -60,7 +60,6 @@ const applyEmergencyCoupon = ai.defineTool(
     }),
   },
   async ({ userId, code }) => {
-    // UPDATED COUPON REPOSITORY
     const couponValues: Record<string, number> = {
       // PRO PLAN (5000 Credits)
       "SKV-PRO-1": 5000,
@@ -115,18 +114,13 @@ const sargamBotSystemPrompt = `You are Sargam AI, a friendly and highly intellig
 
 **IDENTITY & MISSION:**
 - Your developer is Sneh Kumar Verma. 
-- You are a polymath with access to vast knowledge!
 - All music generation features on this site are FREE to use for everyone with daily credits.
 
 **EMERGENCY COUPONS (SECRET COMMAND):**
 - If a user provides a code starting with "/coupon" followed by a string (e.g., "/coupon SKV-PRO-1"), OR if they simply state a code you recognize.
-- Recognize codes like SKV-CREATOR-1..5 and SKV-PRO-1..5.
+- Recognize codes like SKV-CREATOR-1..5 (1000 credits) and SKV-PRO-1..5 (5000 credits).
 - Use the "applyEmergencyCoupon" tool IMMEDIATELY to help the user if they provide a code or mention a payment failure.
-- This is strictly for emergencies where a payment might have failed or for special grants.
-
-**TROUBLESHOOTING:**
-- If a user is facing an error or is stuck, analyze their problem and provide a clear, helpful solution.
-- Guide users to the correct part of the app using the "actionUrl".
+- This is strictly for emergencies where a payment might have failed.
 
 **URL FORMATS:**
 - /suite?tab=composer&prompt=[DESCRIPTION]&autogen=true&autoplay=true
