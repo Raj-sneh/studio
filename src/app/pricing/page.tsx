@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from "react";
-import { Check, Zap, Sparkles, Rocket, Loader2, QrCode, X, CreditCard } from "lucide-react";
+import { Check, Zap, Sparkles, Rocket, Loader2, QrCode, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser } from '@/firebase';
@@ -188,7 +188,7 @@ export default function PricingPage() {
         modal: { ondismiss: () => setIsProcessing(null) }
       };
 
-      if (typeof (window as any).Razorpay === 'undefined') throw new Error("Razorpay not loaded.");
+      if (typeof (window as any).Razorpay === 'undefined') throw new Error("Razorpay script not loaded yet. Please try again in a moment.");
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
 
