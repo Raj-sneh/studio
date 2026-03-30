@@ -97,13 +97,15 @@ export default function PricingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           item_id: itemId, 
-          userId: user.uid 
+          userId: user.uid,
+          amount: parseInt(price)
         }),
       });
 
       const data = await res.json();
       if (data.image_url) {
         setQrImageUrl(data.image_url);
+        toast({ title: "QR Generated", description: "Please scan to complete payment." });
       } else {
         throw new Error(data.error || "Failed to generate QR code.");
       }

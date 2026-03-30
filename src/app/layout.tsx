@@ -1,3 +1,4 @@
+
 import { Poppins, Roboto } from 'next/font/google';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
@@ -32,12 +33,14 @@ export const metadata: Metadata = {
     "Virtual Piano",
     "AI Piano Tutor",
     "Voice Cloning",
+    "AI Voice Cloning",
     "Neural Voice Synthesis",
     "AI Music Composition",
     "Sneh Kumar Verma",
     "ElevenLabs Voice Cloning",
     "Piano Lessons AI",
-    "Music Research Preview"
+    "Music Research Preview",
+    "Neural Song Swap"
   ],
   icons: {
     icon: "/favicon.ico",
@@ -68,7 +71,7 @@ export default function RootLayout({
             <footer className="py-12 bg-muted/20 border-t border-border/10 mt-20 px-6">
               <div className="container mx-auto max-w-4xl flex flex-col items-center gap-10 text-center">
                 
-                {/* QR Code Section - Moved to Top */}
+                {/* QR Code Section */}
                 <div className="flex flex-col items-center gap-4 group">
                   <div className="p-4 bg-white rounded-3xl shadow-2xl transition-transform duration-500 hover:scale-105 border-4 border-primary/20">
                     <div className="relative h-64 w-64 overflow-hidden rounded-2xl bg-gray-100 flex items-center justify-center">

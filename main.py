@@ -54,7 +54,6 @@ PRICES = {
 }
 
 # Credit mapping for plans and packs
-# FIXED: Now correctly reflects your requested 1000/5000 tiers and packs
 CREDITS_MAP = {
     "creator": 1000,
     "pro": 5000,
@@ -104,23 +103,31 @@ async def create_qr(request: Request):
         data = await request.json()
         user_id = data.get('userId')
         item_id = data.get('item_id', 'pro')
-        amount_in_rupees = PRICES.get(item_id, 299)
         
+        # Get dynamic amount from PRICES map or data direct
+        amount_in_rupees = data.get('amount') or PRICES.get(item_id, 299)
+        
+        if not user_id:
+            return JSONResponse(content={"error": "User ID is required"}, status_code=400)
+
         # Razorpay expects amount in paise
         amount_in_paise = int(amount_in_rupees) * 100
         
         qr_code = client.qr_code.create(data={
             "type": "upi_qr",
-            "name": f"Sargam {item_id.capitalize()} - {user_id}",
+            "name": f"Sargam AI - {user_id}",
             "usage": "single_use",
             "fixed_amount": True,
             "payment_amount": amount_in_paise,
             "description": f"Subscription for Sargam AI - {item_id}",
             "notes": {
                 "userId": user_id,
-                "itemId": item_id
+                "itemId": item_id,
+                "amount": str(amount_in_rupees)
             }
         })
+        
+        print(f"✅ QR Created: {qr_code['id']} for User: {user_id} (₹{amount_in_rupees})")
         return qr_code
     except Exception as e:
         print(f"QR ERROR: {e}")
@@ -160,7 +167,7 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
             user_id = notes.get('userId')
             item_id = notes.get('itemId')
             
-            # FIXED: Uses the dynamic map instead of defaulting to 500
+            # Dynamically determine credits to add
             credits_to_add = CREDITS_MAP.get(item_id, 0)
             
             if user_id and credits_to_add > 0:
