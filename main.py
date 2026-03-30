@@ -35,6 +35,7 @@ client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 app = FastAPI()
 
+# Enable CORS for cross-origin requests from the Next.js frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -65,7 +66,7 @@ CREDITS_MAP = {
 async def home():
     return {"status": "Neural Engine Active", "version": "2.8.0", "engine": "FastAPI"}
 
-@app.post("/api/payments/create-order")
+@app.post("/api/create-order")
 async def create_order(request: Request):
     try:
         data = await request.json()
@@ -90,6 +91,7 @@ async def create_order(request: Request):
 
     except Exception as e:
         print(f"PAYMENT ERROR: {e}")
+        # Fallback for local testing if Razorpay key is invalid
         return {
             "id": f"test_order_{uuid.uuid4().hex[:8]}",
             "amount": 29900,
@@ -150,8 +152,9 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
         print(f"WEBHOOK PROCESSING ERROR: {e}")
         return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
 
-@app.post("/api/payments/verify")
+@app.post("/api/verify")
 async def verify_payment(request: Request):
+    """Fallback manual verification endpoint."""
     try:
         data = await request.json()
         user_id = data.get('user_id')

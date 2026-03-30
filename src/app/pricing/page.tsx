@@ -90,11 +90,25 @@ export default function PricingPage() {
 
     setIsProcessing(itemId);
     
-    // Using the secure Proxy URL
+    // Dynamic Base URL for Neural Engine
     const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
+    
+    // DEBUG LOG: Track which backend we are hitting
+    console.log("Attempting to fetch from:", baseUrl);
+
+    // Protocol Safety Check
+    if (baseUrl.includes("localhost") && typeof window !== 'undefined' && window.location.protocol === "https:") {
+        toast({
+            title: "Connection Alert",
+            description: "Trying to connect to localhost from a live HTTPS site. Please check your environment variables.",
+            variant: "destructive"
+        });
+        setIsProcessing(null);
+        return;
+    }
 
     try {
-      const orderRes = await fetch(`${baseUrl}/api/payments/create-order`, {
+      const orderRes = await fetch(`${baseUrl}/api/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -120,7 +134,7 @@ export default function PricingPage() {
         handler: async function (response: any) {
           setIsProcessing(itemId);
           try {
-            const verifyRes = await fetch(`${baseUrl}/api/payments/verify`, {
+            const verifyRes = await fetch(`${baseUrl}/api/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
