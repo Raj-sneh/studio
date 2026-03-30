@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, Zap, Sparkles, Rocket, Loader2, QrCode, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -90,6 +90,14 @@ export default function PricingPage() {
     setSelectedPrice(price);
 
     const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
+    
+    // Debug Log for Protocol Safety
+    console.log("Attempting QR fetch from:", baseUrl);
+    if (baseUrl.includes("localhost") && window.location.protocol === "https:") {
+       toast({ title: "Protocol Error", description: "Insecure localhost access from HTTPS site.", variant: "destructive" });
+       setIsProcessing(null);
+       return;
+    }
 
     try {
       const res = await fetch(`${baseUrl}/api/create-qr`, {
@@ -110,7 +118,8 @@ export default function PricingPage() {
         throw new Error(data.error || "Failed to generate QR code.");
       }
     } catch (e: any) {
-      toast({ title: "QR Error", description: e.message, variant: "destructive" });
+      console.error("QR Generation Failed:", e);
+      toast({ title: "QR Error", description: e.message || "Could not connect to the Neural Engine.", variant: "destructive" });
     } finally {
       setIsProcessing(null);
     }
@@ -128,6 +137,8 @@ export default function PricingPage() {
     setIsProcessing(itemId);
     
     const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
+    
+    console.log("Attempting Checkout fetch from:", baseUrl);
 
     try {
       const orderRes = await fetch(`${baseUrl}/api/create-order`, {
@@ -193,6 +204,7 @@ export default function PricingPage() {
       rzp.open();
 
     } catch (e: any) {
+      console.error("Payment Error:", e);
       toast({ title: "Payment Error", description: e.message, variant: "destructive" });
       setIsProcessing(null);
     }

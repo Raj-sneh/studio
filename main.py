@@ -64,7 +64,7 @@ CREDITS_MAP = {
 
 @app.get("/")
 async def home():
-    return {"status": "Neural Engine Active", "version": "3.1.0", "engine": "FastAPI"}
+    return {"status": "Sargam Neural Engine Active", "version": "3.5.0", "engine": "FastAPI"}
 
 @app.get("/health")
 async def health():
@@ -91,6 +91,7 @@ async def create_order(request: Request):
         }
         
         order = client.order.create(data=order_data)
+        print(f"✅ Order Created: {order['id']} for User: {user_id} ({item_id})")
         return order
 
     except Exception as e:
@@ -104,14 +105,14 @@ async def create_qr(request: Request):
         user_id = data.get('userId')
         item_id = data.get('item_id', 'pro')
         
-        # Get dynamic amount from PRICES map or data direct
-        amount_in_rupees = data.get('amount') or PRICES.get(item_id, 299)
+        # Ensure amount is an integer
+        amount_in_rupees = int(data.get('amount') or PRICES.get(item_id, 299))
         
         if not user_id:
             return JSONResponse(content={"error": "User ID is required"}, status_code=400)
 
-        # Razorpay expects amount in paise
-        amount_in_paise = int(amount_in_rupees) * 100
+        # Razorpay expects amount in paise (1 Rupee = 100 Paise)
+        amount_in_paise = amount_in_rupees * 100
         
         qr_code = client.qr_code.create(data={
             "type": "upi_qr",
@@ -119,7 +120,7 @@ async def create_qr(request: Request):
             "usage": "single_use",
             "fixed_amount": True,
             "payment_amount": amount_in_paise,
-            "description": f"Subscription for Sargam AI - {item_id}",
+            "description": f"Credits for {user_id}",
             "notes": {
                 "userId": user_id,
                 "itemId": item_id,
@@ -130,8 +131,8 @@ async def create_qr(request: Request):
         print(f"✅ QR Created: {qr_code['id']} for User: {user_id} (₹{amount_in_rupees})")
         return qr_code
     except Exception as e:
-        print(f"QR ERROR: {e}")
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        print(f"QR ERROR: {str(e)}")
+        return JSONResponse(content={"error": "Razorpay QR Error", "details": str(e)}, status_code=500)
 
 @app.post("/api/webhook")
 async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(None)):
@@ -152,22 +153,26 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
         data = json.loads(payload)
         event = data.get('event')
         
-        # Standard Order or Payment Events
         entity = None
         if event in ['order.paid', 'payment.captured']:
             entity = data['payload'].get('order', {}).get('entity') or \
                      data['payload'].get('payment', {}).get('entity')
         
-        # QR Code Specific Event
         elif event == 'qr_code.credited':
             entity = data['payload'].get('qr_code', {}).get('entity')
             
+        elif event == 'payment.failed':
+            payment_entity = data['payload']['payment']['entity']
+            reason = payment_entity.get('error_description', 'Unknown failure')
+            user_id = payment_entity.get('notes', {}).get('userId', 'Unknown')
+            print(f"❌ Payment Failed for user {user_id}. Reason: {reason}")
+            return {"status": "ok"}
+
         if entity:
             notes = entity.get('notes', {})
             user_id = notes.get('userId')
             item_id = notes.get('itemId')
             
-            # Dynamically determine credits to add
             credits_to_add = CREDITS_MAP.get(item_id, 0)
             
             if user_id and credits_to_add > 0:
@@ -175,7 +180,6 @@ async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(
                 updates = {
                     'credits': firestore.Increment(credits_to_add)
                 }
-                # If it's a plan upgrade (not just a pack), update the plan name
                 if 'pack' not in item_id:
                     updates['plan'] = item_id
                     
