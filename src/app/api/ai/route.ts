@@ -1,3 +1,4 @@
+
 import { askSargam } from '@/ai/flows/assistant-flow';
 import {
   type AssistantInput,
@@ -27,6 +28,7 @@ export async function POST(req: Request) {
       prompt: body.prompt,
       history: body.history || [],
       userName: body.userName || undefined,
+      userId: body.userId || undefined, // PASS UID TO ASSISTANT
       photoDataUri: body.photoDataUri || undefined,
     };
 

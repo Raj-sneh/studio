@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 
 export const AssistantInputSchema = z.object({
@@ -7,6 +8,7 @@ export const AssistantInputSchema = z.object({
   })).describe('The conversation history.'),
   prompt: z.string().describe("The user's latest prompt or question."),
   userName: z.string().optional().nullable().describe('The name of the user making the request.'),
+  userId: z.string().optional().nullable().describe('The UID of the user for performing account actions.'),
   photoDataUri: z.string().optional().nullable().describe("A photo as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
 });
 export type AssistantInput = z.infer<typeof AssistantInputSchema>;

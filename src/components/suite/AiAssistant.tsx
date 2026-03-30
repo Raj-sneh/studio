@@ -35,6 +35,8 @@ const CHAT_HISTORY_TTL = 24 * 60 * 60 * 1000;
 const CHAT_HISTORY_API_LIMIT = 20;
 
 export function AiAssistant({ onAction }: { onAction?: () => void }) {
+  const { user } = useUser();
+  const firestore = useFirestore();
   const [messages, setMessages] = useState<Message[]>(() => {
     if (typeof window === 'undefined') {
       return [];
@@ -62,8 +64,6 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  const { user } = useUser();
-  const firestore = useFirestore();
   const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
   const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
@@ -141,6 +141,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
           history: historyForApi,
           prompt: data.prompt,
           userName: userProfile?.displayName,
+          userId: user?.uid, // SEND UID FOR ACTIONS
           photoDataUri: imageToSend,
         }),
       });
@@ -150,7 +151,6 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
       try {
         result = resText ? JSON.parse(resText) : {};
       } catch (e) {
-        // Handle non-JSON response from server (e.g. HTML error page)
         throw new Error("I received an unexpected response from the server. Please try again in a moment.");
       }
       
@@ -245,7 +245,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
                     <div className="flex items-start gap-3">
                         <Avatar className="h-8 w-8 border border-primary/20 shrink-0">
                             <div className="bg-primary/10 h-full w-full flex items-center justify-center">
-                                <Bot className="h-4 w-4 text-primary" />
+                                <Bot className="h-4 w-4 animate-spin text-primary" />
                             </div>
                         </Avatar>
                         <div className="rounded-2xl p-3 bg-muted rounded-tl-none">

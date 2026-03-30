@@ -17,7 +17,7 @@ const PLANS = [
     price: '0',
     description: 'Perfect for starters exploring sound.',
     icon: Zap,
-    credits: '5 Credits / day',
+    credits: '10 Credits (Welcome)',
     features: [
       'Standard Quality Audio',
       'Watermarked Downloads',
@@ -33,11 +33,10 @@ const PLANS = [
     price: '99',
     description: 'Unleash your creative potential.',
     icon: Sparkles,
-    credits: '50 Credits / day',
+    credits: '1000 Credits / month',
     popular: true,
     features: [
       'Pro Quality Synthesis',
-      'No Watermarks',
       'Save Unlimited Melodies',
       'Priority Support',
       'Custom Voice Cloning'
@@ -51,7 +50,7 @@ const PLANS = [
     price: '299',
     description: 'The definitive music research tools.',
     icon: Rocket,
-    credits: '500 Credits / day',
+    credits: '5000 Credits / month',
     features: [
       'Ultra HD Audio Quality',
       'Advanced Voice Replacement',
@@ -77,7 +76,13 @@ export default function PricingPage() {
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const handlePayment = async (itemId: string, type: 'plan' | 'pack') => {
-    if (!user) {
+    // REQUIRE SIGNUP/LOGIN BEFORE PAYMENT
+    if (!user || user.isAnonymous) {
+      toast({
+        title: "Account Required",
+        description: "Please sign up or login to your permanent account to process payments.",
+        variant: "destructive"
+      });
       router.push('/login');
       return;
     }
@@ -86,13 +91,10 @@ export default function PricingPage() {
 
     setIsProcessing(itemId);
     
-    // Use dynamic routing logic as requested
     const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
     
-    // DEBUG LOG: Visible in browser console
     console.log("Attempting to fetch from:", baseUrl);
 
-    // Protocol safety check
     if (baseUrl.includes("localhost") && typeof window !== 'undefined' && window.location.protocol === "https:") {
       toast({ 
         title: "Configuration Error", 
@@ -104,7 +106,6 @@ export default function PricingPage() {
     }
 
     try {
-      // 1. Create order via Python Neural Engine
       const orderRes = await fetch(`${baseUrl}/api/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,7 +122,6 @@ export default function PricingPage() {
         throw new Error(orderData.error || `Payment initiation failed.`);
       }
 
-      // 2. Open Razorpay Checkout using dynamic key
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder",
         amount: orderData.amount || 50000,
@@ -132,7 +132,6 @@ export default function PricingPage() {
         handler: async function (response: any) {
           setIsProcessing(itemId);
           try {
-            // 3. Verify payment via the Neural Engine
             const verifyRes = await fetch(`${baseUrl}/api/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

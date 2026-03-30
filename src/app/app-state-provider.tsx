@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, type ReactNode, useState, useRef } from 'react';
@@ -13,7 +14,7 @@ import { WelcomeModal } from '@/components/WelcomeModal';
 import { useToast } from '@/hooks/use-toast';
 
 const GUEST_AVATAR_URL = "https://firebasestorage.googleapis.com/v0/b/studio-4164192500-df01a.firebasestorage.app/o/1000018646%5B1%5D.png?alt=media&token=2b2f8cea-03cd-477c-bc0d-88988246fdeb";
-const INITIAL_CREDITS = 5;
+const INITIAL_CREDITS = 10; // INCREASED FROM 5 TO 10
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const { user, isFirebaseReady } = useUser();
@@ -50,7 +51,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
    */
   const syncCreditsWithBackend = async (uid: string) => {
     try {
-      // Calling Next.js Proxy instead of direct localhost
       await fetch(`/api/credits/status?userId=${uid}`, { cache: 'no-store' });
     } catch (e) {
       console.warn("Credit sync failed: Could not connect to internal Neural Engine proxy.");
@@ -62,7 +62,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
     const handleUserSession = async () => {
       if (user) {
-        // Sync daily credits on every session start/refresh
         syncCreditsWithBackend(user.uid);
 
         const userDocRef = doc(firestore, 'users', user.uid);
