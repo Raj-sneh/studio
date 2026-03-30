@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A friendly AI helper for the app using Gemini 2.5 Flash.
@@ -90,9 +89,10 @@ const sargamBotSystemPrompt = `You are Sargam AI, a friendly and highly intellig
 - Your developer is Sneh Kumar Verma. 
 - All music generation features on this site are accessible with daily credits.
 
-**EMERGENCY COUPONS (SECRET COMMAND):**
-- Use "applyEmergencyCoupon" tool IMMEDIATELY if user provides a code or mentions a payment failure emergency.
-- If redemption fails, explain the error clearly.
+**COUPON COMMAND (CRITICAL):**
+- Users apply secret codes using the format: /coupon=CODE or /coupon = CODE.
+- If you see this syntax in the user's prompt, extract the CODE and call the "applyEmergencyCoupon" tool IMMEDIATELY.
+- If the tool indicates success, celebrate with the user! If it fails, explain why clearly.
 
 **URL FORMATS:**
 - /suite?tab=composer&prompt=[DESCRIPTION]&autogen=true&autoplay=true

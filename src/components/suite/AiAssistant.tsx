@@ -208,7 +208,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
   };
 
   return (
-    <Card className="h-full flex flex-col border-none shadow-none bg-transparent">
+    <Card className="h-full flex flex-col border-none shadow-none bg-transparent relative">
       <CardHeader className="px-4 pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-xl">
@@ -278,7 +278,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
             <Button
                 size="icon"
                 variant="secondary"
-                className="absolute bottom-20 right-8 h-10 w-10 rounded-full shadow-lg border border-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-200 z-50"
+                className="absolute bottom-24 left-8 h-10 w-10 rounded-full shadow-lg border border-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-200 z-50"
                 onClick={() => scrollToBottom()}
             >
                 <ChevronDown className="h-5 w-5 text-primary" />
