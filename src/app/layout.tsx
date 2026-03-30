@@ -26,14 +26,14 @@ const fontBody = Roboto({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://sargam-ai.vercel.app'),
-  title: "Sargam AI | AI Piano Tutor & Neural Voice Cloning Studio",
-  description: "Sargam AI is an advanced AI music platform featuring a virtual piano, interactive lessons, and professional neural voice cloning. Compose, learn, and clone voices with research-grade AI.",
+  title: "Voice Cloning AI | Sargam AI Piano Tutor & Neural Studio",
+  description: "Sargam AI is the premier Voice Cloning AI and Piano Tutor. Features professional neural voice cloning, high-quality virtual piano, and interactive music lessons.",
   keywords: [
+    "Voice Cloning AI",
+    "AI Voice Cloning",
     "Sargam AI",
     "Virtual Piano",
     "AI Piano Tutor",
-    "Voice Cloning",
-    "AI Voice Cloning",
     "Neural Voice Synthesis",
     "AI Music Composition",
     "Sneh Kumar Verma",
@@ -46,8 +46,8 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
   },
   openGraph: {
-    title: "Sargam AI | AI Piano Tutor & Voice Cloning Studio",
-    description: "Master the piano and explore the future of neural sound with Sargam AI.",
+    title: "Voice Cloning AI | Sargam AI Piano Tutor & Studio",
+    description: "Master the piano and clone voices with the future of neural sound at Sargam AI.",
     url: "https://sargam-ai.vercel.app",
     siteName: "Sargam AI",
     locale: "en_US",

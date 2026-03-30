@@ -63,7 +63,7 @@ export default function Header() {
             </Link>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+          <nav className="hidden lg:flex items-center gap-8 text-sm font-medium">
               {navLinks.map(({ href, label, icon: Icon }) => (
                 <Link
                   key={href}
@@ -83,9 +83,9 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-4">
-            {user && !user.isAnonymous ? (
-              <div className="flex items-center gap-4">
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+            {user && (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 shadow-sm">
                   <Zap className="h-3.5 w-3.5 text-primary fill-primary" />
                   <span className="text-xs font-bold text-primary">
                     {isProfileLoading ? "..." : (profile?.credits ?? 0)}
@@ -94,11 +94,11 @@ export default function Header() {
 
                 <div className="relative" ref={menuRef}>
                   <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center gap-2">
-                    <Avatar className="h-9 w-9 border-2 border-primary/20">
+                    <Avatar className="h-9 w-9 border-2 border-primary/20 hover:border-primary/50 transition-colors">
                       <AvatarImage src={user.photoURL || profile?.avatarUrl || GUEST_AVATAR_URL} className="object-cover" />
                       <AvatarFallback><UserIcon className="h-5 w-5" /></AvatarFallback>
                     </Avatar>
-                    <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isMenuOpen && "rotate-180")} />
+                    <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform hidden sm:block", isMenuOpen && "rotate-180")} />
                   </button>
 
                   {isMenuOpen && (
@@ -123,7 +123,9 @@ export default function Header() {
                   )}
                 </div>
               </div>
-            ) : (
+            )}
+            
+            {!user && (
               <Button asChild variant="default" size="sm" className="font-bold rounded-full px-6 shadow-lg shadow-primary/20">
                 <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Sign In</Link>
               </Button>
