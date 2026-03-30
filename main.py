@@ -62,22 +62,6 @@ CREDITS_MAP = {
     "pack_300": 300
 }
 
-# Neural Coupons - Simplified with direct lookup
-# 5 Creator Coupons (1,000 credits, Alphanumeric)
-# 5 Pro Coupons (5,000 credits, Alphanumeric + @#$)
-COUPONS = {
-    "SKV1000NEW": 1000,
-    "CrEaT0r99x": 1000,
-    "MaGic123S": 1000,
-    "skvCreaTor7": 1000,
-    "SKV-CREATOR-1": 1000,
-    "PRO@NEURAL#1": 5000,
-    "SONIC$SKV#25": 5000,
-    "MASTER@VOICE$": 5000,
-    "SKV#V0ice@99": 5000,
-    "SKV-PRO-1": 5000,
-}
-
 @app.get("/")
 async def home():
     return {"status": "Sargam Neural Engine Active", "version": "3.8.0", "engine": "FastAPI"}
@@ -127,14 +111,31 @@ async def redeem_coupon(request: Request):
     try:
         data = await request.json()
         user_id = data.get('userId')
-        code = data.get('code')
+        code = data.get('code', '').strip()
         
         if not user_id or not code:
             return JSONResponse(content={"error": "Missing user ID or code"}, status_code=400)
         
-        # Simple if/elif/else logic via dictionary lookup
-        credits_to_add = COUPONS.get(code)
-        if not credits_to_add:
+        # --- Explicit if/elif/else Coupon Logic ---
+        credits_to_add = 0
+        if code == "CrEaT0r99x": credits_to_add = 1000
+        elif code == "MaGic123S": credits_to_add = 1000
+        elif code == "skvCreaTor7": credits_to_add = 1000
+        elif code == "NeuralArt88": credits_to_add = 1000
+        elif code == "PianoPack99": credits_to_add = 1000
+        elif code == "Pr0@Sargam#": credits_to_add = 5000
+        elif code == "N3ur@l$5000": credits_to_add = 5000
+        elif code == "SKV#V0ice@99": credits_to_add = 5000
+        elif code == "Elite$Artist#1": credits_to_add = 5000
+        elif code == "Master@SKV#77": credits_to_add = 5000
+        elif code == "SKV1000NEW": credits_to_add = 1000
+        elif code == "PRO@NEURAL#1": credits_to_add = 5000
+        elif code == "SONIC$SKV#25": credits_to_add = 5000
+        elif code == "MASTER@VOICE$": credits_to_add = 5000
+        elif code == "SKV-PRO-1": credits_to_add = 5000
+        elif code == "SKV-CREATOR-1": credits_to_add = 1000
+        
+        if credits_to_add == 0:
             return JSONResponse(content={"error": "Invalid coupon code."}, status_code=404)
             
         user_ref = db.collection('users').document(user_id)

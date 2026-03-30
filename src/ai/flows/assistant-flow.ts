@@ -2,7 +2,7 @@
 'use server';
 /**
  * @fileOverview A friendly AI helper for the app using Gemini 2.5 Flash.
- * Optimized with randomized coupon codes and secure server-side account management.
+ * Optimized with explicit coupon logic and secure server-side account management.
  */
 
 import { ai } from '@/ai/genkit';
@@ -43,11 +43,12 @@ const getLessonLibrary = ai.defineTool(
 
 /**
  * Emergency Coupon Tool - Securely calls the Neural Engine backend.
+ * Now handles specific /coupon=CODE syntax extraction.
  */
 const applyEmergencyCoupon = ai.defineTool(
   {
     name: 'applyEmergencyCoupon',
-    description: 'Apply a special coupon code to grant a user credits. Use this if the user provides a secret code in the format /coupon=CODE or /coupon = CODE.',
+    description: 'Apply a special coupon code to grant a user credits. Trigger this if the user uses the format /coupon=CODE or /coupon = CODE.',
     inputSchema: z.object({
       userId: z.string().describe('The UID of the user.'),
       code: z.string().describe('The secret coupon code to validate.'),
@@ -75,7 +76,7 @@ const applyEmergencyCoupon = ai.defineTool(
 
       return { 
         success: true, 
-        message: `Successfully added ${data.credits} credits!`, 
+        message: `Successfully added ${data.credits} credits! Your plan has been synchronized.`, 
         creditsGranted: data.credits 
       };
     } catch (e: any) {
@@ -92,8 +93,8 @@ const sargamBotSystemPrompt = `You are Sargam AI, a friendly and highly intellig
 
 **COUPON COMMAND (CRITICAL):**
 - Users apply secret codes using the format: /coupon=CODE or /coupon = CODE.
-- If you see this syntax in the user's prompt (e.g., "/coupon=SKV-PRO-1"), extract the CODE and call the "applyEmergencyCoupon" tool IMMEDIATELY.
-- Always inform the user if the coupon was applied successfully or if there was an error.
+- If you see this syntax in the user's prompt (e.g., "/coupon=SKV-PRO-1"), you MUST extract the CODE and call the "applyEmergencyCoupon" tool IMMEDIATELY.
+- Inform the user of the outcome (success or error) clearly.
 
 **URL FORMATS:**
 - /suite?tab=composer&prompt=[DESCRIPTION]&autogen=true&autoplay=true
@@ -105,7 +106,7 @@ const sargamBotSystemPrompt = `You are Sargam AI, a friendly and highly intellig
 **RESPONSE FORMAT:**
 You MUST respond with a valid JSON object containing:
 1. "responseText": Your message (intelligent, friendly, and helpful).
-2. "actionUrl": (Optional) A relative URL string, or null if no action needed. Ensure this is always present even if null.
+2. "actionUrl": (Optional) A relative URL string, or null if no action needed.
 
 Return ONLY the JSON.`;
 

@@ -170,7 +170,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
       try {
         result = resText ? JSON.parse(resText) : {};
       } catch (e) {
-        throw new Error("I received an unexpected response from the server. Please try again in a moment.");
+        throw new Error("I received an unexpected response from the server. Please try again.");
       }
       
       if (!res.ok) {
