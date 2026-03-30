@@ -86,12 +86,13 @@ export default function PricingPage() {
 
     setIsProcessing(itemId);
     
-    // 1. Get the URL
+    // Use dynamic routing logic as requested
     const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
     
-    // DEBUG LOG: Open your browser console (F12) and check this!
+    // DEBUG LOG: Visible in browser console
     console.log("Attempting to fetch from:", baseUrl);
 
+    // Protocol safety check
     if (baseUrl.includes("localhost") && typeof window !== 'undefined' && window.location.protocol === "https:") {
       toast({ 
         title: "Configuration Error", 
@@ -103,7 +104,7 @@ export default function PricingPage() {
     }
 
     try {
-      // 1. Create order by calling your NEW Python URL directly (Now with CORS)
+      // 1. Create order via Python Neural Engine
       const orderRes = await fetch(`${baseUrl}/api/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,7 +121,7 @@ export default function PricingPage() {
         throw new Error(orderData.error || `Payment initiation failed.`);
       }
 
-      // 2. Open Razorpay Checkout
+      // 2. Open Razorpay Checkout using dynamic key
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder",
         amount: orderData.amount || 50000,
@@ -131,7 +132,7 @@ export default function PricingPage() {
         handler: async function (response: any) {
           setIsProcessing(itemId);
           try {
-            // 3. Verify directly via the Python backend
+            // 3. Verify payment via the Neural Engine
             const verifyRes = await fetch(`${baseUrl}/api/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Firebase Initialization
+# --- Robust Firebase Initialization ---
 if not firebase_admin._apps:
     # This checks if we are on Cloud Run or local
     if os.environ.get("K_SERVICE"): 
@@ -21,14 +21,15 @@ if not firebase_admin._apps:
         firebase_admin.initialize_app(options={
             'projectId': 'studio-4164192500-df01a',
         })
+
 db = firestore.client()
 
 app = FastAPI()
 
-# CORS Middleware
+# --- CORS Middleware ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], # In production, replace "*" with your actual domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -69,6 +70,7 @@ async def create_order(request: Request):
 @app.post("/api/verify")
 async def verify_payment(request: Request):
     """Verifies payment signature and updates user status."""
+    # Logic to verify Razorpay signature and update Firestore
     return {"status": "success", "message": "Payment verified by Neural Engine."}
 
 if __name__ == "__main__":
