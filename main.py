@@ -62,9 +62,30 @@ CREDITS_MAP = {
     "pack_300": 300
 }
 
+# Neural Coupons
+COUPONS = {
+    "SKV1000NEW": 1000,
+    "PIANO2024X": 1000,
+    "PRO@NEURAL#1": 5000,
+    "SONIC$SKV#25": 5000,
+    "MASTER@VOICE$": 5000,
+    "CrEaT0r99x": 1000,
+    "MaGic123S": 1000,
+    "skvCreaTor7": 1000,
+    "NeuralArt88": 1000,
+    "PianoPack99": 1000,
+    "Pr0@Sargam#": 5000,
+    "N3ur@l$5000": 5000,
+    "SKV#V0ice@99": 5000,
+    "Elite$Artist#1": 5000,
+    "Master@SKV#77": 5000,
+    "SKV-PRO-1": 5000,
+    "SKV-CREATOR-1": 1000,
+}
+
 @app.get("/")
 async def home():
-    return {"status": "Sargam Neural Engine Active", "version": "3.6.0", "engine": "FastAPI"}
+    return {"status": "Sargam Neural Engine Active", "version": "3.7.0", "engine": "FastAPI"}
 
 @app.get("/health")
 async def health():
@@ -72,119 +93,107 @@ async def health():
 
 @app.get("/api/credits/status/{user_id}")
 async def get_credits_status(user_id: str):
-    """Retrieves current credits and plan for a specific user."""
     try:
         user_ref = db.collection('users').document(user_id)
         user_doc = user_ref.get()
-        
         if not user_doc.exists:
-            return JSONResponse(content={"error": "User account not found in database."}, status_code=404)
-            
+            return JSONResponse(content={"error": "User account not found."}, status_code=404)
         user_data = user_doc.to_dict()
-        return {
-            "credits": user_data.get('credits', 0),
-            "plan": user_data.get('plan', 'free')
-        }
+        return {"credits": user_data.get('credits', 0), "plan": user_data.get('plan', 'free')}
     except Exception as e:
-        print(f"STATUS ERROR: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 @app.post("/api/credits/use")
 async def use_credits(request: Request):
-    """Deducts credits from a user's account with a thread-safe Firestore transaction."""
     try:
         data = await request.json()
         user_id = data.get('user_id')
         amount = int(data.get('amount', 0))
-        
-        if not user_id:
-            return JSONResponse(content={"error": "User ID is required"}, status_code=400)
-            
+        if not user_id: return JSONResponse(content={"error": "User ID is required"}, status_code=400)
         user_ref = db.collection('users').document(user_id)
-
-        # Transactional update to prevent negative credits and ensure data consistency
-        transaction = db.transaction()
-
+        
         @firestore.transactional
         def deduct_in_transaction(transaction, user_ref, amount):
             snapshot = user_ref.get(transaction=transaction)
-            if not snapshot.exists:
-                return {"error": "User not found in database."}
-            
+            if not snapshot.exists: return {"error": "User not found."}
             current_credits = snapshot.get('credits', 0)
-            if current_credits < amount:
-                return {"error": f"Insufficient credits. Required: {amount}, Available: {current_credits}."}
-            
-            transaction.update(user_ref, {
-                'credits': firestore.Increment(-amount)
-            })
+            if current_credits < amount: return {"error": f"Insufficient credits ({current_credits})."}
+            transaction.update(user_ref, {'credits': firestore.Increment(-amount)})
             return {"success": True, "remaining": current_credits - amount}
 
-        result = deduct_in_transaction(transaction, user_ref, amount)
-        
-        if "error" in result:
-            print(f"❌ DEDUCTION FAILED for {user_id}: {result['error']}")
-            return JSONResponse(content={"error": result["error"]}, status_code=400)
-            
-        print(f"✅ CREDITS USED: {amount} deducted from {user_id}. Remaining: {result['remaining']}")
+        result = deduct_in_transaction(db.transaction(), user_ref, amount)
+        if "error" in result: return JSONResponse(content={"error": result["error"]}, status_code=400)
         return result
-        
     except Exception as e:
-        print(f"CRITICAL DEDUCTION ERROR: {e}")
-        return JSONResponse(content={"error": f"Internal deduction service error: {str(e)}"}, status_code=500)
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+@app.post("/api/redeem")
+async def redeem_coupon(request: Request):
+    try:
+        data = await request.json()
+        user_id = data.get('userId')
+        code = data.get('code')
+        if not user_id or not code:
+            return JSONResponse(content={"error": "Missing user ID or code"}, status_code=400)
+        
+        credits = COUPONS.get(code)
+        if not credits:
+            return JSONResponse(content={"error": "Invalid coupon code."}, status_code=404)
+            
+        user_ref = db.collection('users').document(user_id)
+        
+        @firestore.transactional
+        def redeem_in_transaction(transaction, user_ref, code, credits_to_add):
+            snapshot = user_ref.get(transaction=transaction)
+            if not snapshot.exists: return {"error": "User account not found."}
+            user_data = snapshot.to_dict()
+            redeemed = user_data.get('redeemedCoupons', [])
+            if code in redeemed: return {"error": "Coupon already used."}
+            
+            updates = {
+                'credits': firestore.Increment(credits_to_add),
+                'redeemedCoupons': firestore.ArrayUnion([code])
+            }
+            if credits_to_add >= 5000: updates['plan'] = 'pro'
+            elif credits_to_add >= 1000: updates['plan'] = 'creator'
+            
+            transaction.update(user_ref, updates)
+            return {"success": True, "credits": credits_to_add}
+
+        result = redeem_in_transaction(db.transaction(), user_ref, code, credits)
+        if "error" in result: return JSONResponse(content={"error": result["error"]}, status_code=400)
+        return result
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 @app.post("/api/payments/create-order")
 async def create_order(request: Request):
-    """Initiates a Razorpay order for plan upgrades or credit packs."""
     try:
         data = await request.json()
         user_id = data.get('user_id')
         item_id = data.get('item_id', 'pro')
-        
-        amount_in_rupees = PRICES.get(item_id, 299)
-        amount_in_paise = int(amount_in_rupees) * 100
-        
-        order_data = {
-            "amount": amount_in_paise,
-            "currency": "INR",
-            "receipt": f"rcpt_{uuid.uuid4().hex[:10]}",
-            "notes": {
-                "userId": user_id,
-                "itemId": item_id
-            }
-        }
-        
-        order = client.order.create(data=order_data)
-        print(f"✅ Order Created: {order['id']} for User: {user_id} ({item_id})")
+        amount_paise = int(PRICES.get(item_id, 299)) * 100
+        order = client.order.create(data={
+            "amount": amount_paise, "currency": "INR", "receipt": f"rcpt_{uuid.uuid4().hex[:10]}",
+            "notes": {"userId": user_id, "itemId": item_id}
+        })
         return order
-
     except Exception as e:
-        print(f"PAYMENT ERROR: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 @app.post("/api/payments/verify")
 async def verify_payment(request: Request):
-    """Manual verification of a Razorpay payment after checkout."""
     try:
         data = await request.json()
-        user_id = data.get('user_id')
-        item_id = data.get('item_id')
-        
-        credits_to_add = CREDITS_MAP.get(item_id, 0)
-        
-        if user_id and credits_to_add > 0:
+        user_id, item_id = data.get('user_id'), data.get('item_id')
+        credits = CREDITS_MAP.get(item_id, 0)
+        if user_id and credits > 0:
             user_ref = db.collection('users').document(user_id)
-            updates = {
-                'credits': firestore.Increment(credits_to_add)
-            }
-            if 'pack' not in item_id:
-                updates['plan'] = item_id
+            updates = {'credits': firestore.Increment(credits)}
+            if 'pack' not in item_id: updates['plan'] = item_id
             user_ref.update(updates)
-            print(f"✅ Payment Verified: Granted {credits_to_add} to {user_id}")
-
-        return {"status": "success", "message": "Neural credits synchronized."}
+        return {"status": "success"}
     except Exception as e:
-        print(f"VERIFICATION ERROR: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 if __name__ == "__main__":

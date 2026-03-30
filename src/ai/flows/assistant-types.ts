@@ -15,6 +15,6 @@ export type AssistantInput = z.infer<typeof AssistantInputSchema>;
 
 export const AssistantOutputSchema = z.object({
   responseText: z.string().describe("The AI assistant's text response to the user. This is what will be displayed in the chat."),
-  actionUrl: z.string().optional().describe('A URL to navigate to for performing a website action. Should be a relative path and include query parameters for the action, e.g., /suite?tab=ai-band&prompt=...&autogen=true'),
+  actionUrl: z.string().optional().nullable().describe('A URL to navigate to for performing a website action. Should be a relative path and include query parameters for the action, e.g., /suite?tab=ai-band&prompt=...&autogen=true'),
 }).describe("The AI assistant's response, which can include a text reply and a website action.");
 export type AssistantOutput = z.infer<typeof AssistantOutputSchema>;

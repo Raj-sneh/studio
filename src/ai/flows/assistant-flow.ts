@@ -2,7 +2,7 @@
 'use server';
 /**
  * @fileOverview A friendly AI helper for the app using Gemini 2.5 Flash.
- * Optimized with randomized coupon codes and account management tools.
+ * Optimized with randomized coupon codes and secure server-side account management.
  */
 
 import { ai } from '@/ai/genkit';
@@ -14,8 +14,6 @@ import {
   type AssistantOutput,
 } from './assistant-types';
 import { LESSONS } from '@/lib/lessons';
-import { db } from '@/firebase/client';
-import { doc, getDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
 
 export async function askSargam(input: AssistantInput): Promise<AssistantOutput> {
   return sargamFlow(input);
@@ -44,7 +42,7 @@ const getLessonLibrary = ai.defineTool(
 );
 
 /**
- * Emergency Coupon Tool - Hidden from users, used by the assistant.
+ * Emergency Coupon Tool - Securely calls the Neural Engine backend.
  */
 const applyEmergencyCoupon = ai.defineTool(
   {
@@ -52,7 +50,7 @@ const applyEmergencyCoupon = ai.defineTool(
     description: 'Apply a special coupon code to grant a user credits. Use this if the user provides a secret code or if there is a payment emergency.',
     inputSchema: z.object({
       userId: z.string().describe('The UID of the user.'),
-      code: z.string().describe('The secret coupon code provided by the developer.'),
+      code: z.string().describe('The secret coupon code.'),
     }),
     outputSchema: z.object({
       success: z.boolean(),
@@ -61,65 +59,27 @@ const applyEmergencyCoupon = ai.defineTool(
     }),
   },
   async ({ userId, code }) => {
-    const couponValues: Record<string, number> = {
-      // --- NEW 5 COUPONS ---
-      "SKV1000NEW": 1000,
-      "PIANO2024X": 1000,
-      "PRO@NEURAL#1": 5000,
-      "SONIC$SKV#25": 5000,
-      "MASTER@VOICE$": 5000,
-
-      // RANDOMIZED CREATOR PACKS (1000 Credits)
-      "CrEaT0r99x": 1000,
-      "MaGic123S": 1000,
-      "skvCreaTor7": 1000,
-      "NeuralArt88": 1000,
-      "PianoPack99": 1000,
-      
-      // RANDOMIZED PRO PACKS (5000 Credits)
-      "Pr0@Sargam#": 5000,
-      "N3ur@l$5000": 5000,
-      "SKV#V0ice@99": 5000,
-      "Elite$Artist#1": 5000,
-      "Master@SKV#77": 5000,
-
-      // LEGACY
-      "SKV-PRO-1": 5000,
-      "SKV-CREATOR-1": 1000,
-    };
-
-    const credits = couponValues[code];
-    if (!credits) {
-      return { success: false, message: "Invalid coupon code." };
-    }
-
     try {
-      const userRef = doc(db, 'users', userId);
-      const userSnap = await getDoc(userRef);
-      
-      if (!userSnap.exists()) {
-        return { success: false, message: "User account not found." };
+      const baseUrl = process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
+      const response = await fetch(`${baseUrl}/api/redeem`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, code }),
+        cache: 'no-store'
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        return { success: false, message: data.error || "Could not validate coupon." };
       }
 
-      const userData = userSnap.data();
-      const redeemed = userData.redeemedCoupons || [];
-      if (redeemed.includes(code)) {
-        return { success: false, message: "This coupon has already been used by this user." };
-      }
-
-      const updates: any = {
-        credits: increment(credits),
-        redeemedCoupons: arrayUnion(code)
+      return { 
+        success: true, 
+        message: `Successfully added ${data.credits} credits!`, 
+        creditsGranted: data.credits 
       };
-
-      if (credits >= 5000) updates.plan = 'pro';
-      else if (credits >= 1000) updates.plan = 'creator';
-
-      await updateDoc(userRef, updates);
-
-      return { success: true, message: `Successfully added ${credits} credits and updated your plan!`, creditsGranted: credits };
     } catch (e: any) {
-      return { success: false, message: e.message || "Failed to update credits." };
+      return { success: false, message: "The neural engine is temporarily offline." };
     }
   }
 );
@@ -131,10 +91,8 @@ const sargamBotSystemPrompt = `You are Sargam AI, a friendly and highly intellig
 - All music generation features on this site are accessible with daily credits.
 
 **EMERGENCY COUPONS (SECRET COMMAND):**
-- Recognize randomized codes: Creator (Letters/Nums), Pro (Letters/Nums/@#$).
-- Example codes: CrEaT0r99x (1000), Pr0@Sargam# (5000).
-- New patterns: PRO@NEURAL#1, SONIC$SKV#25.
 - Use "applyEmergencyCoupon" tool IMMEDIATELY if user provides a code or mentions a payment failure emergency.
+- If redemption fails, explain the error clearly.
 
 **URL FORMATS:**
 - /suite?tab=composer&prompt=[DESCRIPTION]&autogen=true&autoplay=true
@@ -146,7 +104,7 @@ const sargamBotSystemPrompt = `You are Sargam AI, a friendly and highly intellig
 **RESPONSE FORMAT:**
 You MUST respond with a valid JSON object containing:
 1. "responseText": Your message (intelligent, friendly, and helpful).
-2. "actionUrl": (Optional) A relative URL.
+2. "actionUrl": (Optional) A relative URL string, or null if no action needed.
 
 Return ONLY the JSON.`;
 
@@ -202,16 +160,16 @@ const sargamFlow = ai.defineFlow(
           const parsed = JSON.parse(jsonMatch[0]);
           return {
             responseText: parsed.responseText || "I've processed that for you!",
-            actionUrl: parsed.actionUrl
+            actionUrl: parsed.actionUrl || null
           };
         } catch (e) {}
       }
 
-      return { responseText: rawResponse.replace(/```json|```|\{|\}/g, '').trim() };
+      return { responseText: rawResponse.replace(/```json|```|\{|\}/g, '').trim(), actionUrl: null };
 
     } catch (error: any) {
       console.error("askSargam Error:", error);
-      return { responseText: "I had a quick glitch. Can you try saying that again? 🎹" };
+      return { responseText: "I had a quick glitch. Can you try saying that again? 🎹", actionUrl: null };
     }
   }
 );
