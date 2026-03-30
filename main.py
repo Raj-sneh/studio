@@ -1,8 +1,9 @@
 
 import os
 import uuid
+import json
 import razorpay
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -28,6 +29,9 @@ db = firestore.client()
 # --- Razorpay Initialization ---
 RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "rzp_test_placeholder")
 RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "secret_placeholder")
+# Webhook secret for signature verification (Set this in Razorpay dashboard and Env)
+RAZORPAY_WEBHOOK_SECRET = os.environ.get("RAZORPAY_WEBHOOK_SECRET", "")
+
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 app = FastAPI()
@@ -50,9 +54,18 @@ PRICES = {
     "pack_300": 100
 }
 
+# Credit mapping for plans and packs
+CREDITS_MAP = {
+    "creator": 1000,
+    "pro": 5000,
+    "pack_20": 20,
+    "pack_120": 120,
+    "pack_300": 300
+}
+
 @app.get("/")
 async def home():
-    return {"status": "Neural Engine Active", "version": "2.6.0"}
+    return {"status": "Neural Engine Active", "version": "2.7.0", "engine": "FastAPI"}
 
 @app.get("/health")
 async def health():
@@ -88,51 +101,78 @@ async def create_order(request: Request):
 
     except Exception as e:
         print(f"PAYMENT ERROR: {e}")
-        # Fallback for local testing if API keys are missing/invalid
         return {
             "id": f"test_order_{uuid.uuid4().hex[:8]}",
             "amount": 29900,
             "currency": "INR",
             "status": "created",
-            "error": "Using test fallback due to configuration: " + str(e)
+            "error": str(e)
         }
 
-@app.post("/api/payments/verify")
-async def verify_payment(request: Request):
-    """Verifies payment signature and updates user status."""
-    try:
-        data = await request.json()
+@app.post("/api/webhook")
+async def razorpay_webhook(request: Request, x_razorpay_signature: str = Header(None)):
+    """Handles Razorpay webhooks for paid and failed events."""
+    payload = await request.body()
+    
+    # Verify signature if secret is provided
+    if RAZORPAY_WEBHOOK_SECRET and x_razorpay_signature:
+        try:
+            client.utility.verify_webhook_signature(payload.decode('utf-8'), x_razorpay_signature, RAZORPAY_WEBHOOK_SECRET)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid signature")
+
+    data = json.loads(payload)
+    event = data.get('event')
+    
+    if event == 'order.paid':
+        order_entity = data['payload']['order']['entity']
+        notes = order_entity.get('notes', {})
+        user_id = notes.get('userId')
+        item_id = notes.get('itemId')
         
-        # In a real scenario, you'd use client.utility.verify_payment_signature(data)
-        # For this preview, we'll assume success if the signature is present
-        user_id = data.get('user_id')
-        item_id = data.get('item_id')
-        
-        # Update credits in Firestore
-        credits_map = {
-            "creator": 1000,
-            "pro": 5000,
-            "pack_20": 20,
-            "pack_120": 120,
-            "pack_300": 300
-        }
-        
-        credits_to_add = credits_map.get(item_id, 0)
+        credits_to_add = CREDITS_MAP.get(item_id, 0)
         
         if user_id and credits_to_add > 0:
             user_ref = db.collection('users').document(user_id)
-            user_ref.update({
-                'credits': firestore.Increment(credits_to_add),
-                'plan': item_id if 'pack' not in item_id else firestore.ArrayUnion([]) # Plan only changes if it's not a pack
-            })
-            
-            # If it's a plan upgrade, update the plan field
+            updates = {
+                'credits': firestore.Increment(credits_to_add)
+            }
+            # Only update plan if it's not a one-time pack
             if 'pack' not in item_id:
-                user_ref.update({'plan': item_id})
+                updates['plan'] = item_id
+                
+            user_ref.update(updates)
+            print(f"SUCCESS: Added {credits_to_add} credits to user {user_id}")
 
-        return {"status": "success", "message": "Payment verified and credits added."}
+    elif event == 'payment.failed':
+        payment_entity = data['payload']['payment']['entity']
+        reason = payment_entity.get('error_description', 'Unknown error')
+        user_id = payment_entity.get('notes', {}).get('userId')
+        print(f"FAILURE: Payment failed for user {user_id}. Reason: {reason}")
+
+    return {"status": "ok"}
+
+@app.post("/api/payments/verify")
+async def verify_payment(request: Request):
+    """Manual verification fallback."""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        item_id = data.get('item_id')
+        
+        credits_to_add = CREDITS_MAP.get(item_id, 0)
+        
+        if user_id and credits_to_add > 0:
+            user_ref = db.collection('users').document(user_id)
+            updates = {
+                'credits': firestore.Increment(credits_to_add)
+            }
+            if 'pack' not in item_id:
+                updates['plan'] = item_id
+            user_ref.update(updates)
+
+        return {"status": "success", "message": "Credits synchronized."}
     except Exception as e:
-        print(f"VERIFY ERROR: {e}")
         return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":

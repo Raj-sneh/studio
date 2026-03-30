@@ -24,6 +24,8 @@ const couponValues: Record<string, number> = {
   "SKVPRO49": 100,
 };
 
+const INITIAL_CREDITS = 10;
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -55,9 +57,10 @@ export async function POST(req: Request) {
         id: userId,
         createdAt: serverTimestamp(),
         redeemedCoupons: [code],
-        credits: creditsToGrant + 10, // Matching new INITIAL_CREDITS
+        credits: creditsToGrant + INITIAL_CREDITS,
         displayName: 'Guest User',
-        email: `guest_${userId}@example.com`
+        email: `guest_${userId}@example.com`,
+        plan: 'free'
       });
 
       return NextResponse.json({
