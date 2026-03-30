@@ -86,8 +86,21 @@ export default function PricingPage() {
 
     setIsProcessing(itemId);
     
-    // This ensures it uses the live URL on the web and localhost in Studio
+    // 1. Get the URL
     const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
+    
+    // DEBUG LOG: Open your browser console (F12) and check this!
+    console.log("Attempting to fetch from:", baseUrl);
+
+    if (baseUrl.includes("localhost") && typeof window !== 'undefined' && window.location.protocol === "https:") {
+      toast({ 
+        title: "Configuration Error", 
+        description: "Trying to connect to localhost from a live HTTPS site. Check your Environment Variables in Firebase Console.", 
+        variant: "destructive" 
+      });
+      setIsProcessing(null);
+      return;
+    }
 
     try {
       // 1. Create order by calling your NEW Python URL directly (Now with CORS)
@@ -110,8 +123,8 @@ export default function PricingPage() {
       // 2. Open Razorpay Checkout
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder",
-        amount: orderData.amount,
-        currency: orderData.currency,
+        amount: orderData.amount || 50000,
+        currency: orderData.currency || "INR",
         name: "Sargam AI",
         description: type === 'plan' ? `Upgrade to ${itemId}` : `${itemId} Credits Pack`,
         order_id: orderData.id,

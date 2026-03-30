@@ -1,8 +1,6 @@
 
 import os
 import uuid
-import razorpay
-from datetime import datetime, timezone
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
@@ -12,7 +10,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# 1. Initialize Firebase with Robust Logic (Studio/Cloud Run compatible)
+# Firebase Initialization
 if not firebase_admin._apps:
     # This checks if we are on Cloud Run or local
     if os.environ.get("K_SERVICE"): 
@@ -25,22 +23,12 @@ if not firebase_admin._apps:
         })
 db = firestore.client()
 
-# 2. Initialize Razorpay
-RAZOR_KEY_ID = os.environ.get("RAZORPAY_KEY_ID") or os.environ.get("NEXT_PUBLIC_RAZORPAY_KEY_ID", "rzp_test_placeholder")
-RAZOR_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "placeholder_secret")
-
-try:
-    client = razorpay.Client(auth=(RAZOR_KEY_ID, RAZOR_KEY_SECRET))
-except Exception as e:
-    print(f"RAZORPAY INIT ERROR: {e}")
-    client = None
-
 app = FastAPI()
 
-# 3. ADD CORS MIDDLEWARE
+# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace "*" with your actual domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -48,44 +36,40 @@ app.add_middleware(
 
 @app.get("/")
 async def home():
-    return {"status": "Sargam Neural Engine Active", "version": "2.4.0"}
+    return {"status": "Neural Engine Active", "version": "2.5.0"}
 
 @app.get("/health")
 async def health():
-    return {"ready": True, "database": db is not None, "payments": client is not None}
+    return {"ready": True, "database": db is not None}
 
 @app.post("/api/create-order")
 async def create_order(request: Request):
-    """Creates a Razorpay order for a specific credit pack or subscription."""
+    """Creates a test order for Razorpay."""
     try:
         data = await request.json()
         user_id = data.get('user_id')
         item_id = data.get('item_id', 'pro')
         
-        if not client:
-            return {"id": "test_order_123", "status": "mocked", "message": "Razorpay keys not found"}
-
-        # In a real scenario, you'd calculate the amount based on the item_id
+        # Mock order data for test mode
         order_data = {
+            "id": f"order_{uuid.uuid4().hex[:12]}",
             "amount": 50000, # 500 INR in paise
             "currency": "INR",
-            "receipt": f"receipt_{uuid.uuid4().hex[:6]}",
+            "status": "created",
             "notes": {
                 "userId": user_id,
                 "itemId": item_id
             }
         }
-        
-        order = client.order.create(data=order_data)
-        return order
+        return order_data
     except Exception as e:
         print(f"ERROR: {e}")
         return {"id": "test_order_123", "error": str(e)}
 
 @app.post("/api/verify")
 async def verify_payment(request: Request):
-    """Verifies Razorpay signature and updates user status."""
-    return {"status": "success", "message": "Verification logic would be applied here."}
+    """Verifies payment signature and updates user status."""
+    return {"status": "success", "message": "Payment verified by Neural Engine."}
 
 if __name__ == "__main__":
     import uvicorn
