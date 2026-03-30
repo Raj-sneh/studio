@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,13 +10,15 @@ import {
     Upload,
     Globe,
     Lock,
-    Link as LinkIcon,
     Mic2,
     Loader2,
     CheckCircle2,
     RefreshCw,
     Trash2,
-    Zap
+    Zap,
+    Mic,
+    Square,
+    Volume2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -51,6 +53,13 @@ export function VoiceCloner() {
   const [voiceName, setVoiceName] = useState("");
   const [samples, setSamples] = useState<{ name: string, dataUri: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Recording State
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +70,18 @@ export function VoiceCloner() {
   }, [firestore, user]);
   
   const { data: savedVoices } = useCollection(voicesQuery);
+
+  useEffect(() => {
+    if (isRecording) {
+      timerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+      setRecordingDuration(0);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [isRecording]);
 
   const handleStartTraining = async () => {
     if (!voiceName.trim()) {
@@ -79,6 +100,49 @@ export function VoiceCloner() {
     }
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUri = reader.result as string;
+          setSamples(prev => [...prev, { 
+            name: `Recording_${new Date().toLocaleTimeString()}.wav`, 
+            dataUri 
+          }]);
+          setStep('uploading');
+        };
+        reader.readAsDataURL(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Microphone access denied:", err);
+      toast({ title: "Mic Access Denied", description: "Please enable microphone permissions to record.", variant: "destructive" });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -87,6 +151,7 @@ export function VoiceCloner() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setSamples(prev => [...prev, { name: file.name, dataUri: reader.result as string }]);
+        setStep('uploading');
       };
       reader.readAsDataURL(file);
     });
@@ -94,6 +159,9 @@ export function VoiceCloner() {
 
   const handleRemoveSample = (index: number) => {
     setSamples(prev => prev.filter((_, i) => i !== index));
+    if (samples.length <= 1 && step === 'uploading') {
+        setStep('training');
+    }
   };
 
   const handleFinalizeClone = async () => {
@@ -105,7 +173,6 @@ export function VoiceCloner() {
 
     setIsLoading(true);
     try {
-      // 1. Credit Check
       const creditRes = await fetch('/api/credits/use', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -117,13 +184,11 @@ export function VoiceCloner() {
           throw new Error(errorData.error || "Insufficient credits for neural training.");
       }
 
-      // 2. Clone Voice
       const result = await cloneVoice({
         name: voiceName,
         samples: samples.map(s => s.dataUri)
       });
 
-      // 3. Save to Firestore
       if (firestore) {
         await addDoc(collection(firestore, 'users', user.uid, 'clonedVoices'), {
           voiceId: result.voiceId,
@@ -150,6 +215,12 @@ export function VoiceCloner() {
     const subject = encodeURIComponent("Sargam AI: Neural Waiting List Application");
     const body = encodeURIComponent("Hi Sneh,\n\nI'm excited about Sargam AI! I'd love to join the exclusive neural waiting list for the Voice Cloning feature.\n\nThank you!");
     window.location.href = `mailto:hello@sargamskv.in?subject=${subject}&body=${body}`;
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -182,7 +253,7 @@ export function VoiceCloner() {
             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <BrainCircuit className="h-8 w-8 text-primary" />
             </div>
-            <CardTitle className="text-2xl font-headline font-bold">Neural Voice Cloner</CardTitle>
+            <CardTitle className="text-2xl font-headline font-bold">Voice Cloning AI</CardTitle>
             <CardDescription className="max-w-md mx-auto mt-1 text-xs">
               Train your personal neural artist in your native language.
             </CardDescription>
@@ -219,7 +290,7 @@ export function VoiceCloner() {
                     <div className="flex flex-col justify-end">
                       <Button onClick={handleStartTraining} disabled={isLoading} className="h-12 rounded-xl font-bold">
                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                        Start Training
+                        Start Neural Training
                       </Button>
                     </div>
                   </div>
@@ -244,21 +315,56 @@ export function VoiceCloner() {
                     </p>
                     <div className="mt-6 flex justify-end">
                       <Button variant="ghost" size="sm" onClick={handleStartTraining} className="text-xs text-primary hover:bg-primary/10">
-                        <RefreshCw className="h-3 w-3 mr-2" /> Generate New Script
+                        <RefreshCw className="h-3 w-3 mr-2" /> New Script
                       </Button>
                     </div>
                   </div>
 
                   <div className="flex flex-col items-center gap-6">
                     <div className="text-center space-y-2">
-                      <p className="text-sm font-bold">Ready to record?</p>
-                      <p className="text-xs text-muted-foreground">Upload your recording or any voice sample below.</p>
+                      <p className="text-sm font-bold">Record your voice reading the script above</p>
+                      <p className="text-xs text-muted-foreground">Speak clearly for the best neural accuracy.</p>
                     </div>
                     
-                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="audio/*" multiple className="hidden" />
-                    <Button onClick={() => fileInputRef.current?.click()} size="lg" className="h-16 px-10 rounded-2xl shadow-xl shadow-primary/20">
-                      <Upload className="mr-2 h-6 w-6" /> Upload Voice Samples
-                    </Button>
+                    <div className="flex flex-wrap items-center justify-center gap-4 w-full">
+                        {isRecording ? (
+                            <Button 
+                                size="lg" 
+                                variant="destructive" 
+                                onClick={stopRecording} 
+                                className="h-20 px-10 rounded-2xl shadow-xl shadow-destructive/20 animate-pulse flex flex-col gap-1"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Square className="h-6 w-6 fill-current" />
+                                    <span className="text-lg">Stop Recording</span>
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">{formatTime(recordingDuration)}</span>
+                            </Button>
+                        ) : (
+                            <Button 
+                                size="lg" 
+                                onClick={startRecording} 
+                                className="h-20 px-10 rounded-2xl shadow-xl shadow-primary/20 flex items-center gap-2"
+                            >
+                                <Mic className="h-6 w-6" />
+                                <span className="text-lg">Start Recording</span>
+                            </Button>
+                        )}
+                        
+                        {!isRecording && (
+                            <div className="flex flex-col gap-2">
+                                <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="audio/*" multiple className="hidden" />
+                                <Button 
+                                    variant="outline" 
+                                    onClick={() => fileInputRef.current?.click()} 
+                                    className="h-20 px-8 rounded-2xl border-primary/10 hover:bg-primary/5 flex items-center gap-2"
+                                >
+                                    <Upload className="h-5 w-5" />
+                                    <span>Upload File</span>
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                   </div>
                </div>
              )}
@@ -267,14 +373,14 @@ export function VoiceCloner() {
                 <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                   <div className="text-center space-y-2">
                     <h3 className="text-xl font-bold">Vocal Samples</h3>
-                    <p className="text-xs text-muted-foreground">Add clear recordings (5-30s) for the best neural accuracy.</p>
+                    <p className="text-xs text-muted-foreground">Review your captured recordings or uploaded files.</p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {samples.map((sample, i) => (
                       <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-muted/40 border border-primary/5">
                         <div className="flex items-center gap-3 truncate">
-                          <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                          <Volume2 className="h-4 w-4 text-primary shrink-0" />
                           <span className="text-xs font-medium truncate">{sample.name}</span>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => handleRemoveSample(i)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
@@ -283,17 +389,23 @@ export function VoiceCloner() {
                       </div>
                     ))}
                     <button 
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => {
+                        if (trainingScript) setStep('training');
+                        else fileInputRef.current?.click();
+                      }}
                       className="flex items-center justify-center p-4 rounded-2xl border-2 border-dashed border-primary/10 hover:bg-primary/5 hover:border-primary/20 transition-all text-muted-foreground"
                     >
                       <Upload className="h-4 w-4 mr-2" />
-                      <span className="text-xs font-bold uppercase tracking-widest">Add More</span>
+                      <span className="text-xs font-bold uppercase tracking-widest">{trainingScript ? 'Record More' : 'Add More'}</span>
                     </button>
                     <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="audio/*" multiple className="hidden" />
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                    <Button variant="outline" onClick={() => setStep('setup')} className="h-12 flex-1 rounded-xl">Back</Button>
+                    <Button variant="outline" onClick={() => {
+                        if (trainingScript) setStep('training');
+                        else setStep('setup');
+                    }} className="h-12 flex-1 rounded-xl">Back</Button>
                     <Button 
                       onClick={handleFinalizeClone} 
                       disabled={isLoading || samples.length === 0} 
