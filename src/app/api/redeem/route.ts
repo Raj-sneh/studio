@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { db } from '@/firebase/client';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, serverTimestamp, increment, Firestore } from 'firebase/firestore';
@@ -8,16 +9,19 @@ import { doc, getDoc, setDoc, updateDoc, arrayUnion, serverTimestamp, increment,
  */
 
 const couponValues: Record<string, number> = {
+  "SKV-PRO-1": 5000,
+  "SKV-PRO-2": 5000,
+  "SKV-PRO-3": 5000,
+  "SKV-PRO-4": 5000,
+  "SKV-PRO-5": 5000,
+  "SKV-CREATOR-1": 1000,
+  "SKV-CREATOR-2": 1000,
+  "SKV-CREATOR-3": 1000,
+  "SKV-CREATOR-4": 1000,
+  "SKV-CREATOR-5": 1000,
   "S49A1B2": 100,
   "MELODY100": 100,
   "SKVPRO49": 100,
-  "TUNE7K2L": 100,
-  "BEAT49X1": 100,
-  "MAX@250#₹": 250,
-  "PRO#SKV@₹99": 250,
-  "GOLD₹@MAX#": 250,
-  "VIP#99@₹250": 250,
-  "ULTRA@₹#99": 250
 };
 
 export async function POST(req: Request) {
@@ -33,7 +37,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ status: "invalid", message: "Missing code or user ID" }, { status: 400 });
     }
 
-    // Explicitly use the Firestore instance from our client singleton
     const firestore: Firestore = db;
 
     // 1. Check if the coupon exists
@@ -52,7 +55,7 @@ export async function POST(req: Request) {
         id: userId,
         createdAt: serverTimestamp(),
         redeemedCoupons: [code],
-        credits: creditsToGrant + 5,
+        credits: creditsToGrant + 10, // Matching new INITIAL_CREDITS
         displayName: 'Guest User',
         email: `guest_${userId}@example.com`
       });

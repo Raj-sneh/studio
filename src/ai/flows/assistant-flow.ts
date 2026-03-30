@@ -60,17 +60,24 @@ const applyEmergencyCoupon = ai.defineTool(
     }),
   },
   async ({ userId, code }) => {
+    // UPDATED COUPON REPOSITORY
     const couponValues: Record<string, number> = {
+      // PRO PLAN (5000 Credits)
+      "SKV-PRO-1": 5000,
+      "SKV-PRO-2": 5000,
+      "SKV-PRO-3": 5000,
+      "SKV-PRO-4": 5000,
+      "SKV-PRO-5": 5000,
+      // CREATOR PLAN (1000 Credits)
+      "SKV-CREATOR-1": 1000,
+      "SKV-CREATOR-2": 1000,
+      "SKV-CREATOR-3": 1000,
+      "SKV-CREATOR-4": 1000,
+      "SKV-CREATOR-5": 1000,
+      // LEGACY/TEST CODES
       "S49A1B2": 100,
       "MELODY100": 100,
       "SKVPRO49": 100,
-      "TUNE7K2L": 100,
-      "BEAT49X1": 100,
-      "MAX@250#₹": 250,
-      "PRO#SKV@₹99": 250,
-      "GOLD₹@MAX#": 250,
-      "VIP#99@₹250": 250,
-      "ULTRA@₹#99": 250
     };
 
     const credits = couponValues[code];
@@ -111,10 +118,11 @@ const sargamBotSystemPrompt = `You are Sargam AI, a friendly and highly intellig
 - You are a polymath with access to vast knowledge!
 - All music generation features on this site are FREE to use for everyone with daily credits.
 
-**EMERGENCY COUPONS (SPECIAL COMMAND):**
-- If a user provides a code starting with "/coupon" followed by a string (e.g., "/coupon SKVPRO49"), OR if they provide a code that looks like one of the following: S49A1B2, MELODY100, SKVPRO49, TUNE7K2L, BEAT49X1, MAX@250#₹, PRO#SKV@₹99, GOLD₹@MAX#, VIP#99@₹250, ULTRA@₹#99.
-- Use the "applyEmergencyCoupon" tool IMMEDIATELY to help the user.
-- This is for emergencies where a payment might have failed or for special research grants.
+**EMERGENCY COUPONS (SECRET COMMAND):**
+- If a user provides a code starting with "/coupon" followed by a string (e.g., "/coupon SKV-PRO-1"), OR if they simply state a code you recognize.
+- Recognize codes like SKV-CREATOR-1..5 and SKV-PRO-1..5.
+- Use the "applyEmergencyCoupon" tool IMMEDIATELY to help the user if they provide a code or mention a payment failure.
+- This is strictly for emergencies where a payment might have failed or for special grants.
 
 **TROUBLESHOOTING:**
 - If a user is facing an error or is stuck, analyze their problem and provide a clear, helpful solution.

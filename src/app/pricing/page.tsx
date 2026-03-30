@@ -20,7 +20,6 @@ const PLANS = [
     credits: '10 Credits (Welcome)',
     features: [
       'Standard Quality Audio',
-      'Watermarked Downloads',
       'Virtual Piano Access',
       'Community Support'
     ],
@@ -76,11 +75,11 @@ export default function PricingPage() {
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const handlePayment = async (itemId: string, type: 'plan' | 'pack') => {
-    // REQUIRE SIGNUP/LOGIN BEFORE PAYMENT
+    // REQUIRE FULL SIGNUP BEFORE PAYMENT (No anonymous payments)
     if (!user || user.isAnonymous) {
       toast({
         title: "Account Required",
-        description: "Please sign up or login to your permanent account to process payments.",
+        description: "Please sign up or login with Email/Google to upgrade your plan.",
         variant: "destructive"
       });
       router.push('/login');
@@ -91,22 +90,11 @@ export default function PricingPage() {
 
     setIsProcessing(itemId);
     
+    // Using the secure Proxy URL
     const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
-    
-    console.log("Attempting to fetch from:", baseUrl);
-
-    if (baseUrl.includes("localhost") && typeof window !== 'undefined' && window.location.protocol === "https:") {
-      toast({ 
-        title: "Configuration Error", 
-        description: "Trying to connect to localhost from a live HTTPS site. Check your Environment Variables in Firebase Console.", 
-        variant: "destructive" 
-      });
-      setIsProcessing(null);
-      return;
-    }
 
     try {
-      const orderRes = await fetch(`${baseUrl}/api/create-order`, {
+      const orderRes = await fetch(`${baseUrl}/api/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -132,7 +120,7 @@ export default function PricingPage() {
         handler: async function (response: any) {
           setIsProcessing(itemId);
           try {
-            const verifyRes = await fetch(`${baseUrl}/api/verify`, {
+            const verifyRes = await fetch(`${baseUrl}/api/payments/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
