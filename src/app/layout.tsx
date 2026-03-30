@@ -25,10 +25,30 @@ const fontBody = Roboto({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://sargam-ai.vercel.app'),
-  title: "Sargam AI | Research Preview",
-  description: "Sargam AI is an AI-powered virtual piano and music learning platform. Master the piano with the help of artificial intelligence.",
+  title: "Sargam AI | AI Piano Tutor & Neural Voice Cloning Studio",
+  description: "Sargam AI is an advanced AI music platform featuring a virtual piano, interactive lessons, and professional neural voice cloning. Compose, learn, and clone voices with research-grade AI.",
+  keywords: [
+    "Sargam AI",
+    "Virtual Piano",
+    "AI Piano Tutor",
+    "Voice Cloning",
+    "Neural Voice Synthesis",
+    "AI Music Composition",
+    "Sneh Kumar Verma",
+    "ElevenLabs Voice Cloning",
+    "Piano Lessons AI",
+    "Music Research Preview"
+  ],
   icons: {
     icon: "/favicon.ico",
+  },
+  openGraph: {
+    title: "Sargam AI | AI Piano Tutor & Voice Cloning Studio",
+    description: "Master the piano and explore the future of neural sound with Sargam AI.",
+    url: "https://sargam-ai.vercel.app",
+    siteName: "Sargam AI",
+    locale: "en_US",
+    type: "website",
   },
 };
 
@@ -54,13 +74,13 @@ export default function RootLayout({
                     <div className="relative h-64 w-64 overflow-hidden rounded-2xl bg-gray-100 flex items-center justify-center">
                        <img 
                          src="https://firebasestorage.googleapis.com/v0/b/studio-4164192500-df01a.firebasestorage.app/o/upi-qr.png.jpg?alt=media&token=32be5ec3-371c-4144-be40-1a55a5917be8" 
-                         alt="UPI QR Code for snehuu@fam" 
+                         alt="UPI QR Code for payment" 
                          className="h-full w-full object-contain p-2"
                        />
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-lg font-bold text-foreground">snehuu@fam</p>
+                    <p className="text-lg font-bold text-foreground">Official Sargam AI UPI</p>
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Verified Merchant Account</p>
                   </div>
                 </div>
