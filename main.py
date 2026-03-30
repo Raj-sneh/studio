@@ -69,6 +69,68 @@ async def home():
 async def health():
     return {"ready": True}
 
+@app.get("/api/credits/status/{user_id}")
+async def get_credits_status(user_id: str):
+    """Retrieves current credits and plan for a specific user."""
+    try:
+        user_ref = db.collection('users').document(user_id)
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            return JSONResponse(content={"error": "User account not found in database."}, status_code=404)
+            
+        user_data = user_doc.to_dict()
+        return {
+            "credits": user_data.get('credits', 0),
+            "plan": user_data.get('plan', 'free')
+        }
+    except Exception as e:
+        print(f"STATUS ERROR: {e}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+@app.post("/api/credits/use")
+async def use_credits(request: Request):
+    """Deducts credits from a user's account with insufficient funds check."""
+    try:
+        data = await request.json()
+        user_id = data.get('user_id')
+        amount = int(data.get('amount', 0))
+        
+        if not user_id:
+            return JSONResponse(content={"error": "User ID is required"}, status_code=400)
+            
+        user_ref = db.collection('users').document(user_id)
+
+        # Transactional update to prevent negative credits
+        transaction = db.transaction()
+
+        @firestore.transactional
+        def deduct_in_transaction(transaction, user_ref, amount):
+            snapshot = user_ref.get(transaction=transaction)
+            if not snapshot.exists:
+                return {"error": "User not found"}
+            
+            current_credits = snapshot.get('credits', 0)
+            if current_credits < amount:
+                return {"error": f"Insufficient credits. You need {amount} but only have {current_credits}."}
+            
+            transaction.update(user_ref, {
+                'credits': firestore.Increment(-amount)
+            })
+            return {"success": True, "remaining": current_credits - amount}
+
+        result = deduct_in_transaction(transaction, user_ref, amount)
+        
+        if "error" in result:
+            return JSONResponse(content={"error": result["error"]}, status_code=400)
+            
+        print(f"✅ CREDITS USED: {amount} deducted from {user_id}. Remaining: {result['remaining']}")
+        return result
+        
+    except Exception as e:
+        print(f"DEDUCTION ERROR: {e}")
+        return JSONResponse(content={"error": f"Internal deduction error: {str(e)}"}, status_code=500)
+
 @app.post("/api/create-order")
 async def create_order(request: Request):
     try:
