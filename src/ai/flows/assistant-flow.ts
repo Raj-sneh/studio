@@ -43,7 +43,6 @@ const getLessonLibrary = ai.defineTool(
 
 /**
  * Emergency Coupon Tool - Securely calls the Neural Engine backend.
- * Now handles specific /coupon=CODE syntax extraction.
  */
 const applyEmergencyCoupon = ai.defineTool(
   {

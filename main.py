@@ -73,30 +73,26 @@ async def health():
 @app.get("/api/credits/status/{user_id}")
 async def get_credits_status(user_id: str):
     try:
-        # 1. Get user from Firestore
         user_ref = db.collection('users').document(user_id)
         doc = user_ref.get()
         
         if doc.exists:
-            user_data = doc.to_dict()
-            return {
-                "credits": user_data.get('credits', 0),
-                "plan": user_data.get('plan', 'free')
-            }
+            return doc.to_dict()
         else:
-            # Create user if they don't exist yet
-            user_ref.set({
+            # IMPORTANT: If the user is new, give them 5 free credits 
+            # so the frontend doesn't get an "error" response.
+            new_user = {
                 "id": user_id,
                 "credits": 5, 
                 "plan": "free",
                 "createdAt": firestore.SERVER_TIMESTAMP,
                 "displayName": "Guest User"
-            })
-            return {"credits": 5, "plan": "free"}
+            }
+            user_ref.set(new_user)
+            return new_user
             
     except Exception as e:
         print(f"FIRESTORE ERROR: {str(e)}")
-        # Send a 500 JSON error instead of letting the server crash
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.post("/api/credits/use")
@@ -135,18 +131,22 @@ async def redeem_coupon(request: Request):
         
         # --- Explicit if/elif/else Coupon Logic ---
         credits_to_add = 0
+        
+        # Creator Coupons (1,000 Credits)
         if code == "CrEaT0r99x": credits_to_add = 1000
         elif code == "MaGic123S": credits_to_add = 1000
         elif code == "skvCreaTor7": credits_to_add = 1000
         elif code == "NeuralArt88": credits_to_add = 1000
         elif code == "PianoPack99": credits_to_add = 1000
+        elif code == "SKV1000NEW": credits_to_add = 1000
+        elif code == "PIANO2024X": credits_to_add = 1000
+        
+        # Pro Coupons (5,000 Credits)
         elif code == "Pr0@Sargam#": credits_to_add = 5000
         elif code == "N3ur@l$5000": credits_to_add = 5000
         elif code == "SKV#V0ice@99": credits_to_add = 5000
         elif code == "Elite$Artist#1": credits_to_add = 5000
         elif code == "Master@SKV#77": credits_to_add = 5000
-        elif code == "SKV1000NEW": credits_to_add = 1000
-        elif code == "PIANO2024X": credits_to_add = 1000
         elif code == "PRO@NEURAL#1": credits_to_add = 5000
         elif code == "SONIC$SKV#25": credits_to_add = 5000
         elif code == "MASTER@VOICE$": credits_to_add = 5000
