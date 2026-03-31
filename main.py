@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Request, HTTPException, Response
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request, HTTPException, Response, UploadFile, File, Form
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -7,8 +7,13 @@ import hmac
 import hashlib
 import os
 import json
+import uuid
+import shutil
+import subprocess
+import librosa
+import numpy as np
+import soundfile as sf
 import base64
-import traceback
 from dotenv import load_dotenv
 import razorpay
 
@@ -27,7 +32,6 @@ app.add_middleware(
 )
 
 # --- Firebase Initialization ---
-# Uses generic initialization to support environment-based ADC
 if not firebase_admin._apps:
     try:
         firebase_admin.initialize_app()
@@ -43,10 +47,10 @@ rzp_key = os.environ.get("RAZORPAY_KEY_ID")
 rzp_secret = os.environ.get("RAZORPAY_KEY_SECRET")
 client = razorpay.Client(auth=(rzp_key, rzp_secret)) if rzp_key and rzp_secret else None
 
-# --- Helper: Credit Mapping ---
-def get_credits_for_amount(amount_rupees):
-    mapping = {299: 5000, 99: 1000, 100: 300, 50: 120, 10: 20}
-    return mapping.get(amount_rupees, 0)
+# --- Temp Folder for Audio ---
+UPLOAD_FOLDER = 'temp_audio'
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 # --- Routes ---
 
@@ -56,13 +60,72 @@ async def get_status():
     """Satisfies health checks and polling logic"""
     return {"status": "Sargam Neural Engine Active", "ready": True, "engine": "FastAPI"}
 
+@app.post("/separate")
+async def separate_audio(audio: UploadFile = File(...)):
+    """Separates vocals from background music using HPSS logic."""
+    try:
+        task_id = str(uuid.uuid4())
+        input_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_input.wav")
+        
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(audio.file, buffer)
+
+        # Load and process
+        y, sr = librosa.load(input_path, sr=None)
+        y_harmonic, y_percussive = librosa.effects.hpss(y)
+
+        vocals_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_vocals.wav")
+        bgm_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_bgm.wav")
+
+        sf.write(vocals_path, y_harmonic, sr)
+        sf.write(bgm_path, y_percussive, sr)
+
+        with open(vocals_path, "rb") as f:
+            vocals_b64 = base64.b64encode(f.read()).decode('utf-8')
+        with open(bgm_path, "rb") as f:
+            bgm_b64 = base64.b64encode(f.read()).decode('utf-8')
+
+        # Cleanup
+        os.remove(input_path)
+        os.remove(vocals_path)
+        os.remove(bgm_path)
+
+        return {
+            "vocals": f"data:audio/wav;base64,{vocals_b64}",
+            "bgm": f"data:audio/wav;base64,{bgm_b64}"
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.post("/mix")
+async def mix_audio(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
+    """Mixes two tracks into one mastered MP3."""
+    try:
+        task_id = str(uuid.uuid4())
+        v_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_v.wav")
+        b_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_b.wav")
+        out_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_master.mp3")
+
+        with open(v_path, "wb") as buffer: shutil.copyfileobj(vocals.file, buffer)
+        with open(b_path, "wb") as buffer: shutil.copyfileobj(bgm.file, buffer)
+
+        subprocess.run([
+            "ffmpeg", "-y", "-i", v_path, "-i", b_path,
+            "-filter_complex", "amix=inputs=2:duration=longest",
+            "-ac", "2", out_path
+        ], check=True)
+
+        return FileResponse(out_path, media_type="audio/mpeg", filename="master.mp3")
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @app.get("/api/credits/status/{user_id}")
 async def get_credits_status(user_id: str):
     try:
         user_ref = db.collection('users').document(user_id)
-        doc = user_ref.get()
-        if doc.exists:
-            return doc.to_dict()
+        doc_snap = user_ref.get()
+        if doc_snap.exists:
+            return doc_snap.to_dict()
         else:
             new_user = {"id": user_id, "credits": 10, "plan": "free", "redeemedCoupons": []}
             user_ref.set(new_user)
@@ -100,7 +163,7 @@ async def use_credits(request: Request):
 
 @app.post("/api/webhook/elevenlabs")
 async def elevenlabs_webhook(request: Request):
-    """Secure webhook for neural processing events"""
+    """Secure webhook for ElevenLabs events."""
     webhook_secret = os.environ.get("ELEVENLABS_WEBHOOK_SECRET")
     signature = request.headers.get("X-ElevenLabs-Signature")
     body = await request.body()
@@ -112,22 +175,16 @@ async def elevenlabs_webhook(request: Request):
             return JSONResponse(status_code=401, content={"error": "Invalid signature"})
 
     data = await request.json()
-    print(f"SKV AI: ElevenLabs Webhook Event: {data.get('status')}")
+    print(f"SKV AI: ElevenLabs Webhook: {data.get('status')}")
     return {"status": "ok"}
 
 @app.post("/api/redeem")
 async def redeem_coupon(request: Request):
-    """Secure coupon redemption logic"""
     try:
         data = await request.json()
         user_id, code = data.get("userId"), data.get("code", "").upper().strip()
         
-        # Hardcoded promo codes for prototype
-        coupons = {
-            "SKV-PRO-1": 1000,
-            "WELCOME-SARGAM": 50,
-            "RESEARCH-TEST": 500
-        }
+        coupons = { "SKV-PRO-1": 1000, "WELCOME-SARGAM": 50, "RESEARCH-TEST": 500 }
         
         if code not in coupons:
             return JSONResponse(status_code=404, content={"error": "Invalid or expired coupon code."})
@@ -141,7 +198,7 @@ async def redeem_coupon(request: Request):
             u_data = snap.to_dict() or {}
             redeemed = u_data.get('redeemedCoupons', [])
             
-            if code in redeemed: raise Exception("Coupon already redeemed by this account.")
+            if code in redeemed: raise Exception("Coupon already redeemed.")
             
             current = u_data.get('credits', 0)
             transaction.update(user_ref, {

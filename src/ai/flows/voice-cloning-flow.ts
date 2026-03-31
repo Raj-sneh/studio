@@ -35,7 +35,7 @@ function getBaseUrl() {
 }
 
 /**
- * Robust polling logic to ensure the Python Neural Engine is ready.
+ * Robust polling logic to ensure the Neural Engine is ready.
  * Retries up to 25 times with a 2-second delay (50s total window).
  */
 async function waitForBackend() {

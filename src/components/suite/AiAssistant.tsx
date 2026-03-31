@@ -211,7 +211,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
             </div>
         </ScrollArea>
 
-        {/* Scroll Key (Arrow) - Anchored to bottom-left of the scroll viewport area */}
+        {/* Scroll Key (Arrow) - Anchored to bottom-left of the scroll area */}
         {showScrollButton && (
             <Button
                 size="icon"
