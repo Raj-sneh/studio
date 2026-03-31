@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash) + ElevenLabs.
@@ -124,7 +125,7 @@ async function waitForBackend(baseUrl: string) {
     try {
       const res = await fetch(healthUrl, { cache: 'no-store' });
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (data.ready) return;
       }
     } catch (e) {
@@ -252,7 +253,7 @@ const speakWithCloneFlow = ai.defineFlow(
 
 /**
  * PRO PIPELINE: Separate -> Analyze -> Replace -> Mix
- * Strictly targets the VOICE_ENGINE_URL (app.py) for separation/mixing.
+ * Strictly targets the NEURAL_ENGINE_URL for internal routing.
  */
 const vocalReplacementFlow = ai.defineFlow(
     {
@@ -267,8 +268,8 @@ const vocalReplacementFlow = ai.defineFlow(
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
         
-        // Voice Engine (app.py) might be on a different port than main.py
-        const baseUrl = process.env.VOICE_ENGINE_URL || process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
+        // Ensure it uses the live URL from Firebase Console
+        const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
 
         // 0. WAIT FOR NEURAL WARM-UP
         await waitForBackend(baseUrl);
