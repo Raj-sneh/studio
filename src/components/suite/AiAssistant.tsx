@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -90,8 +89,8 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
         if (viewport) {
             const { scrollHeight, scrollTop, clientHeight } = viewport;
-            // Show button if user has scrolled up more than 100px from the bottom
-            const isNearBottom = (scrollHeight - (scrollTop + clientHeight)) < 100;
+            // Show button if user has scrolled up significantly from the bottom
+            const isNearBottom = (scrollHeight - (scrollTop + clientHeight)) < 150;
             setShowScrollButton(!isNearBottom);
         }
     }
@@ -289,9 +288,9 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         {showScrollButton && (
             <Button
                 size="icon"
-                className="absolute bottom-24 left-6 h-10 w-10 rounded-full shadow-2xl border-2 border-primary/40 bg-primary/20 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-200 z-[100] group hover:bg-primary transition-all"
+                className="absolute bottom-24 left-1/2 -translate-x-1/2 h-12 w-12 rounded-full shadow-[0_0_20px_rgba(0,255,255,0.3)] border-2 border-primary bg-background/80 backdrop-blur-md animate-in fade-in zoom-in duration-200 z-[100] group hover:bg-primary transition-all"
                 onClick={() => scrollToBottom()}
-                aria-label="Scroll to latest response"
+                aria-label="Scroll to bottom"
             >
                 <ChevronDown className="h-6 w-6 text-primary group-hover:text-primary-foreground animate-bounce" />
             </Button>

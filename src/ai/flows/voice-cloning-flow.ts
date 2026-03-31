@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash) + ElevenLabs.
@@ -116,23 +115,26 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Vocal
 }
 
 /**
- * Polling logic to wait for the neural engine to finish warming up.
- * Targeted at the specific health status route with 20 retries.
+ * Robust polling logic to wait for the neural engine to finish warming up.
  */
 async function waitForBackend(baseUrl: string) {
-  // Increase retries to 20 for more robust startup handling
+  // Use a full 20 retries (40 seconds) to ensure production backends have time to start
   for (let i = 0; i < 20; i++) {
     try {
-      // Prioritize the standardized status endpoint
-      const res = await fetch(`${baseUrl}/api/status`, { cache: 'no-store' });
+      // Check the standardized status endpoint
+      const res = await fetch(`${baseUrl}/api/status`, { 
+        cache: 'no-store',
+        // Add a short internal timeout to the fetch itself
+        signal: AbortSignal.timeout(5000)
+      });
       if (res.ok) return true;
     } catch (e) {
-      console.log("Waiting for neural engine to warm up...");
+      console.log(`Waiting for neural engine at ${baseUrl}... (Attempt ${i + 1}/20)`);
     }
     // Wait 2 seconds between tries
     await new Promise(r => setTimeout(r, 2000));
   }
-  throw new Error("Neural Engine (Python) is not responding. Please ensure the Python server is running.");
+  throw new Error(`Neural Engine (Python) is not responding at ${baseUrl}. Please ensure the Python server is running.`);
 }
 
 const voiceCloningFlow = ai.defineFlow(
@@ -252,7 +254,6 @@ const speakWithCloneFlow = ai.defineFlow(
 
 /**
  * PRO PIPELINE: Separate -> Analyze -> Replace -> Mix
- * Strictly targets the NEURAL_ENGINE_URL for internal routing with 20 retry polling.
  */
 const vocalReplacementFlow = ai.defineFlow(
     {

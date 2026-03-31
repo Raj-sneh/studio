@@ -24,6 +24,11 @@ def health():
     """Health check for the neural engine."""
     return jsonify({"ready": True, "status": "online"})
 
+@app.route('/api/status')
+def api_status():
+    """Standardized status check for the neural engine."""
+    return jsonify({"ready": True, "status": "Sargam Neural Engine Active", "engine": "Flask"})
+
 @app.route('/separate', methods=['POST'])
 def separate():
     """Separates vocals from background music using HPSS."""
