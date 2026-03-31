@@ -19,9 +19,17 @@ app.add_middleware(
 )
 
 # Initialize Firebase Admin
+# We use initialize_app() without arguments to leverage Application Default Credentials (ADC).
+# google-services.json is a client config and cannot be used as a service account certificate.
 if not firebase_admin._apps:
-    cred = credentials.Certificate("google-services.json")
-    firebase_admin.initialize_app(cred)
+    try:
+        firebase_admin.initialize_app()
+    except Exception as e:
+        # Fallback for local environments or specific project configurations
+        print(f"Firebase Admin Initialization Info: {e}")
+        firebase_admin.initialize_app(options={
+            'projectId': os.environ.get('GOOGLE_CLOUD_PROJECT', 'studio-4164192500-df01a')
+        })
 
 db = firestore.client()
 
@@ -44,10 +52,10 @@ async def get_credits_status(user_id: str):
         if doc.exists:
             return doc.to_dict()
         else:
-            # Initialize new users with 5 starter credits
+            # Initialize new users with 10 starter credits
             new_user = {
                 "id": user_id,
-                "credits": 5, 
+                "credits": 10, 
                 "plan": "free",
                 "createdAt": firestore.SERVER_TIMESTAMP
             }
@@ -75,7 +83,7 @@ async def use_credits(request: Request):
             if not snapshot.exists:
                 raise Exception("User not found")
             
-            # Robust dictionary retrieval
+            # Use to_dict() for robust field retrieval
             user_data = snapshot.to_dict()
             current_credits = user_data.get('credits', 0)
             
