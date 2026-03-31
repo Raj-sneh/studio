@@ -44,7 +44,7 @@ async function waitForBackend() {
 
   for (let i = 0; i < 25; i++) { 
     try {
-      const res = await fetch(`${baseUrl}/api/status`, { cache: 'no-store' });
+      const res = await fetch(`${baseUrl.replace(/\/$/, "")}/api/status`, { cache: 'no-store' });
       if (res.ok) {
         console.log("SKV AI: Neural Engine is ONLINE.");
         return true;
@@ -200,25 +200,31 @@ const vocalReplacementFlow = ai.defineFlow(
         
         await waitForBackend();
 
+        // 1. SEPARATE (Vocals vs BGM)
+        const separateFormData = new FormData();
         const base64Content = audioDataUri.split(',')[1];
         const inputBlob = new Blob([Buffer.from(base64Content, 'base64')], { type: 'audio/wav' });
-        const separateFormData = new FormData();
         separateFormData.append('audio', inputBlob, 'input.wav');
 
-        const separateResponse = await fetch(`${baseUrl}/separate`, {
+        let separateResponse = await fetch(`${baseUrl.replace(/\/$/, "")}/separate`, {
             method: 'POST',
             body: separateFormData
         });
 
-        if (!separateResponse.ok) {
-            const errBody = await separateResponse.json().catch(() => ({}));
-            throw new Error(`Neural separation engine failed: ${errBody.error || separateResponse.statusText}`);
-        }
-        const { vocals, bgm } = await separateResponse.json();
+        // FIX: Only call .json() once and store it
+        const separateData = await separateResponse.json().catch(() => ({}));
 
+        if (!separateResponse.ok) {
+            throw new Error(`Neural separation engine failed: ${separateData.error || "Route not found (404). Redeploy Python backend."}`);
+        }
+        
+        const { vocals, bgm } = separateData;
+
+        // 2. DIRECTOR ANALYSIS
         const directorAnalysis = await singerDirectorPrompt({ vocalDataUri: vocals });
         const analysis = directorAnalysis.output!;
 
+        // 3. TRANSFORM (Vocal -> AI Vocal via STS)
         const vBlob = new Blob([Buffer.from(vocals.split(',')[1], 'base64')], { type: 'audio/wav' });
         const stsFormData = new FormData();
         stsFormData.append('audio', vBlob, 'vocals.wav');
@@ -237,11 +243,12 @@ const vocalReplacementFlow = ai.defineFlow(
         if (!stsResponse.ok) throw new Error("Neural voice swap transformation failed.");
         const aiVocalBlob = new Blob([Buffer.from(await stsResponse.arrayBuffer())], { type: 'audio/mpeg' });
 
+        // 4. MIX & MASTER
         const mixFormData = new FormData();
         mixFormData.append('vocals', aiVocalBlob, 'ai_vocals.mp3');
         mixFormData.append('bgm', new Blob([Buffer.from(bgm.split(',')[1], 'base64')], { type: 'audio/wav' }), 'bgm.wav');
 
-        const mixResponse = await fetch(`${baseUrl}/mix`, {
+        const mixResponse = await fetch(`${baseUrl.replace(/\/$/, "")}/mix`, {
             method: 'POST',
             body: mixFormData
         });
