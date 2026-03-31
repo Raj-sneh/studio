@@ -27,10 +27,17 @@ const DEFAULT_VOICE_MAP: Record<string, string> = {
   alex: 'Lcf7eeY9feMlh8o4NoOf',
 };
 
+/**
+ * Dynamically resolves the Neural Engine URL based on environment context.
+ */
 function getBaseUrl() {
   return process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
 }
 
+/**
+ * Robust polling logic to ensure the Python Neural Engine is ready.
+ * Retries up to 25 times with a 2-second delay (50s total window).
+ */
 async function waitForBackend() {
   const baseUrl = getBaseUrl();
   console.log("SKV AI: Checking Neural Engine status at:", baseUrl);
@@ -43,7 +50,7 @@ async function waitForBackend() {
         return true;
       }
     } catch (e) {
-      console.log(`SKV AI: Waiting for backend wake up... Attempt ${i+1}/25`);
+      console.log(`SKV AI: Waiting for neural engine... Attempt ${i+1}/25`);
     }
     await new Promise(r => setTimeout(r, 2000));
   }
@@ -110,7 +117,7 @@ const voiceCloningFlow = ai.defineFlow(
   async (input) => {
     const { name, samples } = input;
     const apiKey = process.env.ELEVENLABS_API_KEY;
-    if (!apiKey) throw new Error("ElevenLabs API key is missing.");
+    if (!apiKey) throw new Error("ElevenLabs API key is missing in server environment.");
 
     const analysisResponse = await analyzeVoicePrompt({ sampleDataUri: samples[0] });
     const analysis = analysisResponse.output!;
@@ -133,7 +140,7 @@ const voiceCloningFlow = ai.defineFlow(
     });
 
     const data = await response.json();
-    if (!response.ok) throw new Error(data.detail?.message || "Cloning failed.");
+    if (!response.ok) throw new Error(data.detail?.message || "Voice cloning protocol failed.");
 
     return { 
       voiceId: data.voice_id,
@@ -203,7 +210,7 @@ const vocalReplacementFlow = ai.defineFlow(
             body: separateFormData
         });
 
-        if (!separateResponse.ok) throw new Error("Voice separation engine failed.");
+        if (!separateResponse.ok) throw new Error("Neural separation engine failed.");
         const { vocals, bgm } = await separateResponse.json();
 
         const directorAnalysis = await singerDirectorPrompt({ vocalDataUri: vocals });
@@ -224,7 +231,7 @@ const vocalReplacementFlow = ai.defineFlow(
             body: stsFormData,
         });
 
-        if (!stsResponse.ok) throw new Error("Voice swap transformation failed.");
+        if (!stsResponse.ok) throw new Error("Neural voice swap transformation failed.");
         const aiVocalBlob = new Blob([Buffer.from(await stsResponse.arrayBuffer())], { type: 'audio/mpeg' });
 
         const mixFormData = new FormData();
@@ -236,7 +243,7 @@ const vocalReplacementFlow = ai.defineFlow(
             body: mixFormData
         });
 
-        if (!mixResponse.ok) throw new Error("Audio mixing and mastering stage failed.");
+        if (!mixResponse.ok) throw new Error("Audio mastering stage failed.");
         const finalBuffer = Buffer.from(await mixResponse.arrayBuffer());
         return { audioUri: `data:audio/mpeg;base64,${finalBuffer.toString('base64')}` };
     }

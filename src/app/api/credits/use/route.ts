@@ -1,15 +1,17 @@
-
 import { NextResponse } from 'next/server';
 
 /**
  * Proxy route for deducting credits via the Python backend.
+ * Prioritizes internal environment variables for server-to-server security.
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    // Use the live URL for production!
-    const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
+    // Prioritize server-side URL, fallback to public, then local
+    const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
+
+    console.log(`Deducting credits via: ${baseUrl}/api/credits/use`);
 
     const response = await fetch(`${baseUrl}/api/credits/use`, {
       method: 'POST',
@@ -20,13 +22,19 @@ export async function POST(req: Request) {
     
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        return NextResponse.json({ error: errorData.error || "Credit deduction failed." }, { status: response.status });
+        return NextResponse.json(
+          { error: errorData.error || `Credit deduction failed with status: ${response.status}` }, 
+          { status: response.status }
+        );
     }
 
     const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(data);
   } catch (error: any) {
-    console.error("Proxy use-credits error:", error);
-    return NextResponse.json({ error: `Credit system offline: ${error.message}` }, { status: 500 });
+    console.error("Proxy use-credits fetch failed:", error);
+    return NextResponse.json(
+      { error: `Credit system connection failed. Ensure the Neural Engine is running at the configured URL.` }, 
+      { status: 503 }
+    );
   }
 }

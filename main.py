@@ -6,10 +6,13 @@ from firebase_admin import credentials, firestore
 import hmac
 import hashlib
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (local development)
+load_dotenv()
 
 app = FastAPI()
 
-# Enable CORS for frontend interaction
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,17 +21,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Firebase Admin
-# We use initialize_app() without arguments to leverage Application Default Credentials (ADC).
-# google-services.json is a client config and cannot be used as a service account certificate.
+# --- Firebase Initialization ---
+# Uses Application Default Credentials (ADC) for secure production connection.
 if not firebase_admin._apps:
     try:
+        # standard init for Studio/Cloud environments
         firebase_admin.initialize_app()
-    except Exception as e:
-        # Fallback for local environments or specific project configurations
-        print(f"Firebase Admin Initialization Info: {e}")
+    except Exception:
+        # Fallback for manual project ID injection
         firebase_admin.initialize_app(options={
-            'projectId': os.environ.get('GOOGLE_CLOUD_PROJECT', 'studio-4164192500-df01a')
+            'projectId': os.environ.get('GOOGLE_CLOUD_PROJECT')
         })
 
 db = firestore.client()
@@ -39,12 +41,11 @@ async def home():
 
 @app.get("/api/status")
 async def get_status():
-    """Standard health check for the neural engine."""
-    return {"status": "online", "engine": "FastAPI"}
+    """Standardized health check for the credit and account engine."""
+    return {"status": "online", "engine": "FastAPI", "ready": True}
 
 @app.get("/api/credits/status/{user_id}")
 async def get_credits_status(user_id: str):
-    """Retrieves or initializes user credits."""
     try:
         user_ref = db.collection('users').document(user_id)
         doc = user_ref.get()
@@ -52,11 +53,12 @@ async def get_credits_status(user_id: str):
         if doc.exists:
             return doc.to_dict()
         else:
-            # Initialize new users with 10 starter credits
+            # Initialize default user if not found
             new_user = {
                 "id": user_id,
                 "credits": 10, 
                 "plan": "free",
+                "redeemedCoupons": [],
                 "createdAt": firestore.SERVER_TIMESTAMP
             }
             user_ref.set(new_user)
@@ -66,7 +68,6 @@ async def get_credits_status(user_id: str):
 
 @app.post("/api/credits/use")
 async def use_credits(request: Request):
-    """Deducts credits for neural operations using a transaction."""
     try:
         data = await request.json()
         user_id = data.get("user_id")
@@ -77,23 +78,22 @@ async def use_credits(request: Request):
 
         user_ref = db.collection('users').document(user_id)
         
+        # Transactional credit deduction using snapshot.to_dict() pattern
         @firestore.transactional
         def update_in_transaction(transaction, user_ref):
             snapshot = user_ref.get(transaction=transaction)
             if not snapshot.exists:
-                raise Exception("User not found")
+                raise Exception("User record not found in neural database.")
             
-            # Use to_dict() for robust field retrieval
             user_data = snapshot.to_dict()
             current_credits = user_data.get('credits', 0)
             
             if current_credits < amount:
                 raise Exception(f"Insufficient credits. Need {amount}, have {current_credits}.")
             
-            transaction.update(user_ref, {
-                'credits': current_credits - amount
-            })
-            return current_credits - amount
+            new_balance = current_credits - amount
+            transaction.update(user_ref, {'credits': new_balance})
+            return new_balance
 
         transaction = db.transaction()
         new_balance = update_in_transaction(transaction, user_ref)
@@ -103,13 +103,12 @@ async def use_credits(request: Request):
 
 @app.post("/api/redeem")
 async def redeem_coupon(request: Request):
-    """Redeems a one-time use coupon code."""
     try:
         data = await request.json()
         user_id = data.get("userId")
         code = data.get("code", "").strip().upper()
 
-        # 15 Randomized Neural Coupons
+        # Define official neural allocation codes
         coupons = {
             "SKV-PRO-1": 100, "SKV-PRO-2": 100, "SKV-PRO-3": 100,
             "SKV-CREATOR-1": 50, "SKV-CREATOR-2": 50, "SKV-CREATOR-3": 50,
@@ -119,20 +118,19 @@ async def redeem_coupon(request: Request):
         }
 
         if code not in coupons:
-            raise HTTPException(status_code=404, detail="Invalid coupon code.")
+            raise HTTPException(status_code=404, detail="Invalid neural coupon code.")
 
         user_ref = db.collection('users').document(user_id)
         doc = user_ref.get()
         if not doc.exists:
-            raise HTTPException(status_code=404, detail="User not found.")
+            raise HTTPException(status_code=404, detail="User not provisioned.")
 
         user_data = doc.to_dict()
         redeemed = user_data.get("redeemedCoupons", [])
 
         if code in redeemed:
-            raise HTTPException(status_code=400, detail="Coupon already used.")
+            raise HTTPException(status_code=400, detail="Coupon code already utilized.")
 
-        # Update credits and mark as redeemed
         credits_to_add = coupons[code]
         user_ref.update({
             "credits": user_data.get("credits", 0) + credits_to_add,
@@ -145,22 +143,19 @@ async def redeem_coupon(request: Request):
 
 @app.post("/api/webhook/elevenlabs")
 async def elevenlabs_webhook(request: Request):
-    """Handles secure events from ElevenLabs."""
-    webhook_secret = os.environ.get("ELEVENLABS_WEBHOOK_SECRET", "placeholder_secret")
+    webhook_secret = os.environ.get("ELEVENLABS_WEBHOOK_SECRET")
     signature = request.headers.get("X-ElevenLabs-Signature")
     body = await request.body()
 
-    if not signature:
-        return JSONResponse(status_code=401, content={"error": "Missing signature"})
+    if not signature or not webhook_secret:
+        return JSONResponse(status_code=401, content={"error": "Neural security config missing"})
 
     mac = hmac.new(webhook_secret.encode(), msg=body, digestmod=hashlib.sha256)
     expected_signature = mac.hexdigest()
 
     if not hmac.compare_digest(expected_signature, signature):
-        return JSONResponse(status_code=401, content={"error": "Invalid signature"})
+        return JSONResponse(status_code=401, content={"error": "Invalid neural signature"})
 
     data = await request.json()
-    # Log the status for neural tracking
-    print(f"ElevenLabs Webhook received: {data.get('status', 'unknown')}")
-    
+    print(f"ElevenLabs Neural Webhook received: {data.get('status', 'unknown')}")
     return {"status": "ok"}

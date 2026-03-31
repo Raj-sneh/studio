@@ -86,6 +86,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
         if (viewport) {
             const { scrollHeight, scrollTop, clientHeight } = viewport;
+            // Show button if user has scrolled up more than 150px from the bottom
             const isNearBottom = (scrollHeight - (scrollTop + clientHeight)) < 150;
             setShowScrollButton(!isNearBottom);
         }
@@ -172,13 +173,14 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
               <Bot className="text-primary h-6 w-6" />
               SKV AI
           </CardTitle>
-          <Button variant="ghost" size="icon" onClick={() => setMessages([])} disabled={messages.length === 0 || isLoading} className="h-8 w-8 hover:text-destructive">
+          <Button variant="ghost" size="icon" onClick={() => { if(confirm("Clear chat history?")) setMessages([]); }} disabled={messages.length === 0 || isLoading} className="h-8 w-8 hover:text-destructive">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
         <CardDescription>Ask me about music or how to use Sargam.</CardDescription>
       </CardHeader>
 
+      {/* Message List Area */}
       <div className="flex-1 relative overflow-hidden flex flex-col px-4">
         <ScrollArea className="h-full pr-4" ref={scrollAreaRef}>
             <div className="space-y-4 pb-4">
@@ -189,7 +191,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
                                 <div className="bg-primary/10 h-full w-full flex items-center justify-center"><Bot className="h-4 w-4 text-primary" /></div>
                             </Avatar>
                         )}
-                        <div className={cn("rounded-2xl p-3 max-w-[85%] text-sm", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-muted rounded-tl-none')}>
+                        <div className={cn("rounded-2xl p-3 max-w-[85%] text-sm shadow-sm", message.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-muted rounded-tl-none')}>
                             {message.image && (
                               <div className="mb-2 relative rounded-lg overflow-hidden border border-white/10 aspect-video"><Image src={message.image} alt="User upload" fill className="object-cover" /></div>
                             )}
@@ -209,20 +211,23 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
             </div>
         </ScrollArea>
 
+        {/* Scroll to Latest Button - Positioned on Bottom Left of Chat area */}
         {showScrollButton && (
             <Button
                 size="icon"
-                className="absolute bottom-4 left-4 h-10 w-10 rounded-full shadow-2xl border-2 border-primary bg-background/80 backdrop-blur-md z-50 hover:bg-primary transition-all animate-bounce"
+                className="absolute bottom-4 left-6 h-10 w-10 rounded-full shadow-[0_0_20px_rgba(0,255,255,0.3)] border-2 border-primary bg-background/90 backdrop-blur-md z-[100] hover:bg-primary transition-all animate-bounce"
                 onClick={() => scrollToBottom()}
+                title="Scroll to latest message"
             >
                 <ChevronDown className="h-6 w-6 text-primary hover:text-primary-foreground" />
             </Button>
         )}
       </div>
 
-      <div className="p-4 border-t bg-card/50 backdrop-blur-md shrink-0">
+      {/* Fixed Typing Area - Never scrolls away */}
+      <div className="p-4 border-t bg-card/80 backdrop-blur-md shrink-0 z-50">
           {selectedImage && (
-            <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted mb-4">
+            <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted mb-4 shadow-inner">
               <Image src={selectedImage} alt="Preview" fill className="object-cover" />
               <Button variant="destructive" size="icon" className="absolute top-0 right-0 h-5 w-5 rounded-none rounded-bl-md" onClick={() => setSelectedImage(null)}><X className="h-3 w-3" /></Button>
             </div>
@@ -230,14 +235,14 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="flex items-center gap-2">
               <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
-              <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 border-primary/20" onClick={() => fileInputRef.current?.click()} disabled={isLoading}><ImagePlus className="h-4 w-4" /></Button>
+              <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 border-primary/20 hover:bg-primary/10" onClick={() => fileInputRef.current?.click()} disabled={isLoading}><ImagePlus className="h-4 w-4" /></Button>
               <FormField control={form.control} name="prompt" render={({ field }) => (
                   <FormItem className="flex-grow">
-                    <FormControl><Input placeholder="Say something..." {...field} disabled={isLoading} className="bg-muted/50 border-none h-10 focus-visible:ring-1 focus-visible:ring-primary/30" /></FormControl>
+                    <FormControl><Input placeholder="Ask Sargam anything..." {...field} autoComplete="off" disabled={isLoading} className="bg-muted/50 border-none h-10 focus-visible:ring-1 focus-visible:ring-primary/30 rounded-xl" /></FormControl>
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={isLoading || !form.formState.isValid} size="icon" className="h-10 w-10 shrink-0 shadow-lg shadow-primary/20"><Send className="h-4 w-4" /></Button>
+              <Button type="submit" disabled={isLoading || !form.formState.isValid} size="icon" className="h-10 w-10 shrink-0 shadow-lg shadow-primary/20 rounded-xl"><Send className="h-4 w-4" /></Button>
             </form>
           </Form>
       </div>
