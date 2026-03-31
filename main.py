@@ -1,260 +1,319 @@
+'use server';
 
-import os
-import uuid
-import json
-import hmac
-import hashlib
-import razorpay
-from fastapi import FastAPI, Request, HTTPException, Header
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-import firebase_admin
-from firebase_admin import credentials, firestore
-from dotenv import load_dotenv
+/**
+ * Professional Voice Cloning & Vocal Replacement flows
+ */
 
-# Load environment variables
-load_dotenv()
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
 
-# --- Robust Firebase Initialization ---
-if not firebase_admin._apps:
-    if os.environ.get("K_SERVICE"): 
-        firebase_admin.initialize_app()
-    else:
-        firebase_admin.initialize_app(options={
-            'projectId': 'studio-4164192500-df01a',
-        })
+import {
+  VoiceCloningInputSchema,
+  VoiceCloningOutputSchema,
+  type VoiceCloningInput,
+  type VoiceCloningOutput,
+  CloneSpeechInputSchema,
+  CloneSpeechOutputSchema,
+  type CloneSpeechInput,
+  type CloneSpeechOutput,
+  VocalReplacementInputSchema,
+  VocalReplacementOutputSchema,
+  type VocalReplacementInput,
+  type VocalReplacementOutput,
+} from './voice-cloning-types';
 
-db = firestore.client()
+/* -------------------- CONSTANTS -------------------- */
 
-# --- Razorpay Initialization ---
-RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "rzp_test_placeholder")
-RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "secret_placeholder")
-RAZORPAY_WEBHOOK_SECRET = os.environ.get("RAZORPAY_WEBHOOK_SECRET", "")
+const DEFAULT_VOICE_MAP: Record<string, string> = {
+  clive: 'JBFqnCBsd6RMkjVDRZzb',
+  clara: '21m00Tcm4TlvDq8ikWAM',
+  james: 'ErXwUjzD4qc0CPByOn9G',
+  alex: 'Lcf7eeY9feMlh8o4NoOf',
+};
 
-client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+/* -------------------- HELPERS -------------------- */
 
-app = FastAPI()
-
-# Enable CORS for cross-origin requests from the Next.js frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Price mapping for plans and packs (in INR)
-PRICES = {
-    "creator": 99,
-    "pro": 299,
-    "pack_20": 10,
-    "pack_120": 50,
-    "pack_300": 100
+function getBaseUrl() {
+  return (
+    process.env.NEURAL_ENGINE_URL ||
+    process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL ||
+    'http://localhost:8080'
+  );
 }
 
-# Credit mapping for plans and packs
-CREDITS_MAP = {
-    "creator": 1000,
-    "pro": 5000,
-    "pack_20": 20,
-    "pack_120": 120,
-    "pack_300": 300
+async function waitForBackend() {
+  const baseUrl = getBaseUrl();
+
+  for (let i = 0; i < 30; i++) {
+    try {
+      const res = await fetch(`${baseUrl}/`, { cache: 'no-store' });
+      if (res.ok) return true;
+    } catch (_) {}
+
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+
+  throw new Error('Neural Engine not responding.');
 }
 
-@app.get("/")
-async def home():
-    return {"status": "Sargam Neural Engine Active", "version": "3.8.0", "engine": "FastAPI"}
+/* -------------------- PROMPTS -------------------- */
 
-@app.get("/health")
-async def health():
-    return {"ready": True}
+const analyzeVoicePrompt = ai.definePrompt({
+  name: 'analyzeVoicePrompt',
+  model: 'googleai/gemini-2.5-flash',
+  input: { schema: z.object({ sampleDataUri: z.string() }) },
+  output: {
+    schema: z.object({
+      description: z.string(),
+      suggestedStability: z.number(),
+      suggestedSimilarity: z.number(),
+    }),
+  },
+  prompt: `Analyze this vocal sample and suggest settings. {{media url=sampleDataUri}}`,
+});
 
-@app.get("/api/status")
-async def get_status():
-    return {"status": "Sargam Neural Engine Active", "engine": "FastAPI"}
+const enhancePerformancePrompt = ai.definePrompt({
+  name: 'enhancePerformancePrompt',
+  model: 'googleai/gemini-2.5-flash',
+  input: { schema: z.object({ text: z.string() }) },
+  output: { schema: z.object({ enhancedText: z.string() }) },
+  prompt: `Make this text sound natural for speech: {{text}}`,
+});
 
-@app.get("/api/credits/status/{user_id}")
-async def get_credits_status(user_id: str):
-    try:
-        user_ref = db.collection('users').document(user_id)
-        doc = user_ref.get()
-        
-        if doc.exists:
-            return doc.to_dict()
-        else:
-            # IMPORTANT: If the user is new, give them 5 free credits 
-            # so the frontend doesn't get an "error" response.
-            new_user = {
-                "id": user_id,
-                "credits": 5, 
-                "plan": "free",
-                "createdAt": firestore.SERVER_TIMESTAMP,
-                "displayName": "Guest User"
-            }
-            user_ref.set(new_user)
-            return new_user
-            
-    except Exception as e:
-        print(f"FIRESTORE ERROR: {str(e)}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
+const singerDirectorPrompt = ai.definePrompt({
+  name: 'singerDirectorPrompt',
+  model: 'googleai/gemini-2.5-flash',
+  input: { schema: z.object({ vocalDataUri: z.string() }) },
+  output: {
+    schema: z.object({
+      suggestedStability: z.number(),
+      suggestedSimilarity: z.number(),
+      expressionLevel: z.string(),
+    }),
+  },
+  prompt: `Analyze vocals and suggest speech-to-speech settings.`,
+});
 
-@app.post("/api/credits/use")
-async def use_credits(request: Request):
-    try:
-        data = await request.json()
-        user_id = data.get('user_id')
-        amount = int(data.get('amount', 0))
-        if not user_id: return JSONResponse(content={"error": "User ID is required"}, status_code=400)
-        user_ref = db.collection('users').document(user_id)
-        
-        @firestore.transactional
-        def deduct_in_transaction(transaction, user_ref, amount):
-            snapshot = user_ref.get(transaction=transaction)
-            if not snapshot.exists: return {"error": "User not found."}
-            
-            # Convert the document to a dictionary first, then use .get()
-            user_data = snapshot.to_dict()
-            current_credits = user_data.get('credits', 0)
-            
-            if current_credits < amount: return {"error": f"Insufficient credits ({current_credits})."}
-            transaction.update(user_ref, {'credits': firestore.Increment(-amount)})
-            return {"success": True, "remaining": current_credits - amount}
+/* -------------------- EXPORT FUNCTIONS -------------------- */
 
-        result = deduct_in_transaction(db.transaction(), user_ref, amount)
-        if "error" in result: return JSONResponse(content={"error": result["error"]}, status_code=400)
-        return result
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+export async function cloneVoice(
+  input: VoiceCloningInput
+): Promise<VoiceCloningOutput> {
+  return voiceCloningFlow(input);
+}
 
-@app.post("/api/redeem")
-async def redeem_coupon(request: Request):
-    try:
-        data = await request.json()
-        user_id = data.get('userId')
-        code = data.get('code', '').strip()
-        
-        if not user_id or not code:
-            return JSONResponse(content={"error": "Missing user ID or code"}, status_code=400)
-        
-        # --- Explicit if/elif/else Coupon Logic ---
-        credits_to_add = 0
-        
-        # Creator Coupons (1,000 Credits)
-        if code == "CrEaT0r99x": credits_to_add = 1000
-        elif code == "MaGic123S": credits_to_add = 1000
-        elif code == "skvCreaTor7": credits_to_add = 1000
-        elif code == "NeuralArt88": credits_to_add = 1000
-        elif code == "PianoPack99": credits_to_add = 1000
-        elif code == "SKV1000NEW": credits_to_add = 1000
-        elif code == "PIANO2024X": credits_to_add = 1000
-        
-        # Pro Coupons (5,000 Credits)
-        elif code == "Pr0@Sargam#": credits_to_add = 5000
-        elif code == "N3ur@l$5000": credits_to_add = 5000
-        elif code == "SKV#V0ice@99": credits_to_add = 5000
-        elif code == "Elite$Artist#1": credits_to_add = 5000
-        elif code == "Master@SKV#77": credits_to_add = 5000
-        elif code == "PRO@NEURAL#1": credits_to_add = 5000
-        elif code == "SONIC$SKV#25": credits_to_add = 5000
-        elif code == "MASTER@VOICE$": credits_to_add = 5000
-        
-        if credits_to_add == 0:
-            return JSONResponse(content={"error": "Invalid coupon code."}, status_code=404)
-            
-        user_ref = db.collection('users').document(user_id)
-        
-        @firestore.transactional
-        def redeem_in_transaction(transaction, user_ref, code, credits_to_add):
-            snapshot = user_ref.get(transaction=transaction)
-            if not snapshot.exists: return {"error": "User account not found."}
-            user_data = snapshot.to_dict()
-            redeemed = user_data.get('redeemedCoupons', [])
-            
-            # Reusing same code is restricted per user
-            if code in redeemed: 
-                return {"error": "Coupon already used."}
-            
-            updates = {
-                'credits': firestore.Increment(credits_to_add),
-                'redeemedCoupons': firestore.ArrayUnion([code])
-            }
-            # Auto-upgrade plan based on credits
-            if credits_to_add >= 5000: 
-                updates['plan'] = 'pro'
-            elif credits_to_add >= 1000: 
-                updates['plan'] = 'creator'
-            
-            transaction.update(user_ref, updates)
-            return {"success": True, "credits": credits_to_add}
+export async function speakWithClone(
+  input: CloneSpeechInput
+): Promise<CloneSpeechOutput> {
+  return speakWithCloneFlow(input);
+}
 
-        result = redeem_in_transaction(db.transaction(), user_ref, code, credits_to_add)
-        if "error" in result: return JSONResponse(content={"error": result["error"]}, status_code=400)
-        return result
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+export async function replaceVocals(
+  input: VocalReplacementInput
+): Promise<VocalReplacementOutput> {
+  return vocalReplacementFlow(input);
+}
 
-@app.post("/api/payments/create-order")
-async def create_order(request: Request):
-    try:
-        data = await request.json()
-        user_id = data.get('user_id')
-        item_id = data.get('item_id', 'pro')
-        amount_paise = int(PRICES.get(item_id, 299)) * 100
-        order = client.order.create(data={
-            "amount": amount_paise, "currency": "INR", "receipt": f"rcpt_{uuid.uuid4().hex[:10]}",
-            "notes": {"userId": user_id, "itemId": item_id}
-        })
-        return order
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+/* -------------------- FLOWS -------------------- */
 
-@app.post("/api/payments/verify")
-async def verify_payment(request: Request):
-    try:
-        data = await request.json()
-        user_id, item_id = data.get('user_id'), data.get('item_id')
-        credits = CREDITS_MAP.get(item_id, 0)
-        if user_id and credits > 0:
-            user_ref = db.collection('users').document(user_id)
-            updates = {'credits': firestore.Increment(credits)}
-            if 'pack' not in item_id: updates['plan'] = item_id
-            user_ref.update(updates)
-        return {"status": "success"}
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+const voiceCloningFlow = ai.defineFlow(
+  {
+    name: 'voiceCloningFlow',
+    inputSchema: VoiceCloningInputSchema,
+    outputSchema: VoiceCloningOutputSchema,
+  },
+  async (input) => {
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    if (!apiKey) throw new Error('Missing ElevenLabs API key');
 
-@app.post("/api/webhook/elevenlabs")
-async def elevenlabs_webhook(request: Request):
-    # 1. Get the secret from environment
-    webhook_secret = os.environ.get("ELEVENLABS_WEBHOOK_SECRET", "placeholder_secret")
-    
-    # 2. Get the signature from headers
-    signature = request.headers.get("X-ElevenLabs-Signature")
-    if not signature:
-        return JSONResponse(status_code=400, content={"error": "Missing signature header"})
-        
-    body = await request.body()
+    const analysisRes = await analyzeVoicePrompt({
+      sampleDataUri: input.samples[0],
+    });
 
-    # 3. Verify the signature (Security Check)
-    mac = hmac.new(webhook_secret.encode(), msg=body, digestmod=hashlib.sha256)
-    expected_signature = mac.hexdigest()
+    if (!analysisRes.output) throw new Error('Voice analysis failed');
 
-    if not hmac.compare_digest(expected_signature, signature):
-        return JSONResponse(status_code=401, content={"error": "Invalid signature"})
+    const analysis = analysisRes.output;
 
-    # 4. Handle the event
-    try:
-        data = await request.json()
-        print(f"ElevenLabs Webhook received: {data.get('status', 'unknown')}")
-    except:
-        pass
-    
-    return {"status": "ok"}
+    const formData = new FormData();
+    formData.append('name', input.name);
+    formData.append('description', analysis.description);
 
-if __name__ == "__main__":
-    import uvicorn
-    import os
-    # Cloud Run MUST have 0.0.0.0 and the PORT variable
-    port = int(os.environ.get("PORT", 8080))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    input.samples.forEach((sample, i) => {
+      const buffer = Buffer.from(sample.split(',')[1], 'base64');
+      const blob = new Blob([buffer], { type: 'audio/wav' });
+      formData.append('files', blob, `sample_${i}.wav`);
+    });
+
+    const res = await fetch('https://api.elevenlabs.io/v1/voices/add', {
+      method: 'POST',
+      headers: { 'xi-api-key': apiKey },
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data?.detail?.message || 'Voice cloning failed');
+    }
+
+    return {
+      voiceId: data.voice_id,
+      description: analysis.description,
+      suggestedSettings: {
+        stability: analysis.suggestedStability,
+        similarity_boost: analysis.suggestedSimilarity,
+      },
+    };
+  }
+);
+
+const speakWithCloneFlow = ai.defineFlow(
+  {
+    name: 'speakWithCloneFlow',
+    inputSchema: CloneSpeechInputSchema,
+    outputSchema: CloneSpeechOutputSchema,
+  },
+  async (input) => {
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    if (!apiKey) throw new Error('Missing ElevenLabs API key');
+
+    const voiceId =
+      DEFAULT_VOICE_MAP[input.voiceId] || input.voiceId;
+
+    const enhanced = await enhancePerformancePrompt({
+      text: input.text,
+    });
+
+    const text = enhanced.output?.enhancedText || input.text;
+
+    const res = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      {
+        method: 'POST',
+        headers: {
+          'xi-api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: {
+            stability: input.settings?.stability ?? 0.5,
+            similarity_boost:
+              input.settings?.similarity_boost ?? 0.75,
+          },
+        }),
+      }
+    );
+
+    if (!res.ok) throw new Error('TTS failed');
+
+    const buffer = Buffer.from(await res.arrayBuffer());
+
+    return {
+      audioUri: `data:audio/mpeg;base64,${buffer.toString('base64')}`,
+    };
+  }
+);
+
+const vocalReplacementFlow = ai.defineFlow(
+  {
+    name: 'vocalReplacementFlow',
+    inputSchema: VocalReplacementInputSchema,
+    outputSchema: VocalReplacementOutputSchema,
+  },
+  async (input) => {
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    if (!apiKey) throw new Error('Missing ElevenLabs API key');
+
+    const baseUrl = getBaseUrl();
+    await waitForBackend();
+
+    const inputBlob = new Blob([
+      Buffer.from(input.audioDataUri.split(',')[1], 'base64'),
+    ]);
+
+    const form = new FormData();
+    form.append('audio', inputBlob, 'input.wav');
+
+    const sepRes = await fetch(`${baseUrl}/separate`, {
+      method: 'POST',
+      body: form,
+    });
+
+    if (!sepRes.ok) throw new Error('Separation failed');
+
+    const { vocals, bgm } = await sepRes.json();
+
+    const analysisRes = await singerDirectorPrompt({
+      vocalDataUri: vocals,
+    });
+
+    if (!analysisRes.output) throw new Error('Analysis failed');
+
+    const analysis = analysisRes.output;
+
+    const stsForm = new FormData();
+    stsForm.append(
+      'audio',
+      new Blob([
+        Buffer.from(vocals.split(',')[1], 'base64'),
+      ]),
+      'vocals.wav'
+    );
+
+    stsForm.append('model_id', 'eleven_multilingual_sts_v2');
+
+    stsForm.append(
+      'voice_settings',
+      JSON.stringify({
+        stability:
+          input.settings?.stability ??
+          analysis.suggestedStability,
+        similarity_boost:
+          input.settings?.similarity_boost ??
+          analysis.suggestedSimilarity,
+      })
+    );
+
+    const voiceId =
+      DEFAULT_VOICE_MAP[input.voiceId] || input.voiceId;
+
+    const stsRes = await fetch(
+      `https://api.elevenlabs.io/v1/speech-to-speech/${voiceId}`,
+      {
+        method: 'POST',
+        headers: { 'xi-api-key': apiKey },
+        body: stsForm,
+      }
+    );
+
+    if (!stsRes.ok) throw new Error('Voice swap failed');
+
+    const aiVocals = new Blob([
+      Buffer.from(await stsRes.arrayBuffer()),
+    ]);
+
+    const mixForm = new FormData();
+    mixForm.append('vocals', aiVocals);
+    mixForm.append(
+      'bgm',
+      new Blob([
+        Buffer.from(bgm.split(',')[1], 'base64'),
+      ])
+    );
+
+    const mixRes = await fetch(`${baseUrl}/mix`, {
+      method: 'POST',
+      body: mixForm,
+    });
+
+    if (!mixRes.ok) throw new Error('Mixing failed');
+
+    const finalBuffer = Buffer.from(await mixRes.arrayBuffer());
+
+    return {
+      audioUri: `data:audio/mpeg;base64,${finalBuffer.toString('base64')}`,
+    };
+  }
+);

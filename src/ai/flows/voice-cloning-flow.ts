@@ -32,6 +32,36 @@ const DEFAULT_VOICE_MAP: Record<string, string> = {
 };
 
 /**
+ * Dynamic URL helper to ensure the server picks up the correct environment variable.
+ */
+function getBaseUrl() {
+  return process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
+}
+
+/**
+ * Checks if the Python Backend is awake before sending heavy tasks.
+ * Retries up to 25 times with a 2-second delay (50 seconds total).
+ */
+async function waitForBackend() {
+  const baseUrl = getBaseUrl();
+  console.log("SKV AI: Checking Neural Engine status at:", baseUrl);
+
+  for (let i = 0; i < 25; i++) { 
+    try {
+      const res = await fetch(`${baseUrl}/api/status`, { cache: 'no-store' });
+      if (res.ok) {
+        console.log("SKV AI: Neural Engine is ONLINE.");
+        return true;
+      }
+    } catch (e) {
+      console.log(`SKV AI: Waiting for backend... Attempt ${i+1}/25`);
+    }
+    await new Promise(r => setTimeout(r, 2000));
+  }
+  throw new Error(`Neural Engine (Python) is not responding at ${baseUrl}. Please ensure the Python server is running.`);
+}
+
+/**
  * Uses SKV AI to analyze a voice sample for neural cloning.
  */
 const analyzeVoicePrompt = ai.definePrompt({
@@ -71,14 +101,13 @@ const enhancePerformancePrompt = ai.definePrompt({
       enhancedText: z.string().describe('The text optimized for natural speech with emotional punctuation.')
     })
   },
-  prompt: `You are an expert voice director for SKV AI. Enhance this text for a natural, expressive performance in {{#if language}}{{language}}{{else}}the original language{{/if}}. 
+  prompt: `You are an expert voice director for SKV AI. Enhance this text for a natural, expressive performance. 
   Add punctuation (dashes, ellipsis) where pauses would naturally occur to ensure a human-like flow. Do not change the core meaning.
   Text: {{text}}`,
 });
 
 /**
  * AI Director for "Singer Filter" logic.
- * Analyzes the source performance to optimize neural conversion.
  */
 const singerDirectorPrompt = ai.definePrompt({
   name: 'singerDirectorPrompt',
@@ -92,11 +121,10 @@ const singerDirectorPrompt = ai.definePrompt({
     schema: z.object({
       suggestedStability: z.number().describe('Neural stability setting (0.0 to 1.0).'),
       suggestedSimilarity: z.number().describe('Neural similarity setting (0.0 to 1.0).'),
-      expressionLevel: z.string().describe('Description of the singing style (e.g., "emotional ballad", "high energy pop").')
+      expressionLevel: z.string().describe('Description of the singing style.')
     })
   },
   prompt: `You are the SKV AI Musical Director. Analyze this isolated vocal track.
-  Determine the emotional intensity and pitch range. 
   Suggest the perfect Stability and Similarity Boost settings for an ElevenLabs Speech-to-Speech conversion to ensure the output sounds like a professional singer.
   
   Vocal Sample: {{media url=vocalDataUri}}`,
@@ -114,26 +142,6 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Vocal
     return vocalReplacementFlow(input);
 }
 
-// Ensure it uses the live URL from Firebase Console
-const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
-
-/**
- * Robust polling logic to wait for the neural engine to finish warming up.
- */
-async function waitForBackend() {
-  console.log("Checking Neural Engine at:", baseUrl); 
-  for (let i = 0; i < 25; i++) {
-    try {
-      const res = await fetch(`${baseUrl}/api/status`);
-      if (res.ok) return true;
-    } catch (e) {
-      // It's okay to fail here, we are waiting for it to wake up
-    }
-    await new Promise(r => setTimeout(r, 2000));
-  }
-  throw new Error(`Neural Engine (Python) is not responding at ${baseUrl}. Please ensure the Python server is running.`);
-}
-
 const voiceCloningFlow = ai.defineFlow(
   {
     name: 'voiceCloningFlow',
@@ -146,31 +154,18 @@ const voiceCloningFlow = ai.defineFlow(
 
     if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
-    // Analyze sample for description
     const analysisResponse = await analyzeVoicePrompt({ sampleDataUri: samples[0] });
     const analysis = analysisResponse.output!;
     
-    const finalDescription = analysis.description.length > 480 
-      ? analysis.description.substring(0, 477) + "..." 
-      : analysis.description;
-
     const formData = new FormData();
     formData.append('name', name);
-    formData.append('description', finalDescription);
+    formData.append('description', analysis.description);
 
     for (let i = 0; i < samples.length; i++) {
-        const dataUri = samples[i];
-        const mimeType = dataUri.split(';')[0].split(':')[1] || 'audio/mpeg';
-        const base64Data = dataUri.split(',')[1];
+        const base64Data = samples[i].split(',')[1];
         const buffer = Buffer.from(base64Data, 'base64');
-        
-        let extension = 'mp3';
-        if (mimeType.includes('webm')) extension = 'webm';
-        else if (mimeType.includes('wav')) extension = 'wav';
-        else if (mimeType.includes('ogg')) extension = 'ogg';
-
-        const blob = new Blob([buffer], { type: mimeType });
-        formData.append('files', blob, `sample_${i}.${extension}`);
+        const blob = new Blob([buffer], { type: 'audio/wav' });
+        formData.append('files', blob, `sample_${i}.wav`);
     }
 
     const response = await fetch('https://api.elevenlabs.io/v1/voices/add', {
@@ -179,20 +174,12 @@ const voiceCloningFlow = ai.defineFlow(
       body: formData,
     });
 
-    let data;
-    try {
-      data = await response.json();
-    } catch (e) {
-      throw new Error("Voice synthesis service returned an invalid response.");
-    }
-
-    if (!response.ok) {
-      throw new Error(data.detail?.message || "Cloning failed. Ensure audio is clear and long enough.");
-    }
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail?.message || "Cloning failed.");
 
     return { 
       voiceId: data.voice_id,
-      description: finalDescription,
+      description: analysis.description,
       suggestedSettings: {
         stability: analysis.suggestedStability,
         similarity_boost: analysis.suggestedSimilarity
@@ -233,18 +220,9 @@ const speakWithCloneFlow = ai.defineFlow(
             }),
         });
 
-        if (!response.ok) {
-            let errorData;
-            try {
-                errorData = await response.json();
-            } catch (e) {
-                throw new Error(`TTS failed with status ${response.status}.`);
-            }
-            throw new Error(errorData.detail?.message || `TTS failed with status ${response.status}.`);
-        }
+        if (!response.ok) throw new Error("TTS failed.");
 
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        const buffer = Buffer.from(await response.arrayBuffer());
         return { audioUri: `data:audio/mpeg;base64,${buffer.toString('base64')}` };
     }
 );
@@ -264,42 +242,27 @@ const vocalReplacementFlow = ai.defineFlow(
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
+        const baseUrl = getBaseUrl();
         
-        // 0. WAIT FOR NEURAL WARM-UP (25 RETRIES)
         await waitForBackend();
 
-        // 1. SEPARATE (Vocals vs BGM)
-        const separateFormData = new FormData();
         const base64Content = audioDataUri.split(',')[1];
-        if (!base64Content) throw new Error("Invalid audio data format.");
-        
         const inputBlob = new Blob([Buffer.from(base64Content, 'base64')], { type: 'audio/wav' });
+        const separateFormData = new FormData();
         separateFormData.append('audio', inputBlob, 'input.wav');
 
-        let separateResponse = await fetch(`${baseUrl}/separate`, {
+        const separateResponse = await fetch(`${baseUrl}/separate`, {
             method: 'POST',
             body: separateFormData
         });
 
-        let separateData;
-        try {
-            separateData = await separateResponse.json();
-        } catch (e) {
-            throw new Error("Neural separation engine returned an invalid response.");
-        }
-
-        if (!separateResponse.ok) {
-            throw new Error(separateData?.error || "Neural engine error during separation.");
-        }
+        if (!separateResponse.ok) throw new Error("Neural separation engine failed.");
         
-        const { vocals, bgm } = separateData;
-        if (!vocals || !bgm) throw new Error("The neural engine failed to isolate the vocal track.");
+        const { vocals, bgm } = await separateResponse.json();
 
-        // 2. ANALYZE (Singer Filter Analysis)
         const directorAnalysis = await singerDirectorPrompt({ vocalDataUri: vocals });
         const analysis = directorAnalysis.output!;
 
-        // 3. REPLACE (Neural Vocal Transformation)
         const vBuffer = Buffer.from(vocals.split(',')[1], 'base64');
         const vBlob = new Blob([vBuffer], { type: 'audio/wav' });
 
@@ -317,39 +280,21 @@ const vocalReplacementFlow = ai.defineFlow(
             body: stsFormData,
         });
 
-        if (!stsResponse.ok) {
-            let stsError;
-            try {
-                stsError = await stsResponse.json();
-            } catch (e) {
-                throw new Error(`Vocal synthesis failed during neural transformation stage.`);
-            }
-            throw new Error(stsError.detail?.message || `Vocal synthesis failed during neural transformation stage.`);
-        }
+        if (!stsResponse.ok) throw new Error(`Vocal synthesis failed during neural transformation.`);
 
-        const aiVocalBuffer = Buffer.from(await stsResponse.arrayBuffer());
-        const aiVocalBlob = new Blob([aiVocalBuffer], { type: 'audio/mpeg' });
+        const aiVocalBlob = new Blob([Buffer.from(await stsResponse.arrayBuffer())], { type: 'audio/mpeg' });
 
-        // 4. MIX (AI Vocals + Original BGM)
         const mixFormData = new FormData();
         mixFormData.append('vocals', aiVocalBlob, 'ai_vocals.mp3');
         const bgmBlob = new Blob([Buffer.from(bgm.split(',')[1], 'base64')], { type: 'audio/wav' });
         mixFormData.append('bgm', bgmBlob, 'original_bgm.wav');
 
-        let mixResponse = await fetch(`${baseUrl}/mix`, {
+        const mixResponse = await fetch(`${baseUrl}/mix`, {
             method: 'POST',
             body: mixFormData
         });
 
-        if (!mixResponse.ok) {
-            let mixError;
-            try {
-                mixError = await mixResponse.json();
-            } catch (e) {
-                throw new Error("Mastering engine returned an invalid response.");
-            }
-            throw new Error(mixError.error || "Mastering stage failed.");
-        }
+        if (!mixResponse.ok) throw new Error("Mastering stage failed.");
 
         const finalBuffer = Buffer.from(await mixResponse.arrayBuffer());
         return { audioUri: `data:audio/mpeg;base64,${finalBuffer.toString('base64')}` };
