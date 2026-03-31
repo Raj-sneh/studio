@@ -220,6 +220,34 @@ async def verify_payment(request: Request):
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
+@app.post("/api/webhook/elevenlabs")
+async def elevenlabs_webhook(request: Request):
+    # 1. Get the secret from environment
+    webhook_secret = os.environ.get("ELEVENLABS_WEBHOOK_SECRET", "placeholder_secret")
+    
+    # 2. Get the signature from headers
+    signature = request.headers.get("X-ElevenLabs-Signature")
+    if not signature:
+        return JSONResponse(status_code=400, content={"error": "Missing signature header"})
+        
+    body = await request.body()
+
+    # 3. Verify the signature (Security Check)
+    mac = hmac.new(webhook_secret.encode(), msg=body, digestmod=hashlib.sha256)
+    expected_signature = mac.hexdigest()
+
+    if not hmac.compare_digest(expected_signature, signature):
+        return JSONResponse(status_code=401, content={"error": "Invalid signature"})
+
+    # 4. Handle the event
+    try:
+        data = await request.json()
+        print(f"ElevenLabs Webhook received: {data.get('status', 'unknown')}")
+    except:
+        pass
+    
+    return {"status": "ok"}
+
 if __name__ == "__main__":
     import uvicorn
     import os
