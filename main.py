@@ -70,6 +70,10 @@ async def home():
 async def health():
     return {"ready": True}
 
+@app.get("/api/status")
+async def get_status():
+    return {"status": "Sargam Neural Engine Active", "engine": "FastAPI"}
+
 @app.get("/api/credits/status/{user_id}")
 async def get_credits_status(user_id: str):
     try:

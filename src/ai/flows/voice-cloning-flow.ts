@@ -117,22 +117,19 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Vocal
 
 /**
  * Polling logic to wait for the neural engine to finish warming up.
- * Increased retries to 20 for more robust startup handling.
+ * Targeted at the specific health status route with 20 retries.
  */
 async function waitForBackend(baseUrl: string) {
-  const healthUrl = `${baseUrl}/health`;
-  
+  // Increase retries to 20 for more robust startup handling
   for (let i = 0; i < 20; i++) {
     try {
-      const res = await fetch(healthUrl, { cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json().catch(() => ({}));
-        // If data.ready is true or we just get a 200 OK, the server is up
-        if (data.ready || res.status === 200) return;
-      }
+      // Prioritize the standardized status endpoint
+      const res = await fetch(`${baseUrl}/api/status`, { cache: 'no-store' });
+      if (res.ok) return true;
     } catch (e) {
       console.log("Waiting for neural engine to warm up...");
     }
+    // Wait 2 seconds between tries
     await new Promise(r => setTimeout(r, 2000));
   }
   throw new Error("Neural Engine (Python) is not responding. Please ensure the Python server is running.");
