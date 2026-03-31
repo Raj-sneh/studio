@@ -210,7 +210,10 @@ const vocalReplacementFlow = ai.defineFlow(
             body: separateFormData
         });
 
-        if (!separateResponse.ok) throw new Error("Neural separation engine failed.");
+        if (!separateResponse.ok) {
+            const errBody = await separateResponse.json().catch(() => ({}));
+            throw new Error(`Neural separation engine failed: ${errBody.error || separateResponse.statusText}`);
+        }
         const { vocals, bgm } = await separateResponse.json();
 
         const directorAnalysis = await singerDirectorPrompt({ vocalDataUri: vocals });
