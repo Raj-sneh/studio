@@ -73,14 +73,25 @@ async def health():
 @app.get("/api/credits/status/{user_id}")
 async def get_credits_status(user_id: str):
     try:
+        # 1. Get user from Firestore
         user_ref = db.collection('users').document(user_id)
-        user_doc = user_ref.get()
-        if not user_doc.exists:
-            return JSONResponse(content={"error": "User account not found."}, status_code=404)
-        user_data = user_doc.to_dict()
-        return {"credits": user_data.get('credits', 0), "plan": user_data.get('plan', 'free')}
+        doc = user_ref.get()
+        
+        if doc.exists:
+            user_data = doc.to_dict()
+            return {
+                "credits": user_data.get('credits', 0),
+                "plan": user_data.get('plan', 'free')
+            }
+        else:
+            # Create user if they don't exist yet
+            user_ref.set({"credits": 5, "plan": "free"})
+            return {"credits": 5, "plan": "free"}
+            
     except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        print(f"FIRESTORE ERROR: {str(e)}")
+        # Send a 500 JSON error instead of letting the server crash
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.post("/api/credits/use")
 async def use_credits(request: Request):
