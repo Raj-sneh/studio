@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 
 /**
@@ -12,7 +13,8 @@ export async function GET(req: Request) {
   }
 
   try {
-    const baseUrl = process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
+    // Use the live URL for production!
+    const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
 
     const response = await fetch(`${baseUrl}/api/credits/status/${userId}`, {
       cache: 'no-store'

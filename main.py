@@ -85,7 +85,13 @@ async def get_credits_status(user_id: str):
             }
         else:
             # Create user if they don't exist yet
-            user_ref.set({"credits": 5, "plan": "free"})
+            user_ref.set({
+                "id": user_id,
+                "credits": 5, 
+                "plan": "free",
+                "createdAt": firestore.SERVER_TIMESTAMP,
+                "displayName": "Guest User"
+            })
             return {"credits": 5, "plan": "free"}
             
     except Exception as e:
@@ -140,11 +146,10 @@ async def redeem_coupon(request: Request):
         elif code == "Elite$Artist#1": credits_to_add = 5000
         elif code == "Master@SKV#77": credits_to_add = 5000
         elif code == "SKV1000NEW": credits_to_add = 1000
+        elif code == "PIANO2024X": credits_to_add = 1000
         elif code == "PRO@NEURAL#1": credits_to_add = 5000
         elif code == "SONIC$SKV#25": credits_to_add = 5000
         elif code == "MASTER@VOICE$": credits_to_add = 5000
-        elif code == "SKV-PRO-1": credits_to_add = 5000
-        elif code == "SKV-CREATOR-1": credits_to_add = 1000
         
         if credits_to_add == 0:
             return JSONResponse(content={"error": "Invalid coupon code."}, status_code=404)
