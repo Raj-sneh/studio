@@ -1,7 +1,6 @@
 'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash) + ElevenLabs.
- * Implements a full separation/replacement/remix pipeline with "Singer Filter" logic.
  */
 
 import { ai } from '@/ai/genkit';
@@ -21,32 +20,22 @@ import {
   type VocalReplacementOutput,
 } from './voice-cloning-types';
 
-/**
- * Mapping of friendly UI names to real ElevenLabs Studio Voice IDs.
- */
 const DEFAULT_VOICE_MAP: Record<string, string> = {
-  clive: 'JBFqnCBsd6RMkjVDRZzb', // George
-  clara: '21m00Tcm4TlvDq8ikWAM', // Rachel
-  james: 'ErXwUjzD4qc0CPByOn9G', // Antoni
-  alex: 'Lcf7eeY9feMlh8o4NoOf', // Charlie
+  clive: 'JBFqnCBsd6RMkjVDRZzb',
+  clara: '21m00Tcm4TlvDq8ikWAM',
+  james: 'ErXwUjzD4qc0CPByOn9G',
+  alex: 'Lcf7eeY9feMlh8o4NoOf',
 };
 
-/**
- * Dynamic URL helper to ensure the server picks up the correct environment variable.
- */
 function getBaseUrl() {
   return process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
 }
 
-/**
- * Checks if the Python Backend is awake before sending heavy tasks.
- * Retries up to 30 times with a 2-second delay (60 seconds total).
- */
 async function waitForBackend() {
   const baseUrl = getBaseUrl();
   console.log("SKV AI: Checking Neural Engine status at:", baseUrl);
 
-  for (let i = 0; i < 30; i++) { 
+  for (let i = 0; i < 25; i++) { 
     try {
       const res = await fetch(`${baseUrl}/api/status`, { cache: 'no-store' });
       if (res.ok) {
@@ -54,82 +43,51 @@ async function waitForBackend() {
         return true;
       }
     } catch (e) {
-      console.log(`SKV AI: Waiting for backend wake up... Attempt ${i+1}/30`);
+      console.log(`SKV AI: Waiting for backend wake up... Attempt ${i+1}/25`);
     }
     await new Promise(r => setTimeout(r, 2000));
   }
   throw new Error(`Neural Engine (Python) is not responding at ${baseUrl}. Please ensure the Python server is running.`);
 }
 
-/**
- * Uses SKV AI to analyze a voice sample for neural cloning.
- */
+/** Prompts */
 const analyzeVoicePrompt = ai.definePrompt({
   name: 'analyzeVoicePrompt',
   model: 'googleai/gemini-2.5-flash',
-  input: {
-    schema: z.object({
-      sampleDataUri: z.string().describe('The audio sample as a data URI.')
-    })
-  },
+  input: { schema: z.object({ sampleDataUri: z.string() }) },
   output: {
     schema: z.object({
-      description: z.string().describe('Detailed vocal description. Max 400 chars.'),
+      description: z.string(),
       suggestedStability: z.number(),
       suggestedSimilarity: z.number(),
     })
   },
-  prompt: `Analyze this vocal sample. Describe the voice tone, age, gender, and clarity.
-  Keep description under 400 chars. Suggest Stability and Similarity settings for ElevenLabs.
-  Sample: {{media url=sampleDataUri}}`,
+  prompt: `Analyze this vocal sample. Describe tone and clarity. Suggest settings. Sample: {{media url=sampleDataUri}}`,
 });
 
-/**
- * Uses SKV AI to optimize text for a natural neural performance.
- */
 const enhancePerformancePrompt = ai.definePrompt({
   name: 'enhancePerformancePrompt',
   model: 'googleai/gemini-2.5-flash',
-  input: {
-    schema: z.object({
-      text: z.string(),
-      language: z.string().optional()
-    })
-  },
-  output: {
-    schema: z.object({
-      enhancedText: z.string().describe('The text optimized for natural speech with emotional punctuation.')
-    })
-  },
-  prompt: `You are an expert voice director for SKV AI. Enhance this text for a natural, expressive performance. 
-  Add punctuation (dashes, ellipsis) where pauses would naturally occur to ensure a human-like flow. Do not change the core meaning.
-  Text: {{text}}`,
+  input: { schema: z.object({ text: z.string(), language: z.string().optional() }) },
+  output: { schema: z.object({ enhancedText: z.string() }) },
+  prompt: `Optimize this text for natural speech: {{text}}`,
 });
 
-/**
- * AI Director for "Singer Filter" logic.
- */
 const singerDirectorPrompt = ai.definePrompt({
   name: 'singerDirectorPrompt',
   model: 'googleai/gemini-2.5-flash',
-  input: {
-    schema: z.object({
-      vocalDataUri: z.string().describe('The isolated vocal track to analyze.')
-    })
-  },
+  input: { schema: z.object({ vocalDataUri: z.string() }) },
   output: {
     schema: z.object({
-      suggestedStability: z.number().describe('Neural stability setting (0.0 to 1.0).'),
-      suggestedSimilarity: z.number().describe('Neural similarity setting (0.0 to 1.0).'),
-      expressionLevel: z.string().describe('Description of the singing style.')
+      suggestedStability: z.number(),
+      suggestedSimilarity: z.number(),
+      expressionLevel: z.string()
     })
   },
-  prompt: `You are the SKV AI Musical Director. Analyze this isolated vocal track.
-  Suggest the perfect Stability and Similarity Boost settings for an ElevenLabs Speech-to-Speech conversion to ensure the output sounds like a professional singer.
-  
-  Vocal Sample: {{media url=vocalDataUri}}`,
+  prompt: `Analyze isolated vocal for Speech-to-Speech settings: {{media url=vocalDataUri}}`,
 });
 
+/** Exported Functions */
 export async function cloneVoice(input: VoiceCloningInput): Promise<VoiceCloningOutput> {
   return voiceCloningFlow(input);
 }
@@ -142,6 +100,7 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Vocal
     return vocalReplacementFlow(input);
 }
 
+/** Flows */
 const voiceCloningFlow = ai.defineFlow(
   {
     name: 'voiceCloningFlow',
@@ -151,7 +110,6 @@ const voiceCloningFlow = ai.defineFlow(
   async (input) => {
     const { name, samples } = input;
     const apiKey = process.env.ELEVENLABS_API_KEY;
-
     if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
     const analysisResponse = await analyzeVoicePrompt({ sampleDataUri: samples[0] });
@@ -200,16 +158,12 @@ const speakWithCloneFlow = ai.defineFlow(
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
-
         const enhancement = await enhancePerformancePrompt({ text });
         const optimizedText = enhancement.output?.enhancedText || text;
 
         const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${actualVoiceId}`, {
             method: 'POST',
-            headers: {
-                'xi-api-key': apiKey,
-                'Content-Type': 'application/json',
-            },
+            headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 text: optimizedText,
                 model_id: 'eleven_multilingual_v2',
@@ -220,16 +174,12 @@ const speakWithCloneFlow = ai.defineFlow(
             }),
         });
 
-        if (!response.ok) throw new Error("TTS failed.");
-
+        if (!response.ok) throw new Error("TTS stage failed.");
         const buffer = Buffer.from(await response.arrayBuffer());
         return { audioUri: `data:audio/mpeg;base64,${buffer.toString('base64')}` };
     }
 );
 
-/**
- * PRO PIPELINE: Separate -> Analyze -> Replace -> Mix
- */
 const vocalReplacementFlow = ai.defineFlow(
     {
         name: 'vocalReplacementFlow',
@@ -239,9 +189,6 @@ const vocalReplacementFlow = ai.defineFlow(
     async (input) => {
         const { audioDataUri, voiceId, settings } = input;
         const apiKey = process.env.ELEVENLABS_API_KEY;
-        if (!apiKey) throw new Error("ElevenLabs API key is missing.");
-
-        const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
         const baseUrl = getBaseUrl();
         
         await waitForBackend();
@@ -256,16 +203,13 @@ const vocalReplacementFlow = ai.defineFlow(
             body: separateFormData
         });
 
-        if (!separateResponse.ok) throw new Error("Neural separation engine failed.");
-        
+        if (!separateResponse.ok) throw new Error("Voice separation engine failed.");
         const { vocals, bgm } = await separateResponse.json();
 
         const directorAnalysis = await singerDirectorPrompt({ vocalDataUri: vocals });
         const analysis = directorAnalysis.output!;
 
-        const vBuffer = Buffer.from(vocals.split(',')[1], 'base64');
-        const vBlob = new Blob([vBuffer], { type: 'audio/wav' });
-
+        const vBlob = new Blob([Buffer.from(vocals.split(',')[1], 'base64')], { type: 'audio/wav' });
         const stsFormData = new FormData();
         stsFormData.append('audio', vBlob, 'vocals.wav');
         stsFormData.append('model_id', 'eleven_multilingual_sts_v2'); 
@@ -274,28 +218,25 @@ const vocalReplacementFlow = ai.defineFlow(
             similarity_boost: settings?.similarity_boost ?? analysis.suggestedSimilarity, 
         }));
 
-        const stsResponse = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${actualVoiceId}`, {
+        const stsResponse = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${DEFAULT_VOICE_MAP[voiceId] || voiceId}`, {
             method: 'POST',
-            headers: { 'xi-api-key': apiKey },
+            headers: { 'xi-api-key': apiKey! },
             body: stsFormData,
         });
 
-        if (!stsResponse.ok) throw new Error(`Vocal synthesis failed during neural transformation.`);
-
+        if (!stsResponse.ok) throw new Error("Voice swap transformation failed.");
         const aiVocalBlob = new Blob([Buffer.from(await stsResponse.arrayBuffer())], { type: 'audio/mpeg' });
 
         const mixFormData = new FormData();
         mixFormData.append('vocals', aiVocalBlob, 'ai_vocals.mp3');
-        const bgmBlob = new Blob([Buffer.from(bgm.split(',')[1], 'base64')], { type: 'audio/wav' });
-        mixFormData.append('bgm', bgmBlob, 'original_bgm.wav');
+        mixFormData.append('bgm', new Blob([Buffer.from(bgm.split(',')[1], 'base64')], { type: 'audio/wav' }), 'bgm.wav');
 
         const mixResponse = await fetch(`${baseUrl}/mix`, {
             method: 'POST',
             body: mixFormData
         });
 
-        if (!mixResponse.ok) throw new Error("Mastering stage failed.");
-
+        if (!mixResponse.ok) throw new Error("Audio mixing and mastering stage failed.");
         const finalBuffer = Buffer.from(await mixResponse.arrayBuffer());
         return { audioUri: `data:audio/mpeg;base64,${finalBuffer.toString('base64')}` };
     }
