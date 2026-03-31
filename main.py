@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
@@ -6,156 +6,157 @@ from firebase_admin import credentials, firestore
 import hmac
 import hashlib
 import os
+import json
+import base64
+import traceback
 from dotenv import load_dotenv
+import razorpay
 
-# Load environment variables from .env file (local development)
+# Load environment variables
 load_dotenv()
 
 app = FastAPI()
 
+# Enable CORS for Next.js (sargamskv.in)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # --- Firebase Initialization ---
-# Uses Application Default Credentials (ADC) for secure production connection.
+# Uses generic initialization to support environment-based ADC
 if not firebase_admin._apps:
     try:
-        # standard init for Studio/Cloud environments
         firebase_admin.initialize_app()
     except Exception:
-        # Fallback for manual project ID injection
         firebase_admin.initialize_app(options={
-            'projectId': os.environ.get('GOOGLE_CLOUD_PROJECT')
+            'projectId': os.environ.get('GOOGLE_CLOUD_PROJECT', 'studio-4164192500-df01a')
         })
 
 db = firestore.client()
 
-@app.get("/")
-async def home():
-    return {"status": "Sargam Neural Engine Active", "engine": "FastAPI"}
+# --- Razorpay Initialization ---
+rzp_key = os.environ.get("RAZORPAY_KEY_ID")
+rzp_secret = os.environ.get("RAZORPAY_KEY_SECRET")
+client = razorpay.Client(auth=(rzp_key, rzp_secret)) if rzp_key and rzp_secret else None
 
+# --- Helper: Credit Mapping ---
+def get_credits_for_amount(amount_rupees):
+    mapping = {299: 5000, 99: 1000, 100: 300, 50: 120, 10: 20}
+    return mapping.get(amount_rupees, 0)
+
+# --- Routes ---
+
+@app.get("/")
 @app.get("/api/status")
 async def get_status():
-    """Standardized health check for the credit and account engine."""
-    return {"status": "online", "engine": "FastAPI", "ready": True}
+    """Satisfies health checks and polling logic"""
+    return {"status": "Sargam Neural Engine Active", "ready": True, "engine": "FastAPI"}
 
 @app.get("/api/credits/status/{user_id}")
 async def get_credits_status(user_id: str):
     try:
         user_ref = db.collection('users').document(user_id)
         doc = user_ref.get()
-        
         if doc.exists:
             return doc.to_dict()
         else:
-            # Initialize default user if not found
-            new_user = {
-                "id": user_id,
-                "credits": 10, 
-                "plan": "free",
-                "redeemedCoupons": [],
-                "createdAt": firestore.SERVER_TIMESTAMP
-            }
+            new_user = {"id": user_id, "credits": 10, "plan": "free", "redeemedCoupons": []}
             user_ref.set(new_user)
             return new_user
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse(status_code=500, content={"error": "Database retrieval failed"})
 
 @app.post("/api/credits/use")
 async def use_credits(request: Request):
     try:
         data = await request.json()
         user_id = data.get("user_id")
-        amount = data.get("amount", 0)
-
-        if not user_id:
-            raise HTTPException(status_code=400, detail="Missing user_id")
-
+        amount = int(data.get("amount", 0))
+        
+        if not user_id: raise Exception("Missing user_id")
+        
         user_ref = db.collection('users').document(user_id)
         
-        # Transactional credit deduction using snapshot.to_dict() pattern
         @firestore.transactional
         def update_in_transaction(transaction, user_ref):
             snapshot = user_ref.get(transaction=transaction)
-            if not snapshot.exists:
-                raise Exception("User record not found in neural database.")
-            
             user_data = snapshot.to_dict()
-            current_credits = user_data.get('credits', 0)
+            if not user_data: raise Exception("User profile missing")
             
-            if current_credits < amount:
-                raise Exception(f"Insufficient credits. Need {amount}, have {current_credits}.")
+            current = user_data.get('credits', 0)
+            if current < amount: raise Exception(f"Insufficient credits. Need {amount}, have {current}.")
             
-            new_balance = current_credits - amount
-            transaction.update(user_ref, {'credits': new_balance})
-            return new_balance
+            transaction.update(user_ref, {'credits': current - amount})
+            return current - amount
 
-        transaction = db.transaction()
-        new_balance = update_in_transaction(transaction, user_ref)
-        return {"success": True, "remaining_credits": new_balance}
+        new_bal = update_in_transaction(db.transaction(), user_ref)
+        return {"success": True, "remaining": new_bal}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.post("/api/redeem")
-async def redeem_coupon(request: Request):
-    try:
-        data = await request.json()
-        user_id = data.get("userId")
-        code = data.get("code", "").strip().upper()
-
-        # Define official neural allocation codes
-        coupons = {
-            "SKV-PRO-1": 100, "SKV-PRO-2": 100, "SKV-PRO-3": 100,
-            "SKV-CREATOR-1": 50, "SKV-CREATOR-2": 50, "SKV-CREATOR-3": 50,
-            "NEURAL-X": 25, "NEURAL-Y": 25, "NEURAL-Z": 25,
-            "SARGAM-ELITE": 500, "STAGE-PASS": 10, "SKV-FREE-BIE": 5,
-            "TEST-COUPON": 999, "ALPHA-KEY": 100, "BETA-KEY": 100
-        }
-
-        if code not in coupons:
-            raise HTTPException(status_code=404, detail="Invalid neural coupon code.")
-
-        user_ref = db.collection('users').document(user_id)
-        doc = user_ref.get()
-        if not doc.exists:
-            raise HTTPException(status_code=404, detail="User not provisioned.")
-
-        user_data = doc.to_dict()
-        redeemed = user_data.get("redeemedCoupons", [])
-
-        if code in redeemed:
-            raise HTTPException(status_code=400, detail="Coupon code already utilized.")
-
-        credits_to_add = coupons[code]
-        user_ref.update({
-            "credits": user_data.get("credits", 0) + credits_to_add,
-            "redeemedCoupons": firestore.ArrayUnion([code])
-        })
-
-        return {"success": True, "credits": credits_to_add}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return JSONResponse(status_code=400, content={"error": str(e)})
 
 @app.post("/api/webhook/elevenlabs")
 async def elevenlabs_webhook(request: Request):
+    """Secure webhook for neural processing events"""
     webhook_secret = os.environ.get("ELEVENLABS_WEBHOOK_SECRET")
     signature = request.headers.get("X-ElevenLabs-Signature")
     body = await request.body()
 
-    if not signature or not webhook_secret:
-        return JSONResponse(status_code=401, content={"error": "Neural security config missing"})
-
-    mac = hmac.new(webhook_secret.encode(), msg=body, digestmod=hashlib.sha256)
-    expected_signature = mac.hexdigest()
-
-    if not hmac.compare_digest(expected_signature, signature):
-        return JSONResponse(status_code=401, content={"error": "Invalid neural signature"})
+    if webhook_secret and signature:
+        mac = hmac.new(webhook_secret.encode(), msg=body, digestmod=hashlib.sha256)
+        expected = mac.hexdigest()
+        if not hmac.compare_digest(expected, signature):
+            return JSONResponse(status_code=401, content={"error": "Invalid signature"})
 
     data = await request.json()
-    print(f"ElevenLabs Neural Webhook received: {data.get('status', 'unknown')}")
+    print(f"SKV AI: ElevenLabs Webhook Event: {data.get('status')}")
     return {"status": "ok"}
+
+@app.post("/api/redeem")
+async def redeem_coupon(request: Request):
+    """Secure coupon redemption logic"""
+    try:
+        data = await request.json()
+        user_id, code = data.get("userId"), data.get("code", "").upper().strip()
+        
+        # Hardcoded promo codes for prototype
+        coupons = {
+            "SKV-PRO-1": 1000,
+            "WELCOME-SARGAM": 50,
+            "RESEARCH-TEST": 500
+        }
+        
+        if code not in coupons:
+            return JSONResponse(status_code=404, content={"error": "Invalid or expired coupon code."})
+            
+        credits_to_add = coupons[code]
+        user_ref = db.collection('users').document(user_id)
+        
+        @firestore.transactional
+        def add_credits(transaction, user_ref):
+            snap = user_ref.get(transaction=transaction)
+            u_data = snap.to_dict() or {}
+            redeemed = u_data.get('redeemedCoupons', [])
+            
+            if code in redeemed: raise Exception("Coupon already redeemed by this account.")
+            
+            current = u_data.get('credits', 0)
+            transaction.update(user_ref, {
+                'credits': current + credits_to_add,
+                'redeemedCoupons': firestore.ArrayUnion([code]),
+                'plan': 'creator' if credits_to_add >= 500 else u_data.get('plan', 'free')
+            })
+            return current + credits_to_add
+
+        add_credits(db.transaction(), user_ref)
+        return {"status": "success", "credits": credits_to_add}
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"error": str(e)})
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)

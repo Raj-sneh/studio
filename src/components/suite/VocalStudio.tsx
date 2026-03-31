@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Loader2, Play, StopCircle, Sparkles, Mic2, Upload, FileAudio, BrainCircuit, Globe, Music, Link as LinkIcon, Lock, Zap
+  Loader2, Play, StopCircle, Sparkles, Mic2, Upload, FileAudio, BrainCircuit, Globe, Music, Link as LinkIcon, Lock, Zap, AlertCircle
 } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Card } from '@/components/ui/card';
@@ -41,6 +41,7 @@ const DEFAULT_VOICES = [
 const ADMIN_EMAIL = 'snehkumarverma2011@gmail.com';
 const TTS_COST = 2;
 const SWAP_COST = 10;
+const MAX_FILE_SIZE_MB = 10; // Prevent Cloud Run crashes
 
 export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPrompt?: string | null; autogen?: boolean; onGenerate: () => void; }) {
   const { toast } = useToast();
@@ -49,10 +50,10 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState<string>("");
   const [result, setResult] = useState<any>(null);
   const [activeSubTab, setActiveSubTab] = useState<'tts' | 'replacement'>('tts');
 
-  // Fetch Profile for Plan Check
   const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
   const { data: profile } = useDoc<UserProfile>(userDocRef);
 
@@ -77,6 +78,16 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Size check to prevent "Upstream Connect Error"
+      if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+        toast({ 
+            title: "File too large", 
+            description: `Please upload a file smaller than ${MAX_FILE_SIZE_MB}MB.`, 
+            variant: "destructive" 
+        });
+        return;
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = reader.result as string;
@@ -96,27 +107,34 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
 
     setIsLoading(true);
     setResult(null);
+    setLoadingStatus("Verifying credits...");
     stopPlayback();
 
     try {
       const cost = activeSubTab === 'replacement' ? SWAP_COST : TTS_COST;
 
-      const creditRes = await fetch('/api/credits/use', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.uid, amount: cost })
-      });
-
-      if (!creditRes.ok) {
-        const errorData = await creditRes.json();
-        throw new Error(errorData.error || "Insufficient credits.");
+      // 1. CREDIT CHECK
+      let creditRes;
+      try {
+        creditRes = await fetch('/api/credits/use', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.uid, amount: cost })
+        });
+      } catch (err) {
+        throw new Error("Credit system unreachable. Is your internet active?");
       }
 
+      if (!creditRes.ok) {
+        const errorData = await creditRes.json().catch(() => ({}));
+        throw new Error(errorData.error || "Insufficient credits to process this task.");
+      }
+
+      // 2. AI EXECUTION
       if (activeSubTab === 'replacement') {
-        if (!data.replacementAudio) {
-          throw new Error("Please upload an audio file first.");
-        }
+        if (!data.replacementAudio) throw new Error("Please upload an audio file first.");
         
+        setLoadingStatus("Waking up Neural Engine... (May take 30s)");
         const res = await replaceVocals({
           audioDataUri: data.replacementAudio,
           voiceId: data.voice,
@@ -125,9 +143,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
         });
         setResult({ vocalUri: res.audioUri, title: "Neural Transformation Complete" });
       } else {
-        if (!data.text) {
-          throw new Error("Please enter some text first.");
-        }
+        if (!data.text) throw new Error("Please enter some text first.");
+        
+        setLoadingStatus("Synthesizing neural voice...");
         const res = await speakWithClone({
             text: data.text,
             voiceId: data.voice,
@@ -135,13 +153,21 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
         });
         setResult({ vocalUri: res.audioUri, title: "TTS Generation Complete" });
       }
-      toast({ title: "Done!", description: "Your audio is ready." });
+
+      toast({ title: "Success!", description: "AI track generated successfully." });
       onGenerate();
     } catch (e: any) {
-      console.error("Vocal Studio Run Error:", e);
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      console.error("Vocal Studio Error:", e);
+      toast({ 
+        title: "Generation Failed", 
+        description: e.message.includes("Unexpected token") 
+          ? "The server is busy. Please try again in a few seconds." 
+          : e.message, 
+        variant: "destructive" 
+      });
     } finally {
       setIsLoading(false);
+      setLoadingStatus("");
     }
   };
 
@@ -185,34 +211,18 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                     
                     <TabsContent value="replacement" className="mt-0 space-y-6 relative overflow-hidden rounded-[2rem]">
                         {!isPremium && (
-                          <>
-                            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none opacity-30 select-none overflow-hidden">
-                                <div className="absolute rotate-45 flex gap-4">
-                                    {[...Array(20)].map((_, i) => <LinkIcon key={`c1-${i}`} className="h-8 w-8 text-primary stroke-[3px]" />)}
+                          <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-background/60 backdrop-blur-md">
+                                <div className="bg-card border border-primary/40 shadow-2xl p-8 rounded-[2rem] text-center space-y-4 max-w-[280px]">
+                                    <Lock className="h-10 w-10 text-primary mx-auto" />
+                                    <h3 className="text-lg font-bold">Premium Required</h3>
+                                    <p className="text-xs text-muted-foreground italic">
+                                        Voice Swap requires a Creator or Pro plan.
+                                    </p>
+                                    <Button type="button" onClick={() => router.push('/pricing')} className="w-full rounded-xl">
+                                        Upgrade Now
+                                    </Button>
                                 </div>
-                                <div className="absolute -rotate-45 flex gap-4">
-                                    {[...Array(20)].map((_, i) => <LinkIcon key={`c2-${i}`} className="h-8 w-8 text-primary stroke-[3px]" />)}
-                                </div>
-                            </div>
-
-                            <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-background/40 backdrop-blur-md pointer-events-none">
-                                <div className="pointer-events-auto bg-card border border-primary/40 shadow-2xl p-6 rounded-[2rem] text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
-                                    <div className="space-y-1">
-                                        <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-1">Restricted</p>
-                                        <h3 className="text-md font-bold font-headline text-foreground leading-tight">Premium Access Required</h3>
-                                    </div>
-                                    <Lock className="h-8 w-8 text-primary mx-auto opacity-80" />
-                                    <div className="space-y-3">
-                                        <p className="text-[11px] text-muted-foreground leading-snug px-2 italic">
-                                            Voice Swap requires a Creator or Pro plan. Upgrade now to unlock neural replacement.
-                                        </p>
-                                        <Button type="button" onClick={() => router.push('/pricing')} className="w-full h-10 text-xs font-black rounded-xl shadow-xl shadow-primary/20">
-                                            Upgrade Plan
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                          </>
+                          </div>
                         )}
 
                         <div className={cn(!isPremium && "grayscale opacity-40 blur-sm")}>
@@ -228,7 +238,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                       value={field.value}
                                       onChange={(e) => field.onChange(e.target.value)}
                                       disabled={!isPremium}
-                                      className="w-full bg-muted/20 border border-primary/10 rounded-xl px-4 py-2 text-sm focus:outline-none"
+                                      className="w-full bg-muted/20 border border-primary/10 rounded-xl px-4 py-2 text-sm"
                                   >
                                       {languageOptions.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                                   </select>
@@ -237,20 +247,18 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
 
                           <FormField control={form.control} name="replacementAudio" render={({ field }) => (
                               <FormItem className="mt-6">
-                                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Upload Audio</FormLabel>
-                                  <div className="relative border-2 border-dashed border-primary/20 rounded-3xl p-16 text-center space-y-4 bg-muted/10 transition-colors hover:bg-muted/20">
+                                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Upload Audio (Max 10MB)</FormLabel>
+                                  <div className="relative border-2 border-dashed border-primary/20 rounded-3xl p-16 text-center space-y-4 bg-muted/10">
                                       <input 
                                         type="file" 
                                         accept="audio/*" 
-                                        className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed" 
+                                        className="absolute inset-0 opacity-0 cursor-pointer" 
                                         onChange={handleFileUpload}
                                         disabled={!isPremium}
                                       />
-                                      <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                                          <Upload className="text-primary h-10 w-10" />
-                                      </div>
-                                      <p className="font-bold text-lg">
-                                        {form.watch('replacementFileName') || 'Drop audio to swap voice'}
+                                      <Upload className="text-primary h-10 w-10 mx-auto" />
+                                      <p className="font-bold text-sm">
+                                        {form.watch('replacementFileName') || 'Click or drag to swap voice'}
                                       </p>
                                   </div>
                               </FormItem>
@@ -262,29 +270,25 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                 <div className="space-y-6">
                     <FormField control={form.control} name="voice" render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Choose Voice</FormLabel>
+                            <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Choose Neural Profile</FormLabel>
                             <div className="grid gap-2 h-[400px] overflow-y-auto pr-2 scrollbar-thin mt-2">
                                 {savedVoices?.map(v => (
-                                    <label key={v.voiceId} className={cn("flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all", field.value === v.voiceId ? "bg-primary/10 border-primary shadow-lg shadow-primary/5" : "bg-muted/20 border-transparent hover:bg-muted/30")}>
+                                    <label key={v.voiceId} className={cn("flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all", field.value === v.voiceId ? "bg-primary/10 border-primary" : "bg-muted/10 border-transparent hover:bg-muted/20")}>
                                         <input type="radio" className="hidden" value={v.voiceId} checked={field.value === v.voiceId} onChange={() => field.onChange(v.voiceId)} />
-                                        <div className="h-10 w-10 rounded-xl bg-secondary/20 flex items-center justify-center shrink-0 shadow-sm">
-                                            <BrainCircuit className="h-5 w-5 text-secondary" />
-                                        </div>
+                                        <BrainCircuit className="h-5 w-5 text-secondary shrink-0" />
                                         <div className="truncate">
                                             <p className="text-xs font-bold uppercase truncate">{v.name}</p>
-                                            <p className="text-[10px] text-muted-foreground">Cloned Voice</p>
+                                            <p className="text-[10px] text-muted-foreground">Cloned</p>
                                         </div>
                                     </label>
                                 ))}
                                 {DEFAULT_VOICES.map(v => (
-                                    <label key={v.id} className={cn("flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all", field.value === v.id ? "bg-primary/10 border-primary shadow-lg shadow-primary/5" : "bg-muted/20 border-transparent hover:bg-muted/30")}>
+                                    <label key={v.id} className={cn("flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all", field.value === v.id ? "bg-primary/10 border-primary" : "bg-muted/10 border-transparent hover:bg-muted/20")}>
                                         <input type="radio" className="hidden" value={v.id} checked={field.value === v.id} onChange={() => field.onChange(v.id)} />
-                                        <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-                                            <Mic2 className="h-5 w-5 text-primary" />
-                                        </div>
+                                        <Mic2 className="h-5 w-5 text-primary shrink-0" />
                                         <div className="truncate">
                                             <p className="text-xs font-bold uppercase truncate">{v.label}</p>
-                                            <p className="text-[10px] text-muted-foreground">Studio Voice</p>
+                                            <p className="text-[10px] text-muted-foreground">Studio</p>
                                         </div>
                                     </label>
                                 ))}
@@ -294,32 +298,36 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                 </div>
             </div>
 
-            <Button type="submit" disabled={isLoading || (activeSubTab === 'replacement' && !isPremium)} className="w-full h-16 text-xl rounded-2xl shadow-2xl shadow-primary/10 font-bold">
-                {isLoading ? <Loader2 className="animate-spin mr-2 h-6 w-6" /> : <Sparkles className="mr-2 h-6 w-6" />}
-                {activeSubTab === 'tts' || isPremium ? 'Generate Audio' : 'Restricted'}
+            <Button type="submit" disabled={isLoading || (activeSubTab === 'replacement' && !isPremium)} className="w-full h-16 text-xl rounded-2xl font-bold">
+                {isLoading ? (
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center">
+                      <Loader2 className="animate-spin mr-2 h-6 w-6" />
+                      Processing...
+                    </div>
+                    <span className="text-[10px] font-normal mt-1 text-primary-foreground/70">{loadingStatus}</span>
+                  </div>
+                ) : (
+                  <><Sparkles className="mr-2 h-6 w-6" /> {activeSubTab === 'tts' || isPremium ? 'Start Neural Engine' : 'Upgrade to Access'}</>
+                )}
             </Button>
           </form>
         </Form>
 
         {result && (
-            <Card key={result.vocalUri} className="p-10 bg-primary/5 border-primary/20 rounded-3xl flex flex-col items-center gap-8 animate-in fade-in zoom-in-95 duration-500 shadow-xl border-2 mt-8">
+            <Card key={result.vocalUri} className="p-10 bg-primary/5 border-primary/20 rounded-3xl flex flex-col items-center gap-8 animate-in fade-in zoom-in-95 mt-8 border-2">
                 <div className="flex items-center gap-6 w-full">
-                    <div className="h-16 w-16 bg-primary/20 rounded-2xl flex items-center justify-center shadow-inner shrink-0">
+                    <div className="h-16 w-16 bg-primary/20 rounded-2xl flex items-center justify-center shrink-0">
                         <FileAudio className="text-primary h-8 w-8" />
                     </div>
-                    <div className="flex-1">
-                        <h3 className="font-bold text-2xl font-headline">{result.title}</h3>
-                        <p className="text-muted-foreground">Audio track generated by SKV AI.</p>
+                    <div>
+                        <h3 className="font-bold text-2xl">{result.title}</h3>
+                        <p className="text-muted-foreground">Neural performance ready for download.</p>
                     </div>
                 </div>
-                <div className="w-full bg-background/50 p-6 rounded-2xl border border-primary/10 shadow-inner">
-                    <audio 
-                      controls 
-                      className="w-full h-14" 
-                      src={result.vocalUri}
-                      key={result.vocalUri}
-                    >
-                        Your browser does not support the audio element.
+                <div className="w-full bg-background/50 p-6 rounded-2xl border border-primary/10">
+                    <audio controls className="w-full h-14" src={result.vocalUri} key={result.vocalUri}>
+                        Your browser does not support audio playback.
                     </audio>
                 </div>
             </Card>

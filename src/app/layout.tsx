@@ -1,14 +1,15 @@
+'use client';
 
 import { Poppins, Roboto } from 'next/font/google';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 import { cn } from '@/lib/utils';
-import type { Metadata } from 'next';
 import Header from "@/components/Header";
 import { Providers } from './providers';
 import { FloatingAssistantButton } from '@/components/FloatingAssistantButton';
 import { GlobalCreditBar } from '@/components/GlobalCreditBar';
 import { Heart } from 'lucide-react';
+import Script from 'next/script';
 
 const fontHeadline = Poppins({
   subsets: ['latin'],
@@ -24,37 +25,6 @@ const fontBody = Roboto({
   weight: ['400', '500'],
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL('https://sargam-ai.vercel.app'),
-  title: "Voice Cloning AI | Sargam AI Piano Tutor & Neural Studio",
-  description: "Sargam AI is the premier Voice Cloning AI and Piano Tutor. Features professional neural voice cloning, high-quality virtual piano, and interactive music lessons.",
-  keywords: [
-    "Voice Cloning AI",
-    "AI Voice Cloning",
-    "Sargam AI",
-    "Virtual Piano",
-    "AI Piano Tutor",
-    "Neural Voice Synthesis",
-    "AI Music Composition",
-    "Sneh Kumar Verma",
-    "ElevenLabs Voice Cloning",
-    "Piano Lessons AI",
-    "Music Research Preview",
-    "Neural Song Swap"
-  ],
-  icons: {
-    icon: "/favicon.ico",
-  },
-  openGraph: {
-    title: "Voice Cloning AI | Sargam AI Piano Tutor & Studio",
-    description: "Master the piano and clone voices with the future of neural sound at Sargam AI.",
-    url: "https://sargam-ai.vercel.app",
-    siteName: "Sargam AI",
-    locale: "en_US",
-    type: "website",
-  },
-};
-
 export default function RootLayout({
   children,
 }: {
@@ -62,6 +32,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
+      <head>
+        {/* Google AdSense Integration */}
+        <Script 
+          async 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8391391679719370"
+          crossOrigin="anonymous"
+          strategy="lazyOnload"
+        />
+      </head>
       <body className={cn("font-body antialiased min-h-screen bg-background", fontHeadline.variable, fontBody.variable)}>
         <Providers>
           <div className="flex flex-col min-h-screen">

@@ -86,8 +86,8 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
         if (viewport) {
             const { scrollHeight, scrollTop, clientHeight } = viewport;
-            // Show button if user has scrolled up more than 150px from the bottom
-            const isNearBottom = (scrollHeight - (scrollTop + clientHeight)) < 150;
+            // Show button if user has scrolled up more than 100px from the bottom
+            const isNearBottom = (scrollHeight - (scrollTop + clientHeight)) < 100;
             setShowScrollButton(!isNearBottom);
         }
     }
@@ -211,11 +211,11 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
             </div>
         </ScrollArea>
 
-        {/* Scroll to Latest Button - Positioned on Bottom Left of Chat area */}
+        {/* Scroll Key (Arrow) - Anchored to bottom-left of the scroll viewport area */}
         {showScrollButton && (
             <Button
                 size="icon"
-                className="absolute bottom-4 left-6 h-10 w-10 rounded-full shadow-[0_0_20px_rgba(0,255,255,0.3)] border-2 border-primary bg-background/90 backdrop-blur-md z-[100] hover:bg-primary transition-all animate-bounce"
+                className="absolute bottom-4 left-6 h-10 w-10 rounded-full shadow-[0_0_20px_rgba(0,255,255,0.4)] border-2 border-primary bg-background/90 backdrop-blur-md z-[100] hover:bg-primary transition-all animate-bounce"
                 onClick={() => scrollToBottom()}
                 title="Scroll to latest message"
             >
@@ -224,7 +224,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         )}
       </div>
 
-      {/* Fixed Typing Area - Never scrolls away */}
+      {/* Fixed Typing Area - Anchored to the bottom of the card, never disappears */}
       <div className="p-4 border-t bg-card/80 backdrop-blur-md shrink-0 z-50">
           {selectedImage && (
             <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted mb-4 shadow-inner">
