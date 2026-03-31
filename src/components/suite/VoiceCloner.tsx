@@ -21,11 +21,12 @@ import {
     Volume2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, serverTimestamp, addDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, orderBy, serverTimestamp, addDoc, doc } from 'firebase/firestore';
 import { generateTrainingParagraph } from '@/ai/flows/voice-training-flow';
 import { cloneVoice } from '@/ai/flows/voice-cloning-flow';
 import { useToast } from '@/hooks/use-toast';
+import type { UserProfile } from '@/types';
 
 const SUPPORTED_LANGUAGES = [
     { label: "English", value: "English" },
@@ -62,7 +63,11 @@ export function VoiceCloner() {
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  // Fetch Profile for Plan Check
+  const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
+  const { data: profile } = useDoc<UserProfile>(userDocRef);
+
+  const isPremium = profile?.plan === 'creator' || profile?.plan === 'pro' || user?.email === ADMIN_EMAIL;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const voicesQuery = useMemoFirebase(() => {
@@ -221,17 +226,17 @@ export function VoiceCloner() {
   return (
     <div className="max-w-4xl mx-auto py-8 space-y-12 relative min-h-[700px]">
       
-      {!isAdmin && (
+      {!isPremium && (
         <div className="absolute inset-0 z-50 flex flex-col items-center pointer-events-none pt-40">
             <div className="pointer-events-auto bg-card/40 border border-primary/40 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-xl p-6 rounded-[2rem] w-full max-w-[280px] text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
                 <div className="space-y-1">
                     <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-1">Neural Protocol Restricted</p>
-                    <h3 className="text-md font-bold font-headline text-foreground leading-tight">Elite Access Required</h3>
+                    <h3 className="text-md font-bold font-headline text-foreground leading-tight">Premium Access Required</h3>
                 </div>
                 <Lock className="h-8 w-8 text-primary mx-auto opacity-80" />
                 <div className="space-y-3">
                     <p className="text-[11px] text-muted-foreground leading-snug px-2 italic">
-                        Neural cloning requires 25 credits and a Pro plan. Upgrade now to apply.
+                        Voice Cloning requires a Creator or Pro plan. Upgrade now to unlock neural training.
                     </p>
                     <Button onClick={() => router.push('/pricing')} className="w-full h-10 text-xs font-black rounded-xl shadow-xl shadow-primary/20">
                         Upgrade Plan
@@ -241,7 +246,7 @@ export function VoiceCloner() {
         </div>
       )}
 
-      <div className={cn("space-y-16", !isAdmin && "grayscale opacity-40 blur-sm pointer-events-none select-none")}>
+      <div className={cn("space-y-16", !isPremium && "grayscale opacity-40 blur-sm pointer-events-none select-none")}>
         
         <Card className="border-primary/20 bg-card/20 rounded-[2rem] overflow-hidden">
           <CardHeader className="text-center pt-10">

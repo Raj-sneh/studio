@@ -15,11 +15,12 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { replaceVocals, speakWithClone } from '@/ai/flows/voice-cloning-flow';
 import { cn } from '@/lib/utils';
 import { languageOptions } from '@/ai/flows/text-to-speech-types';
+import type { UserProfile } from '@/types';
 
 const formSchema = z.object({
   text: z.string().optional(),
@@ -51,7 +52,11 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
   const [result, setResult] = useState<any>(null);
   const [activeSubTab, setActiveSubTab] = useState<'tts' | 'replacement'>('tts');
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  // Fetch Profile for Plan Check
+  const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
+  const { data: profile } = useDoc<UserProfile>(userDocRef);
+
+  const isPremium = profile?.plan === 'creator' || profile?.plan === 'pro' || user?.email === ADMIN_EMAIL;
 
   const voicesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -179,7 +184,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                     </TabsContent>
                     
                     <TabsContent value="replacement" className="mt-0 space-y-6 relative overflow-hidden rounded-[2rem]">
-                        {!isAdmin && (
+                        {!isPremium && (
                           <>
                             <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none opacity-30 select-none overflow-hidden">
                                 <div className="absolute rotate-45 flex gap-4">
@@ -194,12 +199,12 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                 <div className="pointer-events-auto bg-card border border-primary/40 shadow-2xl p-6 rounded-[2rem] text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
                                     <div className="space-y-1">
                                         <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-1">Restricted</p>
-                                        <h3 className="text-md font-bold font-headline text-foreground leading-tight">Elite Access Required</h3>
+                                        <h3 className="text-md font-bold font-headline text-foreground leading-tight">Premium Access Required</h3>
                                     </div>
                                     <Lock className="h-8 w-8 text-primary mx-auto opacity-80" />
                                     <div className="space-y-3">
                                         <p className="text-[11px] text-muted-foreground leading-snug px-2 italic">
-                                            This feature requires more credits. Upgrade now to get access.
+                                            Voice Swap requires a Creator or Pro plan. Upgrade now to unlock neural replacement.
                                         </p>
                                         <Button type="button" onClick={() => router.push('/pricing')} className="w-full h-10 text-xs font-black rounded-xl shadow-xl shadow-primary/20">
                                             Upgrade Plan
@@ -210,7 +215,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                           </>
                         )}
 
-                        <div className={cn(!isAdmin && "grayscale opacity-40 blur-sm")}>
+                        <div className={cn(!isPremium && "grayscale opacity-40 blur-sm")}>
                           <FormField control={form.control} name="language" render={({ field }) => (
                               <FormItem>
                                   <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
@@ -222,7 +227,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                   <select 
                                       value={field.value}
                                       onChange={(e) => field.onChange(e.target.value)}
-                                      disabled={!isAdmin}
+                                      disabled={!isPremium}
                                       className="w-full bg-muted/20 border border-primary/10 rounded-xl px-4 py-2 text-sm focus:outline-none"
                                   >
                                       {languageOptions.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
@@ -239,7 +244,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                         accept="audio/*" 
                                         className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed" 
                                         onChange={handleFileUpload}
-                                        disabled={!isAdmin}
+                                        disabled={!isPremium}
                                       />
                                       <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
                                           <Upload className="text-primary h-10 w-10" />
@@ -289,9 +294,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                 </div>
             </div>
 
-            <Button type="submit" disabled={isLoading || (activeSubTab === 'replacement' && !isAdmin)} className="w-full h-16 text-xl rounded-2xl shadow-2xl shadow-primary/10 font-bold">
+            <Button type="submit" disabled={isLoading || (activeSubTab === 'replacement' && !isPremium)} className="w-full h-16 text-xl rounded-2xl shadow-2xl shadow-primary/10 font-bold">
                 {isLoading ? <Loader2 className="animate-spin mr-2 h-6 w-6" /> : <Sparkles className="mr-2 h-6 w-6" />}
-                {activeSubTab === 'tts' || isAdmin ? 'Generate Audio' : 'Restricted'}
+                {activeSubTab === 'tts' || isPremium ? 'Generate Audio' : 'Restricted'}
             </Button>
           </form>
         </Form>
