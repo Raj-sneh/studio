@@ -89,8 +89,9 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     if (scrollAreaRef.current) {
         const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
         if (viewport) {
-            // Show button if user has scrolled up more than 100px
-            const isNearBottom = (viewport.scrollHeight - viewport.scrollTop) <= (viewport.clientHeight + 100);
+            const { scrollHeight, scrollTop, clientHeight } = viewport;
+            // Show button if user has scrolled up more than 100px from the bottom
+            const isNearBottom = (scrollHeight - (scrollTop + clientHeight)) < 100;
             setShowScrollButton(!isNearBottom);
         }
     }
@@ -288,7 +289,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         {showScrollButton && (
             <Button
                 size="icon"
-                className="absolute bottom-24 left-6 h-10 w-10 rounded-full shadow-2xl border-2 border-primary/40 bg-primary/20 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-200 z-50 group hover:bg-primary transition-all"
+                className="absolute bottom-24 left-6 h-10 w-10 rounded-full shadow-2xl border-2 border-primary/40 bg-primary/20 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-200 z-[100] group hover:bg-primary transition-all"
                 onClick={() => scrollToBottom()}
                 aria-label="Scroll to latest response"
             >
