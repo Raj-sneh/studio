@@ -89,8 +89,9 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     if (scrollAreaRef.current) {
         const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
         if (viewport) {
-            const isAtBottom = viewport.scrollHeight - viewport.scrollTop <= viewport.clientHeight + 100;
-            setShowScrollButton(!isAtBottom);
+            // Show button if user has scrolled up more than 100px
+            const isNearBottom = (viewport.scrollHeight - viewport.scrollTop) <= (viewport.clientHeight + 100);
+            setShowScrollButton(!isNearBottom);
         }
     }
   };
@@ -114,11 +115,20 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
   }, [messages, isLoading]);
 
   useEffect(() => {
-    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
-    if (viewport) {
-        viewport.addEventListener('scroll', handleScroll);
-        return () => viewport.removeEventListener('scroll', handleScroll);
-    }
+    const timer = setTimeout(() => {
+        const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+        if (viewport) {
+            viewport.addEventListener('scroll', handleScroll);
+        }
+    }, 500);
+    
+    return () => {
+        clearTimeout(timer);
+        const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+        if (viewport) {
+            viewport.removeEventListener('scroll', handleScroll);
+        }
+    };
   }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -278,11 +288,11 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         {showScrollButton && (
             <Button
                 size="icon"
-                variant="secondary"
-                className="absolute bottom-20 left-4 h-10 w-10 rounded-full shadow-lg border border-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-200 z-50"
+                className="absolute bottom-20 left-4 h-10 w-10 rounded-full shadow-2xl border border-primary/40 bg-primary/20 backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-200 z-50 group hover:bg-primary transition-all"
                 onClick={() => scrollToBottom()}
+                aria-label="Scroll to latest response"
             >
-                <ChevronDown className="h-5 w-5 text-primary" />
+                <ChevronDown className="h-6 w-6 text-primary group-hover:text-primary-foreground animate-bounce" />
             </Button>
         )}
 
