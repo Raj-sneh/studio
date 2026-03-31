@@ -202,5 +202,7 @@ async def verify_payment(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
+    import os
+    # Cloud Run MUST have 0.0.0.0 and the PORT variable
     port = int(os.environ.get("PORT", 8080))
     uvicorn.run(app, host="0.0.0.0", port=port)
