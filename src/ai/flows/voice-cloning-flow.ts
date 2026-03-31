@@ -117,19 +117,21 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Vocal
 
 /**
  * Polling logic to wait for the neural engine to finish warming up.
+ * Increased retries to 20 for more robust startup handling.
  */
 async function waitForBackend(baseUrl: string) {
   const healthUrl = `${baseUrl}/health`;
   
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 20; i++) {
     try {
       const res = await fetch(healthUrl, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
-        if (data.ready) return;
+        // If data.ready is true or we just get a 200 OK, the server is up
+        if (data.ready || res.status === 200) return;
       }
     } catch (e) {
-      // Server might not be up at all yet, continue polling
+      console.log("Waiting for neural engine to warm up...");
     }
     await new Promise(r => setTimeout(r, 2000));
   }
@@ -253,7 +255,7 @@ const speakWithCloneFlow = ai.defineFlow(
 
 /**
  * PRO PIPELINE: Separate -> Analyze -> Replace -> Mix
- * Strictly targets the NEURAL_ENGINE_URL for internal routing.
+ * Strictly targets the NEURAL_ENGINE_URL for internal routing with 20 retry polling.
  */
 const vocalReplacementFlow = ai.defineFlow(
     {
@@ -271,7 +273,7 @@ const vocalReplacementFlow = ai.defineFlow(
         // Ensure it uses the live URL from Firebase Console
         const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
 
-        // 0. WAIT FOR NEURAL WARM-UP
+        // 0. WAIT FOR NEURAL WARM-UP (20 RETRIES)
         await waitForBackend(baseUrl);
 
         // 1. SEPARATE (Vocals vs BGM)
