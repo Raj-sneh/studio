@@ -5,11 +5,12 @@ import * as Tone from 'tone';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Loader2, Play, StopCircle, Sparkles, Mic2, Upload, FileAudio, Check, BrainCircuit, Globe, Music, Link as LinkIcon, Lock, Zap
+  Loader2, Play, StopCircle, Sparkles, Mic2, Upload, FileAudio, BrainCircuit, Globe, Music, Link as LinkIcon, Lock, Zap
 } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Card } from '@/components/ui/card';
@@ -44,6 +45,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -81,12 +83,6 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
     }
   };
 
-  const joinWaitingList = () => {
-    const subject = encodeURIComponent("Sargam AI: Neural Vocal Replacement Waiting List");
-    const body = encodeURIComponent("Hi Sneh,\n\nI would like to apply for access to the Neural Vocal Replacement protocol.\n\nThank you!");
-    window.location.href = `mailto:hello@sargamskv.in?subject=${subject}&body=${body}`;
-  };
-
   const handleRun = async (data: z.infer<typeof formSchema>) => {
     if (!user) {
         toast({ title: "Sign in required", variant: "destructive" });
@@ -100,7 +96,6 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
     try {
       const cost = activeSubTab === 'replacement' ? SWAP_COST : TTS_COST;
 
-      // 1. SECURE CREDIT CHECK via Next.js Proxy
       const creditRes = await fetch('/api/credits/use', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -123,7 +118,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
           language: data.language,
           settings: { stability: 0.5, similarity_boost: 0.75 }
         });
-        setResult({ vocalUri: res.audioUri, title: "Simple" });
+        setResult({ vocalUri: res.audioUri, title: "Neural Transformation Complete" });
       } else {
         if (!data.text) {
           throw new Error("Please enter some text first.");
@@ -133,7 +128,7 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
             voiceId: data.voice,
             settings: { stability: 0.5, similarity_boost: 0.75 }
         });
-        setResult({ vocalUri: res.audioUri, title: "Simple" });
+        setResult({ vocalUri: res.audioUri, title: "TTS Generation Complete" });
       }
       toast({ title: "Done!", description: "Your audio is ready." });
       onGenerate();
@@ -199,15 +194,15 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                 <div className="pointer-events-auto bg-card border border-primary/40 shadow-2xl p-6 rounded-[2rem] text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
                                     <div className="space-y-1">
                                         <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-1">Restricted</p>
-                                        <h3 className="text-md font-bold font-headline text-foreground leading-tight">Voice Swap Locked</h3>
+                                        <h3 className="text-md font-bold font-headline text-foreground leading-tight">Elite Access Required</h3>
                                     </div>
                                     <Lock className="h-8 w-8 text-primary mx-auto opacity-80" />
                                     <div className="space-y-3">
                                         <p className="text-[11px] text-muted-foreground leading-snug px-2 italic">
-                                            This feature requires more credits. Join the list to get access.
+                                            This feature requires more credits. Upgrade now to get access.
                                         </p>
-                                        <Button type="button" onClick={joinWaitingList} className="w-full h-10 text-xs font-black rounded-xl shadow-xl shadow-primary/20">
-                                            Join Waiting List
+                                        <Button type="button" onClick={() => router.push('/pricing')} className="w-full h-10 text-xs font-black rounded-xl shadow-xl shadow-primary/20">
+                                            Upgrade Plan
                                         </Button>
                                     </div>
                                 </div>

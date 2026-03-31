@@ -12,13 +12,11 @@ import { getSampler } from '@/lib/samplers';
 import type { InstrumentSynth } from '@/lib/samplers';
 import NoteDisplay from '@/components/note-display';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
 
 const Piano = lazy(() => import('@/components/Piano'));
 
-const HOLD_NOTE_THRESHOLD_MS = 100;
 const MELODY_COST = 5;
 
 function InstrumentLoader() {
@@ -44,13 +42,10 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
     const [generatedMelody, setGeneratedMelody] = useState<GenerateNotesOutput | null>(null);
 
     const [currentNoteIndex, setCurrentNoteIndex] = useState<number | null>(null);
-    const [holdState, setHoldState] = useState<{ key: string; progress: number } | null>(null);
     const [highlightedKeys, setHighlightedKeys] = useState<string[]>([]);
     
     const samplerRef = useRef<InstrumentSynth | null>(null);
     const partRef = useRef<Tone.Part | null>(null);
-    const holdIntervalRef = useRef<any>(null);
-    const isHoldingRef = useRef(false);
 
     const sortedNotes = useMemo(() => {
         if (!generatedMelody || !generatedMelody.notes) return [];
@@ -99,7 +94,6 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
         setStatusText('Checking credits...');
 
         try {
-            // 1. SECURE CREDIT CHECK via Next.js Proxy
             const creditRes = await fetch('/api/credits/use', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -148,6 +142,72 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
         }
     }, [prompt, feedbackComment, toast, stopPlayback, onGenerate, user, firestore]);
 
+    const handlePlayDemo = useCallback(async () => {
+        if (!generatedMelody) return;
+        
+        stopPlayback();
+        setMode('demo');
+        setStatusText('Playing demo...');
+
+        try {
+            await Tone.start();
+            const sampler = await getSampler('piano');
+            samplerRef.current = sampler;
+            
+            Tone.Transport.bpm.value = generatedMelody.tempo;
+
+            const part = new Tone.Part((time, note) => {
+                sampler.triggerAttackRelease(note.key, note.duration, time);
+                Tone.Draw.schedule(() => {
+                    setHighlightedKeys([note.key]);
+                }, time);
+            }, sortedNotes).start(0);
+
+            partRef.current = part;
+
+            const lastNote = sortedNotes[sortedNotes.length - 1];
+            const duration = lastNote ? Tone.Time(lastNote.time).toSeconds() + Tone.Time(lastNote.duration).toSeconds() : 5;
+
+            Tone.Transport.scheduleOnce(() => {
+                stopPlayback();
+            }, duration + 0.5);
+
+            Tone.Transport.start();
+        } catch (err) {
+            console.error(err);
+            stopPlayback();
+        }
+    }, [generatedMelody, sortedNotes, stopPlayback]);
+
+    const handleStartLearn = useCallback(() => {
+        if (!generatedMelody) return;
+        stopPlayback();
+        setMode('learn');
+        setCurrentNoteIndex(0);
+        setHighlightedKeys([sortedNotes[0].key]);
+        setStatusText('Play the glowing keys...');
+        toast({ title: "Learning Mode", description: "Follow the highlighted keys on the piano." });
+    }, [generatedMelody, sortedNotes, stopPlayback, toast]);
+
+    const handleNoteDown = useCallback((note: string) => {
+        if (mode !== 'learn' || currentNoteIndex === null) return;
+        
+        const currentNote = sortedNotes[currentNoteIndex];
+        if (note === currentNote.key) {
+            const nextIndex = currentNoteIndex + 1;
+            if (nextIndex >= sortedNotes.length) {
+                setCurrentNoteIndex(null);
+                setMode('idle');
+                setHighlightedKeys([]);
+                setStatusText('Perfect! You finished the tune.');
+                toast({ title: "Lesson Complete!", description: "Great job matching the notes." });
+            } else {
+                setCurrentNoteIndex(nextIndex);
+                setHighlightedKeys([sortedNotes[nextIndex].key]);
+            }
+        }
+    }, [mode, currentNoteIndex, sortedNotes, toast]);
+
     const lessonNoteStringsForDisplay = useMemo(() => sortedNotes.map(n => n.key), [sortedNotes]);
 
     return (
@@ -164,14 +224,25 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     disabled={generationState === 'loading'}
-                    className="min-h-[80px] rounded-2xl bg-muted/20 border-primary/5 focus:border-primary/20"
+                    className="min-h-[80px] rounded-2xl bg-muted/20 border-primary/10 focus:border-primary/20"
                 />
                 
                 <div className="flex flex-col sm:flex-row gap-2">
                     <Button onClick={() => handleGeneration(false)} disabled={generationState === 'loading'} className="w-full sm:w-auto h-12 rounded-xl font-bold shadow-xl shadow-primary/10">
                         {generationState === 'loading' ? <Loader2 className="animate-spin mr-2" /> : <Music className="mr-2 h-4 w-4" />}
-                        Generate
+                        {generationState === 'generated' ? 'Generate New' : 'Generate'}
                     </Button>
+                    
+                    {generationState === 'generated' && (
+                        <>
+                            <Button onClick={handlePlayDemo} variant="secondary" className="w-full sm:w-auto h-12 rounded-xl font-bold">
+                                <Play className="mr-2 h-4 w-4" /> Play Demo
+                            </Button>
+                            <Button onClick={handleStartLearn} variant="outline" className="w-full sm:w-auto h-12 rounded-xl font-bold border-primary/20">
+                                <BookOpen className="mr-2 h-4 w-4" /> Start Learning
+                            </Button>
+                        </>
+                    )}
                 </div>
 
                 <div className="text-center p-4 mb-2 border rounded-xl h-16 flex items-center justify-center bg-muted/20 border-primary/5">
@@ -187,10 +258,10 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
                 <div className="flex-1 min-h-[300px] bg-card rounded-2xl flex items-center justify-center p-4 mt-4 border border-primary/5 shadow-inner">
                     <Suspense fallback={<InstrumentLoader />}>
                         <Piano 
-                            onNoteDown={() => {}}
+                            onNoteDown={handleNoteDown}
                             onNoteUp={() => {}}
                             highlightedKeys={highlightedKeys}
-                            interactiveMode={false}
+                            interactiveMode={mode === 'learn'}
                         />
                     </Suspense>
                 </div>

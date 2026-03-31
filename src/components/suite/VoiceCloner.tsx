@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +13,6 @@ import {
     Lock,
     Mic2,
     Loader2,
-    CheckCircle2,
     RefreshCw,
     Trash2,
     Zap,
@@ -46,6 +46,7 @@ export function VoiceCloner() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
 
   const [step, setStep] = useState<'setup' | 'training' | 'uploading'>('setup');
   const [selectedLanguage, setSelectedLanguage] = useState("English");
@@ -211,12 +212,6 @@ export function VoiceCloner() {
     }
   };
 
-  const joinWaitingList = () => {
-    const subject = encodeURIComponent("Sargam AI: Neural Waiting List Application");
-    const body = encodeURIComponent("Hi Sneh,\n\nI'm excited about Sargam AI! I'd love to join the exclusive neural waiting list for the Voice Cloning feature.\n\nThank you!");
-    window.location.href = `mailto:hello@sargamskv.in?subject=${subject}&body=${body}`;
-  };
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -236,10 +231,10 @@ export function VoiceCloner() {
                 <Lock className="h-8 w-8 text-primary mx-auto opacity-80" />
                 <div className="space-y-3">
                     <p className="text-[11px] text-muted-foreground leading-snug px-2 italic">
-                        Neural cloning requires 25 credits and a Pro plan. Join the list to apply.
+                        Neural cloning requires 25 credits and a Pro plan. Upgrade now to apply.
                     </p>
-                    <Button onClick={joinWaitingList} className="w-full h-10 text-xs font-black rounded-xl shadow-xl shadow-primary/20">
-                        Join Waiting List
+                    <Button onClick={() => router.push('/pricing')} className="w-full h-10 text-xs font-black rounded-xl shadow-xl shadow-primary/20">
+                        Upgrade Plan
                     </Button>
                 </div>
             </div>
