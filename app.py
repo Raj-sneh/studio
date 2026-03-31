@@ -19,6 +19,11 @@ if not os.path.exists(UPLOAD_FOLDER):
 def home():
     return "Sargam AI Voice Engine Running"
 
+@app.route('/health')
+def health():
+    """Health check for the neural engine."""
+    return jsonify({"ready": True, "status": "online"})
+
 @app.route('/separate', methods=['POST'])
 def separate():
     """Separates vocals from background music using HPSS."""

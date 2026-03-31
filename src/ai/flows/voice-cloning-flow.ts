@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * Professional Voice Cloning & Vocal Replacement flows using SKV AI (Gemini 2.5 Flash) + ElevenLabs.
@@ -124,8 +123,10 @@ async function waitForBackend(baseUrl: string) {
   for (let i = 0; i < 10; i++) {
     try {
       const res = await fetch(healthUrl, { cache: 'no-store' });
-      const data = await res.json();
-      if (data.ready) return;
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ready) return;
+      }
     } catch (e) {
       // Server might not be up at all yet, continue polling
     }
