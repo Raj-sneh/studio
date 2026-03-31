@@ -1,319 +1,158 @@
-'use server';
+from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+import firebase_admin
+from firebase_admin import credentials, firestore
+import hmac
+import hashlib
+import os
 
-/**
- * Professional Voice Cloning & Vocal Replacement flows
- */
+app = FastAPI()
 
-import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+# Enable CORS for frontend interaction
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-import {
-  VoiceCloningInputSchema,
-  VoiceCloningOutputSchema,
-  type VoiceCloningInput,
-  type VoiceCloningOutput,
-  CloneSpeechInputSchema,
-  CloneSpeechOutputSchema,
-  type CloneSpeechInput,
-  type CloneSpeechOutput,
-  VocalReplacementInputSchema,
-  VocalReplacementOutputSchema,
-  type VocalReplacementInput,
-  type VocalReplacementOutput,
-} from './voice-cloning-types';
+# Initialize Firebase Admin
+if not firebase_admin._apps:
+    cred = credentials.Certificate("google-services.json")
+    firebase_admin.initialize_app(cred)
 
-/* -------------------- CONSTANTS -------------------- */
+db = firestore.client()
 
-const DEFAULT_VOICE_MAP: Record<string, string> = {
-  clive: 'JBFqnCBsd6RMkjVDRZzb',
-  clara: '21m00Tcm4TlvDq8ikWAM',
-  james: 'ErXwUjzD4qc0CPByOn9G',
-  alex: 'Lcf7eeY9feMlh8o4NoOf',
-};
+@app.get("/")
+async def home():
+    return {"status": "Sargam Neural Engine Active", "engine": "FastAPI"}
 
-/* -------------------- HELPERS -------------------- */
+@app.get("/api/status")
+async def get_status():
+    """Standard health check for the neural engine."""
+    return {"status": "online", "engine": "FastAPI"}
 
-function getBaseUrl() {
-  return (
-    process.env.NEURAL_ENGINE_URL ||
-    process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL ||
-    'http://localhost:8080'
-  );
-}
+@app.get("/api/credits/status/{user_id}")
+async def get_credits_status(user_id: str):
+    """Retrieves or initializes user credits."""
+    try:
+        user_ref = db.collection('users').document(user_id)
+        doc = user_ref.get()
+        
+        if doc.exists:
+            return doc.to_dict()
+        else:
+            # Initialize new users with 5 starter credits
+            new_user = {
+                "id": user_id,
+                "credits": 5, 
+                "plan": "free",
+                "createdAt": firestore.SERVER_TIMESTAMP
+            }
+            user_ref.set(new_user)
+            return new_user
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-async function waitForBackend() {
-  const baseUrl = getBaseUrl();
+@app.post("/api/credits/use")
+async def use_credits(request: Request):
+    """Deducts credits for neural operations using a transaction."""
+    try:
+        data = await request.json()
+        user_id = data.get("user_id")
+        amount = data.get("amount", 0)
 
-  for (let i = 0; i < 30; i++) {
-    try {
-      const res = await fetch(`${baseUrl}/`, { cache: 'no-store' });
-      if (res.ok) return true;
-    } catch (_) {}
+        if not user_id:
+            raise HTTPException(status_code=400, detail="Missing user_id")
 
-    await new Promise((r) => setTimeout(r, 2000));
-  }
+        user_ref = db.collection('users').document(user_id)
+        
+        @firestore.transactional
+        def update_in_transaction(transaction, user_ref):
+            snapshot = user_ref.get(transaction=transaction)
+            if not snapshot.exists:
+                raise Exception("User not found")
+            
+            # Robust dictionary retrieval
+            user_data = snapshot.to_dict()
+            current_credits = user_data.get('credits', 0)
+            
+            if current_credits < amount:
+                raise Exception(f"Insufficient credits. Need {amount}, have {current_credits}.")
+            
+            transaction.update(user_ref, {
+                'credits': current_credits - amount
+            })
+            return current_credits - amount
 
-  throw new Error('Neural Engine not responding.');
-}
+        transaction = db.transaction()
+        new_balance = update_in_transaction(transaction, user_ref)
+        return {"success": True, "remaining_credits": new_balance}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-/* -------------------- PROMPTS -------------------- */
+@app.post("/api/redeem")
+async def redeem_coupon(request: Request):
+    """Redeems a one-time use coupon code."""
+    try:
+        data = await request.json()
+        user_id = data.get("userId")
+        code = data.get("code", "").strip().upper()
 
-const analyzeVoicePrompt = ai.definePrompt({
-  name: 'analyzeVoicePrompt',
-  model: 'googleai/gemini-2.5-flash',
-  input: { schema: z.object({ sampleDataUri: z.string() }) },
-  output: {
-    schema: z.object({
-      description: z.string(),
-      suggestedStability: z.number(),
-      suggestedSimilarity: z.number(),
-    }),
-  },
-  prompt: `Analyze this vocal sample and suggest settings. {{media url=sampleDataUri}}`,
-});
+        # 15 Randomized Neural Coupons
+        coupons = {
+            "SKV-PRO-1": 100, "SKV-PRO-2": 100, "SKV-PRO-3": 100,
+            "SKV-CREATOR-1": 50, "SKV-CREATOR-2": 50, "SKV-CREATOR-3": 50,
+            "NEURAL-X": 25, "NEURAL-Y": 25, "NEURAL-Z": 25,
+            "SARGAM-ELITE": 500, "STAGE-PASS": 10, "SKV-FREE-BIE": 5,
+            "TEST-COUPON": 999, "ALPHA-KEY": 100, "BETA-KEY": 100
+        }
 
-const enhancePerformancePrompt = ai.definePrompt({
-  name: 'enhancePerformancePrompt',
-  model: 'googleai/gemini-2.5-flash',
-  input: { schema: z.object({ text: z.string() }) },
-  output: { schema: z.object({ enhancedText: z.string() }) },
-  prompt: `Make this text sound natural for speech: {{text}}`,
-});
+        if code not in coupons:
+            raise HTTPException(status_code=404, detail="Invalid coupon code.")
 
-const singerDirectorPrompt = ai.definePrompt({
-  name: 'singerDirectorPrompt',
-  model: 'googleai/gemini-2.5-flash',
-  input: { schema: z.object({ vocalDataUri: z.string() }) },
-  output: {
-    schema: z.object({
-      suggestedStability: z.number(),
-      suggestedSimilarity: z.number(),
-      expressionLevel: z.string(),
-    }),
-  },
-  prompt: `Analyze vocals and suggest speech-to-speech settings.`,
-});
+        user_ref = db.collection('users').document(user_id)
+        doc = user_ref.get()
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail="User not found.")
 
-/* -------------------- EXPORT FUNCTIONS -------------------- */
+        user_data = doc.to_dict()
+        redeemed = user_data.get("redeemedCoupons", [])
 
-export async function cloneVoice(
-  input: VoiceCloningInput
-): Promise<VoiceCloningOutput> {
-  return voiceCloningFlow(input);
-}
+        if code in redeemed:
+            raise HTTPException(status_code=400, detail="Coupon already used.")
 
-export async function speakWithClone(
-  input: CloneSpeechInput
-): Promise<CloneSpeechOutput> {
-  return speakWithCloneFlow(input);
-}
+        # Update credits and mark as redeemed
+        credits_to_add = coupons[code]
+        user_ref.update({
+            "credits": user_data.get("credits", 0) + credits_to_add,
+            "redeemedCoupons": firestore.ArrayUnion([code])
+        })
 
-export async function replaceVocals(
-  input: VocalReplacementInput
-): Promise<VocalReplacementOutput> {
-  return vocalReplacementFlow(input);
-}
+        return {"success": True, "credits": credits_to_add}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-/* -------------------- FLOWS -------------------- */
+@app.post("/api/webhook/elevenlabs")
+async def elevenlabs_webhook(request: Request):
+    """Handles secure events from ElevenLabs."""
+    webhook_secret = os.environ.get("ELEVENLABS_WEBHOOK_SECRET", "placeholder_secret")
+    signature = request.headers.get("X-ElevenLabs-Signature")
+    body = await request.body()
 
-const voiceCloningFlow = ai.defineFlow(
-  {
-    name: 'voiceCloningFlow',
-    inputSchema: VoiceCloningInputSchema,
-    outputSchema: VoiceCloningOutputSchema,
-  },
-  async (input) => {
-    const apiKey = process.env.ELEVENLABS_API_KEY;
-    if (!apiKey) throw new Error('Missing ElevenLabs API key');
+    if not signature:
+        return JSONResponse(status_code=401, content={"error": "Missing signature"})
 
-    const analysisRes = await analyzeVoicePrompt({
-      sampleDataUri: input.samples[0],
-    });
+    mac = hmac.new(webhook_secret.encode(), msg=body, digestmod=hashlib.sha256)
+    expected_signature = mac.hexdigest()
 
-    if (!analysisRes.output) throw new Error('Voice analysis failed');
+    if not hmac.compare_digest(expected_signature, signature):
+        return JSONResponse(status_code=401, content={"error": "Invalid signature"})
 
-    const analysis = analysisRes.output;
-
-    const formData = new FormData();
-    formData.append('name', input.name);
-    formData.append('description', analysis.description);
-
-    input.samples.forEach((sample, i) => {
-      const buffer = Buffer.from(sample.split(',')[1], 'base64');
-      const blob = new Blob([buffer], { type: 'audio/wav' });
-      formData.append('files', blob, `sample_${i}.wav`);
-    });
-
-    const res = await fetch('https://api.elevenlabs.io/v1/voices/add', {
-      method: 'POST',
-      headers: { 'xi-api-key': apiKey },
-      body: formData,
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data?.detail?.message || 'Voice cloning failed');
-    }
-
-    return {
-      voiceId: data.voice_id,
-      description: analysis.description,
-      suggestedSettings: {
-        stability: analysis.suggestedStability,
-        similarity_boost: analysis.suggestedSimilarity,
-      },
-    };
-  }
-);
-
-const speakWithCloneFlow = ai.defineFlow(
-  {
-    name: 'speakWithCloneFlow',
-    inputSchema: CloneSpeechInputSchema,
-    outputSchema: CloneSpeechOutputSchema,
-  },
-  async (input) => {
-    const apiKey = process.env.ELEVENLABS_API_KEY;
-    if (!apiKey) throw new Error('Missing ElevenLabs API key');
-
-    const voiceId =
-      DEFAULT_VOICE_MAP[input.voiceId] || input.voiceId;
-
-    const enhanced = await enhancePerformancePrompt({
-      text: input.text,
-    });
-
-    const text = enhanced.output?.enhancedText || input.text;
-
-    const res = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-      {
-        method: 'POST',
-        headers: {
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text,
-          model_id: 'eleven_multilingual_v2',
-          voice_settings: {
-            stability: input.settings?.stability ?? 0.5,
-            similarity_boost:
-              input.settings?.similarity_boost ?? 0.75,
-          },
-        }),
-      }
-    );
-
-    if (!res.ok) throw new Error('TTS failed');
-
-    const buffer = Buffer.from(await res.arrayBuffer());
-
-    return {
-      audioUri: `data:audio/mpeg;base64,${buffer.toString('base64')}`,
-    };
-  }
-);
-
-const vocalReplacementFlow = ai.defineFlow(
-  {
-    name: 'vocalReplacementFlow',
-    inputSchema: VocalReplacementInputSchema,
-    outputSchema: VocalReplacementOutputSchema,
-  },
-  async (input) => {
-    const apiKey = process.env.ELEVENLABS_API_KEY;
-    if (!apiKey) throw new Error('Missing ElevenLabs API key');
-
-    const baseUrl = getBaseUrl();
-    await waitForBackend();
-
-    const inputBlob = new Blob([
-      Buffer.from(input.audioDataUri.split(',')[1], 'base64'),
-    ]);
-
-    const form = new FormData();
-    form.append('audio', inputBlob, 'input.wav');
-
-    const sepRes = await fetch(`${baseUrl}/separate`, {
-      method: 'POST',
-      body: form,
-    });
-
-    if (!sepRes.ok) throw new Error('Separation failed');
-
-    const { vocals, bgm } = await sepRes.json();
-
-    const analysisRes = await singerDirectorPrompt({
-      vocalDataUri: vocals,
-    });
-
-    if (!analysisRes.output) throw new Error('Analysis failed');
-
-    const analysis = analysisRes.output;
-
-    const stsForm = new FormData();
-    stsForm.append(
-      'audio',
-      new Blob([
-        Buffer.from(vocals.split(',')[1], 'base64'),
-      ]),
-      'vocals.wav'
-    );
-
-    stsForm.append('model_id', 'eleven_multilingual_sts_v2');
-
-    stsForm.append(
-      'voice_settings',
-      JSON.stringify({
-        stability:
-          input.settings?.stability ??
-          analysis.suggestedStability,
-        similarity_boost:
-          input.settings?.similarity_boost ??
-          analysis.suggestedSimilarity,
-      })
-    );
-
-    const voiceId =
-      DEFAULT_VOICE_MAP[input.voiceId] || input.voiceId;
-
-    const stsRes = await fetch(
-      `https://api.elevenlabs.io/v1/speech-to-speech/${voiceId}`,
-      {
-        method: 'POST',
-        headers: { 'xi-api-key': apiKey },
-        body: stsForm,
-      }
-    );
-
-    if (!stsRes.ok) throw new Error('Voice swap failed');
-
-    const aiVocals = new Blob([
-      Buffer.from(await stsRes.arrayBuffer()),
-    ]);
-
-    const mixForm = new FormData();
-    mixForm.append('vocals', aiVocals);
-    mixForm.append(
-      'bgm',
-      new Blob([
-        Buffer.from(bgm.split(',')[1], 'base64'),
-      ])
-    );
-
-    const mixRes = await fetch(`${baseUrl}/mix`, {
-      method: 'POST',
-      body: mixForm,
-    });
-
-    if (!mixRes.ok) throw new Error('Mixing failed');
-
-    const finalBuffer = Buffer.from(await mixRes.arrayBuffer());
-
-    return {
-      audioUri: `data:audio/mpeg;base64,${finalBuffer.toString('base64')}`,
-    };
-  }
-);
+    data = await request.json()
+    # Log the status for neural tracking
+    print(f"ElevenLabs Webhook received: {data.get('status', 'unknown')}")
+    
+    return {"status": "ok"}

@@ -40,13 +40,13 @@ function getBaseUrl() {
 
 /**
  * Checks if the Python Backend is awake before sending heavy tasks.
- * Retries up to 25 times with a 2-second delay (50 seconds total).
+ * Retries up to 30 times with a 2-second delay (60 seconds total).
  */
 async function waitForBackend() {
   const baseUrl = getBaseUrl();
   console.log("SKV AI: Checking Neural Engine status at:", baseUrl);
 
-  for (let i = 0; i < 25; i++) { 
+  for (let i = 0; i < 30; i++) { 
     try {
       const res = await fetch(`${baseUrl}/api/status`, { cache: 'no-store' });
       if (res.ok) {
@@ -54,7 +54,7 @@ async function waitForBackend() {
         return true;
       }
     } catch (e) {
-      console.log(`SKV AI: Waiting for backend... Attempt ${i+1}/25`);
+      console.log(`SKV AI: Waiting for backend wake up... Attempt ${i+1}/30`);
     }
     await new Promise(r => setTimeout(r, 2000));
   }
