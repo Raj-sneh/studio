@@ -114,24 +114,21 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Vocal
     return vocalReplacementFlow(input);
 }
 
+// Ensure it uses the live URL from Firebase Console
+const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
+
 /**
  * Robust polling logic to wait for the neural engine to finish warming up.
  */
-async function waitForBackend(baseUrl: string) {
-  // Use a full 20 retries (40 seconds) to ensure production backends have time to start
-  for (let i = 0; i < 20; i++) {
+async function waitForBackend() {
+  console.log("Checking Neural Engine at:", baseUrl); 
+  for (let i = 0; i < 25; i++) {
     try {
-      // Check the standardized status endpoint
-      const res = await fetch(`${baseUrl}/api/status`, { 
-        cache: 'no-store',
-        // Add a short internal timeout to the fetch itself
-        signal: AbortSignal.timeout(5000)
-      });
+      const res = await fetch(`${baseUrl}/api/status`);
       if (res.ok) return true;
     } catch (e) {
-      console.log(`Waiting for neural engine at ${baseUrl}... (Attempt ${i + 1}/20)`);
+      // It's okay to fail here, we are waiting for it to wake up
     }
-    // Wait 2 seconds between tries
     await new Promise(r => setTimeout(r, 2000));
   }
   throw new Error(`Neural Engine (Python) is not responding at ${baseUrl}. Please ensure the Python server is running.`);
@@ -268,11 +265,8 @@ const vocalReplacementFlow = ai.defineFlow(
 
         const actualVoiceId = DEFAULT_VOICE_MAP[voiceId] || voiceId;
         
-        // Ensure it uses the live URL from Firebase Console
-        const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
-
-        // 0. WAIT FOR NEURAL WARM-UP (20 RETRIES)
-        await waitForBackend(baseUrl);
+        // 0. WAIT FOR NEURAL WARM-UP (25 RETRIES)
+        await waitForBackend();
 
         // 1. SEPARATE (Vocals vs BGM)
         const separateFormData = new FormData();

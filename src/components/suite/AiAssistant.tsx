@@ -288,7 +288,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         {showScrollButton && (
             <Button
                 size="icon"
-                className="absolute bottom-24 left-1/2 -translate-x-1/2 h-12 w-12 rounded-full shadow-[0_0_20px_rgba(0,255,255,0.3)] border-2 border-primary bg-background/80 backdrop-blur-md animate-in fade-in zoom-in duration-200 z-[100] group hover:bg-primary transition-all"
+                className="absolute bottom-24 left-6 h-12 w-12 rounded-full shadow-[0_0_20px_rgba(0,255,255,0.3)] border-2 border-primary bg-background/80 backdrop-blur-md animate-in fade-in zoom-in duration-200 z-[100] group hover:bg-primary transition-all"
                 onClick={() => scrollToBottom()}
                 aria-label="Scroll to bottom"
             >
