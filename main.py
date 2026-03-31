@@ -108,7 +108,11 @@ async def use_credits(request: Request):
         def deduct_in_transaction(transaction, user_ref, amount):
             snapshot = user_ref.get(transaction=transaction)
             if not snapshot.exists: return {"error": "User not found."}
-            current_credits = snapshot.get('credits', 0)
+            
+            # Convert the document to a dictionary first, then use .get()
+            user_data = snapshot.to_dict()
+            current_credits = user_data.get('credits', 0)
+            
             if current_credits < amount: return {"error": f"Insufficient credits ({current_credits})."}
             transaction.update(user_ref, {'credits': firestore.Increment(-amount)})
             return {"success": True, "remaining": current_credits - amount}

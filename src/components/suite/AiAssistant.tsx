@@ -279,7 +279,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
             <Button
                 size="icon"
                 variant="secondary"
-                className="absolute bottom-24 left-4 h-10 w-10 rounded-full shadow-lg border border-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-200 z-50"
+                className="absolute bottom-20 left-4 h-10 w-10 rounded-full shadow-lg border border-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-200 z-50"
                 onClick={() => scrollToBottom()}
             >
                 <ChevronDown className="h-5 w-5 text-primary" />
