@@ -4,18 +4,20 @@ import { NextResponse } from 'next/server';
 /**
  * Proxy route for checking credit status via the Python backend.
  */
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
 
   if (!userId) {
     return NextResponse.json({ error: "Missing userId" }, { status: 400 });
   }
 
-  try {
-    // Use the live URL for production!
-    const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
+  // Look for the server-side variable first, then the public one as backup
+  const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
 
+  console.log("Server checking credits at:", baseUrl);
+
+  try {
     const response = await fetch(`${baseUrl}/api/credits/status/${userId}`, {
       cache: 'no-store'
     });
@@ -26,9 +28,9 @@ export async function GET(req: Request) {
     }
 
     const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(data);
   } catch (error: any) {
-    console.error("Proxy status error:", error);
-    return NextResponse.json({ error: `Status sync failed: ${error.message}` }, { status: 500 });
+    console.error("Credit check failed:", error);
+    return NextResponse.json({ error: "Failed to connect to engine" }, { status: 500 });
   }
 }
