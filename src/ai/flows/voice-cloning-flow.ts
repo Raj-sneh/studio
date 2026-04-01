@@ -16,20 +16,6 @@ import {
     type VocalReplacementOutput 
 } from './voice-cloning-types';
 
-const getBaseUrl = () => process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
-
-async function waitForBackend() {
-    const url = getBaseUrl().replace(/\/$/, "");
-    for (let i = 0; i < 25; i++) {
-        try {
-            const res = await fetch(`${url}/api/status`, { cache: 'no-store' });
-            if (res.ok) return true;
-        } catch (e) {}
-        await new Promise(r => setTimeout(r, 2000));
-    }
-    throw new Error("Neural Engine timeout. Try again.");
-}
-
 /**
  * Result wrapper for Server Actions to ensure consistent return types and error handling.
  */
@@ -77,9 +63,8 @@ export async function cloneVoice(input: VoiceCloningInput): Promise<ActionResult
 
         samples.forEach((uri, i) => {
             const mime = uri.split(';')[0].split(':')[1] || 'audio/mpeg';
-            const ext = mime.includes('webm') ? 'webm' : mime.includes('ogg') ? 'ogg' : 'wav';
             const buffer = Buffer.from(uri.split(',')[1], 'base64');
-            formData.append('files', new Blob([buffer], { type: mime }), `sample_${i}.${ext}`);
+            formData.append('files', new Blob([buffer], { type: mime }), `sample_${i}.wav`);
         });
 
         const res = await fetch('https://api.elevenlabs.io/v1/voices/add', {
@@ -98,7 +83,7 @@ export async function cloneVoice(input: VoiceCloningInput): Promise<ActionResult
                 description: finalDescription,
                 suggestedSettings: {
                     stability: analysis.suggestedStability,
-                    similarity_boost: analysis.suggestedSimilarity
+                    similarity_boost: analysis.similarity_boost
                 }
             }
         };
@@ -138,54 +123,47 @@ export async function speakWithClone(input: CloneSpeechInput): Promise<ActionRes
     }
 }
 
+/**
+ * Direct Voice Swap using ElevenLabs STS API.
+ * This bypasses the local Python separation/mixing logic to ensure reliability.
+ */
 export async function replaceVocals(input: VocalReplacementInput): Promise<ActionResult<VocalReplacementOutput>> {
     try {
         const { audioDataUri, voiceId } = input;
         const apiKey = process.env.ELEVENLABS_API_KEY;
-        const baseUrl = getBaseUrl().replace(/\/$/, "");
-        
-        await waitForBackend();
+        if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
-        // 1. SEPARATE
-        const sepForm = new FormData();
-        sepForm.append('audio', new Blob([Buffer.from(audioDataUri.split(',')[1], 'base64')], { type: 'audio/wav' }), 'in.wav');
+        const formData = new FormData();
+        const buffer = Buffer.from(audioDataUri.split(',')[1], 'base64');
+        const mime = audioDataUri.split(';')[0].split(':')[1] || 'audio/wav';
         
-        const sepRes = await fetch(`${baseUrl}/separate`, { method: 'POST', body: sepForm });
-        const sepData = await sepRes.json();
-        if (!sepRes.ok) throw new Error(sepData.error || "Neural separation failed.");
-        const { vocals, bgm } = sepData;
+        formData.append('audio', new Blob([buffer], { type: mime }), 'input.wav');
+        formData.append('model_id', 'eleven_multilingual_sts_v2');
+        formData.append('voice_settings', JSON.stringify({
+            stability: 0.4,
+            similarity_boost: 0.8,
+            style: 0.0,
+            use_speaker_boost: true
+        }));
 
-        // 2. TRANSFORM (STS)
-        const stsForm = new FormData();
-        stsForm.append('audio', new Blob([Buffer.from(vocals.split(',')[1], 'base64')], { type: 'audio/wav' }), 'v.wav');
-        stsForm.append('model_id', 'eleven_multilingual_sts_v2');
-        stsForm.append('voice_settings', JSON.stringify({ stability: 0.35, similarity_boost: 0.85 }));
-        
-        const stsRes = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${voiceId}`, {
-            method: 'POST', headers: { 'xi-api-key': apiKey! }, body: stsForm
+        const response = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${voiceId}`, {
+            method: 'POST',
+            headers: { 'xi-api-key': apiKey },
+            body: formData
         });
-        
-        if (!stsRes.ok) {
-            const stsErr = await stsRes.json().catch(() => ({}));
-            throw new Error(`Neural transformation failed: ${stsErr.detail?.message || stsRes.statusText}`);
-        }
-        
-        const aiVocalBlob = new Blob([Buffer.from(await stsRes.arrayBuffer())], { type: 'audio/mpeg' });
 
-        // 3. MIX
-        const mixForm = new FormData();
-        mixForm.append('vocals', aiVocalBlob, 'v.mp3');
-        mixForm.append('bgm', new Blob([Buffer.from(bgm.split(',')[1], 'base64')], { type: 'audio/wav' }), 'b.wav');
-        
-        const mixRes = await fetch(`${baseUrl}/mix`, { method: 'POST', body: mixForm });
-        if (!mixRes.ok) throw new Error("Audio mixing failed.");
-        const finalBuffer = Buffer.from(await mixRes.arrayBuffer());
-        
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(`ElevenLabs transformation failed: ${err.detail?.message || response.statusText}`);
+        }
+
+        const resBuffer = Buffer.from(await response.arrayBuffer());
         return { 
             success: true, 
-            data: { audioUri: `data:audio/mpeg;base64,${finalBuffer.toString('base64')}` } 
+            data: { audioUri: `data:audio/mpeg;base64,${resBuffer.toString('base64')}` } 
         };
     } catch (e: any) {
+        console.error("Replacement Error:", e);
         return { success: false, error: e.message || "Replacement failed." };
     }
 }

@@ -102,7 +102,6 @@ async def separate(request: Request):
             return JSONResponse(status_code=400, content={"error": "Invalid or empty audio file."})
 
         # Harmonic-Percussive Source Separation (HPSS)
-        # HPSS is memory intensive - clean up immediately
         y_harmonic, y_percussive = librosa.effects.hpss(y)
         
         def to_uri(data, rate):
