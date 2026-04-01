@@ -211,7 +211,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
             </div>
         </ScrollArea>
 
-        {/* Scroll Key (Arrow) - Positioned above the fixed typing bar */}
+        {/* Scroll Key (Arrow) - Positioned ABOVE the fixed typing bar */}
         {showScrollButton && (
             <Button
                 size="icon"
@@ -224,7 +224,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         )}
       </div>
 
-      {/* Fixed Typing Area - Never disappears */}
+      {/* Fixed Typing Area - Strictly at the bottom */}
       <div className="p-4 border-t bg-card/80 backdrop-blur-md shrink-0 z-50">
           {selectedImage && (
             <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted mb-4 shadow-inner">

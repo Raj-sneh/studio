@@ -49,6 +49,7 @@ async def health():
     return {"status": "Sargam Neural Engine Active", "ready": True, "engine": "FastAPI"}
 
 @app.post("/separate")
+@app.post("/api/separate")
 async def separate(request: Request):
     try:
         form = await request.form()
@@ -61,8 +62,8 @@ async def separate(request: Request):
             y, sr = sf.read(f)
         
         # Harmonic-Percussive Source Separation (HPSS)
-        # y_harmonic usually contains the melodic/vocal content
-        # y_percussive usually contains the rhythm/BGM content
+        # y_harmonic: Melodic/Vocal content
+        # y_percussive: Rhythm/BGM content
         y_harmonic, y_percussive = librosa.effects.hpss(y)
         
         def to_uri(data, rate):

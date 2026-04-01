@@ -101,7 +101,10 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
         body: JSON.stringify({ user_id: user.uid, amount: cost })
       });
 
-      if (!creditRes.ok) throw new Error("Insufficient credits.");
+      if (!creditRes.ok) {
+          const errData = await creditRes.json();
+          throw new Error(errData.error || "Insufficient credits.");
+      }
 
       if (activeSubTab === 'replacement') {
         if (!values.replacementAudio) throw new Error("Please upload audio.");
@@ -113,7 +116,8 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
           language: values.language,
           settings: { stability: 0.35, similarity_boost: 0.85 }
         });
-        setResult({ audioUri: res.audioUri, title: "Neural Swap Complete" });
+        if (!res.success) throw new Error(res.error);
+        setResult({ audioUri: res.data.audioUri, title: "Neural Swap Complete" });
       } else {
         if (!values.text) throw new Error("Please enter text.");
         setLoadingStatus("Synthesizing voice...");
@@ -123,7 +127,8 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
             voiceId: values.voice,
             settings: { stability: 0.5, similarity_boost: 0.75 }
         });
-        setResult({ audioUri: res.audioUri, title: "Synthesis Complete" });
+        if (!res.success) throw new Error(res.error);
+        setResult({ audioUri: res.data.audioUri, title: "Synthesis Complete" });
       }
       toast({ title: "Success!", description: "AI track generated successfully." });
       onGenerate();
@@ -170,7 +175,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                     </TabsContent>
                     
                     <TabsContent value="replacement" className="mt-0 relative overflow-hidden rounded-[2rem]">
-                        {!isPremium && !isProfileLoading && (
+                        {!isPremium && !isProfileLoading && profile && (
                           <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-background/60 backdrop-blur-md text-center p-6">
                                 <Lock className="h-10 w-10 text-primary mb-4" />
                                 <h3 className="text-lg font-bold">Premium Required</h3>
@@ -179,7 +184,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                           </div>
                         )}
 
-                        <div className={cn((!isPremium && !isProfileLoading) && "grayscale opacity-40 blur-sm")}>
+                        <div className={cn((!isPremium && !isProfileLoading && profile) && "grayscale opacity-40 blur-sm")}>
                           <FormField control={form.control} name="language" render={({ field }) => (
                               <FormItem>
                                   <FormLabel className="text-[10px] font-black uppercase flex items-center justify-between">

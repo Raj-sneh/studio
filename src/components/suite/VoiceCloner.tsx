@@ -192,10 +192,13 @@ export function VoiceCloner() {
           throw new Error(errorData.error || "Insufficient credits for neural training.");
       }
 
-      const result = await cloneVoice({
+      const res = await cloneVoice({
         name: voiceName,
         samples: samples.map(s => s.dataUri)
       });
+
+      if (!res.success) throw new Error(res.error);
+      const result = res.data!;
 
       if (firestore) {
         await addDoc(collection(firestore, 'users', user.uid, 'clonedVoices'), {
@@ -228,7 +231,7 @@ export function VoiceCloner() {
   return (
     <div className="max-w-4xl mx-auto py-8 space-y-12 relative min-h-[700px]">
       
-      {!isPremium && (
+      {!isPremium && profile && (
         <div className="absolute inset-0 z-50 flex flex-col items-center pointer-events-none pt-40">
             <div className="pointer-events-auto bg-card/40 border border-primary/40 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-xl p-6 rounded-[2rem] w-full max-w-[280px] text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
                 <div className="space-y-1">
@@ -248,7 +251,7 @@ export function VoiceCloner() {
         </div>
       )}
 
-      <div className={cn("space-y-16", !isPremium && "grayscale opacity-40 blur-sm pointer-events-none select-none")}>
+      <div className={cn("space-y-16", (!isPremium && profile) && "grayscale opacity-40 blur-sm pointer-events-none select-none")}>
         
         <Card className="border-primary/20 bg-card/20 rounded-[2rem] overflow-hidden">
           <CardHeader className="text-center pt-10">

@@ -53,16 +53,36 @@ const analyzeVoicePrompt = ai.definePrompt({
     Sample: {{media url=sampleDataUri}}`,
   });
 
-export async function cloneVoice(input: VoiceCloningInput): Promise<VoiceCloningOutput> {
-    return voiceCloningFlow(input);
+/**
+ * Result wrapper for Server Actions to prevent obfuscation in production.
+ */
+type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
+
+export async function cloneVoice(input: VoiceCloningInput): Promise<ActionResult<VoiceCloningOutput>> {
+    try {
+        const result = await voiceCloningFlow(input);
+        return { success: true, data: result };
+    } catch (e: any) {
+        return { success: false, error: e.message || "Cloning failed." };
+    }
 }
 
-export async function speakWithClone(input: CloneSpeechInput): Promise<CloneSpeechOutput> {
-    return speakWithCloneFlow(input);
+export async function speakWithClone(input: CloneSpeechInput): Promise<ActionResult<CloneSpeechOutput>> {
+    try {
+        const result = await speakWithCloneFlow(input);
+        return { success: true, data: result };
+    } catch (e: any) {
+        return { success: false, error: e.message || "Synthesis failed." };
+    }
 }
 
-export async function replaceVocals(input: VocalReplacementInput): Promise<VocalReplacementOutput> {
-    return vocalReplacementFlow(input);
+export async function replaceVocals(input: VocalReplacementInput): Promise<ActionResult<VocalReplacementOutput>> {
+    try {
+        const result = await vocalReplacementFlow(input);
+        return { success: true, data: result };
+    } catch (e: any) {
+        return { success: false, error: e.message || "Replacement failed." };
+    }
 }
 
 export const voiceCloningFlow = ai.defineFlow(
@@ -128,14 +148,22 @@ export const vocalReplacementFlow = ai.defineFlow(
         await waitForBackend();
 
         // 1. SEPARATE (Vocals vs BGM)
-        const sepForm = new FormData();
-        sepForm.append('audio', new Blob([Buffer.from(audioDataUri.split(',')[1], 'base64')], { type: 'audio/wav' }), 'in.wav');
+        const separateFormData = new FormData();
+        const base64Content = audioDataUri.split(',')[1];
+        const inputBlob = new Blob([Buffer.from(base64Content, 'base64')], { type: 'audio/wav' });
+        separateFormData.append('audio', inputBlob, 'input.wav');
+
+        let separateResponse = await fetch(`${baseUrl}/separate`, {
+            method: 'POST',
+            body: separateFormData
+        });
+
+        const separateData = await separateResponse.json().catch(() => ({}));
+        if (!separateResponse.ok) {
+            throw new Error(`Neural separation engine failed: ${separateData.error || separateResponse.statusText}`);
+        }
         
-        const sepRes = await fetch(`${baseUrl}/separate`, { method: 'POST', body: sepForm });
-        const sepData = await sepRes.json();
-        if (!sepRes.ok) throw new Error(`Separation failed: ${sepData.error || sepRes.statusText}`);
-        
-        const { vocals, bgm } = sepData;
+        const { vocals, bgm } = separateData;
 
         // 2. TRANSFORM (Speech-to-Speech)
         const stsForm = new FormData();
@@ -162,8 +190,11 @@ export const vocalReplacementFlow = ai.defineFlow(
         mixForm.append('bgm', new Blob([Buffer.from(bgm.split(',')[1], 'base64')], { type: 'audio/wav' }), 'b.wav');
         
         const mixRes = await fetch(`${baseUrl}/mix`, { method: 'POST', body: mixForm });
+        if (!mixRes.ok) {
+            const mixErr = await mixRes.json().catch(() => ({}));
+            throw new Error(`Audio mixing failed: ${mixErr.error || mixRes.statusText}`);
+        }
         const mixData = await mixRes.arrayBuffer();
-        if (!mixRes.ok) throw new Error("Audio mixing failed.");
         
         const finalBuffer = Buffer.from(mixData);
         
