@@ -22,7 +22,7 @@ async function waitForBackend() {
     const url = getBaseUrl().replace(/\/$/, "");
     for (let i = 0; i < 20; i++) {
         try {
-            const res = await fetch(`${url}/api/status`, { cache: 'no-store' });
+            const res = await fetch(`${url}/`, { cache: 'no-store' });
             if (res.ok) return true;
         } catch (e) {}
         await new Promise(r => setTimeout(r, 2000));
@@ -51,7 +51,7 @@ const analyzeVoicePrompt = ai.definePrompt({
     prompt: `Analyze this vocal sample. Describe the voice tone, age, gender, and clarity.
     Keep description under 400 chars. Suggest Stability and Similarity settings for ElevenLabs.
     Sample: {{media url=sampleDataUri}}`,
-});
+  });
 
 export async function cloneVoice(input: VoiceCloningInput): Promise<VoiceCloningOutput> {
     return voiceCloningFlow(input);
@@ -76,7 +76,6 @@ export const voiceCloningFlow = ai.defineFlow(
         const apiKey = process.env.ELEVENLABS_API_KEY;
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
-        // 1. Analyze sample to get the required description and settings
         const analysisResponse = await analyzeVoicePrompt({ sampleDataUri: samples[0] });
         const analysis = analysisResponse.output!;
 
@@ -88,7 +87,6 @@ export const voiceCloningFlow = ai.defineFlow(
         formData.append('name', name);
         formData.append('description', finalDescription);
 
-        // 2. Prepare files with correct MIME types for mobile/browser stability
         samples.forEach((uri, i) => {
             const mime = uri.split(';')[0].split(':')[1] || 'audio/mpeg';
             const ext = mime.includes('webm') ? 'webm' : mime.includes('ogg') ? 'ogg' : 'wav';
@@ -96,7 +94,6 @@ export const voiceCloningFlow = ai.defineFlow(
             formData.append('files', new Blob([buffer], { type: mime }), `sample_${i}.${ext}`);
         });
 
-        // 3. Talk to ElevenLabs
         const res = await fetch('https://api.elevenlabs.io/v1/voices/add', {
             method: 'POST', 
             headers: { 'xi-api-key': apiKey }, 
@@ -179,7 +176,7 @@ export const speakWithCloneFlow = ai.defineFlow(
             }),
         });
 
-        if (!response.ok) throw new Error("TTS stage failed.");
+        if (!response.ok) throw new Error("TTS failed.");
         const buffer = Buffer.from(await response.arrayBuffer());
         return { audioUri: `data:audio/mpeg;base64,${buffer.toString('base64')}` };
     }
