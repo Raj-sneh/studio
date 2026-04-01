@@ -165,6 +165,12 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     }
   };
 
+  const handleClearHistory = () => {
+    if (confirm("Clear chat history?")) {
+      setMessages([]);
+    }
+  };
+
   return (
     <Card className="h-full flex flex-col border-none shadow-none bg-transparent overflow-hidden">
       <CardHeader className="px-4 pb-4 shrink-0">
@@ -173,9 +179,6 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
               <Bot className="text-primary h-6 w-6" />
               SKV AI
           </CardTitle>
-          <Button variant="ghost" size="icon" onClick={() => { if(confirm("Clear chat history?")) setMessages([]); }} disabled={messages.length === 0 || isLoading} className="h-8 w-8 hover:text-destructive">
-            <Trash2 className="h-4 w-4" />
-          </Button>
         </div>
         <CardDescription>Ask me about music or how to use Sargam.</CardDescription>
       </CardHeader>
@@ -184,6 +187,15 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
       <div className="flex-1 relative overflow-hidden flex flex-col px-4">
         <ScrollArea className="h-full pr-4" ref={scrollAreaRef}>
             <div className="space-y-4 pb-4">
+                {messages.length === 0 && !isLoading && (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-8 mt-10">
+                    <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <Bot className="h-8 w-8 text-primary" />
+                    </div>
+                    <p className="text-sm font-medium">How can I help you today?</p>
+                    <p className="text-xs text-muted-foreground mt-1">Ask me about piano, vocal studio, or credits.</p>
+                  </div>
+                )}
                 {messages.map((message, index) => (
                     <div key={index} className={cn("flex items-start gap-3", message.role === 'user' ? 'justify-end' : '')}>
                         {message.role === 'model' && (
@@ -232,19 +244,32 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
               <Button variant="destructive" size="icon" className="absolute top-0 right-0 h-5 w-5 rounded-none rounded-bl-md" onClick={() => setSelectedImage(null)}><X className="h-3 w-3" /></Button>
             </div>
           )}
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="flex items-center gap-2">
-              <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
-              <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 border-primary/20 hover:bg-primary/10" onClick={() => fileInputRef.current?.click()} disabled={isLoading}><ImagePlus className="h-4 w-4" /></Button>
-              <FormField control={form.control} name="prompt" render={({ field }) => (
-                  <FormItem className="flex-grow">
-                    <FormControl><Input placeholder="Ask Sargam anything..." {...field} autoComplete="off" disabled={isLoading} className="bg-muted/50 border-none h-10 focus-visible:ring-1 focus-visible:ring-primary/30 rounded-xl" /></FormControl>
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" disabled={isLoading || !form.formState.isValid} size="icon" className="h-10 w-10 shrink-0 shadow-lg shadow-primary/20 rounded-xl"><Send className="h-4 w-4" /></Button>
-            </form>
-          </Form>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleClearHistory} 
+              disabled={messages.length === 0 || isLoading} 
+              className="h-10 w-10 shrink-0 border border-transparent hover:border-destructive/20 hover:text-destructive text-muted-foreground"
+              title="Clear History"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-1 items-center gap-2">
+                <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
+                <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 border-primary/20 hover:bg-primary/10" onClick={() => fileInputRef.current?.click()} disabled={isLoading}><ImagePlus className="h-4 w-4" /></Button>
+                <FormField control={form.control} name="prompt" render={({ field }) => (
+                    <FormItem className="flex-grow">
+                      <FormControl><Input placeholder="Ask Sargam anything..." {...field} autoComplete="off" disabled={isLoading} className="bg-muted/50 border-none h-10 focus-visible:ring-1 focus-visible:ring-primary/30 rounded-xl" /></FormControl>
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" disabled={isLoading || !form.formState.isValid} size="icon" className="h-10 w-10 shrink-0 shadow-lg shadow-primary/20 rounded-xl"><Send className="h-4 w-4" /></Button>
+              </form>
+            </Form>
+          </div>
       </div>
     </Card>
   );
