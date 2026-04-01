@@ -12,6 +12,7 @@ import noisereduce as nr
 from pydub import AudioSegment
 import razorpay
 import librosa
+import gc
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -48,7 +49,13 @@ def apply_studio_mastering(audio_bytes):
         # 3. Export to Bytes
         out_f = io.BytesIO()
         sf.write(out_f, mastered, sample_rate, format='wav')
-        return out_f.getvalue()
+        
+        # Memory Cleanup
+        result = out_f.getvalue()
+        del audio, reduced, mastered
+        gc.collect()
+        
+        return result
     except Exception as e:
         print(f"Mastering fallback: {e}")
         return audio_bytes
@@ -87,10 +94,16 @@ async def separate(request: Request):
             b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
             return f"data:audio/wav;base64,{b64}"
 
-        return {
+        result = {
             "vocals": to_uri(y_harmonic, sr),
             "bgm": to_uri(y_percussive, sr)
         }
+        
+        # Explicit Memory Release
+        del y, y_harmonic, y_percussive
+        gc.collect()
+        
+        return result
     except Exception as e:
         print(f"SEPARATION ERROR: {e}")
         return JSONResponse(status_code=500, content={"error": "Neural separation failed. Try a longer sample."})
@@ -115,7 +128,13 @@ async def mix_audio(request: Request):
         
         out_buf = io.BytesIO()
         combined.export(out_buf, format="mp3")
-        return Response(content=out_buf.getvalue(), media_type="audio/mpeg")
+        
+        # Final Cleanup
+        final_data = out_buf.getvalue()
+        del v_seg, b_seg, combined
+        gc.collect()
+        
+        return Response(content=final_data, media_type="audio/mpeg")
     except Exception as e:
         print(traceback.format_exc())
         return JSONResponse(status_code=500, content={"error": "Mixing failed"})
