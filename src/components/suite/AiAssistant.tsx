@@ -215,7 +215,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         {showScrollButton && (
             <Button
                 size="icon"
-                className="absolute bottom-20 left-6 h-10 w-10 rounded-full shadow-[0_0_20px_rgba(0,255,255,0.4)] border-2 border-primary bg-background/90 backdrop-blur-md z-[100] hover:bg-primary transition-all animate-bounce"
+                className="absolute bottom-24 left-6 h-10 w-10 rounded-full shadow-[0_0_20px_rgba(0,255,255,0.4)] border-2 border-primary bg-background/90 backdrop-blur-md z-[100] hover:bg-primary transition-all animate-bounce"
                 onClick={() => scrollToBottom()}
                 title="Scroll to latest message"
             >
