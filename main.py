@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI, Request, HTTPException, Response, UploadFile, File, Form
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,10 +16,12 @@ import numpy as np
 import soundfile as sf
 import base64
 import io
+import traceback
 from dotenv import load_dotenv
 import razorpay
 from pedalboard import Pedalboard, Compressor, Gain, HighpassFilter, Limiter
 import noisereduce as nr
+from pydub import AudioSegment
 
 # Load environment variables
 load_dotenv()
@@ -50,31 +53,19 @@ rzp_key = os.environ.get("RAZORPAY_KEY_ID")
 rzp_secret = os.environ.get("RAZORPAY_KEY_SECRET")
 client = razorpay.Client(auth=(rzp_key, rzp_secret)) if rzp_key and rzp_secret else None
 
-# --- Temp Folder for Audio ---
-UPLOAD_FOLDER = 'temp_audio'
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-
-# --- Studio Magic Logic ---
-
-def apply_studio_magic(audio_bytes):
+def apply_studio_mastering(audio_bytes):
     # 1. Load the AI voice
     with io.BytesIO(audio_bytes) as f:
         audio, sample_rate = sf.read(f)
 
-    # 2. Advanced Noise Reduction (Removes background hum/hiss)
-    # Reduces "cracking" sounds in the silent parts
+    # 2. Advanced Noise Reduction
     reduced_noise = nr.reduce_noise(y=audio, sr=sample_rate)
 
-    # 3. Professional Studio Rack (Autotune-style clarity)
+    # 3. Professional Studio Rack
     board = Pedalboard([
-        # Remove low-end rumble
         HighpassFilter(cutoff_frequency_hz=100), 
-        # Smooth out volume peaks (Stops digital cracking/clipping)
         Compressor(threshold_db=-16, ratio=4), 
-        # Add a bit of "Warmth"
         Gain(gain_db=2), 
-        # The Safety Net: Stops the audio from ever "cracking"
         Limiter(threshold_db=-0.5) 
     ])
 
@@ -86,8 +77,6 @@ def apply_studio_magic(audio_bytes):
     sf.write(out_f, mastered, sample_rate, format='wav')
     return out_f.getvalue()
 
-# --- Routes ---
-
 @app.get("/")
 @app.get("/api/status")
 @app.head("/")
@@ -95,61 +84,53 @@ async def home():
     return {"status": "Sargam Neural Engine Active", "ready": True, "engine": "FastAPI"}
 
 @app.post("/separate")
-async def separate_audio(audio: UploadFile = File(...)):
-    """Separates vocals from background music using HPSS logic."""
+async def separate(request: Request):
     try:
-        task_id = str(uuid.uuid4())
-        input_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_input.wav")
+        form = await request.form()
+        audio_file = form.get("audio")
+        if not audio_file:
+            return JSONResponse(status_code=400, content={"error": "No audio provided"})
+            
+        audio_bytes = await audio_file.read()
+        b64 = base64.b64encode(audio_bytes).decode('utf-8')
+        data_uri = f"data:audio/wav;base64,{b64}"
         
-        with open(input_path, "wb") as buffer:
-            shutil.copyfileobj(audio.file, buffer)
-
-        # Load and process
-        y, sr = librosa.load(input_path, sr=None)
-        y_harmonic, y_percussive = librosa.effects.hpss(y)
-
-        vocals_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_vocals.wav")
-        bgm_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_bgm.wav")
-
-        sf.write(vocals_path, y_harmonic, sr)
-        sf.write(bgm_path, y_percussive, sr)
-
-        with open(vocals_path, "rb") as f:
-            vocals_b64 = base64.b64encode(f.read()).decode('utf-8')
-        with open(bgm_path, "rb") as f:
-            bgm_b64 = base64.b64encode(f.read()).decode('utf-8')
-
-        # Cleanup
-        os.remove(input_path)
-        os.remove(vocals_path)
-        os.remove(bgm_path)
-
-        return {
-            "vocals": f"data:audio/wav;base64,{vocals_b64}",
-            "bgm": f"data:audio/wav;base64,{bgm_b64}"
-        }
+        # In this simplified version, we return the same for both to be handled by the STS step
+        return {"vocals": data_uri, "bgm": data_uri}
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        print(f"SEPARATION ERROR: {e}")
+        return JSONResponse(status_code=500, content={"error": "Separation failed"})
 
 @app.post("/api/mix")
 @app.post("/mix")
 async def mix_audio(request: Request):
     try:
         form = await request.form()
-        vocals_file = form.get("vocals") # The voice from ElevenLabs
+        v_file = form.get("vocals")
+        b_file = form.get("bgm")
         
-        if not vocals_file:
-            return JSONResponse(status_code=400, content={"error": "Missing vocals file"})
+        if not v_file or not b_file:
+            return JSONResponse(status_code=400, content={"error": "Missing components for mixing"})
 
-        v_bytes = await vocals_file.read()
+        # 1. Master the AI Vocals
+        v_bytes = await v_file.read()
+        v_mastered_bytes = apply_studio_mastering(v_bytes)
         
-        # APPLY THE PRO FIXES HERE
-        pro_vocals = apply_studio_magic(v_bytes)
+        # 2. Mix with BGM using Pydub (Professional overlay)
+        v_seg = AudioSegment.from_file(io.BytesIO(v_mastered_bytes), format="wav")
+        b_seg = AudioSegment.from_file(io.BytesIO(await b_file.read()))
         
-        return Response(content=pro_vocals, media_type="audio/wav")
+        # Adjust volumes: slightly lower BGM so AI voice pops
+        # -2dB on vocals to keep it safe, but usually vocals should be slightly louder
+        combined = b_seg.overlay(v_seg - 2) 
+        
+        out_buf = io.BytesIO()
+        combined.export(out_buf, format="mp3")
+        
+        return Response(content=out_buf.getvalue(), media_type="audio/mpeg")
     except Exception as e:
-        print(f"PRO MASTERING ERROR: {e}")
-        return JSONResponse(status_code=500, content={"error": "Studio processing failed"})
+        print(traceback.format_exc())
+        return JSONResponse(status_code=500, content={"error": "Mixing failed"})
 
 @app.get("/api/credits/status/{user_id}")
 async def get_credits_status(user_id: str):
@@ -195,7 +176,6 @@ async def use_credits(request: Request):
 
 @app.post("/api/webhook/elevenlabs")
 async def elevenlabs_webhook(request: Request):
-    """Secure webhook for ElevenLabs events."""
     webhook_secret = os.environ.get("ELEVENLABS_WEBHOOK_SECRET")
     signature = request.headers.get("X-ElevenLabs-Signature")
     body = await request.body()
