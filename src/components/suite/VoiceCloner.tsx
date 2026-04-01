@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -165,11 +166,13 @@ export function VoiceCloner() {
   };
 
   const handleRemoveSample = (index: number) => {
-    setSamples(prev => prev.filter((_, i) => i !== index));
-    if (samples.length <= 1 && step === 'uploading') {
-        if (trainingScript) setStep('training');
-        else setStep('setup');
-    }
+    setSamples(prev => {
+        const newSamples = prev.filter((_, i) => i !== index);
+        if (newSamples.length === 0) {
+            setStep(trainingScript ? 'training' : 'setup');
+        }
+        return newSamples;
+    });
   };
 
   const handleFinalizeClone = async () => {
@@ -231,7 +234,7 @@ export function VoiceCloner() {
   return (
     <div className="max-w-4xl mx-auto py-8 space-y-12 relative min-h-[700px]">
       
-      {!isPremium && profile && (
+      {!isPremium && !profile === undefined && profile && (
         <div className="absolute inset-0 z-50 flex flex-col items-center pointer-events-none pt-40">
             <div className="pointer-events-auto bg-card/40 border border-primary/40 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-xl p-6 rounded-[2rem] w-full max-w-[280px] text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
                 <div className="space-y-1">
@@ -251,7 +254,7 @@ export function VoiceCloner() {
         </div>
       )}
 
-      <div className={cn("space-y-16", (!isPremium && profile) && "grayscale opacity-40 blur-sm pointer-events-none select-none")}>
+      <div className={cn("space-y-16", (!isPremium && profile && !profile === undefined) && "grayscale opacity-40 blur-sm pointer-events-none select-none")}>
         
         <Card className="border-primary/20 bg-card/20 rounded-[2rem] overflow-hidden">
           <CardHeader className="text-center pt-10">

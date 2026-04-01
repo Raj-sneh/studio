@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -179,7 +180,6 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
               SKV AI
           </CardTitle>
           <div className="flex items-center gap-3">
-            {/* DELETE BUTTON: On the left of user profile avatar in text */}
             <button 
               onClick={handleClearHistory}
               disabled={messages.length === 0 || isLoading}

@@ -1,3 +1,4 @@
+
 'use server';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
@@ -31,6 +32,11 @@ async function waitForBackend() {
 }
 
 /**
+ * Result wrapper for Server Actions to prevent obfuscation in production.
+ */
+type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
+
+/**
  * Uses SKV AI to analyze a voice sample for neural cloning.
  */
 const analyzeVoicePrompt = ai.definePrompt({
@@ -52,11 +58,6 @@ const analyzeVoicePrompt = ai.definePrompt({
     Keep description under 400 chars. Suggest Stability and Similarity settings for ElevenLabs.
     Sample: {{media url=sampleDataUri}}`,
   });
-
-/**
- * Result wrapper for Server Actions to prevent obfuscation in production.
- */
-type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
 
 export async function cloneVoice(input: VoiceCloningInput): Promise<ActionResult<VoiceCloningOutput>> {
     try {
@@ -147,34 +148,23 @@ export const vocalReplacementFlow = ai.defineFlow(
         
         await waitForBackend();
 
-        // 1. SEPARATE (Vocals vs BGM)
-        const separateFormData = new FormData();
-        const base64Content = audioDataUri.split(',')[1];
-        const inputBlob = new Blob([Buffer.from(base64Content, 'base64')], { type: 'audio/wav' });
-        separateFormData.append('audio', inputBlob, 'input.wav');
-
-        let separateResponse = await fetch(`${baseUrl}/separate`, {
-            method: 'POST',
-            body: separateFormData
-        });
-
-        const separateData = await separateResponse.json().catch(() => ({}));
-        if (!separateResponse.ok) {
-            throw new Error(`Neural separation engine failed: ${separateData.error || separateResponse.statusText}`);
-        }
+        // 1. SEPARATE
+        const sepForm = new FormData();
+        sepForm.append('audio', new Blob([Buffer.from(audioDataUri.split(',')[1], 'base64')], { type: 'audio/wav' }), 'in.wav');
         
-        const { vocals, bgm } = separateData;
+        const sepRes = await fetch(`${baseUrl}/separate`, { method: 'POST', body: sepForm });
+        const sepData = await sepRes.json();
+        if (!sepRes.ok) throw new Error(sepData.error || "Neural separation failed.");
+        const { vocals, bgm } = sepData;
 
-        // 2. TRANSFORM (Speech-to-Speech)
+        // 2. TRANSFORM (STS)
         const stsForm = new FormData();
         stsForm.append('audio', new Blob([Buffer.from(vocals.split(',')[1], 'base64')], { type: 'audio/wav' }), 'v.wav');
         stsForm.append('model_id', 'eleven_multilingual_sts_v2');
         stsForm.append('voice_settings', JSON.stringify({ stability: 0.35, similarity_boost: 0.85 }));
         
         const stsRes = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${voiceId}`, {
-            method: 'POST', 
-            headers: { 'xi-api-key': apiKey! }, 
-            body: stsForm
+            method: 'POST', headers: { 'xi-api-key': apiKey! }, body: stsForm
         });
         
         if (!stsRes.ok) {
@@ -184,19 +174,14 @@ export const vocalReplacementFlow = ai.defineFlow(
         
         const aiVocalBlob = new Blob([Buffer.from(await stsRes.arrayBuffer())], { type: 'audio/mpeg' });
 
-        // 3. MIX (AI Vocals + Original BGM)
+        // 3. MIX
         const mixForm = new FormData();
         mixForm.append('vocals', aiVocalBlob, 'v.mp3');
         mixForm.append('bgm', new Blob([Buffer.from(bgm.split(',')[1], 'base64')], { type: 'audio/wav' }), 'b.wav');
         
         const mixRes = await fetch(`${baseUrl}/mix`, { method: 'POST', body: mixForm });
-        if (!mixRes.ok) {
-            const mixErr = await mixRes.json().catch(() => ({}));
-            throw new Error(`Audio mixing failed: ${mixErr.error || mixRes.statusText}`);
-        }
-        const mixData = await mixRes.arrayBuffer();
-        
-        const finalBuffer = Buffer.from(mixData);
+        if (!mixRes.ok) throw new Error("Audio mixing failed.");
+        const finalBuffer = Buffer.from(await mixRes.arrayBuffer());
         
         return { audioUri: `data:audio/mpeg;base64,${finalBuffer.toString('base64')}` };
     }

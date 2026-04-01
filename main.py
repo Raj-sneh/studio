@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,22 +27,31 @@ if not firebase_admin._apps:
 db = firestore.client()
 
 def apply_studio_mastering(audio_bytes):
-    with io.BytesIO(audio_bytes) as f:
-        audio, sample_rate = sf.read(f)
-    # 1. Noise Reduction
-    reduced = nr.reduce_noise(y=audio, sr=sample_rate)
-    # 2. Studio Rack
-    board = Pedalboard([
-        HighpassFilter(cutoff_frequency_hz=100),
-        Compressor(threshold_db=-16, ratio=4),
-        Gain(gain_db=2),
-        Limiter(threshold_db=-0.5)
-    ])
-    mastered = board(reduced, sample_rate)
-    # 3. Export to Bytes
-    out_f = io.BytesIO()
-    sf.write(out_f, mastered, sample_rate, format='wav')
-    return out_f.getvalue()
+    if not audio_bytes or len(audio_bytes) < 100:
+        return audio_bytes
+    try:
+        with io.BytesIO(audio_bytes) as f:
+            audio, sample_rate = sf.read(f)
+        
+        # 1. Noise Reduction
+        reduced = nr.reduce_noise(y=audio, sr=sample_rate)
+        
+        # 2. Studio Rack
+        board = Pedalboard([
+            HighpassFilter(cutoff_frequency_hz=100),
+            Compressor(threshold_db=-16, ratio=4),
+            Gain(gain_db=2),
+            Limiter(threshold_db=-0.5)
+        ])
+        mastered = board(reduced, sample_rate)
+        
+        # 3. Export to Bytes
+        out_f = io.BytesIO()
+        sf.write(out_f, mastered, sample_rate, format='wav')
+        return out_f.getvalue()
+    except Exception as e:
+        print(f"Mastering fallback: {e}")
+        return audio_bytes
 
 @app.get("/")
 @app.get("/api/status")
@@ -57,10 +67,17 @@ async def separate(request: Request):
         if not audio_file: return JSONResponse(status_code=400, content={"error": "No audio provided"})
         audio_bytes = await audio_file.read()
         
+        if len(audio_bytes) < 1000:
+            return JSONResponse(status_code=400, content={"error": "Audio file too short or corrupt"})
+
         # Load audio for separation
         with io.BytesIO(audio_bytes) as f:
             y, sr = sf.read(f)
         
+        # Safety: Check if signal actually has data
+        if len(y) < 512:
+            return JSONResponse(status_code=400, content={"error": "Audio signal too short for neural analysis"})
+
         # Harmonic-Percussive Source Separation (HPSS)
         # y_harmonic: Melodic/Vocal content
         # y_percussive: Rhythm/BGM content
@@ -78,7 +95,7 @@ async def separate(request: Request):
         }
     except Exception as e:
         print(f"SEPARATION ERROR: {e}")
-        return JSONResponse(status_code=500, content={"error": "Separation failed"})
+        return JSONResponse(status_code=500, content={"error": "Neural separation failed. Try a longer sample."})
 
 @app.post("/mix")
 @app.post("/api/mix")
