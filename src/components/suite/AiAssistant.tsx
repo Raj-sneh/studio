@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Bot, Loader2, Send, User, Trash2, ImagePlus, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -86,7 +86,6 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
         if (viewport) {
             const { scrollHeight, scrollTop, clientHeight } = viewport;
-            // Show button if user has scrolled up significantly from bottom
             const isNearBottom = (scrollHeight - (scrollTop + clientHeight)) < 150;
             setShowScrollButton(!isNearBottom);
         }
@@ -137,7 +136,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     setIsLoading(true);
 
     try {
-      const historyForApi = messages.slice(-CHAT_HISTORY_API_LIMIT).map(m => ({ role: m.role, content: m.content }));
+      const historyForApi = currentHistory.slice(-CHAT_HISTORY_API_LIMIT).map(m => ({ role: m.role, content: m.content }));
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -179,11 +178,26 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
               <Bot className="text-primary h-6 w-6" />
               SKV AI
           </CardTitle>
+          <div className="flex items-center gap-3">
+            {/* DELETE BUTTON: On the left of user profile avatar in text */}
+            <button 
+              onClick={handleClearHistory}
+              disabled={messages.length === 0 || isLoading}
+              className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors disabled:opacity-30"
+            >
+              Delete
+            </button>
+            <Avatar className="h-8 w-8 border border-primary/20 shrink-0">
+                <AvatarImage src={user?.photoURL || userProfile?.avatarUrl || undefined} className="object-cover" />
+                <AvatarFallback className="bg-secondary text-secondary-foreground text-[10px]">
+                    <User className="h-4 w-4" />
+                </AvatarFallback>
+            </Avatar>
+          </div>
         </div>
         <CardDescription>Ask me about music or how to use Sargam.</CardDescription>
       </CardHeader>
 
-      {/* Message List Area */}
       <div className="flex-1 relative overflow-hidden flex flex-col px-4">
         <ScrollArea className="h-full pr-4" ref={scrollAreaRef}>
             <div className="space-y-4 pb-4">
@@ -223,7 +237,6 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
             </div>
         </ScrollArea>
 
-        {/* Scroll Key (Arrow) - Positioned ABOVE the fixed typing bar */}
         {showScrollButton && (
             <Button
                 size="icon"
@@ -236,7 +249,6 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         )}
       </div>
 
-      {/* Fixed Typing Area - Strictly at the bottom */}
       <div className="p-4 border-t bg-card/80 backdrop-blur-md shrink-0 z-50">
           {selectedImage && (
             <div className="relative w-16 h-16 rounded-lg overflow-hidden border bg-muted mb-4 shadow-inner">
@@ -245,17 +257,6 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
             </div>
           )}
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleClearHistory} 
-              disabled={messages.length === 0 || isLoading} 
-              className="h-10 w-10 shrink-0 border border-transparent hover:border-destructive/20 hover:text-destructive text-muted-foreground"
-              title="Clear History"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-1 items-center gap-2">
                 <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
