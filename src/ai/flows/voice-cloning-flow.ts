@@ -83,7 +83,7 @@ export async function cloneVoice(input: VoiceCloningInput): Promise<ActionResult
                 description: finalDescription,
                 suggestedSettings: {
                     stability: analysis.suggestedStability,
-                    similarity_boost: analysis.similarity_boost
+                    similarity_boost: analysis.suggestedSimilarity
                 }
             }
         };
@@ -125,7 +125,7 @@ export async function speakWithClone(input: CloneSpeechInput): Promise<ActionRes
 
 /**
  * Direct Voice Swap using ElevenLabs STS API.
- * This bypasses the local Python separation/mixing logic to ensure reliability.
+ * This bypasses all local separation/mixing logic to ensure maximum speed and stability.
  */
 export async function replaceVocals(input: VocalReplacementInput): Promise<ActionResult<VocalReplacementOutput>> {
     try {

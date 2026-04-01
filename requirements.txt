@@ -2,14 +2,8 @@ fastapi
 uvicorn
 python-multipart
 firebase-admin
-razorpay
 flask-cors
 python-dotenv
 requests
-elevenlabs
 numpy
 soundfile
-pedalboard
-noisereduce
-pydub
-librosa
