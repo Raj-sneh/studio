@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, Request, HTTPException, Response, UploadFile, File, Form
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -95,7 +94,7 @@ async def separate(request: Request):
         b64 = base64.b64encode(audio_bytes).decode('utf-8')
         data_uri = f"data:audio/wav;base64,{b64}"
         
-        # In this simplified version, we return the same for both to be handled by the STS step
+        # Returns the same for both to be handled by the STS step
         return {"vocals": data_uri, "bgm": data_uri}
     except Exception as e:
         print(f"SEPARATION ERROR: {e}")
@@ -121,7 +120,6 @@ async def mix_audio(request: Request):
         b_seg = AudioSegment.from_file(io.BytesIO(await b_file.read()))
         
         # Adjust volumes: slightly lower BGM so AI voice pops
-        # -2dB on vocals to keep it safe, but usually vocals should be slightly louder
         combined = b_seg.overlay(v_seg - 2) 
         
         out_buf = io.BytesIO()
@@ -173,22 +171,6 @@ async def use_credits(request: Request):
         return {"success": True, "remaining": new_bal}
     except Exception as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
-
-@app.post("/api/webhook/elevenlabs")
-async def elevenlabs_webhook(request: Request):
-    webhook_secret = os.environ.get("ELEVENLABS_WEBHOOK_SECRET")
-    signature = request.headers.get("X-ElevenLabs-Signature")
-    body = await request.body()
-
-    if webhook_secret and signature:
-        mac = hmac.new(webhook_secret.encode(), msg=body, digestmod=hashlib.sha256)
-        expected = mac.hexdigest()
-        if not hmac.compare_digest(expected, signature):
-            return JSONResponse(status_code=401, content={"error": "Invalid signature"})
-
-    data = await request.json()
-    print(f"SKV AI: ElevenLabs Webhook: {data.get('status')}")
-    return {"status": "ok"}
 
 @app.post("/api/redeem")
 async def redeem_coupon(request: Request):

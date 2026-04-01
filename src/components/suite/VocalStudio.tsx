@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -122,14 +121,12 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
         if (!data.replacementAudio) throw new Error("Please upload an audio file first.");
         setLoadingStatus("Waking up Neural Engine...");
         const res = await replaceVocals({ audioDataUri: data.replacementAudio, voiceId: data.voice });
-        if (!res.success) throw new Error(res.error);
-        setResult({ audioUri: res.data!.audioUri, title: "Neural Swap Complete" });
+        setResult({ audioUri: res.audioUri, title: "Neural Swap Complete" });
       } else {
         if (!data.text) throw new Error("Please enter some text first.");
         setLoadingStatus("Synthesizing neural voice...");
         const res = await speakWithClone({ text: data.text, voiceId: data.voice });
-        if (!res.success) throw new Error(res.error);
-        setResult({ audioUri: res.data!.audioUri, title: "Synthesis Complete" });
+        setResult({ audioUri: res.audioUri, title: "Synthesis Complete" });
       }
 
       toast({ title: "Success!", description: "AI track generated successfully." });
