@@ -74,13 +74,11 @@ async def separate(request: Request):
         with io.BytesIO(audio_bytes) as f:
             y, sr = sf.read(f)
         
-        # Safety: Check if signal actually has data
-        if len(y) < 512:
-            return JSONResponse(status_code=400, content={"error": "Audio signal too short for neural analysis"})
+        # Safety: Check if signal actually has data to prevent librosa crash (Killed error)
+        if len(y) < 2048:
+            return JSONResponse(status_code=400, content={"error": "Audio signal too short for neural analysis. Please record for at least 1-2 seconds."})
 
         # Harmonic-Percussive Source Separation (HPSS)
-        # y_harmonic: Melodic/Vocal content
-        # y_percussive: Rhythm/BGM content
         y_harmonic, y_percussive = librosa.effects.hpss(y)
         
         def to_uri(data, rate):
