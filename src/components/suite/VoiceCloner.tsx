@@ -191,13 +191,10 @@ export function VoiceCloner() {
           throw new Error(errorData.error || "Insufficient credits for neural training.");
       }
 
-      const res = await cloneVoice({
+      const result = await cloneVoice({
         name: voiceName,
         samples: samples.map(s => s.dataUri)
       });
-
-      if (!res.success) throw new Error(res.error);
-      const result = res.data!;
 
       if (firestore) {
         await addDoc(collection(firestore, 'users', user.uid, 'clonedVoices'), {

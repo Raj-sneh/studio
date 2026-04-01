@@ -24,11 +24,6 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-# Razorpay Initialization
-rzp_key = os.environ.get("RAZORPAY_KEY_ID")
-rzp_secret = os.environ.get("RAZORPAY_KEY_SECRET")
-client = razorpay.Client(auth=(rzp_key, rzp_secret)) if rzp_key and rzp_secret else None
-
 def apply_studio_mastering(audio_bytes):
     with io.BytesIO(audio_bytes) as f:
         audio, sample_rate = sf.read(f)
