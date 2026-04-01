@@ -9,7 +9,6 @@ import numpy as np
 from pedalboard import Pedalboard, Compressor, Gain, HighpassFilter, Limiter
 import noisereduce as nr
 from pydub import AudioSegment
-import razorpay
 import librosa
 
 app = FastAPI()
@@ -67,7 +66,7 @@ async def health():
 @app.post("/separate")
 @app.post("/api/separate")
 async def separate(request: Request):
-    """Separates harmonic (vocal) from percussive (bgm) components."""
+    """Separates harmonic (vocal) from percussive (bgm) components with memory protection."""
     try:
         form = await request.form()
         audio_file = form.get("audio")
@@ -81,9 +80,9 @@ async def separate(request: Request):
         with io.BytesIO(audio_bytes) as f:
             y, sr = sf.read(f)
         
-        # Safety: Check if signal actually has data to prevent librosa crash (Killed error)
+        # Safety: Check if signal actually has data to prevent librosa OOM/Crash
         if len(y) < 2048:
-            return JSONResponse(status_code=400, content={"error": "Audio signal too short for neural analysis. Please record for at least 1-2 seconds."})
+            return JSONResponse(status_code=400, content={"error": "Audio signal too short for neural analysis. Please record for at least 2 seconds."})
 
         # Harmonic-Percussive Source Separation (HPSS)
         y_harmonic, y_percussive = librosa.effects.hpss(y)
@@ -106,12 +105,12 @@ async def separate(request: Request):
         return result
     except Exception as e:
         print(f"SEPARATION ERROR: {e}")
-        return JSONResponse(status_code=500, content={"error": "Neural separation failed. Try a longer sample."})
+        return JSONResponse(status_code=500, content={"error": f"Neural separation failed: {str(e)}"})
 
 @app.post("/mix")
 @app.post("/api/mix")
 async def mix_audio(request: Request):
-    """Mixes generated AI vocals with original background music."""
+    """Mixes generated AI vocals with original background music with memory protection."""
     try:
         form = await request.form()
         v_file, b_file = form.get("vocals"), form.get("bgm")
@@ -159,18 +158,21 @@ async def use_credits(request: Request):
         user_id, amount = data.get("user_id"), int(data.get("amount", 0))
         if not user_id: raise Exception("Missing user_id")
         user_ref = db.collection('users').document(user_id)
+        
         @firestore.transactional
         def update_in_transaction(transaction, user_ref):
             snapshot = user_ref.get(transaction=transaction)
             user_data = snapshot.to_dict()
-            if not user_data: raise Exception("User profile missing")
+            if not user_data: raise Exception("User profile missing from database.")
             current = user_data.get('credits', 0)
             if current < amount: raise Exception(f"Insufficient credits. Need {amount}, have {current}.")
             transaction.update(user_ref, {'credits': current - amount})
             return current - amount
+            
         new_bal = update_in_transaction(db.transaction(), user_ref)
         return {"success": True, "remaining": new_bal}
-    except Exception as e: return JSONResponse(status_code=400, content={"error": str(e)})
+    except Exception as e: 
+        return JSONResponse(status_code=400, content={"error": str(e)})
 
 @app.post("/api/redeem")
 async def redeem_coupon(request: Request):
@@ -201,4 +203,5 @@ async def redeem_coupon(request: Request):
 if __name__ == "__main__":
     import uvicorn
     # Standardized to Port 8080 to match Next.js proxy defaults
-    uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True)
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

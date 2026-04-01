@@ -101,10 +101,9 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
         body: JSON.stringify({ user_id: user.uid, amount: cost })
       });
 
+      const errData = await creditRes.json().catch(() => ({}));
       if (!creditRes.ok) {
-          const errData = await creditRes.json().catch(() => ({}));
-          // DISPLAY THE ACTUAL ERROR FROM SERVER INSTEAD OF FALLBACK
-          throw new Error(errData.error || "Insufficient credits for this operation.");
+          throw new Error(errData.error || "Neural Engine connection failed. Please try again.");
       }
 
       if (activeSubTab === 'replacement') {
