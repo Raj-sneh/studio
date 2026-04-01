@@ -24,16 +24,39 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-def apply_studio_mastering(audio_bytes):
-    """Applies noise reduction and studio dynamic processing with memory protection."""
+def get_safe_audio(audio_bytes):
+    """
+    Permanently fixes the 'length=2' and 'Killed' errors by 
+    validating and padding audio before neural processing.
+    """
     if not audio_bytes or len(audio_bytes) < 100:
-        return audio_bytes
+        return None, None
+    
     try:
         with io.BytesIO(audio_bytes) as f:
-            audio, sample_rate = sf.read(f)
+            # Load with fixed sample rate and float32 to save RAM
+            y, sr = librosa.load(f, sr=16000, dtype='float32')
         
+        # THE PERMANENT FIX: Ensure minimum samples for n_fft=2048
+        MIN_SAMPLES = 2048 
+        if len(y) < MIN_SAMPLES:
+            print(f"⚠️ Warning: Signal too short ({len(y)} samples). Padding with silence...")
+            y = librosa.util.fix_length(y, size=MIN_SAMPLES)
+            
+        return y, sr
+    except Exception as e:
+        print(f"❌ Audio Load Failed: {e}")
+        return None, None
+
+def apply_studio_mastering(audio_bytes):
+    """Applies noise reduction and studio dynamic processing with memory protection."""
+    y, sr = get_safe_audio(audio_bytes)
+    if y is None:
+        return audio_bytes
+        
+    try:
         # 1. Noise Reduction
-        reduced = nr.reduce_noise(y=audio, sr=sample_rate)
+        reduced = nr.reduce_noise(y=y, sr=sr)
         
         # 2. Studio Rack
         board = Pedalboard([
@@ -42,15 +65,15 @@ def apply_studio_mastering(audio_bytes):
             Gain(gain_db=2),
             Limiter(threshold_db=-0.5)
         ])
-        mastered = board(reduced, sample_rate)
+        mastered = board(reduced, sr)
         
         # 3. Export to Bytes
         out_f = io.BytesIO()
-        sf.write(out_f, mastered, sample_rate, format='wav')
+        sf.write(out_f, mastered, sr, format='wav')
         result = out_f.getvalue()
         
-        # EXPLICIT CLEANUP
-        del audio, reduced, mastered
+        # EXPLICIT MEMORY RELEASE
+        del y, reduced, mastered
         gc.collect()
         
         return result
@@ -73,18 +96,13 @@ async def separate(request: Request):
         if not audio_file: return JSONResponse(status_code=400, content={"error": "No audio provided"})
         audio_bytes = await audio_file.read()
         
-        if len(audio_bytes) < 1000:
-            return JSONResponse(status_code=400, content={"error": "Audio file too short or corrupt"})
-
-        # Load audio for separation
-        with io.BytesIO(audio_bytes) as f:
-            y, sr = sf.read(f)
-        
-        # Safety: Prevent librosa OOM/Crash on near-empty signals
-        if len(y) < 2048:
-            return JSONResponse(status_code=400, content={"error": "Audio signal too short for neural analysis. Please record for at least 2 seconds."})
+        # Load audio safely
+        y, sr = get_safe_audio(audio_bytes)
+        if y is None:
+            return JSONResponse(status_code=400, content={"error": "Invalid or empty audio file."})
 
         # Harmonic-Percussive Source Separation (HPSS)
+        # HPSS is memory intensive - clean up immediately
         y_harmonic, y_percussive = librosa.effects.hpss(y)
         
         def to_uri(data, rate):
@@ -98,7 +116,7 @@ async def separate(request: Request):
             "bgm": to_uri(y_percussive, sr)
         }
         
-        # EXPLICIT MEMORY RELEASE
+        # FINAL MEMORY PURGE
         del y, y_harmonic, y_percussive
         gc.collect()
         
