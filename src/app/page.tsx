@@ -1,10 +1,9 @@
-
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Music, BookOpen, Wand2, Sparkles } from 'lucide-react';
+import { Music, BookOpen, Wand2, Sparkles, Mic2, Disc } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { AnimatedMusicBackground } from '@/components/AnimatedMusicBackground';
 
@@ -26,7 +25,7 @@ export default function LandingPage() {
           Sargam AI: The <span className="text-primary">Voice Cloning AI</span> & Virtual Piano
         </h1>
         <p className="text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-          Sargam AI is the ultimate Voice Cloning AI and music workstation. Practice on a high-fidelity virtual piano, learn with interactive lessons, or clone voices with research-grade neural technology.
+          Sargam AI is the world's most intuitive Voice Cloning AI and music workstation. Practice on a high-fidelity virtual piano, learn with interactive AI tutors, or clone voices with research-grade neural technology.
         </p>
       </section>
 
@@ -37,7 +36,7 @@ export default function LandingPage() {
             <div className="relative h-64 w-full overflow-hidden">
               <Image 
                 src={magicImg?.imageUrl || ''} 
-                alt="Voice Cloning AI Studio" 
+                alt="Professional Voice Cloning AI Studio" 
                 fill 
                 className="object-cover transition-transform duration-700 group-hover:scale-110"
                 data-ai-hint="AI music"
@@ -57,7 +56,7 @@ export default function LandingPage() {
             <div className="relative h-64 w-full overflow-hidden">
               <Image 
                 src={practiceImg?.imageUrl || ''} 
-                alt="Practice Virtual Piano" 
+                alt="Virtual Piano Practice Room" 
                 fill 
                 className="object-cover transition-transform duration-700 group-hover:scale-110"
                 data-ai-hint="piano practice"
@@ -66,7 +65,7 @@ export default function LandingPage() {
               <Music className="absolute bottom-6 left-6 h-10 w-10 text-primary" />
             </div>
             <CardHeader className="p-8">
-              <CardTitle className="text-2xl mb-2">Virtual Piano Practice</CardTitle>
+              <CardTitle className="text-2xl mb-2">Virtual Piano Studio</CardTitle>
               <CardDescription className="text-base leading-relaxed">Play our high-quality Virtual Grand Piano. Record your sessions and refine your skills in a professional environment designed for musicians.</CardDescription>
             </CardHeader>
           </Card>
@@ -77,7 +76,7 @@ export default function LandingPage() {
             <div className="relative h-64 w-full overflow-hidden">
               <Image 
                 src={learnImg?.imageUrl || ''} 
-                alt="Music Learning AI" 
+                alt="AI Music Learning Tutor" 
                 fill 
                 className="object-cover transition-transform duration-700 group-hover:scale-110"
                 data-ai-hint="music lesson"
@@ -87,10 +86,38 @@ export default function LandingPage() {
             </div>
             <CardHeader className="p-8">
               <CardTitle className="text-2xl mb-2">AI Piano Tutor</CardTitle>
-              <CardDescription className="text-base leading-relaxed">Learn classics with real-time feedback from the Sargam AI tutor. Follow glowing keys and track your progress as you master the keys.</CardDescription>
+              <CardDescription className="text-base leading-relaxed">Learn classics with real-time feedback from the Sargam AI tutor. Follow glowing keys and track your progress as you master the music.</CardDescription>
             </CardHeader>
           </Card>
         </Link>
+      </section>
+
+      {/* Extended SEO Features */}
+      <section className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+        <div className="space-y-6">
+          <h2 className="text-4xl font-bold font-headline tracking-tight">Advanced <span className="text-primary">AI Music Generator</span> Tools</h2>
+          <p className="text-lg text-muted-foreground leading-relaxed">
+            Sargam AI isn't just a learning platform—it's a production suite. Use our <strong>BGM Composer</strong> to synchronize piano tracks with your vocals, or our <strong>Melody Maker</strong> to turn text descriptions into musical notation.
+          </p>
+          <ul className="space-y-4">
+            <li className="flex items-center gap-3">
+              <Disc className="h-5 w-5 text-primary" />
+              <span className="font-medium">Neural Background Music Generation</span>
+            </li>
+            <li className="flex items-center gap-3">
+              <Mic2 className="h-5 w-5 text-primary" />
+              <span className="font-medium">High-Fidelity AI Vocal Synthesis</span>
+            </li>
+            <li className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <span className="font-medium">AI-Powered Music Reinforcement</span>
+            </li>
+          </ul>
+        </div>
+        <div className="relative aspect-square bg-primary/5 rounded-[3rem] border border-primary/10 overflow-hidden flex items-center justify-center p-12">
+           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10" />
+           <Wand2 className="h-32 w-32 text-primary/40 animate-pulse" />
+        </div>
       </section>
 
       {/* Footer Info Section */}

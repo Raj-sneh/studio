@@ -128,8 +128,11 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
             if (firestore) {
                 const historyRef = collection(firestore, 'users', user.uid, 'generatedMelodies');
                 
-                // FIX: Flatten note keys to avoid "Nested arrays are not supported" Firestore error
-                const flatNotes = result.notes.map(n => Array.isArray(n.key) ? n.key.join('+') : n.key);
+                // FIX: Flatten keys to avoid "Nested arrays are not supported" error in Firestore
+                const flatNotes = result.notes.map(n => {
+                    const keyStr = Array.isArray(n.key) ? n.key.join('+') : n.key;
+                    return `${keyStr} (${n.duration})`;
+                });
 
                 addDocumentNonBlocking(historyRef, {
                     userId: user.uid,

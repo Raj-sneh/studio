@@ -115,7 +115,10 @@ export function BgmGenerator() {
 
             if (firestore) {
                 // FIX: Flatten keys to avoid "Nested arrays are not supported" error in Firestore
-                const flatNotes = output.notes.map(n => Array.isArray(n.key) ? n.key.join('+') : n.key);
+                const flatNotes = output.notes.map(n => {
+                    const keyString = Array.isArray(n.key) ? n.key.join('+') : n.key;
+                    return `${keyString} @ ${n.time}`;
+                });
                 
                 addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'generatedMelodies'), {
                     userId: user.uid,

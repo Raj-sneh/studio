@@ -33,6 +33,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
+        <title>Sargam AI | Voice Cloning AI & Virtual Piano Studio</title>
+        <meta name="description" content="Sargam AI is the ultimate Voice Cloning AI and AI Music Studio. Practice virtual piano, learn with AI tutors, and create high-fidelity neural voice clones." />
+        <meta name="keywords" content="Voice Cloning AI, AI Music Generator, Virtual Piano, AI Piano Tutor, Neural Voice Swap, Sargam AI, AI Vocal Studio, Music Learning AI" />
+        
         {/* Google AdSense Integration */}
         <Script
           async
