@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 
 /**
@@ -31,6 +30,11 @@ export async function GET(request: Request) {
     return NextResponse.json(data);
   } catch (error: any) {
     console.error("Credit check failed:", error);
-    return NextResponse.json({ error: "Failed to connect to engine" }, { status: 500 });
+    // Return a fallback so the app doesn't crash during sync
+    return NextResponse.json({ 
+      error: "Neural Engine Offline", 
+      credits: 0,
+      offline: true 
+    }, { status: 200 });
   }
 }

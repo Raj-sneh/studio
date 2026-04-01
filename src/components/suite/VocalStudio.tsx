@@ -102,7 +102,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
       });
 
       if (!creditRes.ok) {
-          const errData = await creditRes.json();
+          const errData = await creditRes.json().catch(() => ({}));
           throw new Error(errData.error || "Insufficient credits.");
       }
 
