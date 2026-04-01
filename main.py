@@ -25,7 +25,7 @@ if not firebase_admin._apps:
 db = firestore.client()
 
 def apply_studio_mastering(audio_bytes):
-    """Applies noise reduction and studio dynamic processing."""
+    """Applies noise reduction and studio dynamic processing with memory protection."""
     if not audio_bytes or len(audio_bytes) < 100:
         return audio_bytes
     try:
@@ -47,9 +47,9 @@ def apply_studio_mastering(audio_bytes):
         # 3. Export to Bytes
         out_f = io.BytesIO()
         sf.write(out_f, mastered, sample_rate, format='wav')
-        
-        # Memory Cleanup
         result = out_f.getvalue()
+        
+        # EXPLICIT CLEANUP
         del audio, reduced, mastered
         gc.collect()
         
@@ -80,7 +80,7 @@ async def separate(request: Request):
         with io.BytesIO(audio_bytes) as f:
             y, sr = sf.read(f)
         
-        # Safety: Check if signal actually has data to prevent librosa OOM/Crash
+        # Safety: Prevent librosa OOM/Crash on near-empty signals
         if len(y) < 2048:
             return JSONResponse(status_code=400, content={"error": "Audio signal too short for neural analysis. Please record for at least 2 seconds."})
 
@@ -98,7 +98,7 @@ async def separate(request: Request):
             "bgm": to_uri(y_percussive, sr)
         }
         
-        # Explicit Memory Release
+        # EXPLICIT MEMORY RELEASE
         del y, y_harmonic, y_percussive
         gc.collect()
         
@@ -128,9 +128,9 @@ async def mix_audio(request: Request):
         
         out_buf = io.BytesIO()
         combined.export(out_buf, format="mp3")
-        
-        # Final Cleanup
         final_data = out_buf.getvalue()
+        
+        # FINAL CLEANUP
         del v_seg, b_seg, combined
         gc.collect()
         
