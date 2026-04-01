@@ -26,6 +26,7 @@ if not firebase_admin._apps:
 db = firestore.client()
 
 def apply_studio_mastering(audio_bytes):
+    """Applies noise reduction and studio dynamic processing."""
     if not audio_bytes or len(audio_bytes) < 100:
         return audio_bytes
     try:
@@ -66,6 +67,7 @@ async def health():
 @app.post("/separate")
 @app.post("/api/separate")
 async def separate(request: Request):
+    """Separates harmonic (vocal) from percussive (bgm) components."""
     try:
         form = await request.form()
         audio_file = form.get("audio")
@@ -109,6 +111,7 @@ async def separate(request: Request):
 @app.post("/mix")
 @app.post("/api/mix")
 async def mix_audio(request: Request):
+    """Mixes generated AI vocals with original background music."""
     try:
         form = await request.form()
         v_file, b_file = form.get("vocals"), form.get("bgm")

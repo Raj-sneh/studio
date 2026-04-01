@@ -103,7 +103,8 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
 
       if (!creditRes.ok) {
           const errData = await creditRes.json().catch(() => ({}));
-          throw new Error(errData.error || "Insufficient credits.");
+          // DISPLAY THE ACTUAL ERROR FROM SERVER INSTEAD OF FALLBACK
+          throw new Error(errData.error || "Insufficient credits for this operation.");
       }
 
       if (activeSubTab === 'replacement') {
