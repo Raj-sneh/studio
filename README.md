@@ -1,4 +1,4 @@
-# Sargam AI
+# Sargam AI  
 
 Sargam is an interactive, AI-powered web application designed to make piano learning engaging and accessible. Built with a modern tech stack, it serves as a personal piano tutor, offering a suite of tools for practice, learning, and creative composition.
 
