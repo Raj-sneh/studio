@@ -38,8 +38,22 @@ export default function RootLayout({
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8391391679719370"
           crossOrigin="anonymous"
-          strategy="afterInteractive" // This optimizes loading performance
+          strategy="afterInteractive"
         />
+        {/* Google Analytics Integration */}
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-ZKVHFQNVN0"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-ZKVHFQNVN0');
+          `}
+        </Script>
       </head>
       <body className={cn("font-body antialiased min-h-screen bg-background", fontHeadline.variable, fontBody.variable)}>
         <Providers>
@@ -61,8 +75,7 @@ export default function RootLayout({
                   <p className="text-sm text-muted-foreground leading-relaxed italic">
                     Sargam AI is a labor of love, crafted to bridge the gap between artificial intelligence and musical soul. 
                     Every contribution fuels our research into more complex neural models and brings us one step closer 
-                    to the definitive mobile experience. If Sargam has touched your creative journey, 
-                    please consider supporting Sneh's vision.
+                    to the definitive mobile experience.
                   </p>
                 </div>
 

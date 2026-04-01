@@ -1,4 +1,8 @@
 'use server';
+/**
+ * @fileOverview Neural Voice Cloning and Transformation Flow.
+ * Handles voice sample analysis, cloning, and direct Speech-to-Speech swaps via ElevenLabs.
+ */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { 
@@ -16,13 +20,10 @@ import {
     type VocalReplacementOutput 
 } from './voice-cloning-types';
 
-/**
- * Result wrapper for Server Actions to ensure consistent return types and error handling.
- */
 export type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
 
 /**
- * Uses SKV AI to analyze a voice sample for neural cloning.
+ * Analyzes a vocal sample to suggest optimal ElevenLabs settings.
  */
 const analyzeVoicePrompt = ai.definePrompt({
     name: 'analyzeVoicePrompt',
@@ -44,12 +45,16 @@ const analyzeVoicePrompt = ai.definePrompt({
     Sample: {{media url=sampleDataUri}}`,
   });
 
+/**
+ * Adds a new voice to ElevenLabs library.
+ */
 export async function cloneVoice(input: VoiceCloningInput): Promise<ActionResult<VoiceCloningOutput>> {
     try {
         const { name, samples } = input;
         const apiKey = process.env.ELEVENLABS_API_KEY;
         if (!apiKey) throw new Error("ElevenLabs API key is missing.");
 
+        // Analyze the first sample for metadata
         const analysisResponse = await analyzeVoicePrompt({ sampleDataUri: samples[0] });
         const analysis = analysisResponse.output!;
 
@@ -62,9 +67,8 @@ export async function cloneVoice(input: VoiceCloningInput): Promise<ActionResult
         formData.append('description', finalDescription);
 
         samples.forEach((uri, i) => {
-            const mime = uri.split(';')[0].split(':')[1] || 'audio/mpeg';
             const buffer = Buffer.from(uri.split(',')[1], 'base64');
-            formData.append('files', new Blob([buffer], { type: mime }), `sample_${i}.wav`);
+            formData.append('files', new Blob([buffer], { type: 'audio/wav' }), `sample_${i}.wav`);
         });
 
         const res = await fetch('https://api.elevenlabs.io/v1/voices/add', {
@@ -92,6 +96,9 @@ export async function cloneVoice(input: VoiceCloningInput): Promise<ActionResult
     }
 }
 
+/**
+ * Synthesizes text using a cloned voice.
+ */
 export async function speakWithClone(input: CloneSpeechInput): Promise<ActionResult<CloneSpeechOutput>> {
     try {
         const { text, voiceId } = input;
@@ -124,8 +131,7 @@ export async function speakWithClone(input: CloneSpeechInput): Promise<ActionRes
 }
 
 /**
- * Direct Voice Swap using ElevenLabs STS API.
- * This bypasses local processing to ensure speed and stability.
+ * Performs a direct Voice Swap using ElevenLabs Speech-to-Speech (STS).
  */
 export async function replaceVocals(input: VocalReplacementInput): Promise<ActionResult<VocalReplacementOutput>> {
     try {
@@ -137,6 +143,7 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Actio
         const buffer = Buffer.from(audioDataUri.split(',')[1], 'base64');
         const mime = audioDataUri.split(';')[0].split(':')[1] || 'audio/wav';
         
+        // Append input audio
         formData.append('audio', new Blob([buffer], { type: mime }), 'input.wav');
         formData.append('model_id', 'eleven_multilingual_sts_v2');
         formData.append('voice_settings', JSON.stringify({
@@ -154,7 +161,7 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Actio
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
-            throw new Error(`ElevenLabs transformation failed: ${err.detail?.message || response.statusText}`);
+            throw new Error(`Neural Engine Transformation failed: ${err.detail?.message || response.statusText}`);
         }
 
         const resBuffer = Buffer.from(await response.arrayBuffer());
