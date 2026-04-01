@@ -190,7 +190,7 @@ export function VoiceCloner() {
       });
 
       if (!creditRes.ok) {
-          const errorData = await creditRes.json();
+          const errorData = await creditRes.json().catch(() => ({}));
           throw new Error(errorData.error || "Insufficient credits for neural training.");
       }
 

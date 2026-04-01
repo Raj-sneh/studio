@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bot, Loader2, Send, User, Trash2, ImagePlus, X, ChevronDown } from 'lucide-react';
+import { Bot, Loader2, Send, User, ImagePlus, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import type { UserProfile } from '@/types';
@@ -182,7 +182,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
             <button 
               onClick={handleClearHistory}
               disabled={messages.length === 0 || isLoading}
-              className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors disabled:opacity-30"
+              className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors disabled:opacity-30"
             >
               Delete
             </button>
