@@ -114,10 +114,13 @@ export function BgmGenerator() {
             toast({ title: "BGM Composed!", description: "AI has synchronized a piano track." });
 
             if (firestore) {
+                // FIX: Flatten keys to avoid "Nested arrays are not supported" error in Firestore
+                const flatNotes = output.notes.map(n => Array.isArray(n.key) ? n.key.join('+') : n.key);
+                
                 addDocumentNonBlocking(collection(firestore, 'users', user.uid, 'generatedMelodies'), {
                     userId: user.uid,
                     title: `BGM for ${vocalData.name}`,
-                    notes: output.notes.map(n => n.key),
+                    notes: flatNotes,
                     instrument: 'piano',
                     generationContext: 'BGM Composer',
                     createdAt: serverTimestamp(),

@@ -127,10 +127,14 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
 
             if (firestore) {
                 const historyRef = collection(firestore, 'users', user.uid, 'generatedMelodies');
+                
+                // FIX: Flatten note keys to avoid "Nested arrays are not supported" Firestore error
+                const flatNotes = result.notes.map(n => Array.isArray(n.key) ? n.key.join('+') : n.key);
+
                 addDocumentNonBlocking(historyRef, {
                     userId: user.uid,
                     title: prompt.substring(0, 30),
-                    notes: result.notes.map(n => n.key),
+                    notes: flatNotes,
                     instrument: 'Piano',
                     generationContext: 'Melody Maker',
                     createdAt: serverTimestamp(),
@@ -159,7 +163,7 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
             const part = new Tone.Part((time, note) => {
                 sampler.triggerAttackRelease(note.key, note.duration, time);
                 Tone.Draw.schedule(() => {
-                    setHighlightedKeys([note.key]);
+                    setHighlightedKeys(Array.isArray(note.key) ? note.key : [note.key]);
                 }, time);
             }, sortedNotes).start(0);
 
@@ -184,7 +188,8 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
         stopPlayback();
         setMode('learn');
         setCurrentNoteIndex(0);
-        setHighlightedKeys([sortedNotes[0].key]);
+        const firstNoteKey = Array.isArray(sortedNotes[0].key) ? sortedNotes[0].key : [sortedNotes[0].key];
+        setHighlightedKeys(firstNoteKey);
         setStatusText('Play the glowing keys...');
         toast({ title: "Learning Mode", description: "Follow the highlighted keys on the piano." });
     }, [generatedMelody, sortedNotes, stopPlayback, toast]);
@@ -193,7 +198,9 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
         if (mode !== 'learn' || currentNoteIndex === null) return;
         
         const currentNote = sortedNotes[currentNoteIndex];
-        if (note === currentNote.key) {
+        const currentKeys = Array.isArray(currentNote.key) ? currentNote.key : [currentNote.key];
+        
+        if (currentKeys.includes(note)) {
             const nextIndex = currentNoteIndex + 1;
             if (nextIndex >= sortedNotes.length) {
                 setCurrentNoteIndex(null);
@@ -203,12 +210,13 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
                 toast({ title: "Lesson Complete!", description: "Great job matching the notes." });
             } else {
                 setCurrentNoteIndex(nextIndex);
-                setHighlightedKeys([sortedNotes[nextIndex].key]);
+                const nextKeys = Array.isArray(sortedNotes[nextIndex].key) ? sortedNotes[nextIndex].key : [sortedNotes[nextIndex].key];
+                setHighlightedKeys(nextKeys);
             }
         }
     }, [mode, currentNoteIndex, sortedNotes, toast]);
 
-    const lessonNoteStringsForDisplay = useMemo(() => sortedNotes.map(n => n.key), [sortedNotes]);
+    const lessonNoteStringsForDisplay = useMemo(() => sortedNotes.map(n => Array.isArray(n.key) ? n.key.join('+') : n.key), [sortedNotes]);
 
     return (
         <Card className="border-primary/10 overflow-hidden">

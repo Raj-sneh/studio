@@ -125,7 +125,7 @@ export async function speakWithClone(input: CloneSpeechInput): Promise<ActionRes
 
 /**
  * Direct Voice Swap using ElevenLabs STS API.
- * This bypasses all local separation/mixing logic to ensure maximum speed and stability.
+ * This bypasses local processing to ensure speed and stability.
  */
 export async function replaceVocals(input: VocalReplacementInput): Promise<ActionResult<VocalReplacementOutput>> {
     try {

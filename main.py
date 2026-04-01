@@ -68,6 +68,10 @@ async def use_credits(request: Request):
             return current - amount
             
         new_bal = update_in_transaction(db.transaction(), user_ref)
+        
+        # Aggressive GC to prevent "Killed" crashes
+        gc.collect()
+        
         return {"success": True, "remaining": new_bal}
     except Exception as e: 
         return JSONResponse(status_code=400, content={"error": str(e)})
