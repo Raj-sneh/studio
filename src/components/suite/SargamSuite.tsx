@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AIComposer } from '@/components/suite/AIComposer';
 import { VocalStudio } from '@/components/suite/VocalStudio';
 import { VoiceCloner } from '@/components/suite/VoiceCloner';
-import { Music, Mic, UserRoundPlus, AlertCircle, LogIn } from 'lucide-react';
+import { BgmGenerator } from '@/components/suite/BgmGenerator';
+import { Music, Mic, UserRoundPlus, AlertCircle, LogIn, Disc } from 'lucide-react';
 import { useUser } from '@/firebase';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
  */
 const TABS = [
     { value: 'composer', label: 'Melody Maker', icon: Music },
+    { value: 'bgm', label: 'BGM Composer', icon: Disc },
     { value: 'singer', label: 'Vocal Studio', icon: Mic },
     { value: 'cloner', label: 'Voice Cloner', icon: UserRoundPlus },
 ];
@@ -50,7 +51,7 @@ export function SargamSuite() {
                 <div className="text-center max-w-2xl mx-auto space-y-4">
                     <h1 className="font-headline text-4xl font-bold tracking-tight text-foreground">AI Creative Studio</h1>
                     <p className="text-muted-foreground">
-                        Create unique piano melodies, generate vocal tracks, or clone voices with our AI-powered tools.
+                        Create unique piano melodies, generate synchronized background tracks, or clone voices.
                     </p>
                 </div>
 
@@ -76,7 +77,7 @@ export function SargamSuite() {
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-4xl mx-auto">
                     <div className="flex justify-center mb-8">
-                        <TabsList className="grid w-full grid-cols-3 max-w-lg h-auto p-1 bg-muted/50 border border-border/50 rounded-2xl">
+                        <TabsList className="grid w-full grid-cols-4 max-w-2xl h-auto p-1 bg-muted/50 border border-border/50 rounded-2xl">
                             {TABS.map(tab => (
                                 <TabsTrigger 
                                     key={tab.value} 
@@ -84,7 +85,8 @@ export function SargamSuite() {
                                     className="gap-2 py-3 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all rounded-xl"
                                 >
                                     <tab.icon className="h-4 w-4" />
-                                    {tab.label}
+                                    <span className="hidden sm:inline">{tab.label}</span>
+                                    <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
                                 </TabsTrigger>
                             ))}
                         </TabsList>
@@ -98,6 +100,9 @@ export function SargamSuite() {
                                 autoplay={autoplay}
                                 onGenerate={() => {}}
                             />
+                        )}
+                        {activeTab === 'bgm' && (
+                            <BgmGenerator />
                         )}
                         {activeTab === 'singer' && (
                             <VocalStudio 
