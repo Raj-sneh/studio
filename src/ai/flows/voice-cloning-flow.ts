@@ -20,9 +20,9 @@ const getBaseUrl = () => process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLI
 
 async function waitForBackend() {
     const url = getBaseUrl().replace(/\/$/, "");
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 25; i++) {
         try {
-            const res = await fetch(`${url}/`, { cache: 'no-store' });
+            const res = await fetch(`${url}/api/status`, { cache: 'no-store' });
             if (res.ok) return true;
         } catch (e) {}
         await new Promise(r => setTimeout(r, 2000));
@@ -127,29 +127,45 @@ export const vocalReplacementFlow = ai.defineFlow(
         
         await waitForBackend();
 
+        // 1. SEPARATE (Vocals vs BGM)
         const sepForm = new FormData();
         sepForm.append('audio', new Blob([Buffer.from(audioDataUri.split(',')[1], 'base64')], { type: 'audio/wav' }), 'in.wav');
         
         const sepRes = await fetch(`${baseUrl}/separate`, { method: 'POST', body: sepForm });
-        const { vocals, bgm } = await sepRes.json();
+        const sepData = await sepRes.json();
+        if (!sepRes.ok) throw new Error(`Separation failed: ${sepData.error || sepRes.statusText}`);
+        
+        const { vocals, bgm } = sepData;
 
+        // 2. TRANSFORM (Speech-to-Speech)
         const stsForm = new FormData();
         stsForm.append('audio', new Blob([Buffer.from(vocals.split(',')[1], 'base64')], { type: 'audio/wav' }), 'v.wav');
         stsForm.append('model_id', 'eleven_multilingual_sts_v2');
         stsForm.append('voice_settings', JSON.stringify({ stability: 0.35, similarity_boost: 0.85 }));
         
         const stsRes = await fetch(`https://api.elevenlabs.io/v1/speech-to-speech/${voiceId}`, {
-            method: 'POST', headers: { 'xi-api-key': apiKey! }, body: stsForm
+            method: 'POST', 
+            headers: { 'xi-api-key': apiKey! }, 
+            body: stsForm
         });
+        
+        if (!stsRes.ok) {
+            const stsErr = await stsRes.json().catch(() => ({}));
+            throw new Error(`Neural transformation failed: ${stsErr.detail?.message || stsRes.statusText}`);
+        }
         
         const aiVocalBlob = new Blob([Buffer.from(await stsRes.arrayBuffer())], { type: 'audio/mpeg' });
 
+        // 3. MIX (AI Vocals + Original BGM)
         const mixForm = new FormData();
         mixForm.append('vocals', aiVocalBlob, 'v.mp3');
         mixForm.append('bgm', new Blob([Buffer.from(bgm.split(',')[1], 'base64')], { type: 'audio/wav' }), 'b.wav');
         
         const mixRes = await fetch(`${baseUrl}/mix`, { method: 'POST', body: mixForm });
-        const finalBuffer = Buffer.from(await mixRes.arrayBuffer());
+        const mixData = await mixRes.arrayBuffer();
+        if (!mixRes.ok) throw new Error("Audio mixing failed.");
+        
+        const finalBuffer = Buffer.from(mixData);
         
         return { audioUri: `data:audio/mpeg;base64,${finalBuffer.toString('base64')}` };
     }
@@ -176,7 +192,11 @@ export const speakWithCloneFlow = ai.defineFlow(
             }),
         });
 
-        if (!response.ok) throw new Error("TTS failed.");
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(`Synthesis failed: ${err.detail?.message || response.statusText}`);
+        }
+        
         const buffer = Buffer.from(await response.arrayBuffer());
         return { audioUri: `data:audio/mpeg;base64,${buffer.toString('base64')}` };
     }

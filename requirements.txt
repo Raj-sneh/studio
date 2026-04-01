@@ -12,3 +12,4 @@ soundfile
 pedalboard
 noisereduce
 pydub
+librosa

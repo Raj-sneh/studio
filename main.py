@@ -10,6 +10,7 @@ from pedalboard import Pedalboard, Compressor, Gain, HighpassFilter, Limiter
 import noisereduce as nr
 from pydub import AudioSegment
 import razorpay
+import librosa
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -54,11 +55,29 @@ async def separate(request: Request):
         audio_file = form.get("audio")
         if not audio_file: return JSONResponse(status_code=400, content={"error": "No audio provided"})
         audio_bytes = await audio_file.read()
-        b64 = base64.b64encode(audio_bytes).decode('utf-8')
-        data_uri = f"data:audio/wav;base64,{b64}"
-        # Simplified separation for STS logic
-        return {"vocals": data_uri, "bgm": data_uri}
-    except: return JSONResponse(status_code=500, content={"error": "Separation failed"})
+        
+        # Load audio for separation
+        with io.BytesIO(audio_bytes) as f:
+            y, sr = sf.read(f)
+        
+        # Harmonic-Percussive Source Separation (HPSS)
+        # y_harmonic usually contains the melodic/vocal content
+        # y_percussive usually contains the rhythm/BGM content
+        y_harmonic, y_percussive = librosa.effects.hpss(y)
+        
+        def to_uri(data, rate):
+            buf = io.BytesIO()
+            sf.write(buf, data, rate, format='wav')
+            b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+            return f"data:audio/wav;base64,{b64}"
+
+        return {
+            "vocals": to_uri(y_harmonic, sr),
+            "bgm": to_uri(y_percussive, sr)
+        }
+    except Exception as e:
+        print(f"SEPARATION ERROR: {e}")
+        return JSONResponse(status_code=500, content={"error": "Separation failed"})
 
 @app.post("/mix")
 @app.post("/api/mix")
@@ -75,7 +94,7 @@ async def mix_audio(request: Request):
         v_seg = AudioSegment.from_file(io.BytesIO(v_mastered_bytes), format="wav")
         b_seg = AudioSegment.from_file(io.BytesIO(await b_file.read()))
         
-        # Overlay with slight BGM reduction (-2dB)
+        # Overlay with slight BGM reduction (-2dB) to let vocals shine
         combined = b_seg.overlay(v_seg - 2) 
         
         out_buf = io.BytesIO()
