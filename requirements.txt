@@ -13,6 +13,11 @@ python-multipart
 requests
 pyngrok
 razorpay
+pedalboard
+noisereduce
+pydub
+soundfile
+
 
 
 

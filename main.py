@@ -14,15 +14,18 @@ import librosa
 import numpy as np
 import soundfile as sf
 import base64
+import io
 from dotenv import load_dotenv
 import razorpay
+from pedalboard import Pedalboard, Compressor, Gain, HighpassFilter, Limiter
+import noisereduce as nr
 
 # Load environment variables
 load_dotenv()
 
 app = FastAPI()
 
-# Enable CORS for Next.js (sargamskv.in)
+# Enable CORS for Next.js
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -52,13 +55,44 @@ UPLOAD_FOLDER = 'temp_audio'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
+# --- Studio Magic Logic ---
+
+def apply_studio_magic(audio_bytes):
+    # 1. Load the AI voice
+    with io.BytesIO(audio_bytes) as f:
+        audio, sample_rate = sf.read(f)
+
+    # 2. Advanced Noise Reduction (Removes background hum/hiss)
+    # Reduces "cracking" sounds in the silent parts
+    reduced_noise = nr.reduce_noise(y=audio, sr=sample_rate)
+
+    # 3. Professional Studio Rack (Autotune-style clarity)
+    board = Pedalboard([
+        # Remove low-end rumble
+        HighpassFilter(cutoff_frequency_hz=100), 
+        # Smooth out volume peaks (Stops digital cracking/clipping)
+        Compressor(threshold_db=-16, ratio=4), 
+        # Add a bit of "Warmth"
+        Gain(gain_db=2), 
+        # The Safety Net: Stops the audio from ever "cracking"
+        Limiter(threshold_db=-0.5) 
+    ])
+
+    # 4. Process the audio
+    mastered = board(reduced_noise, sample_rate)
+
+    # 5. Export back to bytes
+    out_f = io.BytesIO()
+    sf.write(out_f, mastered, sample_rate, format='wav')
+    return out_f.getvalue()
+
 # --- Routes ---
 
-
 @app.get("/")
-@app.head("/") # Added to support all types of health checks
+@app.get("/api/status")
+@app.head("/")
 async def home():
-    return {"status": "Sargam Neural Engine Active", "ready": True}
+    return {"status": "Sargam Neural Engine Active", "ready": True, "engine": "FastAPI"}
 
 @app.post("/separate")
 async def separate_audio(audio: UploadFile = File(...)):
@@ -97,27 +131,25 @@ async def separate_audio(audio: UploadFile = File(...)):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+@app.post("/api/mix")
 @app.post("/mix")
-async def mix_audio(vocals: UploadFile = File(...), bgm: UploadFile = File(...)):
-    """Mixes two tracks into one mastered MP3."""
+async def mix_audio(request: Request):
     try:
-        task_id = str(uuid.uuid4())
-        v_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_v.wav")
-        b_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_b.wav")
-        out_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_master.mp3")
+        form = await request.form()
+        vocals_file = form.get("vocals") # The voice from ElevenLabs
+        
+        if not vocals_file:
+            return JSONResponse(status_code=400, content={"error": "Missing vocals file"})
 
-        with open(v_path, "wb") as buffer: shutil.copyfileobj(vocals.file, buffer)
-        with open(b_path, "wb") as buffer: shutil.copyfileobj(bgm.file, buffer)
-
-        subprocess.run([
-            "ffmpeg", "-y", "-i", v_path, "-i", b_path,
-            "-filter_complex", "amix=inputs=2:duration=longest",
-            "-ac", "2", out_path
-        ], check=True)
-
-        return FileResponse(out_path, media_type="audio/mpeg", filename="master.mp3")
+        v_bytes = await vocals_file.read()
+        
+        # APPLY THE PRO FIXES HERE
+        pro_vocals = apply_studio_magic(v_bytes)
+        
+        return Response(content=pro_vocals, media_type="audio/wav")
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        print(f"PRO MASTERING ERROR: {e}")
+        return JSONResponse(status_code=500, content={"error": "Studio processing failed"})
 
 @app.get("/api/credits/status/{user_id}")
 async def get_credits_status(user_id: str):
