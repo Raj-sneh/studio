@@ -141,7 +141,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
           language: data.language,
           settings: { stability: 0.5, similarity_boost: 0.75 }
         });
-        setResult({ vocalUri: res.audioUri, title: "Neural Transformation Complete" });
+        
+        if (!res.success) throw new Error(res.error);
+        setResult({ vocalUri: res.data?.audioUri, title: "Neural Transformation Complete" });
       } else {
         if (!data.text) throw new Error("Please enter some text first.");
         
@@ -151,7 +153,9 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
             voiceId: data.voice,
             settings: { stability: 0.5, similarity_boost: 0.75 }
         });
-        setResult({ vocalUri: res.audioUri, title: "TTS Generation Complete" });
+        
+        if (!res.success) throw new Error(res.error);
+        setResult({ vocalUri: res.data?.audioUri, title: "TTS Generation Complete" });
       }
 
       toast({ title: "Success!", description: "AI track generated successfully." });

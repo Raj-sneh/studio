@@ -94,17 +94,32 @@ const singerDirectorPrompt = ai.definePrompt({
   prompt: `Analyze isolated vocal for Speech-to-Speech settings: {{media url=vocalDataUri}}`,
 });
 
-/** Exported Functions */
-export async function cloneVoice(input: VoiceCloningInput): Promise<VoiceCloningOutput> {
-  return voiceCloningFlow(input);
+/** Exported Functions - Wrappers return result objects to avoid Next.js prod error obfuscation */
+export async function cloneVoice(input: VoiceCloningInput): Promise<{ success: boolean; data?: VoiceCloningOutput; error?: string }> {
+  try {
+    const data = await voiceCloningFlow(input);
+    return { success: true, data };
+  } catch (e: any) {
+    return { success: false, error: e.message || "Voice cloning protocol failed." };
+  }
 }
 
-export async function speakWithClone(input: CloneSpeechInput): Promise<CloneSpeechOutput> {
-    return speakWithCloneFlow(input);
+export async function speakWithClone(input: CloneSpeechInput): Promise<{ success: boolean; data?: CloneSpeechOutput; error?: string }> {
+  try {
+    const data = await speakWithCloneFlow(input);
+    return { success: true, data };
+  } catch (e: any) {
+    return { success: false, error: e.message || "Neural synthesis failed." };
+  }
 }
 
-export async function replaceVocals(input: VocalReplacementInput): Promise<VocalReplacementOutput> {
-    return vocalReplacementFlow(input);
+export async function replaceVocals(input: VocalReplacementInput): Promise<{ success: boolean; data?: VocalReplacementOutput; error?: string }> {
+  try {
+    const data = await vocalReplacementFlow(input);
+    return { success: true, data };
+  } catch (e: any) {
+    return { success: false, error: e.message || "Vocal replacement failed." };
+  }
 }
 
 /** Flows */
