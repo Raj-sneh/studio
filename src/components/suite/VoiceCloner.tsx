@@ -200,7 +200,7 @@ export function VoiceCloner() {
       });
 
       if (!res.success) throw new Error(res.error);
-      const result = res.data;
+      const result = res.data!;
 
       if (firestore) {
         await addDoc(collection(firestore, 'users', user.uid, 'clonedVoices'), {
