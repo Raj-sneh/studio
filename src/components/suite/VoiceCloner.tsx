@@ -167,7 +167,8 @@ export function VoiceCloner() {
   const handleRemoveSample = (index: number) => {
     setSamples(prev => prev.filter((_, i) => i !== index));
     if (samples.length <= 1 && step === 'uploading') {
-        setStep('training');
+        if (trainingScript) setStep('training');
+        else setStep('setup');
     }
   };
 
@@ -302,7 +303,7 @@ export function VoiceCloner() {
                       <div className="space-y-1">
                           <p className="text-[10px] font-black uppercase tracking-widest text-primary">Ethics & Privacy Disclaimer</p>
                           <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                              Voice cloning is provided for research and creative expression only. You use this feature at your own risk. By cloning a voice, you confirm you have legal consent. Sargam AI is not responsible for any misuse or legal implications of cloned content.
+                              Voice cloning is provided for research and creative expression only. By using this tool, you confirm you have legal consent. Sargam AI assumes no liability for misuse.
                           </p>
                       </div>
                   </div>
