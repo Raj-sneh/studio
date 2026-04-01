@@ -146,7 +146,7 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Actio
         
         await waitForBackend();
 
-        // 1. SEPARATE
+        # 1. SEPARATE
         const sepForm = new FormData();
         sepForm.append('audio', new Blob([Buffer.from(audioDataUri.split(',')[1], 'base64')], { type: 'audio/wav' }), 'in.wav');
         
@@ -155,7 +155,7 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Actio
         if (!sepRes.ok) throw new Error(sepData.error || "Neural separation failed.");
         const { vocals, bgm } = sepData;
 
-        // 2. TRANSFORM (STS)
+        # 2. TRANSFORM (STS)
         const stsForm = new FormData();
         stsForm.append('audio', new Blob([Buffer.from(vocals.split(',')[1], 'base64')], { type: 'audio/wav' }), 'v.wav');
         stsForm.append('model_id', 'eleven_multilingual_sts_v2');
@@ -172,7 +172,7 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Actio
         
         const aiVocalBlob = new Blob([Buffer.from(await stsRes.arrayBuffer())], { type: 'audio/mpeg' });
 
-        // 3. MIX
+        # 3. MIX
         const mixForm = new FormData();
         mixForm.append('vocals', aiVocalBlob, 'v.mp3');
         mixForm.append('bgm', new Blob([Buffer.from(bgm.split(',')[1], 'base64')], { type: 'audio/wav' }), 'b.wav');
