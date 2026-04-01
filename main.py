@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials, firestore
-import hmac, hashlib, os, json, base64, traceback, io
+import hmac, hashlib, os, json, base64, traceback, io, gc
 import soundfile as sf
 import numpy as np
 from pedalboard import Pedalboard, Compressor, Gain, HighpassFilter, Limiter
@@ -11,7 +11,6 @@ import noisereduce as nr
 from pydub import AudioSegment
 import razorpay
 import librosa
-import gc
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
