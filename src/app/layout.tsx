@@ -34,11 +34,11 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <head>
         {/* Google AdSense Integration */}
-        <Script 
-          async 
+        <Script
+          async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8391391679719370"
           crossOrigin="anonymous"
-          strategy="lazyOnload"
+          strategy="afterInteractive" // This optimizes loading performance
         />
       </head>
       <body className={cn("font-body antialiased min-h-screen bg-background", fontHeadline.variable, fontBody.variable)}>

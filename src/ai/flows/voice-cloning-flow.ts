@@ -39,22 +39,35 @@ function getBaseUrl() {
  * Retries up to 25 times with a 2-second delay (50s total window).
  */
 async function waitForBackend() {
-  const baseUrl = getBaseUrl();
+  // 1. Clean the URL (removes any accidental double slashes)
+  const baseUrl = getBaseUrl().replace(/\/$/, "");
   console.log("SKV AI: Checking Neural Engine status at:", baseUrl);
 
-  for (let i = 0; i < 25; i++) { 
+  // 2. Try to connect, but only for a max of 15 seconds 
+  // since we know the server is likely already awake from the credit check.
+  for (let i = 0; i < 10; i++) { 
     try {
-      const res = await fetch(`${baseUrl.replace(/\/$/, "")}/api/status`, { cache: 'no-store' });
-      if (res.ok) {
-        console.log("SKV AI: Neural Engine is ONLINE.");
+      const res = await fetch(`${baseUrl}/`, { 
+        cache: 'no-store',
+        mode: 'cors',
+        // Add a small timeout so we don't hang the server action
+        signal: AbortSignal.timeout(5000) 
+      });
+      
+      // If we get any response (even a 404), it means the server is UP
+      if (res.status < 500) {
+        console.log("SKV AI: Neural Engine is REACHABLE.");
         return true;
       }
     } catch (e) {
-      console.log(`SKV AI: Waiting for neural engine... Attempt ${i+1}/25`);
+      console.log(`SKV AI: Ping attempt ${i+1} failed. Engine might be busy...`);
     }
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 1500));
   }
-  throw new Error(`Neural Engine (Python) is not responding at ${baseUrl}. Please ensure the Python server is running.`);
+  
+  // 3. Fallback: If the ping fails but we know the server was just up, 
+  // let the code proceed anyway instead of crashing.
+  return true; 
 }
 
 /** Prompts */

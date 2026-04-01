@@ -54,11 +54,11 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 # --- Routes ---
 
+
 @app.get("/")
-@app.get("/api/status")
-async def get_status():
-    """Satisfies health checks and polling logic"""
-    return {"status": "Sargam Neural Engine Active", "ready": True, "engine": "FastAPI"}
+@app.head("/") # Added to support all types of health checks
+async def home():
+    return {"status": "Sargam Neural Engine Active", "ready": True}
 
 @app.post("/separate")
 async def separate_audio(audio: UploadFile = File(...)):
