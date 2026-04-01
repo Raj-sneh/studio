@@ -158,7 +158,7 @@ const voiceCloningFlow = ai.defineFlow(
         const base64Data = samples[i].split(',')[1];
         const buffer = Buffer.from(base64Data, 'base64');
         const blob = new Blob([buffer], { type: 'audio/wav' });
-        formData.append('files', blob, `sample_${i}.wav`);
+        formData.append('files', blob, `sample_${i}.mp3`); // Changed to mp3 for better compatibility
     }
 
     const response = await fetch('https://api.elevenlabs.io/v1/voices/add', {

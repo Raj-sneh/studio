@@ -18,7 +18,8 @@ import {
     Zap,
     Mic,
     Square,
-    Volume2
+    Volume2,
+    ShieldAlert
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -298,6 +299,17 @@ export function VoiceCloner() {
                     </div>
                   </div>
                   
+                  {/* Neural Ethics Disclaimer */}
+                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex gap-3">
+                      <ShieldAlert className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-primary">Ethics & Privacy Disclaimer</p>
+                          <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                              Voice cloning is provided for research and creative expression only. You use this feature at your own risk. By cloning a voice, you confirm you have legal consent. Sargam AI is not responsible for any misuse or legal implications of cloned content.
+                          </p>
+                      </div>
+                  </div>
+
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-primary/10" /></div>
                     <div className="relative flex justify-center text-[10px] uppercase font-black"><span className="bg-background px-2 text-muted-foreground">Or</span></div>

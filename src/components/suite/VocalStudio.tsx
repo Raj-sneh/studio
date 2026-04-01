@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Loader2, Play, StopCircle, Sparkles, Mic2, Upload, FileAudio, BrainCircuit, Globe, Music, Link as LinkIcon, Lock, Zap, AlertCircle
+  Loader2, Play, StopCircle, Sparkles, Mic2, Upload, FileAudio, BrainCircuit, Globe, Music, Link as LinkIcon, Lock, Zap, AlertCircle, ShieldAlert
 } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Card } from '@/components/ui/card';
@@ -40,7 +40,7 @@ const DEFAULT_VOICES = [
 
 const ADMIN_EMAIL = 'snehkumarverma2011@gmail.com';
 const TTS_COST = 2;
-const SWAP_COST = 10;
+const SWAP_COST = 15; // INCREASED TO 15
 const MAX_FILE_SIZE_MB = 10; // Prevent Cloud Run crashes
 
 export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPrompt?: string | null; autogen?: boolean; onGenerate: () => void; }) {
@@ -267,6 +267,17 @@ export function VocalStudio({ initialPrompt, autogen, onGenerate }: { initialPro
                                   </div>
                               </FormItem>
                           )}/>
+
+                          {/* Usage Disclaimer */}
+                          <div className="mt-6 p-4 rounded-2xl bg-destructive/5 border border-destructive/20 flex gap-3">
+                              <ShieldAlert className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                              <div className="space-y-1">
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-destructive">Voice Swap Disclaimer</p>
+                                  <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                                      Use this tool at your own risk. By swapping vocals, you confirm you have permission to use the source audio. Sargam AI assumes no liability for unauthorized usage or unethical manipulation of content.
+                                  </p>
+                              </div>
+                          </div>
                         </div>
                     </TabsContent>
                 </div>
