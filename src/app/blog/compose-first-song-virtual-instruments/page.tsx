@@ -19,7 +19,7 @@ export default function ComposeWithVirtualInstruments() {
             <Sparkles className="h-4 w-4" /> Key Takeaways
           </h2>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground font-medium">
-            <li className="flex items-start gap-2"><span className="text-primary">•</span> Songwriting is a top-down process: Mood -> Structure -> Melody.</li>
+            <li className="flex items-start gap-2"><span className="text-primary">•</span> Songwriting is a top-down process: Mood &rarr; Structure &rarr; Melody.</li>
             <li className="flex items-start gap-2"><span className="text-primary">•</span> AI prompts can serve as your "Virtual Co-Writer."</li>
             <li className="flex items-start gap-2"><span className="text-primary">•</span> Synchronization between vocals and BGM is the key to professional sound.</li>
             <li className="flex items-start gap-2"><span className="text-primary">•</span> Iterate frequently—don't try to make the first draft perfect.</li>
