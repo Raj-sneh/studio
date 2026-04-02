@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Poppins, Roboto } from 'next/font/google';
@@ -8,8 +9,9 @@ import Header from "@/components/Header";
 import { Providers } from './providers';
 import { FloatingAssistantButton } from '@/components/FloatingAssistantButton';
 import { GlobalCreditBar } from '@/components/GlobalCreditBar';
-import { Heart } from 'lucide-react';
+import { Heart, LifeBuoy } from 'lucide-react';
 import Script from 'next/script';
+import Link from 'next/link';
 
 const fontHeadline = Poppins({
   subsets: ['latin'],
@@ -73,6 +75,18 @@ export default function RootLayout({
                     <Heart className="h-3 w-3 fill-primary" /> Support Neural Innovation
                   </div>
                   <h2 className="text-3xl font-bold font-headline">Fuel the Future of Sound</h2>
+                </div>
+
+                <div className="flex items-center gap-6">
+                  <Link href="/profile/support" className="text-xs text-muted-foreground hover:text-primary flex items-center gap-2 transition-colors">
+                    <LifeBuoy className="h-3 w-3" /> Help & Support
+                  </Link>
+                  <Link href="/blog" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                    Learning Hub
+                  </Link>
+                  <Link href="/pricing" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                    Pricing
+                  </Link>
                 </div>
 
                 <div className="max-w-2xl">

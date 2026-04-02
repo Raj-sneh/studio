@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
-import { ChevronRight, Loader2, User as UserIcon, Calendar, Mail, Save, ChevronLeft, Camera } from "lucide-react";
+import { ChevronRight, Loader2, User as UserIcon, Calendar, Mail, Save, ChevronLeft, Camera, LifeBuoy } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, Timestamp, updateDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
@@ -212,6 +212,19 @@ export default function ProfilePage() {
                             <div>
                                 <h3 className="font-bold text-lg">Generation History</h3>
                                 <p className="text-sm text-muted-foreground">Review your AI-composed tracks and lyrics.</p>
+                            </div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                    </Link>
+
+                    <Link href="/profile/support" className="flex items-center justify-between p-5 rounded-2xl bg-muted/50 hover:bg-secondary/5 transition-all group border border-transparent hover:border-secondary/20">
+                        <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-xl bg-secondary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <LifeBuoy className="h-6 w-6 text-secondary" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg">Support & Help</h3>
+                                <p className="text-sm text-muted-foreground">Get assistance or contact the developer.</p>
                             </div>
                         </div>
                         <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />

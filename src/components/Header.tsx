@@ -7,7 +7,7 @@ import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/fireb
 import { signOut } from "firebase/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap } from "lucide-react";
+import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap, LifeBuoy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { doc } from "firebase/firestore";
@@ -116,6 +116,9 @@ export default function Header() {
                       </Link>
                       <Link href="/pricing" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg">
                         <Zap className="mr-3 h-4 w-4 text-primary" /> Upgrade Plan
+                      </Link>
+                      <Link href="/profile/support" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg">
+                        <LifeBuoy className="mr-3 h-4 w-4 text-primary" /> Support
                       </Link>
                       <button onClick={handleLogout} className="flex w-full items-center px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg mt-1">
                         <LogOut className="mr-3 h-4 w-4" /> Logout
