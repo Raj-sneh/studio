@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Music, BookOpen, Wand2, Sparkles, Mic2, Disc, ArrowRight, GraduationCap, Zap, BrainCircuit } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { AnimatedMusicBackground } from '@/components/AnimatedMusicBackground';
