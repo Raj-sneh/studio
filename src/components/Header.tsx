@@ -7,7 +7,7 @@ import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/fireb
 import { signOut } from "firebase/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Music, LogOut, User as UserIcon, Loader2, BookOpen, Wand2, LogIn, ChevronDown, Sparkles, Zap, ShieldCheck } from "lucide-react";
+import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { doc } from "firebase/firestore";
@@ -17,6 +17,7 @@ const navLinks = [
   { href: "/practice", label: "Practice", icon: Music },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/suite", label: "AI Studio", icon: Wand2 },
+  { href: "/blog", label: "Learn", icon: GraduationCap },
 ];
 
 const GUEST_AVATAR_URL = "https://firebasestorage.googleapis.com/v0/b/studio-4164192500-df01a.firebasestorage.app/o/1000018646%5B1%5D.png?alt=media&token=2b2f8cea-03cd-477c-bc0d-88988246fdeb";
@@ -25,7 +26,7 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
   const firestore = useFirestore();
   
   const [isMenuOpen, setIsMenuOpen] = useState(false);
