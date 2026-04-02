@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -66,12 +65,12 @@ export default function BeginnersPianoGuide() {
         <h3 className="text-xl font-bold text-foreground">The "Thumb Tuck" Technique</h3>
         <p>
           To play a full scale smoothly, you cannot simply move your hand side-to-side. You must learn the thumb tuck:
-          <ol className="mt-2 space-y-2">
-            <li>Play C, D, and E with your thumb, index, and middle fingers (fingers 1, 2, and 3).</li>
-            <li>While holding the E, tuck your thumb (finger 1) underneath your middle finger to reach the F.</li>
-            <li>Continue the scale naturally.</li>
-          </ol>
         </p>
+        <ol className="mt-2 space-y-2 list-decimal list-inside ml-4">
+          <li>Play C, D, and E with your thumb, index, and middle fingers (fingers 1, 2, and 3).</li>
+          <li>While holding the E, tuck your thumb (finger 1) underneath your middle finger to reach the F.</li>
+          <li>Continue the scale naturally.</li>
+        </ol>
 
         <h2 className="text-3xl font-bold text-foreground font-headline">4. The Importance of Virtual Practice</h2>
         <p>

@@ -143,7 +143,7 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Actio
         const buffer = Buffer.from(audioDataUri.split(',')[1], 'base64');
         const mime = audioDataUri.split(';')[0].split(':')[1] || 'audio/wav';
         
-        // Append input audio
+        // 1. Direct ElevenLabs STS Call (No local separation needed)
         formData.append('audio', new Blob([buffer], { type: mime }), 'input.wav');
         formData.append('model_id', 'eleven_multilingual_sts_v2');
         formData.append('voice_settings', JSON.stringify({
@@ -161,7 +161,7 @@ export async function replaceVocals(input: VocalReplacementInput): Promise<Actio
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
-            throw new Error(`Neural Engine Transformation failed: ${err.detail?.message || response.statusText}`);
+            throw new Error(`Neural Transformation failed: ${err.detail?.message || response.statusText}`);
         }
 
         const resBuffer = Buffer.from(await response.arrayBuffer());

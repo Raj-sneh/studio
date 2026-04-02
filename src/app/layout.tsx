@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Poppins, Roboto } from 'next/font/google';
@@ -35,9 +34,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
-        <title>Sargam AI | Voice Cloning AI & Virtual Piano Studio</title>
-        <meta name="description" content="Sargam AI is the ultimate Voice Cloning AI and AI Music Studio. Practice virtual piano, learn with AI tutors, and create high-fidelity neural voice clones." />
-        <meta name="keywords" content="Voice Cloning AI, AI Music Generator, Virtual Piano, AI Piano Tutor, Neural Voice Swap, Sargam AI, AI Vocal Studio, Music Learning AI" />
+        <title>Sargam AI | Voice Cloning AI, Neural Voice Swap & Virtual Piano</title>
+        <meta name="description" content="Sargam AI is the definitive Neural Voice Cloning AI and AI Music Studio. Use ElevenLabs Voice Swap, practice on a Virtual Grand Piano, or learn with AI tutors." />
+        <meta name="keywords" content="Voice Cloning AI, AI Music Generator, Virtual Piano, AI Piano Tutor, Neural Voice Swap, ElevenLabs Voice Swap, Sargam AI, AI Vocal Studio, Music Learning AI, AI Music Studio, Neural Artist" />
         
         {/* Google AdSense Integration */}
         <Script
@@ -74,7 +73,7 @@ export default function RootLayout({
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest">
                     <Heart className="h-3 w-3 fill-primary" /> Support Neural Innovation
                   </div>
-                  <h2 className="text-3xl font-bold font-headline">Fuel the Future of Sound</h2>
+                  <h2 className="text-3xl font-bold font-headline">Fuel the Future of sound with Sargam AI</h2>
                 </div>
 
                 <div className="flex items-center gap-6">
@@ -93,7 +92,7 @@ export default function RootLayout({
                   <p className="text-sm text-muted-foreground leading-relaxed italic">
                     Sargam AI is a labor of love, crafted to bridge the gap between artificial intelligence and musical soul. 
                     Every contribution fuels our research into more complex neural models and brings us one step closer 
-                    to the definitive mobile experience.
+                    to the definitive AI music generator experience.
                   </p>
                 </div>
 
