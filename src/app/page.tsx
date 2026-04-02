@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Music, BookOpen, Wand2, Sparkles, Mic2, Disc, ArrowRight, GraduationCap, Zap, BrainCircuit } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { AnimatedMusicBackground } from '@/components/AnimatedMusicBackground';
+import { cn } from '@/lib/utils';
 
 const ARTICLES = [
   {
