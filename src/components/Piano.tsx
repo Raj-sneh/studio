@@ -4,10 +4,11 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import * as Tone from 'tone';
 import { cn } from '@/lib/utils';
 import { getSampler } from '@/lib/samplers';
-import { Loader2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Loader2, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 import { PIANO_KEYS } from '@/lib/constants';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
 
 interface PianoProps {
   onNoteDown?: (note: string) => void;
@@ -51,6 +52,7 @@ type PianoSynth = Tone.Sampler | Tone.PolySynth;
 export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = false, highlightedKeys = [], activeKeys = null, holdState = null, interactiveMode = false }: PianoProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [zoom, setZoom] = useState(1);
+    const [rotation, setRotation] = useState(0);
     const synthRef = useRef<PianoSynth | null>(null);
     const keyRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
     const pressedNotes = useRef<Set<string>>(new Set());
@@ -135,6 +137,10 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
       releaseNoteTone(note);
       onNoteUp?.(note);
     };
+
+    const handleRotate = () => {
+        setRotation(prev => (prev + 90) % 360);
+    };
     
     if (isLoading) {
       return (
@@ -146,8 +152,8 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
     }
 
     return (
-        <div className="w-full flex flex-col items-center justify-center p-2 md:p-6">
-            <div className="w-full max-w-sm flex items-center gap-4 self-center mb-8 px-4 bg-muted/30 py-3 rounded-full border">
+        <div className="w-full flex flex-col items-center justify-center p-2 md:p-6 overflow-hidden">
+            <div className="w-full max-w-md flex items-center gap-4 self-center mb-8 px-4 bg-muted/30 py-3 rounded-full border shadow-sm backdrop-blur-sm">
                 <ZoomOut className="h-4 w-4 text-muted-foreground" />
                 <Slider
                     value={[zoom]}
@@ -156,97 +162,113 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                     max={1.4}
                     step={0.05}
                     aria-label="Zoom Piano"
+                    className="flex-1"
                 />
                 <ZoomIn className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <ScrollArea className="w-full max-w-full rounded-2xl border-4 border-muted bg-muted p-2 shadow-2xl">
-                <div 
-                  className="relative flex bg-black rounded-xl select-none"
-                  style={{
-                    width: whiteKeys.length * totalWhiteKeyWidth,
-                    height: pianoHeight
-                  }}
+                <div className="w-px h-4 bg-border mx-1" />
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={handleRotate} 
+                    className="h-8 w-8 rounded-full hover:bg-primary/20 hover:text-primary transition-colors"
+                    title="Rotate Piano"
                 >
-                    {whiteKeys.map(({ note }) => {
-                        const isKeyActive = !disabled && (!activeKeys || activeKeys.includes(note));
-                        const isHighlighted = highlightedKeys?.includes(note);
-                        const isHolding = holdState?.key === note || (Array.isArray(holdState?.key) && holdState?.key.includes(note));
+                    <RotateCw className="h-4 w-4" />
+                </Button>
+            </div>
+            <div 
+                className="w-full transition-all duration-500 ease-in-out origin-center"
+                style={{ transform: `rotate(${rotation}deg)` }}
+            >
+                <ScrollArea className="w-full max-w-full rounded-2xl border-4 border-muted bg-muted p-2 shadow-2xl">
+                    <div 
+                      className="relative flex bg-black rounded-xl select-none"
+                      style={{
+                        width: whiteKeys.length * totalWhiteKeyWidth,
+                        height: pianoHeight
+                      }}
+                    >
+                        {whiteKeys.map(({ note }) => {
+                            const isKeyActive = !disabled && (!activeKeys || activeKeys.includes(note));
+                            const isHighlighted = highlightedKeys?.includes(note);
+                            const isHolding = holdState?.key === note || (Array.isArray(holdState?.key) && holdState?.key.includes(note));
 
-                        return (
-                            <div
-                                key={note}
-                                ref={(el) => { keyRefs.current.set(note, el) }}
-                                onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); if(isKeyActive) handleNoteDown(note); }}
-                                onPointerUp={(e) => { e.currentTarget.releasePointerCapture(e.pointerId); if(isKeyActive) handleNoteUp(note); }}
-                                onPointerLeave={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) handleNoteUp(note); }}
-                                className={cn(
-                                    "key flex items-end justify-center pb-4 cursor-pointer transition-all duration-100 rounded-b-lg user-select-none relative",
-                                    "bg-gradient-to-b from-gray-100 to-white border-x border-gray-200 shadow-sm text-gray-400 font-bold",
-                                    isHighlighted && "from-primary/20 to-primary/40 border-primary ring-4 ring-primary/30 z-30 text-primary-foreground",
-                                    !isKeyActive && 'opacity-40 cursor-not-allowed bg-gray-300'
-                                )}
-                                style={{
-                                width: whiteKeyWidth,
-                                height: whiteKeyHeight,
-                                margin: `0 ${whiteKeyMargin}px`,
-                                touchAction: interactiveMode ? 'none' : 'auto'
-                                }}
-                            >
-                                {isHolding && holdState && (
-                                    <div
-                                        className="absolute bottom-0 left-0 w-full rounded-b-lg overflow-hidden"
-                                        style={{
-                                            height: `${holdState.progress}%`,
-                                            background: 'linear-gradient(to top, hsl(var(--primary) / 0.3), hsl(var(--primary) / 0.7))',
-                                            transition: 'height 0.016s linear',
-                                        }}
-                                    />
-                                )}
-                                <span className="pointer-events-none z-10 select-none" style={{ fontSize: fontSize }}>{note}</span>
-                            </div>
-                        )
-                    })}
-                    {blackKeys.map(({ note }) => {
-                         const isKeyActive = !disabled && (!activeKeys || activeKeys.includes(note));
-                         const isHighlighted = highlightedKeys?.includes(note);
-                         const isHolding = holdState?.key === note || (Array.isArray(holdState?.key) && holdState?.key.includes(note));
-                         return (
-                            <div
-                                key={note}
-                                ref={(el) => { keyRefs.current.set(note, el) }}
-                                onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); if(isKeyActive) handleNoteDown(note); }}
-                                onPointerUp={(e) => { e.currentTarget.releasePointerCapture(e.pointerId); if(isKeyActive) handleNoteUp(note); }}
-                                onPointerLeave={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) handleNoteUp(note); }}
-                                className={cn(
-                                    "key flex items-end justify-center pb-4 cursor-pointer transition-all duration-100 rounded-b-md user-select-none text-gray-500 font-bold",
-                                    "bg-gradient-to-b from-gray-900 to-black border-x border-gray-800 shadow-lg z-20 absolute",
-                                    isHighlighted && "from-primary/60 to-primary border-primary ring-4 ring-primary/40 text-white",
-                                    !isKeyActive && "opacity-30 cursor-not-allowed bg-black"
-                                )}
-                                style={{ 
-                                width: blackKeyWidth,
-                                height: blackKeyHeight,
-                                left: `${(blackKeyPositions[note] || 0) * totalWhiteKeyWidth + blackKeyOffset}px`,
-                                touchAction: interactiveMode ? 'none' : 'auto'
-                                }}
-                            >
-                                {isHolding && holdState && (
-                                     <div
-                                        className="absolute bottom-0 left-0 w-full rounded-b-md overflow-hidden"
-                                        style={{
-                                            height: `${holdState.progress}%`,
-                                            background: 'linear-gradient(to top, hsl(var(--primary) / 0.3), hsl(var(--primary) / 0.7))',
-                                            transition: 'height 0.016s linear',
-                                        }}
-                                    />
-                                )}
-                                <span className="pointer-events-none z-10 select-none" style={{ fontSize: fontSize }}>{note}</span>
-                            </div>
-                        )
-                    })}
-                </div>
-                <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+                            return (
+                                <div
+                                    key={note}
+                                    ref={(el) => { keyRefs.current.set(note, el) }}
+                                    onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); if(isKeyActive) handleNoteDown(note); }}
+                                    onPointerUp={(e) => { e.currentTarget.releasePointerCapture(e.pointerId); if(isKeyActive) handleNoteUp(note); }}
+                                    onPointerLeave={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) handleNoteUp(note); }}
+                                    className={cn(
+                                        "key flex items-end justify-center pb-4 cursor-pointer transition-all duration-100 rounded-b-lg user-select-none relative",
+                                        "bg-gradient-to-b from-gray-100 to-white border-x border-gray-200 shadow-sm text-gray-400 font-bold",
+                                        isHighlighted && "from-primary/20 to-primary/40 border-primary ring-4 ring-primary/30 z-30 text-primary-foreground",
+                                        !isKeyActive && 'opacity-40 cursor-not-allowed bg-gray-300'
+                                    )}
+                                    style={{
+                                    width: whiteKeyWidth,
+                                    height: whiteKeyHeight,
+                                    margin: `0 ${whiteKeyMargin}px`,
+                                    touchAction: interactiveMode ? 'none' : 'auto'
+                                    }}
+                                >
+                                    {isHolding && holdState && (
+                                        <div
+                                            className="absolute bottom-0 left-0 w-full rounded-b-lg overflow-hidden"
+                                            style={{
+                                                height: `${holdState.progress}%`,
+                                                background: 'linear-gradient(to top, hsl(var(--primary) / 0.3), hsl(var(--primary) / 0.7))',
+                                                transition: 'height 0.016s linear',
+                                            }}
+                                        />
+                                    )}
+                                    <span className="pointer-events-none z-10 select-none" style={{ fontSize: fontSize }}>{note}</span>
+                                </div>
+                            )
+                        })}
+                        {blackKeys.map(({ note }) => {
+                             const isKeyActive = !disabled && (!activeKeys || activeKeys.includes(note));
+                             const isHighlighted = highlightedKeys?.includes(note);
+                             const isHolding = holdState?.key === note || (Array.isArray(holdState?.key) && holdState?.key.includes(note));
+                             return (
+                                <div
+                                    key={note}
+                                    ref={(el) => { keyRefs.current.set(note, el) }}
+                                    onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); if(isKeyActive) handleNoteDown(note); }}
+                                    onPointerUp={(e) => { e.currentTarget.releasePointerCapture(e.pointerId); if(isKeyActive) handleNoteUp(note); }}
+                                    onPointerLeave={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) handleNoteUp(note); }}
+                                    className={cn(
+                                        "key flex items-end justify-center pb-4 cursor-pointer transition-all duration-100 rounded-b-md user-select-none text-gray-500 font-bold",
+                                        "bg-gradient-to-b from-gray-900 to-black border-x border-gray-800 shadow-lg z-20 absolute",
+                                        isHighlighted && "from-primary/60 to-primary border-primary ring-4 ring-primary/40 text-white",
+                                        !isKeyActive && "opacity-30 cursor-not-allowed bg-black"
+                                    )}
+                                    style={{ 
+                                    width: blackKeyWidth,
+                                    height: blackKeyHeight,
+                                    left: `${(blackKeyPositions[note] || 0) * totalWhiteKeyWidth + blackKeyOffset}px`,
+                                    touchAction: interactiveMode ? 'none' : 'auto'
+                                    }}
+                                >
+                                    {isHolding && holdState && (
+                                         <div
+                                            className="absolute bottom-0 left-0 w-full rounded-b-md overflow-hidden"
+                                            style={{
+                                                height: `${holdState.progress}%`,
+                                                background: 'linear-gradient(to top, hsl(var(--primary) / 0.3), hsl(var(--primary) / 0.7))',
+                                                transition: 'height 0.016s linear',
+                                            }}
+                                        />
+                                    )}
+                                    <span className="pointer-events-none z-10 select-none" style={{ fontSize: fontSize }}>{note}</span>
+                                </div>
+                            )
+                        })}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+            </div>
         </div>
     );
 }
