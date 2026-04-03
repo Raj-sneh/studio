@@ -2,16 +2,12 @@ import { NextResponse } from 'next/server';
 
 /**
  * Proxy route for deducting credits via the Python backend.
- * Prioritizes internal environment variables for server-to-server security.
+ * Standardizes backend URL resolution and handles non-JSON error pages.
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    
-    // Prioritize server-side URL, fallback to public, then local
-    const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
-
-    console.log(`Deducting credits via: ${baseUrl}/api/credits/use`);
+    const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || process.env.VOICE_ENGINE_URL || "http://localhost:8080";
 
     const response = await fetch(`${baseUrl}/api/credits/use`, {
       method: 'POST',
@@ -20,12 +16,13 @@ export async function POST(req: Request) {
       cache: 'no-store'
     });
     
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        return NextResponse.json(
-          { error: errorData.error || `Credit deduction failed with status: ${response.status}` }, 
-          { status: response.status }
-        );
+    const contentType = response.headers.get("content-type");
+    if (!response.ok || !contentType || !contentType.includes("application/json")) {
+        const text = await response.text().catch(() => "Unknown error");
+        return NextResponse.json({ 
+          error: "Credit System Connection Failed", 
+          details: text.substring(0, 100) 
+        }, { status: response.status === 200 ? 503 : response.status });
     }
 
     const data = await response.json();
@@ -33,7 +30,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Proxy use-credits fetch failed:", error);
     return NextResponse.json(
-      { error: `Credit system connection failed. Ensure the Neural Engine is running at the configured URL.` }, 
+      { error: "Neural Engine unreachable. Ensure the Python server is running." }, 
       { status: 503 }
     );
   }

@@ -16,13 +16,10 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 @app.route('/')
-def home():
-    return "Sargam AI Voice Engine Running"
-
 @app.route('/health')
 def health():
     """Health check for the neural engine."""
-    return jsonify({"ready": True, "status": "online"})
+    return jsonify({"ready": True, "status": "Sargam Neural Engine Active", "engine": "Flask"})
 
 @app.route('/api/status')
 def api_status():

@@ -22,28 +22,6 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-def get_safe_audio(file_path):
-    """
-    Permanently fixes the 'length=2' and 'Killed' errors by 
-    validating and padding audio before neural processing.
-    """
-    try:
-        if not os.path.exists(file_path) or os.path.getsize(file_path) < 100:
-            return None, None
-
-        # Load with fixed sample rate to save RAM
-        y, sr = librosa.load(file_path, sr=16000, dtype='float32')
-
-        # n_fft is usually 2048. We need at least that many samples.
-        MIN_SAMPLES = 2048 
-        if len(y) < MIN_SAMPLES:
-            y = librosa.util.fix_length(y, size=MIN_SAMPLES)
-
-        return y, sr
-    except Exception as e:
-        print(f"❌ Audio Load Failed: {e}")
-        return None, None
-
 @app.get("/api/status")
 @app.get("/")
 async def health():
@@ -141,6 +119,5 @@ async def verify_payment(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    # Standardized to Port 8080 for Next.js internal proxy alignment
     port = int(os.environ.get("PORT", 8080))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
