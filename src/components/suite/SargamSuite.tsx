@@ -7,13 +7,15 @@ import { AIComposer } from '@/components/suite/AIComposer';
 import { VocalStudio } from '@/components/suite/VocalStudio';
 import { VoiceCloner } from '@/components/suite/VoiceCloner';
 import { BgmGenerator } from '@/components/suite/BgmGenerator';
-import { Music, Mic, UserRoundPlus, AlertCircle, LogIn, Disc } from 'lucide-react';
+import { SargamStudio } from '@/components/suite/SargamStudio';
+import { Music, Mic, UserRoundPlus, AlertCircle, LogIn, Disc, MonitorPlay, Sparkles } from 'lucide-react';
 import { useUser } from '@/firebase';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 /**
- * Defines the available tabs in the AI Creative Studio.
+ * Defines the available tabs for music-specific tools.
+ * Sargam Studio is now moved to a separate section below.
  */
 const TABS = [
     { value: 'composer', label: 'Melody Maker', icon: Music },
@@ -24,6 +26,7 @@ const TABS = [
 
 /**
  * The unified UI for the AI Creative Studio.
+ * Features a tabbed music suite and a separate "Room Card" for Sargam Studio animations.
  */
 export function SargamSuite() {
     const { user } = useUser();
@@ -34,9 +37,9 @@ export function SargamSuite() {
     const autoplay = searchParams.get('autoplay') === 'true';
 
     // Initialize the active tab from URL or default to the first tab.
-    const [activeTab, setActiveTab] = useState(requestedTab || TABS[0].value);
+    const [activeTab, setActiveTab] = useState(requestedTab && requestedTab !== 'studio' ? requestedTab : TABS[0].value);
 
-    // Sync tab state with URL changes.
+    // Sync tab state with URL changes (excluding studio as it's separate).
     useEffect(() => {
         if (requestedTab && TABS.some(t => t.value === requestedTab)) {
             setActiveTab(requestedTab);
@@ -46,12 +49,12 @@ export function SargamSuite() {
     const isGuest = user?.isAnonymous;
 
     return (
-        <div className="space-y-16 pb-20">
+        <div className="space-y-24 pb-20">
             <div className="space-y-8">
                 <div className="text-center max-w-2xl mx-auto space-y-4">
                     <h1 className="font-headline text-4xl font-bold tracking-tight text-foreground">AI Creative Studio</h1>
-                    <p className="text-muted-foreground">
-                        Create unique piano melodies, generate synchronized background tracks, or clone voices.
+                    <p className="text-muted-foreground text-sm">
+                        Access our suite of neural tools to compose music, sync tracks, or transform vocals.
                     </p>
                 </div>
 
@@ -75,9 +78,10 @@ export function SargamSuite() {
                     </div>
                 )}
 
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-4xl mx-auto">
-                    <div className="flex justify-center mb-8">
-                        <TabsList className="grid w-full grid-cols-4 max-w-2xl h-auto p-1 bg-muted/50 border border-border/50 rounded-2xl">
+                {/* Music Suite Tabs */}
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-5xl mx-auto">
+                    <div className="flex justify-center mb-12">
+                        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 max-w-3xl h-auto p-1 bg-muted/50 border border-border/50 rounded-2xl">
                             {TABS.map(tab => (
                                 <TabsTrigger 
                                     key={tab.value} 
@@ -117,6 +121,28 @@ export function SargamSuite() {
                     </div>
                 </Tabs>
             </div>
+
+            {/* Sargam Studio Room Section */}
+            <section id="sargam-studio" className="max-w-6xl mx-auto pt-16 border-t border-border/10">
+                <div className="flex flex-col items-center text-center space-y-4 mb-12">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest mb-2">
+                        <Sparkles className="h-3 w-3" /> Prototyper AI Enabled
+                    </div>
+                    <h2 className="font-headline text-4xl font-bold tracking-tight text-foreground flex items-center gap-3">
+                        <MonitorPlay className="h-8 w-8 text-primary" />
+                        Sargam Studio Room
+                    </h2>
+                    <p className="text-muted-foreground max-w-2xl mx-auto">
+                        A dedicated environment for neural video generation. Transform your words into high-fidelity 2D and 3D animations using professional Prototyper AI.
+                    </p>
+                </div>
+
+                <div className="p-1 rounded-[2.5rem] bg-gradient-to-br from-primary/20 via-transparent to-primary/5 border border-primary/10 shadow-2xl">
+                    <div className="bg-card/40 backdrop-blur-md rounded-[2.4rem] overflow-hidden">
+                        <SargamStudio />
+                    </div>
+                </div>
+            </section>
         </div>
     );
 }
