@@ -57,7 +57,8 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
   const { data: profile } = useDoc<UserProfile>(userDocRef);
 
   const isProfileLoading = profile === undefined;
-  const isPremium = profile?.plan === 'creator' || profile?.plan === 'pro' || user?.email === ADMIN_EMAIL;
+  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isPremium = profile?.plan === 'creator' || profile?.plan === 'pro' || isAdmin;
 
   const voicesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -93,17 +94,19 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
     setLoadingStatus("Verifying credits...");
 
     try {
-      const cost = activeSubTab === 'replacement' ? SWAP_COST : TTS_COST;
+      if (!isAdmin) {
+        const cost = activeSubTab === 'replacement' ? SWAP_COST : TTS_COST;
 
-      const creditRes = await fetch('/api/credits/use', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.uid, amount: cost })
-      });
+        const creditRes = await fetch('/api/credits/use', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.uid, amount: cost })
+        });
 
-      const errData = await creditRes.json().catch(() => ({}));
-      if (!creditRes.ok) {
-          throw new Error(errData.error || "Neural Engine connection failed. Please try again.");
+        const errData = await creditRes.json().catch(() => ({}));
+        if (!creditRes.ok) {
+            throw new Error(errData.error || "Neural Engine connection failed. Please try again.");
+        }
       }
 
       if (activeSubTab === 'replacement') {
@@ -159,7 +162,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                                     Text Input
                                     <div className="flex items-center gap-2">
                                         <div className="flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full text-primary border border-primary/20">
-                                            <Zap className="h-3 w-3 fill-primary" /> {TTS_COST} Credits
+                                            <Zap className="h-3 w-3 fill-primary" /> {isAdmin ? 'Unlimited' : `${TTS_COST} Credits`}
                                         </div>
                                         <Globe className="h-3 w-3 text-primary" />
                                         <select value={form.watch('language')} onChange={(e) => form.setValue('language', e.target.value)} className="bg-transparent text-[10px] font-bold outline-none">
@@ -190,7 +193,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                                   <FormLabel className="text-[10px] font-black uppercase flex items-center justify-between">
                                       Source Language
                                       <div className="flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full text-primary border border-primary/20">
-                                          <Zap className="h-3 w-3 fill-primary" /> {SWAP_COST} Credits
+                                          <Zap className="h-3 w-3 fill-primary" /> {isAdmin ? 'Unlimited' : `${SWAP_COST} Credits`}
                                       </div>
                                   </FormLabel>
                                   <select value={field.value} onChange={(e) => field.onChange(e.target.value)} disabled={!isPremium} className="w-full bg-muted/20 border border-primary/10 rounded-xl px-4 py-2 text-sm h-12">

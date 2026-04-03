@@ -28,6 +28,7 @@ const Piano = lazy(() => import('@/components/Piano'));
 
 const BGM_COST = 10;
 const MAX_FILE_SIZE_MB = 5;
+const ADMIN_EMAIL = 'snehkumarverma2011@gmail.com';
 
 function InstrumentLoader() {
   return (
@@ -98,15 +99,19 @@ export function BgmGenerator() {
         stopPlayback();
 
         try {
-            const creditRes = await fetch('/api/credits/use', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: user.uid, amount: BGM_COST })
-            });
+            const isAdmin = user.email === ADMIN_EMAIL;
 
-            if (!creditRes.ok) {
-                const err = await creditRes.json();
-                throw new Error(err.error || "Insufficient credits.");
+            if (!isAdmin) {
+                const creditRes = await fetch('/api/credits/use', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: user.uid, amount: BGM_COST })
+                });
+
+                if (!creditRes.ok) {
+                    const err = await creditRes.json();
+                    throw new Error(err.error || "Insufficient credits.");
+                }
             }
 
             const output = await generateBgm({ vocalAudioUri: vocalData.uri });
@@ -114,7 +119,6 @@ export function BgmGenerator() {
             toast({ title: "BGM Composed!", description: "AI has synchronized a piano track." });
 
             if (firestore) {
-                // FIX: Flatten keys to avoid "Nested arrays are not supported" error in Firestore
                 const flatNotes = output.notes.map(n => {
                     const keyString = Array.isArray(n.key) ? n.key.join('+') : n.key;
                     return `${keyString} @ ${n.time}`;
@@ -230,7 +234,7 @@ export function BgmGenerator() {
                                 {isGenerating ? (
                                     <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Composing Neural BGM...</>
                                 ) : (
-                                    <><BrainCircuit className="mr-2 h-6 w-6" /> Compose Background Track ({BGM_COST} Credits)</>
+                                    <><BrainCircuit className="mr-2 h-6 w-6" /> Compose Background Track ({user?.email === ADMIN_EMAIL ? 'Unlimited' : `${BGM_COST} Credits`})</>
                                 )}
                             </Button>
                         </div>

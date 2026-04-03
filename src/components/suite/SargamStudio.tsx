@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -25,6 +24,7 @@ import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
 
 const STUDIO_COST = 50;
+const ADMIN_EMAIL = 'snehkumarverma2011@gmail.com';
 
 const STYLES = [
     { id: '3d-render', label: '3D Studio', icon: Box, description: 'Hyper-realistic neural 3D animation.' },
@@ -63,15 +63,19 @@ export function SargamStudio() {
         }, 2000);
 
         try {
-            const creditRes = await fetch('/api/credits/use', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: user.uid, amount: STUDIO_COST })
-            });
+            const isAdmin = user.email === ADMIN_EMAIL;
 
-            if (!creditRes.ok) {
-                const err = await creditRes.json();
-                throw new Error(err.error || "Insufficient credits.");
+            if (!isAdmin) {
+                const creditRes = await fetch('/api/credits/use', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: user.uid, amount: STUDIO_COST })
+                });
+
+                if (!creditRes.ok) {
+                    const err = await creditRes.json();
+                    throw new Error(err.error || "Insufficient credits.");
+                }
             }
 
             const response = await fetch('/api/studio', {
@@ -111,7 +115,7 @@ export function SargamStudio() {
                         <div className="space-y-3">
                             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1 flex justify-between items-center">
                                 Visual Description
-                                <span className="text-primary font-bold">{STUDIO_COST} Credits</span>
+                                <span className="text-primary font-bold">{user?.email === ADMIN_EMAIL ? 'Unlimited' : `${STUDIO_COST} Credits`}</span>
                             </label>
                             <Textarea 
                                 placeholder="Describe your animation vision... e.g. A majestic dragon soaring over a futuristic neon city at night."

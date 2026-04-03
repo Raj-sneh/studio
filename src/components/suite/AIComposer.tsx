@@ -18,6 +18,7 @@ import { collection, serverTimestamp } from 'firebase/firestore';
 const Piano = lazy(() => import('@/components/Piano'));
 
 const MELODY_COST = 5;
+const ADMIN_EMAIL = 'snehkumarverma2011@gmail.com';
 
 function InstrumentLoader() {
   return (
@@ -94,17 +95,23 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
         setStatusText('Checking credits...');
 
         try {
-            const creditRes = await fetch('/api/credits/use', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: user.uid, amount: MELODY_COST })
-            });
+            const isAdmin = user.email === ADMIN_EMAIL;
+            
+            if (!isAdmin) {
+                const creditRes = await fetch('/api/credits/use', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: user.uid, amount: MELODY_COST })
+                });
 
-            if (!creditRes.ok) {
-                const errorData = await creditRes.json();
-                toast({ title: "Insufficient Credits", description: errorData.error, variant: "destructive" });
-                setGenerationState('idle');
-                return;
+                if (!creditRes.ok) {
+                    const errorData = await creditRes.json();
+                    toast({ title: "Insufficient Credits", description: errorData.error, variant: "destructive" });
+                    setGenerationState('idle');
+                    return;
+                }
+            } else {
+                setStatusText('Admin access granted (Unlimited)');
             }
 
             setStatusText('Thinking of a melody...');
@@ -128,7 +135,6 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
             if (firestore) {
                 const historyRef = collection(firestore, 'users', user.uid, 'generatedMelodies');
                 
-                // FIX: Flatten keys to avoid "Nested arrays are not supported" error in Firestore
                 const flatNotes = result.notes.map(n => {
                     const keyStr = Array.isArray(n.key) ? n.key.join('+') : n.key;
                     return `${keyStr} (${n.duration})`;
@@ -227,7 +233,7 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
                 <div className="flex justify-between items-center px-1">
                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Prompt Description</label>
                     <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary">
-                        <Zap className="h-3 w-3 fill-primary" /> {MELODY_COST} Credits
+                        <Zap className="h-3 w-3 fill-primary" /> {user?.email === ADMIN_EMAIL ? 'Unlimited' : `${MELODY_COST} Credits`}
                     </div>
                 </div>
                 <Textarea
