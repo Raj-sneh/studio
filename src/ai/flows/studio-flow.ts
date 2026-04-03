@@ -29,16 +29,27 @@ export const studioFlow = ai.defineFlow(
   },
   async (input) => {
     // 1. The Director Layer: Synthesize iterative feedback into a single high-fidelity prompt
-    const directorPrompt = `You are a cinematic AI director. 
-    Base Concept: "${input.prompt}"
-    User Style: "${input.style}"
-    Iterative Refinement Instructions: ${input.instructions?.length ? input.instructions.join(' -> ') : 'None'}
-
-    Your task is to synthesize these into a single, highly descriptive cinematic prompt for a video generation model.
-    Focus on motion, lighting, and consistency. Do NOT name specific copyrighted characters like Doraemon or Naruto unless the user explicitly requested them in the prompt.
-    Describe visual styles instead (e.g., '3D stylized CGI' or 'Traditional hand-drawn 2D').
+    // Now optimized for TEMPORAL SEQUENCING.
+    const directorPrompt = `You are a cinematic AI director for the Sargam Studio Prototype Animator.
     
-    Return ONLY the final descriptive paragraph.`;
+    BASE CONCEPT: "${input.prompt}"
+    USER STYLE: "${input.style}"
+    REFINEMENT LOG: ${input.instructions?.length ? input.instructions.join(' -> ') : 'Initial state only.'}
+
+    YOUR GOAL: Synthesize these into a single paragraph for a video generation model.
+    
+    TEMPORAL PROGRESSION RULES:
+    - If the instructions imply a sequence (e.g., "then", "after a while", "eventually"), you MUST describe the progression of motion.
+    - Start the description by establishing the base concept (e.g., "A duck swimming peacefully...").
+    - Then transition the description into the new action (e.g., "...and then, after a moment of swimming, the duck suddenly dives and emerges with a fish in its mouth.").
+    - Do NOT jump straight to the end state. Describe the change over time.
+    
+    VISUAL RULES:
+    - Focus on fluid motion, consistent characters, and lighting.
+    - Describe the visual style based on the protocol: ${input.style}.
+    - Do NOT name specific characters like Doraemon. Describe rounded forms and stylized CGI instead.
+    
+    Return ONLY the final descriptive narrative paragraph.`;
 
     const { text: masterPrompt } = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
@@ -46,15 +57,15 @@ export const studioFlow = ai.defineFlow(
     });
 
     const stylePrompts: Record<string, string> = {
-      '3d-render': 'high-quality stylized 3D CGI animation, vibrant surfaces, soft studio lighting, rounded character forms, smooth physics',
-      '2d-animation': 'traditional hand-drawn 2D pencil sketch animation, expressive line art, rough textured paper background, fluid motion',
-      'cinematic': 'hyper-realistic cinematic live-action shot, 8k resolution, professional film lighting, wide-angle lens',
-      'anime': 'modern high-budget action anime style, sharp line art, dynamic cel-shading, cinematic shonen aesthetic',
-      'pixel-art': 'detailed pixel art animation, 32-bit aesthetic, smooth frame-by-frame motion'
+      '3d-render': 'high-quality stylized 3D CGI feature film animation, vibrant saturated colors, soft rounded surfaces, studio lighting, smooth character physics',
+      '2d-animation': 'traditional 2D hand-drawn flipbook animation, pencil sketch aesthetic, fluid organic motion, expressive line art, textured background',
+      'cinematic': 'hyper-realistic cinematic live-action footage, 8k resolution, professional film lighting, wide-angle lens, realistic physics',
+      'anime': 'modern high-budget action shonen anime style, sharp line art, dynamic cinematic shading, intense motion blur effects',
+      'pixel-art': 'detailed 32-bit pixel art animation, vibrant palette, smooth frame-by-frame sprite motion'
     };
 
     const styleInstruction = stylePrompts[input.style] || stylePrompts['3d-render'];
-    const fullPrompt = `${masterPrompt}. Visual Style: ${styleInstruction}. The motion must be smooth and logical.`;
+    const fullPrompt = `${masterPrompt}. Style: ${styleInstruction}. The motion must be smooth, logical, and show a clear progression of events as described.`;
 
     // 2. The Render Layer: Call Veo 2.0
     let { operation } = await ai.generate({
@@ -105,7 +116,7 @@ export const studioFlow = ai.defineFlow(
 
     return {
       videoUrl: `data:video/mp4;base64,${base64Video}`,
-      description: `Neural render complete based on your iterative refinements.`,
+      description: `Neural render complete. The sequence follows your iterative refinements with narrative flow.`,
       finalSynthesizedPrompt: masterPrompt,
     };
   }
