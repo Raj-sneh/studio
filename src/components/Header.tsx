@@ -7,7 +7,7 @@ import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/fireb
 import { signOut } from "firebase/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap, LifeBuoy } from "lucide-react";
+import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap, LifeBuoy, MonitorPlay } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { doc } from "firebase/firestore";
@@ -16,7 +16,8 @@ import type { UserProfile } from "@/types";
 const navLinks = [
   { href: "/practice", label: "Practice", icon: Music },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
-  { href: "/suite", label: "AI Studio", icon: Wand2 },
+  { href: "/suite", label: "Music Suite", icon: Wand2 },
+  { href: "/studio", label: "Studio", icon: MonitorPlay },
   { href: "/blog", label: "Learn", icon: GraduationCap },
 ];
 
@@ -71,12 +72,12 @@ export default function Header() {
                   href={href}
                   className={cn(
                     "flex items-center gap-2 transition-all hover:text-primary relative group",
-                     pathname.startsWith(href) ? "text-primary" : "text-muted-foreground"
+                     pathname === href || pathname.startsWith(href + '/') ? "text-primary" : "text-muted-foreground"
                   )}
                 >
                   <Icon className="h-4 w-4" />
                   {label}
-                  {pathname.startsWith(href) && (
+                  {(pathname === href || pathname.startsWith(href + '/')) && (
                     <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-primary rounded-full" />
                   )}
                 </Link>

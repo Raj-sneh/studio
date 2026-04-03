@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -100,7 +101,7 @@ export function SargamStudio() {
                     <div className="space-y-2">
                         <h3 className="text-xl font-bold font-headline flex items-center gap-2">
                             <MonitorPlay className="h-5 w-5 text-primary" />
-                            Render Controls
+                            Animation Protocol
                         </h3>
                         <p className="text-xs text-muted-foreground">Configure your animation parameters using Prototyper AI.</p>
                     </div>
@@ -121,7 +122,7 @@ export function SargamStudio() {
                         </div>
 
                         <div className="space-y-3">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Visual Protocol</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Visual Style</label>
                             <div className="grid grid-cols-2 gap-3">
                                 {STYLES.map(style => (
                                     <button
@@ -166,7 +167,7 @@ export function SargamStudio() {
                     <div className="p-6 border-b border-white/5 flex items-center justify-between z-10">
                         <div>
                             <h4 className="text-sm font-bold uppercase tracking-widest text-primary flex items-center gap-2">
-                                <Film className="h-4 w-4" /> Neural Stage
+                                <Film className="h-4 w-4" /> Studio Stage
                             </h4>
                             <p className="text-[10px] text-muted-foreground">Status: {isGenerating ? 'Computing Frames...' : resultUrl ? 'Render Ready' : 'Idle'}</p>
                         </div>
@@ -187,7 +188,7 @@ export function SargamStudio() {
                                 </div>
                                 <div className="space-y-2">
                                     <p className="text-lg font-headline font-bold text-muted-foreground italic">Stage is dark.</p>
-                                    <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto">Describe your vision on the left to begin the neural rendering process.</p>
+                                    <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto">Describe your animation vision on the left to begin the neural rendering process.</p>
                                 </div>
                             </div>
                         )}
