@@ -27,10 +27,10 @@ export const studioFlow = ai.defineFlow(
   async (input) => {
     // Highly specific Style Protocols for User-Requested aesthetics
     const stylePrompts: Record<string, string> = {
-      '3d-render': 'a high-quality stylized 3D CGI animation in the style of modern Doraemon or Chhota Bheem movies, clean vibrant surfaces, soft studio lighting, rounded character forms, professional 3D animated feature film quality with smooth physics',
+      '3d-render': 'a high-quality stylized 3D CGI animation in the style of modern doreamon or chhota bheem movies, clean vibrant surfaces, soft studio lighting, rounded character forms, professional 3D animated feature film quality with smooth physics',
       '2d-animation': 'a traditional hand-drawn 2D pencil sketch animation, flipbook style, expressive graphite line art, rough textured paper background, fluid traditional cell animation motion',
       'cinematic': 'a hyper-realistic cinematic live-action shot, 8k resolution, photorealistic, professional film lighting, wide-angle lens, shot on IMAX',
-      'anime': 'modern high-budget action anime style reminiscent of Naruto Shippuden, sharp line art, dynamic cel-shading, cinematic shonen aesthetic, expressive and high-speed character motion',
+      'anime': 'modern high-budget action anime style reminiscent of naruto shippuden, sharp line art, dynamic cel-shading, cinematic shonen aesthetic, expressive and high-speed character motion',
       'pixel-art': 'high-quality detailed pixel art animation, 32-bit aesthetic, smooth frame-by-frame motion, vibrant palette'
     };
 
@@ -53,7 +53,7 @@ export const studioFlow = ai.defineFlow(
     }
 
     let attempts = 0;
-    const maxAttempts = 24; // 2 minutes max (5s intervals)
+    const maxAttempts = 22; // ~110s (slightly less than the 120s server limit)
 
     while (!operation.done && attempts < maxAttempts) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -62,7 +62,7 @@ export const studioFlow = ai.defineFlow(
     }
 
     if (!operation.done) {
-      throw new Error('The animation is taking longer than expected. Please check your history in a few minutes.');
+      throw new Error('Taking Longer Than Expected: The animation is being processed in the cloud. It will be ready in 1-2 minutes.');
     }
 
     if (operation.error) {

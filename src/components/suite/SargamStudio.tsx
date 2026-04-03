@@ -14,7 +14,8 @@ import {
     Palette,
     Download,
     Film,
-    Zap
+    Zap,
+    Clock
 } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,7 @@ export function SargamStudio() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [progress, setProgress] = useState(0);
     const [resultUrl, setResultUrl] = useState<string | null>(null);
+    const [errorState, setErrorState] = useState<'none' | 'timeout' | 'error'>('none');
 
     const handleGenerate = async () => {
         if (!user) {
@@ -52,9 +54,10 @@ export function SargamStudio() {
         setIsGenerating(true);
         setProgress(5);
         setResultUrl(null);
+        setErrorState('none');
 
         const interval = setInterval(() => {
-            setProgress(prev => (prev >= 90 ? 95 : prev + 1.5));
+            setProgress(prev => (prev >= 90 ? 95 : prev + 1.2));
         }, 2000);
 
         try {
@@ -80,6 +83,11 @@ export function SargamStudio() {
                 body: JSON.stringify({ prompt, style: selectedStyle })
             });
 
+            if (response.status === 504) {
+                setErrorState('timeout');
+                throw new Error("Render Taking Longer Than Expected: The neural cloud is processing your animation. It will be ready in 1-2 minutes. Please check your history shortly.");
+            }
+
             const contentType = response.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
                 const errorText = await response.text().catch(() => "Unknown Server Error");
@@ -94,10 +102,15 @@ export function SargamStudio() {
             toast({ title: "Render Complete!", description: "Your AI animation is ready." });
         } catch (e: any) {
             console.error("Studio Logic Error:", e);
-            const message = e.name === 'TypeError' && e.message === 'Failed to fetch'
-                ? "Could not connect to the animation engine. Please try again later."
-                : e.message;
-            toast({ title: "Studio Error", description: message, variant: "destructive" });
+            const isTimeout = e.message.includes("Taking Longer");
+            
+            toast({ 
+                title: isTimeout ? "Processing in Background" : "Studio Error", 
+                description: e.message, 
+                variant: isTimeout ? "default" : "destructive" 
+            });
+            
+            if (!isTimeout) setErrorState('error');
         } finally {
             clearInterval(interval);
             setIsGenerating(false);
@@ -181,7 +194,7 @@ export function SargamStudio() {
                             <h4 className="text-sm font-bold uppercase tracking-widest text-primary flex items-center gap-2">
                                 <Film className="h-4 w-4" /> Animation Canvas
                             </h4>
-                            <p className="text-[10px] text-muted-foreground">Status: {isGenerating ? 'Rendering Frames...' : resultUrl ? 'Ready' : 'Idle'}</p>
+                            <p className="text-[10px] text-muted-foreground">Status: {isGenerating ? 'Rendering Frames...' : resultUrl ? 'Ready' : errorState === 'timeout' ? 'Still Synthesizing' : 'Idle'}</p>
                         </div>
                         {resultUrl && (
                             <Button variant="outline" size="sm" className="rounded-full gap-2 border-primary/20 hover:bg-primary/10 transition-colors" asChild>
@@ -193,7 +206,7 @@ export function SargamStudio() {
                     </div>
 
                     <div className="flex-1 flex flex-col items-center justify-center p-8 z-10">
-                        {!isGenerating && !resultUrl && (
+                        {!isGenerating && !resultUrl && errorState === 'none' && (
                             <div className="text-center space-y-6">
                                 <div className="h-24 w-24 rounded-full bg-muted/10 border border-white/5 flex items-center justify-center mx-auto opacity-30 group-hover:opacity-50 transition-opacity">
                                     <MonitorPlay className="h-10 w-10" />
@@ -221,6 +234,23 @@ export function SargamStudio() {
                                         <span>Synthesis Progress</span>
                                         <span className="text-primary">{Math.round(progress)}%</span>
                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {!isGenerating && errorState === 'timeout' && (
+                            <div className="w-full max-w-md space-y-6 text-center animate-in zoom-in-95 duration-500">
+                                <div className="h-24 w-24 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
+                                    <Clock className="h-10 w-10 text-primary animate-pulse" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h3 className="text-xl font-bold font-headline">Neural Synthesis Ongoing</h3>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        The animation is still being rendered in the neural cloud. High-fidelity {selectedStyle} frames take approximately 2-3 minutes.
+                                    </p>
+                                    <p className="text-[10px] text-primary font-bold uppercase tracking-widest mt-4">
+                                        Please do not re-submit. Check your library in a moment.
+                                    </p>
                                 </div>
                             </div>
                         )}

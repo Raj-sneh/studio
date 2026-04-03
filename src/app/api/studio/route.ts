@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { generateStudioAnimation } from '@/ai/flows/studio-flow';
 
-export const maxDuration = 120; // 2 minute timeout for video generation
+export const maxDuration = 120; // 2 minute timeout for video generation (Max allowed)
 
 /**
  * Main Studio API route.
  * Orchestrates the animation generation through Genkit flows.
+ * Optimized for long-running neural video tasks.
  */
 export async function POST(req: Request) {
   try {
@@ -20,15 +21,19 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Studio API Error:", error);
     
-    // Check if it's a timeout error
-    const isTimeout = error.message?.toLowerCase().includes('timeout') || error.message?.toLowerCase().includes('deadline');
+    // Check if it's a timeout or platform-level deadline error
+    const isTimeout = error.message?.toLowerCase().includes('timeout') || 
+                      error.message?.toLowerCase().includes('deadline') ||
+                      error.message?.toLowerCase().includes('taking longer');
     
     return NextResponse.json(
       { 
         error: "Neural Studio Error", 
-        message: isTimeout ? "The animation is taking a long time. Please wait a few moments and check your history." : error.message 
+        message: isTimeout 
+          ? "The animation is taking a long time to render in the cloud. Please wait a few moments and check your library shortly." 
+          : error.message 
       },
-      { status: 500 }
+      { status: isTimeout ? 504 : 500 }
     );
   }
 }
