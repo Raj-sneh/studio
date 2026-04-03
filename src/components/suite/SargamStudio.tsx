@@ -1,24 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { 
     Loader2, 
-    Video, 
     Sparkles, 
-    Zap, 
     MonitorPlay, 
     Layers, 
     Box, 
     Palette,
     Download,
     Film,
-    ArrowRight,
-    Info
+    Zap
 } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
@@ -73,7 +69,7 @@ export function SargamStudio() {
 
                 if (!creditRes.ok) {
                     const contentType = creditRes.headers.get("content-type");
-                    const errData = contentType && contentType.includes("application/json") ? await creditRes.json() : { error: "Credit system offline." };
+                    const errData = contentType && contentType.includes("application/json") ? await creditRes.json() : { error: "Credit system is busy." };
                     throw new Error(errData.error || "Insufficient credits.");
                 }
             }
@@ -86,7 +82,7 @@ export function SargamStudio() {
 
             const contentType = response.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
-                throw new Error("Neural Studio is currently under heavy load. Please try again in a few minutes.");
+                throw new Error("Neural Studio is currently under high demand. Please try again in a moment.");
             }
 
             const data = await response.json();

@@ -1,12 +1,11 @@
 'use server';
 /**
  * @fileOverview Sargam Studio AI Animation Flow.
- * Uses Google Veo 2.0 models to generate cinematic animations from text prompts.
+ * Uses Google Veo 2.0 models with expert prompt engineering for style accuracy.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 
 const StudioInputSchema = z.object({
   prompt: z.string().describe('Description of the animation to generate.'),
@@ -26,7 +25,17 @@ export const studioFlow = ai.defineFlow(
     }),
   },
   async (input) => {
-    const fullPrompt = `A high-quality ${input.style} of: ${input.prompt}. Ensure smooth motion and professional lighting.`;
+    // Advanced Style Protocols for "Realistic Trained AI" results
+    const stylePrompts: Record<string, string> = {
+      '3d-render': 'a high-fidelity 3D digital render with ray-traced lighting, octane render style, extremely detailed textures, and cinematic depth of field',
+      '2d-animation': 'a professional 2D hand-drawn animation style, cel-shaded, fluid motion, high-quality line art, reminiscent of modern high-budget animation studios',
+      'cinematic': 'a hyper-realistic cinematic live-action shot, 8k resolution, photorealistic, professional film lighting, wide-angle lens, shot on IMAX',
+      'anime': 'a high-budget modern anime style, dynamic lighting, expressive character motion, and vibrant atmospheric effects with sharp cinematic focus',
+      'pixel-art': 'high-quality detailed pixel art animation, 32-bit aesthetic, smooth frame-by-frame motion, vibrant palette'
+    };
+
+    const styleInstruction = stylePrompts[input.style] || stylePrompts['3d-render'];
+    const fullPrompt = `Generate an animation of: ${input.prompt}. Style: ${styleInstruction}. The motion must be smooth, logical, and consistent. The lighting and atmosphere should be professional and immersive. Ensure the output looks like a masterfully rendered neural masterpiece.`;
 
     // Use string identifier for model resolution safety
     let { operation } = await ai.generate({
@@ -53,7 +62,7 @@ export const studioFlow = ai.defineFlow(
     }
 
     if (!operation.done) {
-      throw new Error('The animation is taking longer than expected. Please try again or check history later.');
+      throw new Error('The animation is taking longer than expected. Please check your history in a few minutes.');
     }
 
     if (operation.error) {
