@@ -25,12 +25,12 @@ export const studioFlow = ai.defineFlow(
     }),
   },
   async (input) => {
-    // Highly specific Style Protocols for User-Requested aesthetics
+    // Highly specific Style Protocols focusing on visual characteristics rather than specific characters
     const stylePrompts: Record<string, string> = {
-      '3d-render': 'a high-quality stylized 3D CGI animation in the style of modern doreamon or chhota bheem movies, clean vibrant surfaces, soft studio lighting, rounded character forms, professional 3D animated feature film quality with smooth physics',
+      '3d-render': 'a high-quality stylized 3D CGI animation, feature film aesthetic, clean vibrant surfaces, soft studio lighting, rounded character forms, professional 3D animated feature film quality with smooth physics, vivid colors',
       '2d-animation': 'a traditional hand-drawn 2D pencil sketch animation, flipbook style, expressive graphite line art, rough textured paper background, fluid traditional cell animation motion',
       'cinematic': 'a hyper-realistic cinematic live-action shot, 8k resolution, photorealistic, professional film lighting, wide-angle lens, shot on IMAX',
-      'anime': 'modern high-budget action anime style reminiscent of naruto shippuden, sharp line art, dynamic cel-shading, cinematic shonen aesthetic, expressive and high-speed character motion',
+      'anime': 'modern high-budget action anime style, sharp professional line art, dynamic cel-shading, cinematic shonen aesthetic, expressive and high-speed character motion, vibrant atmospheric lighting',
       'pixel-art': 'high-quality detailed pixel art animation, 32-bit aesthetic, smooth frame-by-frame motion, vibrant palette'
     };
 
