@@ -82,7 +82,8 @@ export function SargamStudio() {
 
             const contentType = response.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
-                throw new Error("Neural Studio is currently under high demand. Please check your connection and try again.");
+                const errorText = await response.text().catch(() => "Unknown Server Error");
+                throw new Error(`Neural Studio Connectivity Issue (Status ${response.status}): ${errorText.substring(0, 50)}...`);
             }
 
             const data = await response.json();
