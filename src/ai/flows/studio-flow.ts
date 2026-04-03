@@ -1,7 +1,7 @@
 'use server';
 /**
  * @fileOverview Sargam Studio AI Animation Flow.
- * Uses Google Veo 2.0 models with expert prompt engineering for style accuracy.
+ * Uses Google Veo 2.0 models with expert prompt engineering for specific animation aesthetics.
  */
 
 import { ai } from '@/ai/genkit';
@@ -25,17 +25,17 @@ export const studioFlow = ai.defineFlow(
     }),
   },
   async (input) => {
-    // Advanced Style Protocols for "Realistic Trained AI" results
+    // Highly specific Style Protocols for User-Requested aesthetics
     const stylePrompts: Record<string, string> = {
-      '3d-render': 'a high-fidelity 3D digital render with ray-traced lighting, octane render style, extremely detailed textures, and cinematic depth of field',
-      '2d-animation': 'a professional 2D hand-drawn animation style, cel-shaded, fluid motion, high-quality line art, reminiscent of modern high-budget animation studios',
+      '3d-render': 'a high-quality stylized 3D CGI animation in the style of modern Doraemon or Chhota Bheem movies, clean vibrant surfaces, soft studio lighting, rounded character forms, professional 3D animated feature film quality with smooth physics',
+      '2d-animation': 'a traditional hand-drawn 2D pencil sketch animation, flipbook style, expressive graphite line art, rough textured paper background, fluid traditional cell animation motion',
       'cinematic': 'a hyper-realistic cinematic live-action shot, 8k resolution, photorealistic, professional film lighting, wide-angle lens, shot on IMAX',
-      'anime': 'a high-budget modern anime style, dynamic lighting, expressive character motion, and vibrant atmospheric effects with sharp cinematic focus',
+      'anime': 'modern high-budget action anime style reminiscent of Naruto Shippuden, sharp line art, dynamic cel-shading, cinematic shonen aesthetic, expressive and high-speed character motion',
       'pixel-art': 'high-quality detailed pixel art animation, 32-bit aesthetic, smooth frame-by-frame motion, vibrant palette'
     };
 
     const styleInstruction = stylePrompts[input.style] || stylePrompts['3d-render'];
-    const fullPrompt = `Generate an animation of: ${input.prompt}. Style: ${styleInstruction}. The motion must be smooth, logical, and consistent. The lighting and atmosphere should be professional and immersive. Ensure the output looks like a masterfully rendered neural masterpiece.`;
+    const fullPrompt = `Generate a high-quality animation of: ${input.prompt}. Visual Style: ${styleInstruction}. The motion must be smooth, logical, and consistent with the specified art style. Ensure the output looks like a masterfully rendered neural production.`;
 
     // Use string identifier for model resolution safety
     let { operation } = await ai.generate({
@@ -44,7 +44,7 @@ export const studioFlow = ai.defineFlow(
       config: {
         aspectRatio: input.aspectRatio as any,
         durationSeconds: 5,
-        personGeneration: 'allow_adult',
+        personGeneration: 'allow_all',
       },
     });
 

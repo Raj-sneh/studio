@@ -23,10 +23,10 @@ const STUDIO_COST = 50;
 const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com', 'snehkumatverma2011@gmail.com'];
 
 const STYLES = [
-    { id: '3d-render', label: '3D Studio', icon: Box, description: 'Hyper-realistic neural 3D animation.' },
-    { id: '2d-animation', label: '2D Cartoon', icon: Layers, description: 'Fluid hand-drawn style animation.' },
+    { id: '3d-render', label: '3D Movie', icon: Box, description: 'High-quality CGI like Doraemon or Chhota Bheem.' },
+    { id: '2d-animation', label: '2D Flipbook', icon: Layers, description: 'Hand-drawn pencil sketch animation.' },
     { id: 'cinematic', label: 'Cinematic', icon: Film, description: 'Movie-grade photorealistic motion.' },
-    { id: 'anime', label: 'Anime', icon: Palette, description: 'Modern high-action anime style.' }
+    { id: 'anime', label: 'Anime (Shonen)', icon: Palette, description: 'Sharp action style like Naruto.' }
 ];
 
 export function SargamStudio() {
@@ -118,7 +118,7 @@ export function SargamStudio() {
                                 <span className="text-primary font-bold">{user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${STUDIO_COST} Credits`}</span>
                             </label>
                             <Textarea 
-                                placeholder="Describe your animation vision... e.g. A majestic dragon soaring over a futuristic neon city at night."
+                                placeholder="Describe your animation vision... e.g. A character practicing piano in a cozy room."
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
                                 disabled={isGenerating}
@@ -142,7 +142,10 @@ export function SargamStudio() {
                                         )}
                                     >
                                         <style.icon className={cn("h-5 w-5 transition-transform group-hover:scale-110", selectedStyle === style.id ? "text-primary" : "text-muted-foreground")} />
-                                        <span className={cn("text-[10px] font-black uppercase tracking-tighter", selectedStyle === style.id ? "text-foreground" : "text-muted-foreground")}>{style.label}</span>
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className={cn("text-[10px] font-black uppercase tracking-tighter", selectedStyle === style.id ? "text-foreground" : "text-muted-foreground")}>{style.label}</span>
+                                            <span className="text-[8px] text-muted-foreground/60 leading-tight hidden sm:block">{style.description}</span>
+                                        </div>
                                     </button>
                                 ))}
                             </div>
@@ -156,7 +159,7 @@ export function SargamStudio() {
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                 {isGenerating ? (
-                                    <><Loader2 className="animate-spin mr-2 h-6 w-6" /> Computing...</>
+                                    <><Loader2 className="animate-spin mr-2 h-6 w-6" /> Rendering Frames...</>
                                 ) : (
                                     <><Sparkles className="mr-2 h-6 w-6 fill-primary-foreground" /> Generate Animation</>
                                 )}
@@ -204,7 +207,7 @@ export function SargamStudio() {
                                     <Loader2 className="h-12 w-12 animate-spin text-primary mb-6" />
                                     <div className="space-y-1">
                                         <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Prototyper AI Rendering</p>
-                                        <p className="text-[10px] text-muted-foreground italic">Assembling high-fidelity motion vectors...</p>
+                                        <p className="text-[10px] text-muted-foreground italic">Synthesizing {selectedStyle} protocol...</p>
                                     </div>
                                 </div>
                                 <div className="space-y-3">
@@ -235,7 +238,7 @@ export function SargamStudio() {
                                     <div className="space-y-1">
                                         <p className="text-xs font-bold uppercase tracking-tight">Render Optimized: {selectedStyle}</p>
                                         <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                                            "Prototyper AI has successfully synthesized your animation. Cinematic lighting and fluid motion have been applied according to your style protocol."
+                                            "Prototyper AI has successfully applied the neural weights for your animation. Frames optimized for high-budget {selectedStyle} aesthetics."
                                         </p>
                                     </div>
                                 </div>
