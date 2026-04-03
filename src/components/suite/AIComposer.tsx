@@ -18,7 +18,7 @@ import { collection, serverTimestamp } from 'firebase/firestore';
 const Piano = lazy(() => import('@/components/Piano'));
 
 const MELODY_COST = 5;
-const ADMIN_EMAIL = 'snehkumarverma2011@gmail.com';
+const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com', 'snehkumatverma2011@gmail.com'];
 
 function InstrumentLoader() {
   return (
@@ -95,7 +95,7 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
         setStatusText('Checking credits...');
 
         try {
-            const isAdmin = user.email === ADMIN_EMAIL;
+            const isAdmin = user.email && ADMIN_EMAILS.includes(user.email);
             
             if (!isAdmin) {
                 const creditRes = await fetch('/api/credits/use', {
@@ -105,8 +105,9 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
                 });
 
                 if (!creditRes.ok) {
-                    const errorData = await creditRes.json();
-                    toast({ title: "Insufficient Credits", description: errorData.error, variant: "destructive" });
+                    const contentType = creditRes.headers.get("content-type");
+                    const errData = contentType && contentType.includes("application/json") ? await creditRes.json() : { error: "Credit system offline." };
+                    toast({ title: "Insufficient Credits", description: errData.error, variant: "destructive" });
                     setGenerationState('idle');
                     return;
                 }
@@ -233,7 +234,7 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
                 <div className="flex justify-between items-center px-1">
                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Prompt Description</label>
                     <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary">
-                        <Zap className="h-3 w-3 fill-primary" /> {user?.email === ADMIN_EMAIL ? 'Unlimited' : `${MELODY_COST} Credits`}
+                        <Zap className="h-3 w-3 fill-primary" /> {user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${MELODY_COST} Credits`}
                     </div>
                 </div>
                 <Textarea
@@ -245,7 +246,7 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
                 />
                 
                 <div className="flex flex-col sm:flex-row gap-2">
-                    <Button onClick={() => handleGeneration(false)} disabled={generationState === 'loading'} className="w-full sm:w-auto h-12 rounded-xl font-bold shadow-xl shadow-primary/10">
+                    <Button onClick={() => handleGeneration(false)} disabled={generationState === 'loading'} className="w-full sm:w-auto h-12 rounded-xl font-bold shadow-xl shadow-primary/20">
                         {generationState === 'loading' ? <Loader2 className="animate-spin mr-2" /> : <Music className="mr-2 h-4 w-4" />}
                         {generationState === 'generated' ? 'Generate New' : 'Generate'}
                     </Button>

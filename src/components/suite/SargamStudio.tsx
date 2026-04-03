@@ -24,7 +24,7 @@ import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
 
 const STUDIO_COST = 50;
-const ADMIN_EMAIL = 'snehkumarverma2011@gmail.com';
+const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com', 'snehkumatverma2011@gmail.com'];
 
 const STYLES = [
     { id: '3d-render', label: '3D Studio', icon: Box, description: 'Hyper-realistic neural 3D animation.' },
@@ -57,13 +57,12 @@ export function SargamStudio() {
         setProgress(5);
         setResultUrl(null);
 
-        // Progress simulation for user engagement
         const interval = setInterval(() => {
             setProgress(prev => (prev >= 90 ? 95 : prev + 1.5));
         }, 2000);
 
         try {
-            const isAdmin = user.email === ADMIN_EMAIL;
+            const isAdmin = user.email && ADMIN_EMAILS.includes(user.email);
 
             if (!isAdmin) {
                 const creditRes = await fetch('/api/credits/use', {
@@ -73,8 +72,9 @@ export function SargamStudio() {
                 });
 
                 if (!creditRes.ok) {
-                    const err = await creditRes.json();
-                    throw new Error(err.error || "Insufficient credits.");
+                    const contentType = creditRes.headers.get("content-type");
+                    const errData = contentType && contentType.includes("application/json") ? await creditRes.json() : { error: "Credit system offline." };
+                    throw new Error(errData.error || "Insufficient credits.");
                 }
             }
 
@@ -83,6 +83,11 @@ export function SargamStudio() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt, style: selectedStyle })
             });
+
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("Neural Studio is currently under heavy load. Please try again in a few minutes.");
+            }
 
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || "Neural Studio failed.");
@@ -101,7 +106,6 @@ export function SargamStudio() {
     return (
         <div className="p-6 md:p-12 space-y-10 animate-in fade-in duration-1000">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-                {/* Controls Panel */}
                 <div className="lg:col-span-1 space-y-8">
                     <div className="space-y-2">
                         <h3 className="text-xl font-bold font-headline flex items-center gap-2">
@@ -115,7 +119,7 @@ export function SargamStudio() {
                         <div className="space-y-3">
                             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1 flex justify-between items-center">
                                 Visual Description
-                                <span className="text-primary font-bold">{user?.email === ADMIN_EMAIL ? 'Unlimited' : `${STUDIO_COST} Credits`}</span>
+                                <span className="text-primary font-bold">{user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${STUDIO_COST} Credits`}</span>
                             </label>
                             <Textarea 
                                 placeholder="Describe your animation vision... e.g. A majestic dragon soaring over a futuristic neon city at night."
@@ -165,7 +169,6 @@ export function SargamStudio() {
                     </div>
                 </div>
 
-                {/* Preview Panel */}
                 <div className="lg:col-span-2 min-h-[500px] flex flex-col bg-black/20 rounded-[2rem] border border-white/5 relative overflow-hidden group">
                     <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none" />
                     

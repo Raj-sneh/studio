@@ -1,9 +1,7 @@
-
 'use server';
 /**
  * @fileOverview Sargam Studio AI Animation Flow.
- * Uses Google Veo models to generate 2D and 3D animations from text prompts.
- * Downgraded to Veo 2.0 for broader environment compatibility.
+ * Uses Google Veo 2.0 models to generate cinematic animations from text prompts.
  */
 
 import { ai } from '@/ai/genkit';
@@ -30,9 +28,9 @@ export const studioFlow = ai.defineFlow(
   async (input) => {
     const fullPrompt = `A high-quality ${input.style} of: ${input.prompt}. Ensure smooth motion and professional lighting.`;
 
-    // Initialize Video Generation Operation
+    // Use string identifier for model resolution safety
     let { operation } = await ai.generate({
-      model: googleAI.model('veo-2.0-generate-001'),
+      model: 'googleai/veo-2.0-generate-001',
       prompt: fullPrompt,
       config: {
         aspectRatio: input.aspectRatio as any,
@@ -45,8 +43,6 @@ export const studioFlow = ai.defineFlow(
       throw new Error('Neural engine failed to initiate the rendering operation.');
     }
 
-    // Polling logic for Long Running Operation (LRO)
-    // Video generation typically takes 30-60 seconds.
     let attempts = 0;
     const maxAttempts = 24; // 2 minutes max (5s intervals)
 
@@ -69,8 +65,6 @@ export const studioFlow = ai.defineFlow(
       throw new Error('Neural engine completed but no video output was found.');
     }
 
-    // Fetch the video and convert to Data URI for immediate client delivery
-    // Note: In production, you would upload this to Firebase Storage.
     const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY;
     const videoDownloadResponse = await fetch(`${videoPart.media.url}&key=${apiKey}`);
     

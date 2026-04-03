@@ -28,7 +28,7 @@ const Piano = lazy(() => import('@/components/Piano'));
 
 const BGM_COST = 10;
 const MAX_FILE_SIZE_MB = 5;
-const ADMIN_EMAIL = 'snehkumarverma2011@gmail.com';
+const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com', 'snehkumatverma2011@gmail.com'];
 
 function InstrumentLoader() {
   return (
@@ -99,7 +99,7 @@ export function BgmGenerator() {
         stopPlayback();
 
         try {
-            const isAdmin = user.email === ADMIN_EMAIL;
+            const isAdmin = user.email && ADMIN_EMAILS.includes(user.email);
 
             if (!isAdmin) {
                 const creditRes = await fetch('/api/credits/use', {
@@ -109,8 +109,9 @@ export function BgmGenerator() {
                 });
 
                 if (!creditRes.ok) {
-                    const err = await creditRes.json();
-                    throw new Error(err.error || "Insufficient credits.");
+                    const contentType = creditRes.headers.get("content-type");
+                    const errData = contentType && contentType.includes("application/json") ? await creditRes.json() : { error: "Credit engine offline." };
+                    throw new Error(errData.error || "Insufficient credits.");
                 }
             }
 
@@ -234,7 +235,7 @@ export function BgmGenerator() {
                                 {isGenerating ? (
                                     <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Composing Neural BGM...</>
                                 ) : (
-                                    <><BrainCircuit className="mr-2 h-6 w-6" /> Compose Background Track ({user?.email === ADMIN_EMAIL ? 'Unlimited' : `${BGM_COST} Credits`})</>
+                                    <><BrainCircuit className="mr-2 h-6 w-6" /> Compose Background Track ({user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${BGM_COST} Credits`})</>
                                 )}
                             </Button>
                         </div>
