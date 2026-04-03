@@ -57,15 +57,15 @@ export const studioFlow = ai.defineFlow(
     });
 
     const stylePrompts: Record<string, string> = {
-      '3d-render': 'high-quality stylized 3D CGI feature film animation, vibrant saturated colors, soft rounded surfaces, studio lighting, smooth character physics',
-      '2d-animation': 'traditional 2D hand-drawn flipbook animation, pencil sketch aesthetic, fluid organic motion, expressive line art, textured background',
-      'cinematic': 'hyper-realistic cinematic live-action footage, 8k resolution, professional film lighting, wide-angle lens, realistic physics',
-      'anime': 'modern high-budget action shonen anime style, sharp line art, dynamic cinematic shading, intense motion blur effects',
+      '3d-render': 'high-quality stylized 3D CGI feature film animation, vibrant saturated colors, soft rounded surfaces, studio lighting, smooth character physics, doreamon and chhota bheem movie quality',
+      '2d-animation': 'traditional 2D hand-drawn flipbook animation, pencil sketch aesthetic, fluid organic motion, expressive line art, textured background, classic studio cartoon style',
+      'cinematic': 'hyper-realistic cinematic live-action footage, 8k resolution, professional film lighting, wide-angle lens, realistic physics, IMAX quality',
+      'anime': 'modern high-budget action shonen anime style, sharp line art, dynamic cinematic shading, intense motion blur effects, naruto shippuden production quality',
       'pixel-art': 'detailed 32-bit pixel art animation, vibrant palette, smooth frame-by-frame sprite motion'
     };
 
     const styleInstruction = stylePrompts[input.style] || stylePrompts['3d-render'];
-    const fullPrompt = `${masterPrompt}. Style: ${styleInstruction}. The motion must be smooth, logical, and show a clear progression of events as described.`;
+    const fullPrompt = `${masterPrompt}. Style: ${styleInstruction}. Motion must be realistic, high-quality, smooth, and show a clear progression of events as described.`;
 
     // 2. The Render Layer: Call Veo 2.0 with optimized duration
     let { operation } = await ai.generate({
@@ -73,7 +73,7 @@ export const studioFlow = ai.defineFlow(
       prompt: fullPrompt,
       config: {
         aspectRatio: input.aspectRatio as any,
-        durationSeconds: 8, // Using the max supported duration for high-fidelity clips
+        durationSeconds: 8,
         personGeneration: 'allow_all',
       },
     });
@@ -83,7 +83,7 @@ export const studioFlow = ai.defineFlow(
     }
 
     let attempts = 0;
-    // Increased to 120 attempts (10 minutes) to support the user's requested capacity
+    // Max 10 minutes (120 attempts * 5 seconds)
     const maxAttempts = 120; 
 
     while (!operation.done && attempts < maxAttempts) {

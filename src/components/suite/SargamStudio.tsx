@@ -68,11 +68,10 @@ export function SargamStudio() {
             : instructions;
 
         setIsGenerating(true);
-        setProgress(2); // Start small for long renders
+        setProgress(2);
         setErrorState('none');
         if (!isRefinementMode) setIsRefinementMode(true);
 
-        // Optimized interval for a 10-minute max window
         const interval = setInterval(() => {
             setProgress(prev => (prev >= 98 ? 99 : prev + 0.5));
         }, 3000);
@@ -104,9 +103,14 @@ export function SargamStudio() {
                 })
             });
 
-            if (response.status === 504) {
+            // Handle Network Timeouts Gracefully (504/502)
+            if (response.status === 504 || response.status === 502) {
                 setErrorState('timeout');
-                throw new Error("Render Taking Longer Than Expected: The animation is being processed in the cloud. High-fidelity renders can take up to 10 minutes.");
+                toast({ 
+                    title: "Neural Engine Processing", 
+                    description: "High-fidelity rendering is ongoing in the cloud. This can take up to 10 minutes." 
+                });
+                return; // Exit without throwing to keep UI stable
             }
 
             const contentType = response.headers.get("content-type");
@@ -124,13 +128,8 @@ export function SargamStudio() {
             toast({ title: "Render Complete!", description: "Iteration successful." });
         } catch (e: any) {
             console.error("Studio Logic Error:", e);
-            const isTimeout = e.message.includes("Taking Longer") || e.message.includes("10 minutes");
-            toast({ 
-                title: isTimeout ? "Processing in Background" : "Studio Error", 
-                description: e.message, 
-                variant: isTimeout ? "default" : "destructive" 
-            });
-            if (!isTimeout) setErrorState('error');
+            toast({ title: "Studio Error", description: e.message, variant: "destructive" });
+            setErrorState('error');
         } finally {
             clearInterval(interval);
             setIsGenerating(false);
@@ -177,7 +176,7 @@ export function SargamStudio() {
                                     <span className="text-primary font-bold">{user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${STUDIO_COST} Credits`}</span>
                                 </label>
                                 <Textarea 
-                                    placeholder="e.g. A character practicing piano in a cozy room."
+                                    placeholder="e.g. A duck swimming in a pond."
                                     value={prompt}
                                     onChange={(e) => setPrompt(e.target.value)}
                                     className="min-h-[150px] rounded-[1.5rem] bg-muted/20 border-primary/10 focus:border-primary/30 transition-all resize-none p-4"
@@ -262,7 +261,7 @@ export function SargamStudio() {
                             <div>
                                 <h4 className="text-sm font-bold uppercase tracking-widest text-primary">Neural Canvas</h4>
                                 <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">
-                                    {isGenerating ? 'Synthesizing Protocol...' : resultUrl ? 'Frame Sequence Ready' : 'Idle'}
+                                    {isGenerating ? 'Synthesizing Protocol...' : resultUrl ? 'Frame Sequence Ready' : errorState === 'timeout' ? 'Background Rendering' : 'Idle'}
                                 </p>
                             </div>
                         </div>
@@ -322,7 +321,7 @@ export function SargamStudio() {
                                     />
                                 </div>
                                 
-                                {/* Assistant Command Prompt (Visible only after initial render) */}
+                                {/* Assistant Command Prompt */}
                                 <div className="w-full max-w-2xl mt-8 animate-in slide-in-from-bottom-4 duration-1000">
                                     <div className="relative group/input">
                                         <div className="absolute inset-0 bg-primary/20 blur-xl opacity-0 group-focus-within/input:opacity-50 transition-opacity" />
@@ -363,9 +362,13 @@ export function SargamStudio() {
                                 <div className="space-y-2">
                                     <h3 className="text-xl font-bold font-headline">Neural Synthesis Ongoing</h3>
                                     <p className="text-sm text-muted-foreground leading-relaxed">
-                                        The animation is still being rendered in the cloud. Professional {selectedStyle} frames can take up to 10 minutes for high-fidelity output.
+                                        The animation is still being rendered in the cloud. Professional {selectedStyle} frames can take up to 10 minutes for high-fidelity output. 
+                                        Please stay on this page or check your gallery in a few minutes.
                                     </p>
-                                    <Button variant="outline" onClick={() => setResultUrl(null)} className="rounded-xl mt-4">Reset Canvas</Button>
+                                    <div className="flex gap-2 justify-center">
+                                        <Button variant="outline" onClick={() => handleGenerate()} className="rounded-xl mt-4">Refresh Status</Button>
+                                        <Button variant="ghost" onClick={() => setResultUrl(null)} className="rounded-xl mt-4">Clear Canvas</Button>
+                                    </div>
                                 </div>
                             </div>
                         )}
