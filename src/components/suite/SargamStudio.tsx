@@ -68,13 +68,14 @@ export function SargamStudio() {
             : instructions;
 
         setIsGenerating(true);
-        setProgress(5);
+        setProgress(2); // Start small for long renders
         setErrorState('none');
         if (!isRefinementMode) setIsRefinementMode(true);
 
+        // Optimized interval for a 10-minute max window
         const interval = setInterval(() => {
-            setProgress(prev => (prev >= 90 ? 95 : prev + 1.2));
-        }, 2000);
+            setProgress(prev => (prev >= 98 ? 99 : prev + 0.5));
+        }, 3000);
 
         try {
             const isAdmin = user.email && ADMIN_EMAILS.includes(user.email);
@@ -105,7 +106,7 @@ export function SargamStudio() {
 
             if (response.status === 504) {
                 setErrorState('timeout');
-                throw new Error("Render Taking Longer Than Expected: The animation is being processed in the cloud. Check your library in a moment.");
+                throw new Error("Render Taking Longer Than Expected: The animation is being processed in the cloud. High-fidelity renders can take up to 10 minutes.");
             }
 
             const contentType = response.headers.get("content-type");
@@ -123,7 +124,7 @@ export function SargamStudio() {
             toast({ title: "Render Complete!", description: "Iteration successful." });
         } catch (e: any) {
             console.error("Studio Logic Error:", e);
-            const isTimeout = e.message.includes("Taking Longer");
+            const isTimeout = e.message.includes("Taking Longer") || e.message.includes("10 minutes");
             toast({ 
                 title: isTimeout ? "Processing in Background" : "Studio Error", 
                 description: e.message, 
@@ -212,6 +213,10 @@ export function SargamStudio() {
                                 <Sparkles className="mr-2 h-6 w-6 fill-primary-foreground" /> 
                                 Initialize Render
                             </Button>
+                            
+                            <p className="text-[9px] text-center text-muted-foreground uppercase tracking-widest font-bold px-4">
+                                Supports high-fidelity renders up to 10 minutes in the neural cloud.
+                            </p>
                         </div>
                     ) : (
                         <div className="space-y-6 animate-in slide-in-from-right duration-500">
@@ -301,6 +306,7 @@ export function SargamStudio() {
                                         <span className="text-primary">{Math.round(progress)}%</span>
                                     </div>
                                 </div>
+                                <p className="text-[10px] text-muted-foreground italic">Complex cinematic sequences can take several minutes to finalize.</p>
                             </div>
                         )}
 
@@ -357,7 +363,7 @@ export function SargamStudio() {
                                 <div className="space-y-2">
                                     <h3 className="text-xl font-bold font-headline">Neural Synthesis Ongoing</h3>
                                     <p className="text-sm text-muted-foreground leading-relaxed">
-                                        The animation is still being rendered in the cloud. High-fidelity {selectedStyle} frames take approximately 2-3 minutes.
+                                        The animation is still being rendered in the cloud. Professional {selectedStyle} frames can take up to 10 minutes for high-fidelity output.
                                     </p>
                                     <Button variant="outline" onClick={() => setResultUrl(null)} className="rounded-xl mt-4">Reset Canvas</Button>
                                 </div>

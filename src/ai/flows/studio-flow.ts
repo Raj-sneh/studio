@@ -3,6 +3,7 @@
  * @fileOverview Sargam Studio AI Animation Flow - Prototype Animator Edition.
  * Uses a "Director" LLM to synthesize iterative user modifications before 
  * rendering with Google Veo 2.0.
+ * Updated to support extended render windows for high-fidelity cinematic output.
  */
 
 import { ai } from '@/ai/genkit';
@@ -29,7 +30,6 @@ export const studioFlow = ai.defineFlow(
   },
   async (input) => {
     // 1. The Director Layer: Synthesize iterative feedback into a single high-fidelity prompt
-    // Now optimized for TEMPORAL SEQUENCING.
     const directorPrompt = `You are a cinematic AI director for the Sargam Studio Prototype Animator.
     
     BASE CONCEPT: "${input.prompt}"
@@ -42,12 +42,12 @@ export const studioFlow = ai.defineFlow(
     - If the instructions imply a sequence (e.g., "then", "after a while", "eventually"), you MUST describe the progression of motion.
     - Start the description by establishing the base concept (e.g., "A duck swimming peacefully...").
     - Then transition the description into the new action (e.g., "...and then, after a moment of swimming, the duck suddenly dives and emerges with a fish in its mouth.").
-    - Do NOT jump straight to the end state. Describe the change over time.
+    - Describe the change over time to ensure a fluid narrative within the clip.
     
     VISUAL RULES:
-    - Focus on fluid motion, consistent characters, and lighting.
+    - Focus on fluid motion, consistent characters, and high-fidelity lighting.
     - Describe the visual style based on the protocol: ${input.style}.
-    - Do NOT name specific characters like Doraemon. Describe rounded forms and stylized CGI instead.
+    - Focus on materials and textures (e.g. rounded 3D forms, hand-drawn lines).
     
     Return ONLY the final descriptive narrative paragraph.`;
 
@@ -67,13 +67,13 @@ export const studioFlow = ai.defineFlow(
     const styleInstruction = stylePrompts[input.style] || stylePrompts['3d-render'];
     const fullPrompt = `${masterPrompt}. Style: ${styleInstruction}. The motion must be smooth, logical, and show a clear progression of events as described.`;
 
-    // 2. The Render Layer: Call Veo 2.0
+    // 2. The Render Layer: Call Veo 2.0 with optimized duration
     let { operation } = await ai.generate({
       model: 'googleai/veo-2.0-generate-001',
       prompt: fullPrompt,
       config: {
         aspectRatio: input.aspectRatio as any,
-        durationSeconds: 5,
+        durationSeconds: 8, // Using the max supported duration for high-fidelity clips
         personGeneration: 'allow_all',
       },
     });
@@ -83,7 +83,8 @@ export const studioFlow = ai.defineFlow(
     }
 
     let attempts = 0;
-    const maxAttempts = 22; // ~110s
+    // Increased to 120 attempts (10 minutes) to support the user's requested capacity
+    const maxAttempts = 120; 
 
     while (!operation.done && attempts < maxAttempts) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -92,7 +93,7 @@ export const studioFlow = ai.defineFlow(
     }
 
     if (!operation.done) {
-      throw new Error('Taking Longer Than Expected: The animation is being processed in the cloud. It will be ready in 1-2 minutes.');
+      throw new Error('Neural processing is taking longer than expected. High-fidelity cinematic animations can take up to 10 minutes to render in the cloud.');
     }
 
     if (operation.error) {
