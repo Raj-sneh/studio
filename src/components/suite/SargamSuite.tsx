@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 
 /**
  * Defines the available tabs for music-specific tools.
- * Unified experience for AI music composition and vocal research.
+ * Studio has been moved to its own dedicated page for pure animation making.
  */
 const TABS = [
     { value: 'composer', label: 'Melody Maker', icon: Music },
@@ -49,11 +49,11 @@ export function SargamSuite() {
     const isGuest = user?.isAnonymous;
 
     return (
-        <div className="space-y-12 pb-20">
+        <div className="space-y-16 pb-20">
             <div className="space-y-8">
                 <div className="text-center max-w-2xl mx-auto space-y-4">
                     <h1 className="font-headline text-4xl font-bold tracking-tight text-foreground">AI Music Suite</h1>
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-muted-foreground">
                         Create unique piano melodies, generate synchronized background tracks, or transform vocals using neural research tools.
                     </p>
                 </div>
@@ -78,8 +78,7 @@ export function SargamSuite() {
                     </div>
                 )}
 
-                {/* Music Suite Tabs */}
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-5xl mx-auto">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-6xl mx-auto">
                     <div className="flex justify-center mb-12">
                         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 max-w-3xl h-auto p-1 bg-muted/50 border border-border/50 rounded-2xl">
                             {TABS.map(tab => (

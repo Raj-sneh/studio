@@ -17,7 +17,7 @@ const navLinks = [
   { href: "/practice", label: "Practice", icon: Music },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/suite", label: "Music Suite", icon: Wand2 },
-  { href: "/studio", label: "Studio", icon: MonitorPlay },
+  { href: "/studio", label: "AI Studio", icon: MonitorPlay },
   { href: "/blog", label: "Learn", icon: GraduationCap },
 ];
 

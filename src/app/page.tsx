@@ -52,13 +52,13 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="text-center space-y-10 pt-20 max-w-4xl mx-auto px-4">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest animate-bounce">
-          <Sparkles className="h-3 w-3" /> Professional AI Creative Studio
+          <Sparkles className="h-3 w-3" /> Unified AI Creative Ecosystem
         </div>
         <h1 className="font-headline text-6xl md:text-8xl font-bold tracking-tight text-foreground leading-tight">
-          Sargam AI: The <span className="text-primary">Neural Studio</span> & Virtual Piano
+          Sargam AI: The <span className="text-primary">Neural Studio</span> & Music Suite
         </h1>
         <p className="text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-          The world's most intuitive AI workspace for musicians and creators. Render high-fidelity animations, clone voices, or practice on our professional virtual grand piano.
+          The definitive AI workspace for creators. Render cinematic 3D animations, clone any voice, or practice on our professional virtual grand piano.
         </p>
       </section>
 
@@ -78,8 +78,28 @@ export default function LandingPage() {
               <MonitorPlay className="absolute bottom-6 left-6 h-10 w-10 text-primary" />
             </div>
             <CardHeader className="p-8">
-              <CardTitle className="text-2xl mb-2">Sargam Studio</CardTitle>
-              <CardDescription className="text-base leading-relaxed">Make stunning 2D and 3D animations using Prototyper AI. Turn your words into cinematic neural motion videos instantly.</CardDescription>
+              <CardTitle className="text-2xl mb-2">AI Animation Studio</CardTitle>
+              <CardDescription className="text-base leading-relaxed">Turn your words into cinematic neural motion videos instantly. Powered by Prototyper AI for professional 2D and 3D rendering.</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href="/suite" className="group">
+          <Card className="h-full overflow-hidden border-primary/10 hover:border-primary/30 transition-all bg-card/50 backdrop-blur-sm hover:-translate-y-2 shadow-2xl shadow-black/50">
+            <div className="relative h-64 w-full overflow-hidden">
+              <Image 
+                src={magicImg?.imageUrl || ''} 
+                alt="AI Music Suite" 
+                fill 
+                className="object-cover transition-transform duration-700 group-hover:scale-110"
+                data-ai-hint="AI music"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
+              <BrainCircuit className="absolute bottom-6 left-6 h-10 w-10 text-primary" />
+            </div>
+            <CardHeader className="p-8">
+              <CardTitle className="text-2xl mb-2">Neural Music Suite</CardTitle>
+              <CardDescription className="text-base leading-relaxed">Compose unique piano melodies, generate synchronized BGM, or create perfect neural clones of any voice for your next project.</CardDescription>
             </CardHeader>
           </Card>
         </Link>
@@ -89,7 +109,7 @@ export default function LandingPage() {
             <div className="relative h-64 w-full overflow-hidden">
               <Image 
                 src={practiceImg?.imageUrl || ''} 
-                alt="Virtual Piano Practice Room" 
+                alt="Virtual Piano Studio" 
                 fill 
                 className="object-cover transition-transform duration-700 group-hover:scale-110"
                 data-ai-hint="piano practice"
@@ -98,28 +118,8 @@ export default function LandingPage() {
               <Music className="absolute bottom-6 left-6 h-10 w-10 text-primary" />
             </div>
             <CardHeader className="p-8">
-              <CardTitle className="text-2xl mb-2">Virtual Piano Studio</CardTitle>
-              <CardDescription className="text-base leading-relaxed">Play our high-quality Virtual Grand Piano. Record your sessions and refine your skills in a professional environment designed for musicians.</CardDescription>
-            </CardHeader>
-          </Card>
-        </Link>
-
-        <Link href="/suite?tab=cloner" className="group">
-          <Card className="h-full overflow-hidden border-primary/10 hover:border-primary/30 transition-all bg-card/50 backdrop-blur-sm hover:-translate-y-2 shadow-2xl shadow-black/50">
-            <div className="relative h-64 w-full overflow-hidden">
-              <Image 
-                src={magicImg?.imageUrl || ''} 
-                alt="Professional Voice Cloning AI Studio" 
-                fill 
-                className="object-cover transition-transform duration-700 group-hover:scale-110"
-                data-ai-hint="AI music"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
-              <BrainCircuit className="absolute bottom-6 left-6 h-10 w-10 text-primary" />
-            </div>
-            <CardHeader className="p-8">
-              <CardTitle className="text-2xl mb-2">Voice Cloning AI</CardTitle>
-              <CardDescription className="text-base leading-relaxed">Create perfect neural clones of any voice. Use our research-preview technology to swap vocals or generate high-fidelity speech from text.</CardDescription>
+              <CardTitle className="text-2xl mb-2">Virtual Piano Lab</CardTitle>
+              <CardDescription className="text-base leading-relaxed">Play our high-fidelity Virtual Grand Piano. Record your sessions and refine your dexterity in a professional practice environment.</CardDescription>
             </CardHeader>
           </Card>
         </Link>
@@ -131,9 +131,9 @@ export default function LandingPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 text-secondary text-[10px] font-bold uppercase tracking-widest mb-2">
             <GraduationCap className="h-3 w-3" /> Sargam Academy
           </div>
-          <h2 className="text-4xl md:text-5xl font-bold font-headline tracking-tight">Master the Art of Music</h2>
+          <h2 className="text-4xl md:text-5xl font-bold font-headline tracking-tight">Master the Art of Creation</h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto italic">
-            Deep dive into piano techniques and the cutting edge of neural production with our expert guides.
+            Deep dive into piano techniques and the cutting edge of neural production with our expert-curated guides.
           </p>
         </div>
 
@@ -172,7 +172,7 @@ export default function LandingPage() {
       {/* Footer Info Section */}
       <section className="text-center py-20 px-4">
         <p className="text-muted-foreground max-w-2xl mx-auto italic text-lg leading-relaxed">
-          "Creativity is no longer limited by technical skill. With Sargam Studio and Prototyper AI, your imagination is the only frontier."
+          "Creativity is no longer limited by technical skill. With Sargam AI and Prototyper, your imagination is the only frontier."
         </p>
       </section>
     </div>
