@@ -82,17 +82,21 @@ export function SargamStudio() {
 
             const contentType = response.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
-                throw new Error("Neural Studio is currently under high demand. Please try again in a moment.");
+                throw new Error("Neural Studio is currently under high demand. Please check your connection and try again.");
             }
 
             const data = await response.json();
-            if (!response.ok) throw new Error(data.message || "Neural Studio failed.");
+            if (!response.ok) throw new Error(data.message || "Neural Studio rendering failed.");
 
             setResultUrl(data.videoUrl);
             setProgress(100);
             toast({ title: "Render Complete!", description: "Your AI animation is ready." });
         } catch (e: any) {
-            toast({ title: "Studio Error", description: e.message, variant: "destructive" });
+            console.error("Studio Logic Error:", e);
+            const message = e.name === 'TypeError' && e.message === 'Failed to fetch'
+                ? "Could not connect to the animation engine. Please try again later."
+                : e.message;
+            toast({ title: "Studio Error", description: message, variant: "destructive" });
         } finally {
             clearInterval(interval);
             setIsGenerating(false);

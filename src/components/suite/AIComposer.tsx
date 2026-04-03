@@ -126,7 +126,7 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
 
             const result = await generateNotes({ text: prompt, feedback });
             if (!result || !result.notes || result.notes.length === 0) {
-                throw new Error('Could not create a tune for this.');
+                throw new Error('Could not create a tune for this idea.');
             }
             
             setGeneratedMelody(result);
@@ -151,7 +151,11 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
                 });
             }
         } catch (err: any) {
-            toast({ title: 'Oops!', description: err.message, variant: 'destructive' });
+            console.error("Composer Error:", err);
+            const message = err.name === 'TypeError' && err.message === 'Failed to fetch'
+                ? "Could not connect to the AI engine. Please check your internet connection."
+                : err.message;
+            toast({ title: 'Oops!', description: message, variant: 'destructive' });
             setGenerationState('idle');
         }
     }, [prompt, feedbackComment, toast, stopPlayback, onGenerate, user, firestore]);

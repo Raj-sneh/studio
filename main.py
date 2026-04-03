@@ -45,6 +45,7 @@ def get_safe_audio(file_path):
         return None, None
 
 @app.get("/api/status")
+@app.get("/")
 async def health():
     """Neural Engine Health Check."""
     return {"status": "Sargam AI Cloud Engine Active", "ready": True, "engine": "FastAPI"}
@@ -127,6 +128,16 @@ async def redeem_coupon(request: Request):
         return {"status": "success", "credits": credits_to_add}
     except Exception as e: 
         return JSONResponse(status_code=400, content={"error": str(e)})
+
+@app.post("/api/payments/create-order")
+async def create_order(request: Request):
+    """Placeholder for Razorpay order creation."""
+    return {"id": f"order_{os.urandom(4).hex()}", "amount": 1000, "currency": "INR"}
+
+@app.post("/api/payments/verify")
+async def verify_payment(request: Request):
+    """Placeholder for payment verification."""
+    return {"status": "success", "message": "Neural credits provisioned."}
 
 if __name__ == "__main__":
     import uvicorn

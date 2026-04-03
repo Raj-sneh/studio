@@ -84,12 +84,9 @@ export default function PricingPage() {
 
     setIsProcessing(itemId);
     
-    const baseUrl = process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || "http://localhost:8080";
-    
-    console.log("Attempting Checkout fetch from:", baseUrl);
-
     try {
-      const orderRes = await fetch(`${baseUrl}/api/create-order`, {
+      // Use internal Next.js proxy route instead of direct backend call
+      const orderRes = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -113,7 +110,7 @@ export default function PricingPage() {
         handler: async function (response: any) {
           setIsProcessing(itemId);
           try {
-            const verifyRes = await fetch(`${baseUrl}/api/verify`, {
+            const verifyRes = await fetch('/api/payments/verify', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -147,13 +144,16 @@ export default function PricingPage() {
         modal: { ondismiss: () => setIsProcessing(null) }
       };
 
-      if (typeof (window as any).Razorpay === 'undefined') throw new Error("Razorpay script not loaded yet. Please try again in a moment.");
+      if (typeof (window as any).Razorpay === 'undefined') throw new Error("Payment gateway is loading. Please try again in a moment.");
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
 
     } catch (e: any) {
       console.error("Payment Error:", e);
-      toast({ title: "Payment Error", description: e.message, variant: "destructive" });
+      const message = e.name === 'TypeError' && e.message === 'Failed to fetch' 
+        ? "Could not connect to payment server. Check your connection." 
+        : e.message;
+      toast({ title: "Payment Error", description: message, variant: "destructive" });
       setIsProcessing(null);
     }
   };
