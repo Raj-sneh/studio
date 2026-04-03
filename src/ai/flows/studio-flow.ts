@@ -3,7 +3,7 @@
  * @fileOverview Sargam Studio AI Animation Flow - Prototype Animator Edition.
  * Uses a "Director" LLM to synthesize iterative user modifications before 
  * rendering with Google Veo 2.0.
- * Updated to support extended render windows for high-fidelity cinematic output.
+ * Optimized for increased generation speed with a 5-second high-fidelity render window.
  */
 
 import { ai } from '@/ai/genkit';
@@ -57,23 +57,23 @@ export const studioFlow = ai.defineFlow(
     });
 
     const stylePrompts: Record<string, string> = {
-      '3d-render': 'high-quality stylized 3D CGI feature film animation, vibrant saturated colors, soft rounded surfaces, studio lighting, smooth character physics, doreamon and chhota bheem movie quality',
-      '2d-animation': 'traditional 2D hand-drawn flipbook animation, pencil sketch aesthetic, fluid organic motion, expressive line art, textured background, classic studio cartoon style',
+      '3d-render': 'high-quality stylized 3D CGI feature film animation, vibrant saturated colors, soft rounded surfaces, studio lighting, smooth character physics',
+      '2d-animation': 'traditional 2D hand-drawn flipbook animation, pencil sketch aesthetic, fluid organic motion, expressive line art, textured background',
       'cinematic': 'hyper-realistic cinematic live-action footage, 8k resolution, professional film lighting, wide-angle lens, realistic physics, IMAX quality',
-      'anime': 'modern high-budget action shonen anime style, sharp line art, dynamic cinematic shading, intense motion blur effects, naruto shippuden production quality',
+      'anime': 'modern high-budget action shonen anime style, sharp line art, dynamic cinematic shading, intense motion blur effects',
       'pixel-art': 'detailed 32-bit pixel art animation, vibrant palette, smooth frame-by-frame sprite motion'
     };
 
     const styleInstruction = stylePrompts[input.style] || stylePrompts['3d-render'];
     const fullPrompt = `${masterPrompt}. Style: ${styleInstruction}. Motion must be realistic, high-quality, smooth, and show a clear progression of events as described.`;
 
-    // 2. The Render Layer: Call Veo 2.0 with optimized duration
+    // 2. The Render Layer: Call Veo 2.0 with high-speed 5-second duration
     let { operation } = await ai.generate({
       model: 'googleai/veo-2.0-generate-001',
       prompt: fullPrompt,
       config: {
         aspectRatio: input.aspectRatio as any,
-        durationSeconds: 8,
+        durationSeconds: 5, // Reduced from 8 to 5 for significant speed increase
         personGeneration: 'allow_all',
       },
     });
