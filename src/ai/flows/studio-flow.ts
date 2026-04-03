@@ -3,6 +3,7 @@
 /**
  * @fileOverview Sargam Studio AI Animation Flow.
  * Uses Google Veo models to generate 2D and 3D animations from text prompts.
+ * Downgraded to Veo 2.0 for broader environment compatibility.
  */
 
 import { ai } from '@/ai/genkit';
@@ -31,10 +32,12 @@ export const studioFlow = ai.defineFlow(
 
     // Initialize Video Generation Operation
     let { operation } = await ai.generate({
-      model: googleAI.model('veo-3.0-generate-preview'),
+      model: googleAI.model('veo-2.0-generate-001'),
       prompt: fullPrompt,
       config: {
         aspectRatio: input.aspectRatio as any,
+        durationSeconds: 5,
+        personGeneration: 'allow_adult',
       },
     });
 
