@@ -1,16 +1,18 @@
 'use server';
 /**
- * @fileOverview Sargam Studio AI Animation Flow.
- * Uses Google Veo 2.0 models with expert prompt engineering for specific animation aesthetics.
+ * @fileOverview Sargam Studio AI Animation Flow - Prototype Animator Edition.
+ * Uses a "Director" LLM to synthesize iterative user modifications before 
+ * rendering with Google Veo 2.0.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const StudioInputSchema = z.object({
-  prompt: z.string().describe('Description of the animation to generate.'),
+  prompt: z.string().describe('Initial concept or base description.'),
   style: z.enum(['2d-animation', '3d-render', 'cinematic', 'anime', 'pixel-art']).default('3d-render'),
   aspectRatio: z.enum(['16:9', '9:16', '1:1']).default('16:9'),
+  instructions: z.array(z.string()).optional().describe('Iterative refinement instructions from the user.'),
 });
 
 export type StudioInput = z.infer<typeof StudioInputSchema>;
@@ -22,22 +24,39 @@ export const studioFlow = ai.defineFlow(
     outputSchema: z.object({
       videoUrl: z.string(),
       description: z.string(),
+      finalSynthesizedPrompt: z.string(),
     }),
   },
   async (input) => {
-    // Highly specific Style Protocols focusing on visual characteristics rather than specific characters
+    // 1. The Director Layer: Synthesize iterative feedback into a single high-fidelity prompt
+    const directorPrompt = `You are a cinematic AI director. 
+    Base Concept: "${input.prompt}"
+    User Style: "${input.style}"
+    Iterative Refinement Instructions: ${input.instructions?.length ? input.instructions.join(' -> ') : 'None'}
+
+    Your task is to synthesize these into a single, highly descriptive cinematic prompt for a video generation model.
+    Focus on motion, lighting, and consistency. Do NOT name specific copyrighted characters like Doraemon or Naruto unless the user explicitly requested them in the prompt.
+    Describe visual styles instead (e.g., '3D stylized CGI' or 'Traditional hand-drawn 2D').
+    
+    Return ONLY the final descriptive paragraph.`;
+
+    const { text: masterPrompt } = await ai.generate({
+      model: 'googleai/gemini-2.5-flash',
+      prompt: directorPrompt,
+    });
+
     const stylePrompts: Record<string, string> = {
-      '3d-render': 'a high-quality stylized 3D CGI animation, feature film aesthetic, clean vibrant surfaces, soft studio lighting, rounded character forms, professional 3D animated feature film quality with smooth physics, vivid colors',
-      '2d-animation': 'a traditional hand-drawn 2D pencil sketch animation, flipbook style, expressive graphite line art, rough textured paper background, fluid traditional cell animation motion',
-      'cinematic': 'a hyper-realistic cinematic live-action shot, 8k resolution, photorealistic, professional film lighting, wide-angle lens, shot on IMAX',
-      'anime': 'modern high-budget action anime style, sharp professional line art, dynamic cel-shading, cinematic shonen aesthetic, expressive and high-speed character motion, vibrant atmospheric lighting',
-      'pixel-art': 'high-quality detailed pixel art animation, 32-bit aesthetic, smooth frame-by-frame motion, vibrant palette'
+      '3d-render': 'high-quality stylized 3D CGI animation, vibrant surfaces, soft studio lighting, rounded character forms, smooth physics',
+      '2d-animation': 'traditional hand-drawn 2D pencil sketch animation, expressive line art, rough textured paper background, fluid motion',
+      'cinematic': 'hyper-realistic cinematic live-action shot, 8k resolution, professional film lighting, wide-angle lens',
+      'anime': 'modern high-budget action anime style, sharp line art, dynamic cel-shading, cinematic shonen aesthetic',
+      'pixel-art': 'detailed pixel art animation, 32-bit aesthetic, smooth frame-by-frame motion'
     };
 
     const styleInstruction = stylePrompts[input.style] || stylePrompts['3d-render'];
-    const fullPrompt = `Generate a high-quality animation of: ${input.prompt}. Visual Style: ${styleInstruction}. The motion must be smooth, logical, and consistent with the specified art style. Ensure the output looks like a masterfully rendered neural production.`;
+    const fullPrompt = `${masterPrompt}. Visual Style: ${styleInstruction}. The motion must be smooth and logical.`;
 
-    // Use string identifier for model resolution safety
+    // 2. The Render Layer: Call Veo 2.0
     let { operation } = await ai.generate({
       model: 'googleai/veo-2.0-generate-001',
       prompt: fullPrompt,
@@ -53,7 +72,7 @@ export const studioFlow = ai.defineFlow(
     }
 
     let attempts = 0;
-    const maxAttempts = 22; // ~110s (slightly less than the 120s server limit)
+    const maxAttempts = 22; // ~110s
 
     while (!operation.done && attempts < maxAttempts) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -86,7 +105,8 @@ export const studioFlow = ai.defineFlow(
 
     return {
       videoUrl: `data:video/mp4;base64,${base64Video}`,
-      description: `Neural ${input.style} render complete.`,
+      description: `Neural render complete based on your iterative refinements.`,
+      finalSynthesizedPrompt: masterPrompt,
     };
   }
 );
