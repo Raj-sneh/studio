@@ -6,8 +6,19 @@ import { NextResponse } from 'next/server';
  */
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    if (!body || !body.code || !body.userId) {
+    const text = await req.text();
+    if (!text) {
+       return NextResponse.json({ status: "invalid", message: "Missing request body" }, { status: 400 });
+    }
+
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch (e) {
+      return NextResponse.json({ status: "invalid", message: "Invalid JSON input" }, { status: 400 });
+    }
+
+    if (!body.code || !body.userId) {
        return NextResponse.json({ status: "invalid", message: "Missing code or user ID" }, { status: 400 });
     }
 

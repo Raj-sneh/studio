@@ -109,8 +109,13 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
                 });
 
                 if (!creditRes.ok) {
-                    const errData = await creditRes.json().catch(() => ({}));
-                    toast({ title: "Insufficient Credits", description: errData.error || "Neural synthesis requires credits.", variant: "destructive" });
+                    const text = await creditRes.text();
+                    let errMessage = "Neural synthesis requires credits.";
+                    try {
+                      const errData = text ? JSON.parse(text) : {};
+                      errMessage = errData.error || errMessage;
+                    } catch (e) {}
+                    toast({ title: "Insufficient Credits", description: errMessage, variant: "destructive" });
                     setGenerationState('idle');
                     return;
                 }

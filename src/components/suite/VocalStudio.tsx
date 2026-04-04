@@ -104,9 +104,14 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
           body: JSON.stringify({ user_id: user.uid, amount: cost })
         });
 
-        const errData = await creditRes.json().catch(() => ({}));
         if (!creditRes.ok) {
-            throw new Error(errData.error || "Neural Engine connection failed. Please try again.");
+            const text = await creditRes.text();
+            let errMessage = "Neural Engine connection failed.";
+            try {
+              const errData = text ? JSON.parse(text) : {};
+              errMessage = errData.error || errMessage;
+            } catch (e) {}
+            throw new Error(errMessage);
         }
       }
 

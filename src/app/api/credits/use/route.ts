@@ -6,7 +6,18 @@ import { NextResponse } from 'next/server';
  */
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const text = await req.text();
+    if (!text) {
+      return NextResponse.json({ error: "Empty request body" }, { status: 400 });
+    }
+    
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch (e) {
+      return NextResponse.json({ error: "Invalid JSON input" }, { status: 400 });
+    }
+
     const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || process.env.VOICE_ENGINE_URL || "http://localhost:8080";
 
     const response = await fetch(`${baseUrl}/api/credits/use`, {
@@ -18,12 +29,18 @@ export async function POST(req: Request) {
     });
     
     const contentType = response.headers.get("content-type");
-    if (!response.ok || !contentType || !contentType.includes("application/json")) {
-        const errorData = await response.json().catch(() => ({}));
+    const isJson = contentType && contentType.includes("application/json");
+
+    if (!response.ok) {
+        const errorData = isJson ? await response.json().catch(() => ({})) : { error: "Neural Engine returned an error." };
         return NextResponse.json({ 
           error: errorData.error || "Credit System Connection Failed", 
           offline: true
         }, { status: 503 });
+    }
+
+    if (!isJson) {
+      return NextResponse.json({ error: "Unexpected response from Neural Engine", offline: true }, { status: 503 });
     }
 
     const data = await response.json();

@@ -36,24 +36,7 @@ const CHAT_HISTORY_API_LIMIT = 20;
 export function AiAssistant({ onAction }: { onAction?: () => void }) {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [messages, setMessages] = useState<Message[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const savedHistory = localStorage.getItem(CHAT_HISTORY_KEY);
-      if (savedHistory && savedHistory !== 'undefined' && savedHistory !== 'null') {
-        const { timestamp, messages: savedMessages } = JSON.parse(savedHistory);
-        if (Date.now() - timestamp > CHAT_HISTORY_TTL) {
-          localStorage.removeItem(CHAT_HISTORY_KEY);
-          return [];
-        }
-        return savedMessages || [];
-      }
-      return [];
-    } catch (error) {
-      localStorage.removeItem(CHAT_HISTORY_KEY);
-      return [];
-    }
-  });
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -68,6 +51,26 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     resolver: zodResolver(formSchema),
     defaultValues: { prompt: '' },
   });
+
+  // Initialize history on mount to prevent SSR mismatch
+  useEffect(() => {
+    try {
+      const savedHistory = localStorage.getItem(CHAT_HISTORY_KEY);
+      if (savedHistory && savedHistory.trim() !== '' && savedHistory !== 'undefined' && savedHistory !== 'null') {
+        const parsed = JSON.parse(savedHistory);
+        if (parsed && typeof parsed === 'object' && parsed.messages) {
+          if (Date.now() - parsed.timestamp > CHAT_HISTORY_TTL) {
+            localStorage.removeItem(CHAT_HISTORY_KEY);
+          } else {
+            setMessages(parsed.messages);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("Could not parse chat history:", error);
+      localStorage.removeItem(CHAT_HISTORY_KEY);
+    }
+  }, []);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (scrollAreaRef.current) {
@@ -93,7 +96,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (messages.length > 0) {
       try {
         localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify({ timestamp: Date.now(), messages }));
       } catch (e) {}
@@ -149,7 +152,14 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         }),
       });
       
-      const result = await res.json();
+      const text = await res.text();
+      let result;
+      try {
+        result = text ? JSON.parse(text) : {};
+      } catch (e) {
+        throw new Error("I had trouble understanding the response. Try again?");
+      }
+
       if (!res.ok) throw new Error(result.message || "Glitch in the matrix.");
       
       setMessages(prev => [...prev, { role: 'model', content: result.responseText }]);
@@ -167,6 +177,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
   const handleClearHistory = () => {
     if (confirm("Clear chat history?")) {
       setMessages([]);
+      localStorage.removeItem(CHAT_HISTORY_KEY);
     }
   };
 

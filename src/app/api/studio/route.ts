@@ -10,7 +10,17 @@ export const maxDuration = 600;
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const text = await req.text();
+    if (!text) {
+      return NextResponse.json({ error: "Empty request" }, { status: 400 });
+    }
+
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch (e) {
+      return NextResponse.json({ error: "Invalid JSON input" }, { status: 400 });
+    }
     
     if (!body.prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
