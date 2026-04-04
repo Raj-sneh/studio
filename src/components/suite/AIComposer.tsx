@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 const Piano = lazy(() => import('@/components/Piano'));
 
 const MELODY_COST = 5;
-const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com', 'snehkumatverma2011@gmail.com'];
+const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com'];
 
 function InstrumentLoader() {
   return (
@@ -260,7 +260,7 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
                             disabled={generationState === 'loading'}
                             className="min-h-[100px] rounded-3xl bg-muted/20 border-primary/10 focus:border-primary/30 transition-none resize-none p-5 text-sm relative z-10"
                         />
-                        <div className="absolute inset-0 bg-primary/5 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none -z-10" />
+                        <div className="absolute inset-0 bg-primary/5 blur-xl pointer-events-none -z-10" />
                     </div>
                     
                     <div className="flex flex-col sm:flex-row gap-3">

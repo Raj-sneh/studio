@@ -81,10 +81,11 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
     useEffect(() => {
         let isMounted = true;
 
-        // Optimized Loading: getSampler resolves immediately now.
+        // Optimized Loading: Initialize UI as soon as the sampler is requested.
         getSampler('piano').then(sampler => {
             if (isMounted) {
                 synthRef.current = sampler as PianoSynth;
+                // Instant resolve: show keys immediately
                 setIsLoading(false);
             }
         }).catch(err => {

@@ -27,7 +27,7 @@ import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
 
 const STUDIO_COST = 50;
-const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com', 'snehkumatverma2011@gmail.com'];
+const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com'];
 
 const STYLES = [
     { id: '3d-render', label: '3D Movie', icon: Box, description: 'High-quality stylized CGI.' },
