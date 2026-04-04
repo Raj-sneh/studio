@@ -79,12 +79,18 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
     const fontSize = Math.max(BASE_FONT_SIZE * zoom, 9); 
 
     useEffect(() => {
+        let isMounted = true;
+
         getSampler('piano').then(sampler => {
-            synthRef.current = sampler as PianoSynth;
-            setIsLoading(false);
+            if (isMounted) {
+                synthRef.current = sampler as PianoSynth;
+                setIsLoading(false);
+            }
         }).catch(err => {
             console.error("Failed to load piano sounds", err);
-            setIsLoading(false);
+            if (isMounted) {
+                setIsLoading(false);
+            }
         });
 
         const handleGlobalPointerUp = () => {
@@ -100,6 +106,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
         window.addEventListener('pointerup', handleGlobalPointerUp);
 
         return () => {
+            isMounted = false;
             window.removeEventListener('pointerup', handleGlobalPointerUp);
             if (synthRef.current && !synthRef.current.disposed) {
                 synthRef.current.releaseAll();
@@ -108,14 +115,14 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
     }, [onNoteUp]);
 
     useEffect(() => {
-        if (highlightedKeys && highlightedKeys.length > 0) {
+        if (!isLoading && highlightedKeys && highlightedKeys.length > 0) {
             const keyToScrollTo = highlightedKeys[0];
             const keyElement = keyRefs.current.get(keyToScrollTo);
             if (keyElement) {
                 keyElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
             }
         }
-    }, [highlightedKeys]);
+    }, [highlightedKeys, isLoading]);
 
     const triggerVisualEffect = useCallback((note: string) => {
         const keyElement = keyRefs.current.get(note);
