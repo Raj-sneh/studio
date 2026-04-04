@@ -111,15 +111,6 @@ export function SargamStudio() {
                 })
             });
 
-            if (response.status === 504 || response.status === 502) {
-                setErrorState('timeout');
-                toast({ 
-                    title: "Neural Engine Processing", 
-                    description: "High-fidelity rendering is ongoing. Complex scenes can take up to 10 minutes." 
-                });
-                return;
-            }
-
             const contentType = response.headers.get("content-type");
             const isJson = contentType && contentType.includes("application/json");
             
@@ -129,7 +120,7 @@ export function SargamStudio() {
                 
                 if (msg.toLowerCase().includes('third-party') || msg.toLowerCase().includes('provider')) {
                     setErrorState('content-block');
-                    throw new Error("Content Restriction: Avoid using copyrighted names (e.g. Disney, Doraemon). Describe the look instead.");
+                    throw new Error("Content Restriction: Avoid using copyrighted names. Describe the look instead.");
                 }
                 
                 throw new Error(msg);
@@ -279,7 +270,7 @@ export function SargamStudio() {
                                 <Film className="h-4 w-4 text-primary" />
                             </div>
                             <div>
-                                <h4 className="text-sm font-bold uppercase tracking-widest text-primary">Neural Canvas (Veo 3.0)</h4>
+                                <h4 className="text-sm font-bold uppercase tracking-widest text-primary">Neural Canvas (Veo 2.0 Stable)</h4>
                                 <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">
                                     {isGenerating ? 'Synthesizing Persistent Scene...' : resultUrl ? 'Coherent Frame Sequence Ready' : errorState === 'timeout' ? 'Extended Synthesis' : errorState === 'content-block' ? 'Restriction Warning' : 'Idle'}
                                 </p>
@@ -374,21 +365,17 @@ export function SargamStudio() {
                             </div>
                         )}
 
-                        {!isGenerating && errorState === 'timeout' && (
+                        {!isGenerating && errorState === 'error' && (
                             <div className="w-full max-w-md space-y-6 text-center animate-in zoom-in-95 duration-500">
-                                <div className="h-24 w-24 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
-                                    <Clock className="h-10 w-10 text-primary animate-pulse" />
+                                <div className="h-24 w-24 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto mb-4">
+                                    <AlertCircle className="h-10 w-10 text-destructive" />
                                 </div>
                                 <div className="space-y-2">
-                                    <h3 className="text-xl font-bold font-headline">Coherence Synthesis Ongoing</h3>
-                                    <p className="text-sm text-muted-foreground leading-relaxed">
-                                        Maintaining visual persistence across complex scenes takes extra time.
-                                        Synthesis is continuing in the neural cloud.
+                                    <h3 className="text-xl font-bold font-headline">Neural Synthesis Failed</h3>
+                                    <p className="text-sm text-muted-foreground leading-relaxed italic px-4">
+                                        "{lastErrorMessage}"
                                     </p>
-                                    <div className="flex gap-2 justify-center">
-                                        <Button variant="outline" onClick={() => handleGenerate()} className="rounded-xl mt-4">Refresh Status</Button>
-                                        <Button variant="ghost" onClick={() => setResultUrl(null)} className="rounded-xl mt-4">Clear Canvas</Button>
-                                    </div>
+                                    <Button variant="outline" onClick={() => { setErrorState('none'); setIsRefinementMode(false); }} className="rounded-xl mt-6">Try Again</Button>
                                 </div>
                             </div>
                         )}

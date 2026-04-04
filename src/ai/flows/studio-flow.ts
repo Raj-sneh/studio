@@ -1,9 +1,9 @@
 'use server';
 /**
- * @fileOverview Sargam Studio AI Animation Flow - Veo 3.0 Cinematic Edition.
+ * @fileOverview Sargam Studio AI Animation Flow - Stable Cinematic Edition.
  * Uses a "Director" LLM to synthesize iterative user modifications with a focus
- * on visual persistence and chronological continuity.
- * Rendered using the latest Google Veo 3.0 Preview model.
+ * on visual persistence and narrative continuity.
+ * Rendered using the stable Google Veo 2.0 model for maximum availability.
  */
 
 import { ai } from '@/ai/genkit';
@@ -31,7 +31,7 @@ export const studioFlow = ai.defineFlow(
   async (input) => {
     // 1. The Director Layer: Use Chronological Anchoring to prevent scene loss
     const directorPrompt = `You are a cinematic AI director for Sargam Studio. 
-    You are synthesizing a script for a high-fidelity video generation model.
+    You are synthesizing a detailed script for a high-fidelity video generation model.
     
     BASE CONCEPT (The Foundation): "${input.prompt}"
     STYLE PROTOCOL: "${input.style}"
@@ -42,8 +42,8 @@ export const studioFlow = ai.defineFlow(
     CRITICAL RULES FOR VISUAL PERSISTENCE:
     - The video MUST start by establishing the environment and characters from the BASE CONCEPT.
     - Each beat in the SCENE CHRONOLOGY must occur AFTER the previous one within the SAME environment.
-    - Ensure the characters and core setting from the base concept PERSIST throughout the entire video.
-    - Describe the TRANSITION and the flow of time (e.g., "Then, while still in the pond, the duck...")
+    - Describe the TRANSITION and the flow of time (e.g., "Continuing from the scene in the pond, the camera follows the duck as it now...")
+    - Ensure characters and settings PERSIST. Do not replace them; evolve their actions.
     
     STYLE GUIDELINES:
     - 3D Render: Stylized 3D CGI animation, soft subsurface scattering, vibrant saturated lighting, smooth character physics (Doraemon Stand By Me style).
@@ -71,14 +71,14 @@ export const studioFlow = ai.defineFlow(
     const styleInstruction = stylePrompts[input.style] || stylePrompts['3d-render'];
     const fullPrompt = `${masterPrompt}. Style: ${styleInstruction}. The video must show clear narrative continuity from the start to the end.`;
 
-    // 2. The Render Layer: Call Veo 3.0 Preview
-    // Veo 3.0 manages duration automatically (default 8s) and supports sound.
+    // 2. The Render Layer: Call Veo 2.0 (Stable & Supported)
     let { operation } = await ai.generate({
-      model: 'googleai/veo-3.0-generate-preview',
+      model: 'googleai/veo-2.0-generate-001',
       prompt: fullPrompt,
       config: {
-        aspectRatio: input.aspectRatio === '1:1' ? '16:9' : input.aspectRatio as any, // 1:1 fallback to 16:9 if needed
-        personGeneration: 'allow_all',
+        durationSeconds: 8, // Maximum single-clip duration for Veo 2.0
+        aspectRatio: input.aspectRatio === '1:1' ? '16:9' : input.aspectRatio as any,
+        personGeneration: 'allow_adult',
       },
     });
 
