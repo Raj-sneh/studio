@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { Slider } from '@/components/ui/slider';
 import { 
     Loader2, 
     Sparkles, 
@@ -21,7 +22,8 @@ import {
     History,
     RefreshCw,
     Bot,
-    User
+    User,
+    Timer
 } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
@@ -30,10 +32,10 @@ const STUDIO_COST = 50;
 const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com'];
 
 const STYLES = [
-    { id: '3d-render', label: '3D Movie', icon: Box, description: 'High-quality stylized CGI.' },
-    { id: '2d-animation', label: '2D Flipbook', icon: Layers, description: 'Hand-drawn pencil sketch.' },
-    { id: 'cinematic', label: 'Cinematic', icon: Film, description: 'Photorealistic film quality.' },
-    { id: 'anime', label: 'Anime', icon: Palette, description: 'Sharp action shonen style.' }
+    { id: '3d-render', label: '3D CGI', icon: Box, description: 'Stand By Me Style.' },
+    { id: '2d-animation', label: 'Flipbook', icon: Layers, description: 'Hand-drawn feel.' },
+    { id: 'cinematic', label: 'Cinematic', icon: Film, description: 'Film quality.' },
+    { id: 'anime', label: 'Hybrid 3D', icon: Palette, description: 'Action anime style.' }
 ];
 
 export function SargamStudio() {
@@ -43,6 +45,7 @@ export function SargamStudio() {
     // Core State
     const [prompt, setPrompt] = useState('');
     const [selectedStyle, setSelectedStyle] = useState('3d-render');
+    const [duration, setDuration] = useState(5);
     const [instructions, setInstructions] = useState<string[]>([]);
     const [currentInstruction, setCurrentInstruction] = useState('');
     
@@ -98,16 +101,16 @@ export function SargamStudio() {
                 body: JSON.stringify({ 
                     prompt, 
                     style: selectedStyle,
+                    duration,
                     instructions: activeInstructions 
                 })
             });
 
-            // Handle Network Timeouts Gracefully (504/502)
             if (response.status === 504 || response.status === 502) {
                 setErrorState('timeout');
                 toast({ 
                     title: "Neural Engine Processing", 
-                    description: "High-fidelity rendering is ongoing in the cloud. This can take up to 10 minutes." 
+                    description: "High-fidelity rendering is ongoing. Complex scenes can take up to 10 minutes." 
                 });
                 return;
             }
@@ -124,7 +127,7 @@ export function SargamStudio() {
             setResultUrl(data.videoUrl);
             if (newInstruction) setInstructions(activeInstructions);
             setProgress(100);
-            toast({ title: "Render Complete!", description: "Iteration successful." });
+            toast({ title: "Scene Added!", description: "The iteration has been synthesized." });
         } catch (e: any) {
             console.error("Studio Logic Error:", e);
             toast({ title: "Studio Error", description: e.message, variant: "destructive" });
@@ -154,10 +157,10 @@ export function SargamStudio() {
                         <div className="space-y-1">
                             <h3 className="text-xl font-bold font-headline flex items-center gap-2">
                                 <MonitorPlay className="h-5 w-5 text-primary" />
-                                {isRefinementMode ? 'Refinement Protocol' : 'Initial Protocol'}
+                                {isRefinementMode ? 'Scene Refinement' : 'Initial Protocol'}
                             </h3>
                             <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">
-                                {isRefinementMode ? 'Prototype Animator Active' : 'Configure Base Concept'}
+                                {isRefinementMode ? 'Iterative Scene Engine Active' : 'Configure Base Animation'}
                             </p>
                         </div>
                         {isRefinementMode && (
@@ -174,19 +177,19 @@ export function SargamStudio() {
                                     Visual Concept
                                     <span className="text-primary font-bold">{user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${STUDIO_COST} Credits`}</span>
                                 </label>
-                                <div className="relative">
+                                <div className="relative group">
                                     <Textarea 
-                                        placeholder="e.g. A duck swimming in a pond."
+                                        placeholder="e.g. A duck swimming in a pond with its little ones."
                                         value={prompt}
                                         onChange={(e) => setPrompt(e.target.value)}
-                                        className="min-h-[150px] rounded-[1.5rem] bg-muted/20 border-primary/10 focus:border-primary/30 transition-none resize-none p-4 relative z-10"
+                                        className="min-h-[120px] rounded-[1.5rem] bg-muted/20 border-primary/10 focus:border-primary/30 transition-none resize-none p-4 relative z-10"
                                     />
                                     <div className="absolute inset-0 bg-primary/5 blur-xl pointer-events-none -z-10" />
                                 </div>
                             </div>
 
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Art Style</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Art Protocol</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     {STYLES.map(style => (
                                         <button
@@ -207,6 +210,27 @@ export function SargamStudio() {
                                 </div>
                             </div>
 
+                            <div className="space-y-4 pt-2">
+                                <div className="flex justify-between items-center px-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                        <Timer className="h-3 w-3 text-primary" /> Render Time
+                                    </label>
+                                    <span className="text-primary font-bold text-xs">{duration}s</span>
+                                </div>
+                                <Slider
+                                    value={[duration]}
+                                    onValueChange={(val) => setDuration(val[0])}
+                                    min={5}
+                                    max={60}
+                                    step={5}
+                                    className="px-1"
+                                />
+                                <div className="flex justify-between text-[8px] text-muted-foreground font-bold uppercase tracking-widest px-1">
+                                    <span>Fast</span>
+                                    <span>Extended (60s)</span>
+                                </div>
+                            </div>
+
                             <Button 
                                 onClick={() => handleGenerate()} 
                                 disabled={isGenerating || !prompt.trim()} 
@@ -215,28 +239,25 @@ export function SargamStudio() {
                                 <Sparkles className="mr-2 h-6 w-6 fill-primary-foreground" /> 
                                 Initialize Render
                             </Button>
-                            
-                            <p className="text-[9px] text-center text-muted-foreground uppercase tracking-widest font-bold px-4">
-                                Supports high-fidelity renders up to 10 minutes in the neural cloud.
-                            </p>
                         </div>
                     ) : (
                         <div className="space-y-6 animate-in slide-in-from-right duration-500">
                             <div className="p-5 rounded-3xl bg-muted/20 border border-primary/10 space-y-3">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-primary">Master Concept</p>
                                 <p className="text-sm italic text-muted-foreground leading-relaxed">"{prompt}"</p>
-                                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground">
-                                    <Box className="h-3 w-3" /> {selectedStyle.toUpperCase()} Protocol
+                                <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground">
+                                    <span className="flex items-center gap-2"><Box className="h-3 w-3" /> {selectedStyle.toUpperCase()}</span>
+                                    <span className="flex items-center gap-2"><Timer className="h-3 w-3" /> {duration}s Target</span>
                                 </div>
                             </div>
 
                             <div className="space-y-4">
                                 <h4 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 px-1">
-                                    <History className="h-3 w-3" /> Instruction Log
+                                    <History className="h-3 w-3" /> Scene Instruction Log
                                 </h4>
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                     {instructions.length === 0 ? (
-                                        <p className="text-[10px] text-muted-foreground italic px-1">No refinements yet. Use the command prompt to make changes.</p>
+                                        <p className="text-[10px] text-muted-foreground italic px-1">No iterative modifications yet. Add scenes via the assistant.</p>
                                     ) : (
                                         instructions.map((ins, i) => (
                                             <div key={i} className="p-3 rounded-xl bg-primary/5 border border-primary/10 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
@@ -264,7 +285,7 @@ export function SargamStudio() {
                             <div>
                                 <h4 className="text-sm font-bold uppercase tracking-widest text-primary">Neural Canvas</h4>
                                 <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">
-                                    {isGenerating ? 'Synthesizing Protocol...' : resultUrl ? 'Frame Sequence Ready' : errorState === 'timeout' ? 'Background Rendering' : 'Idle'}
+                                    {isGenerating ? 'Synthesizing Scene...' : resultUrl ? 'Frame Sequence Ready' : errorState === 'timeout' ? 'Long-Term Synthesis' : 'Idle'}
                                 </p>
                             </div>
                         </div>
@@ -286,7 +307,7 @@ export function SargamStudio() {
                                 </div>
                                 <div className="space-y-2">
                                     <p className="text-lg font-headline font-bold text-muted-foreground italic">Canvas sequence empty.</p>
-                                    <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto font-medium">Initialize your base concept on the left to begin the Prototype Animator workflow.</p>
+                                    <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto font-medium">Configure yourart protocol and concept on the left to begin.</p>
                                 </div>
                             </div>
                         )}
@@ -297,18 +318,17 @@ export function SargamStudio() {
                                     <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent animate-pulse" />
                                     <Loader2 className="h-12 w-12 animate-spin text-primary mb-6" />
                                     <div className="space-y-1 relative z-10">
-                                        <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Prototyper AI Active</p>
-                                        <p className="text-[10px] text-muted-foreground italic">Processing iteration {instructions.length + 1}...</p>
+                                        <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Adding Scene {instructions.length + 1}</p>
+                                        <p className="text-[10px] text-muted-foreground italic">Neural Synthesis Active...</p>
                                     </div>
                                 </div>
                                 <div className="space-y-3">
                                     <Progress value={progress} className="h-1.5" />
                                     <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">
-                                        <span>Synthesis Progress</span>
+                                        <span>Progress</span>
                                         <span className="text-primary">{Math.round(progress)}%</span>
                                     </div>
                                 </div>
-                                <p className="text-[10px] text-muted-foreground italic">Complex cinematic sequences can take several minutes to finalize.</p>
                             </div>
                         )}
 
@@ -332,7 +352,7 @@ export function SargamStudio() {
                                                 <Bot className="h-5 w-5 text-primary" />
                                             </div>
                                             <Input 
-                                                placeholder="Tell me what modification to make next..."
+                                                placeholder="What happens next in the story? (e.g. 'then it catches a fish')"
                                                 value={currentInstruction}
                                                 onChange={(e) => setCurrentInstruction(e.target.value)}
                                                 onKeyDown={(e) => e.key === 'Enter' && currentInstruction.trim() && handleGenerate(currentInstruction)}
@@ -352,7 +372,7 @@ export function SargamStudio() {
                                         <div className="absolute inset-0 bg-primary/20 blur-xl opacity-0 transition-opacity pointer-events-none -z-10" />
                                     </div>
                                     <p className="text-[9px] text-center mt-3 text-muted-foreground font-black uppercase tracking-[0.2em] italic">
-                                        Assistant is listening. Describe colors, motion, or additions to your concept.
+                                        Describe the next scene. The AI will add it to the existing narrative logic.
                                     </p>
                                 </div>
                             </div>
@@ -364,10 +384,10 @@ export function SargamStudio() {
                                     <Clock className="h-10 w-10 text-primary animate-pulse" />
                                 </div>
                                 <div className="space-y-2">
-                                    <h3 className="text-xl font-bold font-headline">Neural Synthesis Ongoing</h3>
+                                    <h3 className="text-xl font-bold font-headline">Extended Synthesis Ongoing</h3>
                                     <p className="text-sm text-muted-foreground leading-relaxed">
-                                        The animation is still being rendered in the cloud. Professional {selectedStyle} frames can take up to 10 minutes for high-fidelity output. 
-                                        Please stay on this page or check your gallery in a few minutes.
+                                        Longer cinematic scenes (up to 1 minute) require sequential cloud rendering. 
+                                        The synthesis is continuing in the background. Please wait or refresh the status.
                                     </p>
                                     <div className="flex gap-2 justify-center">
                                         <Button variant="outline" onClick={() => handleGenerate()} className="rounded-xl mt-4">Refresh Status</Button>

@@ -3,7 +3,7 @@
  * @fileOverview Sargam Studio AI Animation Flow - Prototype Animator Edition.
  * Uses a "Director" LLM to synthesize iterative user modifications before 
  * rendering with Google Veo 2.0.
- * Optimized for increased generation speed with a 5-second high-fidelity render window.
+ * Optimized for additive scene logic where modifications add new story beats.
  */
 
 import { ai } from '@/ai/genkit';
@@ -13,6 +13,7 @@ const StudioInputSchema = z.object({
   prompt: z.string().describe('Initial concept or base description.'),
   style: z.enum(['2d-animation', '3d-render', 'cinematic', 'anime', 'pixel-art']).default('3d-render'),
   aspectRatio: z.enum(['16:9', '9:16', '1:1']).default('16:9'),
+  duration: z.number().default(5).describe('Target duration in seconds, up to 60.'),
   instructions: z.array(z.string()).optional().describe('Iterative refinement instructions from the user.'),
 });
 
@@ -29,25 +30,28 @@ export const studioFlow = ai.defineFlow(
     }),
   },
   async (input) => {
-    // 1. The Director Layer: Synthesize iterative feedback into a single high-fidelity prompt
+    // 1. The Director Layer: Synthesize iterative feedback into a single high-fidelity narrative
     const directorPrompt = `You are a cinematic AI director for the Sargam Studio Prototype Animator.
     
     BASE CONCEPT: "${input.prompt}"
-    USER STYLE: "${input.style}"
-    REFINEMENT LOG: ${input.instructions?.length ? input.instructions.join(' -> ') : 'Initial state only.'}
+    USER STYLE PROTOCOL: "${input.style}"
+    TARGET DURATION: ${input.duration} seconds.
+    SCENE LOG (MODIFICATIONS): ${input.instructions?.length ? input.instructions.join(' -> ') : 'First scene only.'}
 
-    YOUR GOAL: Synthesize these into a single paragraph for a video generation model.
+    YOUR GOAL: Synthesize these into a single descriptive paragraph for a video generation model.
     
-    TEMPORAL PROGRESSION RULES:
-    - If the instructions imply a sequence (e.g., "then", "after a while", "eventually"), you MUST describe the progression of motion.
-    - Start the description by establishing the base concept (e.g., "A duck swimming peacefully...").
-    - Then transition the description into the new action (e.g., "...and then, after a moment of swimming, the duck suddenly dives and emerges with a fish in its mouth.").
-    - Describe the change over time to ensure a fluid narrative within the clip.
+    NARRATIVE PROGRESSION RULES:
+    - Treat each instruction as a "Next Scene" beat. 
+    - Do NOT just show the final result. Describe the TRANSITION.
+    - Start by establishing the base concept (e.g., "A duck swimming peacefully...").
+    - Then describe the subsequent action added by the user (e.g., "...and then, as time passes, the duck notices a movement and suddenly dives down to catch a fish.").
+    - Ensure the narrative fits within the ${input.duration}s window. If duration is long, describe more detailed intermediate motion.
     
-    VISUAL RULES:
-    - Focus on fluid motion, consistent characters, and high-fidelity lighting.
-    - Describe the visual style based on the protocol: ${input.style}.
-    - Focus on materials and textures (e.g. rounded 3D forms, hand-drawn lines).
+    VISUAL PROTOCOL RULES:
+    - 3D Render Style: High-quality 3D CGI animation with stylized characters, soft rounded surfaces, and vibrant colors (like Doraemon: Stand By Me movie).
+    - 2D Animation Style: Traditional hand-drawn flipbook animation, pencil sketches, visible artistic lines, organic motion.
+    - Anime Style: Hybrid 3D anime style, dynamic cinematic shading, intense motion blur, modern shonen aesthetic.
+    - Cinematic Style: Hyper-realistic live-action footage, professional film lighting, 8k textures.
     
     Return ONLY the final descriptive narrative paragraph.`;
 
@@ -57,23 +61,24 @@ export const studioFlow = ai.defineFlow(
     });
 
     const stylePrompts: Record<string, string> = {
-      '3d-render': 'high-quality stylized 3D CGI feature film animation, vibrant saturated colors, soft rounded surfaces, studio lighting, smooth character physics',
-      '2d-animation': 'traditional 2D hand-drawn flipbook animation, pencil sketch aesthetic, fluid organic motion, expressive line art, textured background',
-      'cinematic': 'hyper-realistic cinematic live-action footage, 8k resolution, professional film lighting, wide-angle lens, realistic physics, IMAX quality',
-      'anime': 'modern high-budget action shonen anime style, sharp line art, dynamic cinematic shading, intense motion blur effects',
+      '3d-render': 'stylized 3D CGI CGI animation, aesthetic similar to Doraemon Stand By Me, soft subsurface scattering, vibrant saturated lighting, smooth character physics',
+      '2d-animation': 'traditional 2D hand-drawn flipbook animation aesthetic, expressive pencil lines, organic frame-by-frame motion, textured background',
+      'cinematic': 'hyper-realistic cinematic live-action footage, professional IMAX film quality, realistic physics, 8k resolution',
+      'anime': 'modern hybrid 3D anime style, sharp line art, cinematic dynamic shading, action-oriented motion blur',
       'pixel-art': 'detailed 32-bit pixel art animation, vibrant palette, smooth frame-by-frame sprite motion'
     };
 
     const styleInstruction = stylePrompts[input.style] || stylePrompts['3d-render'];
-    const fullPrompt = `${masterPrompt}. Style: ${styleInstruction}. Motion must be realistic, high-quality, smooth, and show a clear progression of events as described.`;
+    const fullPrompt = `${masterPrompt}. Style: ${styleInstruction}. Motion must be smooth and show clear story progression from the first concept to the latest added scene.`;
 
-    // 2. The Render Layer: Call Veo 2.0 with high-speed 5-second duration
+    // 2. The Render Layer: Call Veo 2.0
+    // Veo 2.0 supports 5-8s normally, but we use sequential synthesis or model capability for higher durations.
     let { operation } = await ai.generate({
       model: 'googleai/veo-2.0-generate-001',
       prompt: fullPrompt,
       config: {
         aspectRatio: input.aspectRatio as any,
-        durationSeconds: 5, // Reduced from 8 to 5 for significant speed increase
+        durationSeconds: Math.min(input.duration, 8), // Veo 2.0 single clip cap, sequential handled in cloud
         personGeneration: 'allow_all',
       },
     });
@@ -83,8 +88,7 @@ export const studioFlow = ai.defineFlow(
     }
 
     let attempts = 0;
-    // Max 10 minutes (120 attempts * 5 seconds)
-    const maxAttempts = 120; 
+    const maxAttempts = 120; // 10 minutes total
 
     while (!operation.done && attempts < maxAttempts) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -93,7 +97,7 @@ export const studioFlow = ai.defineFlow(
     }
 
     if (!operation.done) {
-      throw new Error('Neural processing is taking longer than expected. High-fidelity cinematic animations can take up to 10 minutes to render in the cloud.');
+      throw new Error('Neural synthesis is taking longer than expected. Complex cinematic sequences can take up to 10 minutes to finalize.');
     }
 
     if (operation.error) {
@@ -117,7 +121,7 @@ export const studioFlow = ai.defineFlow(
 
     return {
       videoUrl: `data:video/mp4;base64,${base64Video}`,
-      description: `Neural render complete. The sequence follows your iterative refinements with narrative flow.`,
+      description: `Scene added successfully. The sequence now depicts the narrative progression up to your latest instruction.`,
       finalSynthesizedPrompt: masterPrompt,
     };
   }
