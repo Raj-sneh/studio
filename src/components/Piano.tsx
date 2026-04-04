@@ -81,6 +81,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
     useEffect(() => {
         let isMounted = true;
 
+        // Optimized Loading: getSampler resolves immediately now.
         getSampler('piano').then(sampler => {
             if (isMounted) {
                 synthRef.current = sampler as PianoSynth;
@@ -88,9 +89,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
             }
         }).catch(err => {
             console.error("Failed to load piano sounds", err);
-            if (isMounted) {
-                setIsLoading(false);
-            }
+            if (isMounted) setIsLoading(false);
         });
 
         const handleGlobalPointerUp = () => {
@@ -146,7 +145,6 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
 
         setEffects(prev => [...prev, ...newEffects]);
 
-        // Optimized Cleanup
         setTimeout(() => {
             setEffects(prev => prev.filter(e => e.id !== effectId1 && e.id !== effectId2));
         }, 1000);
@@ -191,7 +189,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
     
     if (isLoading) {
       return (
-          <div className="flex flex-col items-center justify-center min-h-[200px] text-center bg-card rounded-lg w-full border border-dashed border-primary/20">
+          <div className="flex flex-col items-center justify-center min-h-[300px] text-center bg-card rounded-lg w-full border border-dashed border-primary/20">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
               <p className="mt-4 text-muted-foreground font-headline uppercase tracking-widest text-[10px] font-black">Neural Calibration...</p>
           </div>
@@ -227,7 +225,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                 className="w-full transition-all duration-500 ease-in-out origin-center"
                 style={{ transform: `rotate(${rotation}deg)` }}
             >
-                <ScrollArea className="w-full max-w-full rounded-2xl border-4 border-muted bg-muted p-2 shadow-2xl relative">
+                <ScrollArea className="w-full max-w-full rounded-2xl border-4 border-muted bg-muted p-2 shadow-2xl relative h-[280px]">
                     <div 
                       className="relative flex bg-black rounded-xl select-none"
                       style={{
@@ -235,7 +233,6 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                         height: pianoHeight
                       }}
                     >
-                        {/* High-Performance Visual Effects Layer */}
                         <div className="absolute inset-0 pointer-events-none overflow-hidden z-50">
                             {effects.map(effect => (
                                 <div 
