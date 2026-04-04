@@ -6,7 +6,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Slider } from '@/components/ui/slider';
 import { 
     Loader2, 
     Sparkles, 
@@ -46,7 +45,6 @@ export function SargamStudio() {
     // Core State
     const [prompt, setPrompt] = useState('');
     const [selectedStyle, setSelectedStyle] = useState('3d-render');
-    const [duration, setDuration] = useState(5);
     const [instructions, setInstructions] = useState<string[]>([]);
     const [currentInstruction, setCurrentInstruction] = useState('');
     
@@ -109,7 +107,6 @@ export function SargamStudio() {
                 body: JSON.stringify({ 
                     prompt, 
                     style: selectedStyle,
-                    duration,
                     instructions: activeInstructions 
                 })
             });
@@ -230,27 +227,6 @@ export function SargamStudio() {
                                 </div>
                             </div>
 
-                            <div className="space-y-4 pt-2">
-                                <div className="flex justify-between items-center px-1">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                        <Timer className="h-3 w-3 text-primary" /> Render Time
-                                    </label>
-                                    <span className="text-primary font-bold text-xs">{duration}s</span>
-                                </div>
-                                <Slider
-                                    value={[duration]}
-                                    onValueChange={(val) => setDuration(val[0])}
-                                    min={5}
-                                    max={60}
-                                    step={5}
-                                    className="px-1"
-                                />
-                                <div className="flex justify-between text-[8px] text-muted-foreground font-bold uppercase tracking-widest px-1">
-                                    <span>Fast</span>
-                                    <span>Extended (60s)</span>
-                                </div>
-                            </div>
-
                             <Button 
                                 onClick={() => handleGenerate()} 
                                 disabled={isGenerating || !prompt.trim()} 
@@ -267,7 +243,7 @@ export function SargamStudio() {
                                 <p className="text-sm italic text-muted-foreground leading-relaxed">"{prompt}"</p>
                                 <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground">
                                     <span className="flex items-center gap-2"><Box className="h-3 w-3" /> {selectedStyle.toUpperCase()}</span>
-                                    <span className="flex items-center gap-2"><Timer className="h-3 w-3" /> {duration}s Target</span>
+                                    <span className="flex items-center gap-2"><Timer className="h-3 w-3" /> AI Managed Flow</span>
                                 </div>
                             </div>
 
@@ -406,7 +382,7 @@ export function SargamStudio() {
                                 <div className="space-y-2">
                                     <h3 className="text-xl font-bold font-headline">Extended Synthesis Ongoing</h3>
                                     <p className="text-sm text-muted-foreground leading-relaxed">
-                                        Longer cinematic scenes (up to 1 minute) require sequential cloud rendering. 
+                                        Longer cinematic scenes require sequential cloud rendering. 
                                         The synthesis is continuing in the background. Please wait or refresh the status.
                                     </p>
                                     <div className="flex gap-2 justify-center">

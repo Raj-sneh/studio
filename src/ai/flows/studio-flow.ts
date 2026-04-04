@@ -5,6 +5,7 @@
  * rendering with Google Veo 2.0.
  * Optimized for additive scene logic where modifications add new story beats.
  * Updated with safety protocols to prevent third-party content blocks.
+ * Duration is now managed automatically by the narrative flow.
  */
 
 import { ai } from '@/ai/genkit';
@@ -14,7 +15,6 @@ const StudioInputSchema = z.object({
   prompt: z.string().describe('Initial concept or base description.'),
   style: z.enum(['2d-animation', '3d-render', 'cinematic', 'anime', 'pixel-art']).default('3d-render'),
   aspectRatio: z.enum(['16:9', '9:16', '1:1']).default('16:9'),
-  duration: z.number().default(5).describe('Target duration in seconds, up to 60.'),
   instructions: z.array(z.string()).optional().describe('Iterative refinement instructions from the user.'),
 });
 
@@ -36,26 +36,24 @@ export const studioFlow = ai.defineFlow(
     
     BASE CONCEPT: "${input.prompt}"
     USER STYLE PROTOCOL: "${input.style}"
-    TARGET DURATION: ${input.duration} seconds.
     SCENE LOG (MODIFICATIONS): ${input.instructions?.length ? input.instructions.join(' -> ') : 'First scene only.'}
 
     YOUR GOAL: Synthesize these into a single descriptive paragraph for a video generation model.
     
     NARRATIVE PROGRESSION RULES:
     - Treat each instruction as a "Next Scene" beat. 
-    - Do NOT just show the final result. Describe the TRANSITION.
+    - Do NOT just show the final result. Describe the TRANSITION and the flow of time.
     - Start by establishing the base concept.
     - Then describe the subsequent action added by the user.
-    - Ensure the narrative fits within the ${input.duration}s window.
     
     VISUAL PROTOCOL RULES:
-    - 3D Render Style: High-quality 3D CGI animation with stylized characters, soft rounded surfaces, and vibrant colors.
-    - 2D Animation Style: High-quality professional 2D digital cartoon animation, clean line art, vibrant colors, fluid character motion, traditional cell-shaded aesthetic.
+    - 3D Render Style: High-quality 3D CGI animation with stylized characters, soft rounded surfaces, and vibrant colors (Doraemon Stand By Me style).
+    - 2D Animation Style: High-quality professional 2D digital cartoon animation, clean line art, vibrant colors, fluid character motion, solid fills.
     - Anime Style: Hybrid 3D anime style, dynamic cinematic shading, intense motion blur, modern shonen aesthetic.
     - Cinematic Style: Hyper-realistic live-action footage, professional film lighting, 8k textures.
 
     CRITICAL SAFETY RULES:
-    - DO NOT use copyrighted names, characters, brands, or franchises (e.g., Doraemon, Disney, Marvel, etc.).
+    - DO NOT use copyrighted names, characters, brands, or franchises.
     - Describe the AESTHETIC without using the brand name.
     
     Return ONLY the final descriptive narrative paragraph.`;
@@ -75,7 +73,7 @@ export const studioFlow = ai.defineFlow(
 
     const stylePrompts: Record<string, string> = {
       '3d-render': 'stylized 3D CGI animation, soft subsurface scattering, vibrant saturated lighting, smooth character physics, high-fidelity surfaces',
-      '2d-animation': 'high-quality 2D digital cartoon animation, clean line art, vibrant flat colors, fluid traditional animation style, professional character design, solid fills, no sketch lines',
+      '2d-animation': 'high-quality 2D digital cartoon animation, clean line art, vibrant flat colors, fluid traditional animation style, professional character design, solid fills',
       'cinematic': 'hyper-realistic cinematic live-action footage, professional IMAX film quality, realistic physics, 8k resolution',
       'anime': 'modern hybrid 3D anime style, sharp line art, cinematic dynamic shading, action-oriented motion blur',
       'pixel-art': 'detailed 32-bit pixel art animation, vibrant palette, smooth frame-by-frame sprite motion'
@@ -90,10 +88,8 @@ export const studioFlow = ai.defineFlow(
       prompt: fullPrompt,
       config: {
         aspectRatio: input.aspectRatio as any,
-        durationSeconds: 5,
+        durationSeconds: 5, // Fixed duration per generation, narrative handles flow
         personGeneration: 'allow_all',
-        // Note: safetySettings is not supported by Veo 2.0 API via this SDK.
-        // It uses internal moderation instead.
       },
     });
 
@@ -115,7 +111,6 @@ export const studioFlow = ai.defineFlow(
     }
 
     if (operation.error) {
-      // Check for specific content provider errors
       if (operation.error.message?.toLowerCase().includes('third-party') || operation.error.message?.toLowerCase().includes('content provider')) {
         throw new Error("The description contains terms restricted by content providers. Please use more generic descriptions and avoid character names.");
       }
