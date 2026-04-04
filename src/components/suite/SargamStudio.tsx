@@ -34,7 +34,7 @@ const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com'];
 
 const STYLES = [
     { id: '3d-render', label: '3D CGI', icon: Box, description: 'Stand By Me Style.' },
-    { id: '2d-animation', label: 'Flipbook', icon: Layers, description: 'Hand-drawn feel.' },
+    { id: '2d-animation', label: '2D Cartoon', icon: Layers, description: 'Classic animation.' },
     { id: 'cinematic', label: 'Cinematic', icon: Film, description: 'Film quality.' },
     { id: 'anime', label: 'Hybrid 3D', icon: Palette, description: 'Action anime style.' }
 ];
@@ -196,9 +196,9 @@ export function SargamStudio() {
                                     Visual Concept
                                     <span className="text-primary font-bold">{user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${STUDIO_COST} Credits`}</span>
                                 </label>
-                                <div className="relative group z-0">
+                                <div className="relative z-10">
                                     <Textarea 
-                                        placeholder="e.g. A duck swimming in a pond with its little ones."
+                                        placeholder="e.g. A friendly duck swimming in a pond with its little ones."
                                         value={prompt}
                                         onChange={(e) => setPrompt(e.target.value)}
                                         disabled={isGenerating}
@@ -366,7 +366,7 @@ export function SargamStudio() {
                                 
                                 {/* Assistant Command Prompt */}
                                 <div className="w-full max-w-2xl mt-8 animate-in slide-in-from-bottom-4 duration-1000">
-                                    <div className="relative z-0">
+                                    <div className="relative z-10">
                                         <div className="relative flex items-center gap-3 bg-muted/40 backdrop-blur-xl border border-primary/20 rounded-[1.5rem] p-2 shadow-2xl z-10">
                                             <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                                                 <Bot className="h-5 w-5 text-primary" />

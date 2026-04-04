@@ -50,7 +50,7 @@ export const studioFlow = ai.defineFlow(
     
     VISUAL PROTOCOL RULES:
     - 3D Render Style: High-quality 3D CGI animation with stylized characters, soft rounded surfaces, and vibrant colors.
-    - 2D Animation Style: Traditional hand-drawn flipbook animation, pencil sketches, visible artistic lines, organic motion.
+    - 2D Animation Style: High-quality professional 2D digital cartoon animation, clean line art, vibrant colors, fluid character motion, traditional cell-shaded aesthetic.
     - Anime Style: Hybrid 3D anime style, dynamic cinematic shading, intense motion blur, modern shonen aesthetic.
     - Cinematic Style: Hyper-realistic live-action footage, professional film lighting, 8k textures.
 
@@ -75,7 +75,7 @@ export const studioFlow = ai.defineFlow(
 
     const stylePrompts: Record<string, string> = {
       '3d-render': 'stylized 3D CGI animation, soft subsurface scattering, vibrant saturated lighting, smooth character physics, high-fidelity surfaces',
-      '2d-animation': 'traditional 2D hand-drawn flipbook animation aesthetic, expressive pencil lines, organic frame-by-frame motion, textured background',
+      '2d-animation': 'high-quality 2D digital cartoon animation, clean line art, vibrant flat colors, fluid traditional animation style, professional character design, solid fills, no sketch lines',
       'cinematic': 'hyper-realistic cinematic live-action footage, professional IMAX film quality, realistic physics, 8k resolution',
       'anime': 'modern hybrid 3D anime style, sharp line art, cinematic dynamic shading, action-oriented motion blur',
       'pixel-art': 'detailed 32-bit pixel art animation, vibrant palette, smooth frame-by-frame sprite motion'
@@ -90,7 +90,7 @@ export const studioFlow = ai.defineFlow(
       prompt: fullPrompt,
       config: {
         aspectRatio: input.aspectRatio as any,
-        durationSeconds: Math.min(input.duration, 8),
+        durationSeconds: 5,
         personGeneration: 'allow_all',
         safetySettings: [
           { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
