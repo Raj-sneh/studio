@@ -33,7 +33,12 @@ const prompt = ai.definePrompt({
 4. Use valid Tone.js timing ("0:0:0") and durations ("4n", "8n").
 
 {{#if feedback}}
-The user said: "{{feedback.comment}}". Please fix this in the new version.
+REINFORCEMENT LOG:
+The user previously requested: "{{feedback.previousPrompt}}"
+The user rated the last output as: "{{feedback.rating}}"
+User's specific correction: "{{feedback.comment}}"
+
+TASK: Regenerate the melody fixing the mentioned issues while keeping the original intent.
 {{/if}}
 
 User's request: "{{text}}"

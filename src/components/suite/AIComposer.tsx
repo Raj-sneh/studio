@@ -7,13 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { generateNotes } from '@/ai/flows/generate-notes-flow';
 import type { GenerateNotesOutput, NoteObject } from '@/ai/flows/generate-notes-types';
-import { Loader2, Music, Play, StopCircle, BookOpen, RefreshCw, CheckCircle, ThumbsUp, ThumbsDown, History, Zap } from 'lucide-react';
+import { Loader2, Music, Play, StopCircle, BookOpen, ThumbsUp, ThumbsDown, Zap, Send, RefreshCw } from 'lucide-react';
 import { getSampler } from '@/lib/samplers';
 import type { InstrumentSynth } from '@/lib/samplers';
 import NoteDisplay from '@/components/note-display';
 import { Card, CardContent } from '@/components/ui/card';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 const Piano = lazy(() => import('@/components/Piano'));
 
@@ -23,19 +24,21 @@ const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com', 'snehkumatverma2011@gmail.
 function InstrumentLoader() {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center min-h-[200px]">
-      <Loader2 className="h-8 w-8 animate-spin" />
-      <p className="mt-4 text-muted-foreground">Warming up the piano...</p>
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <p className="mt-4 text-muted-foreground font-headline uppercase tracking-widest text-[10px] font-black">Neural Calibration...</p>
     </div>
   );
 }
 
-export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { initialPrompt?: string | null; autogen?: boolean; autoplay?: boolean; onGenerate: () => void; }) {
+export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialPrompt?: string | null; autogen?: boolean; autoplay?: boolean; onGenerate: () => void; }) {
     const { toast } = useToast();
     const { user } = useUser();
     const firestore = useFirestore();
     
     const [prompt, setPrompt] = useState(initialPrompt || '');
     const [feedbackComment, setFeedbackComment] = useState('');
+    const [rating, setRating] = useState<'good' | 'bad' | null>(null);
+    const [showFeedbackInput, setShowFeedbackInput] = useState(false);
 
     const [generationState, setGenerationState] = useState<'idle' | 'loading' | 'generated'>('idle');
     const [mode, setMode] = useState<'idle' | 'demo' | 'learn'>('idle');
@@ -74,13 +77,13 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
             
             setHighlightedKeys([]);
             setMode('idle');
-            if (generationState === 'generated') setStatusText('Ready to play or learn.');
+            if (generationState === 'generated') setStatusText('Neural track ready for preview.');
         } catch (e) {
             console.warn("Audio cleanup warning:", e);
         }
     }, [generationState]);
 
-    const handleGeneration = useCallback(async (isAutoRun: boolean = false, rating?: 'good' | 'bad') => {
+    const handleGeneration = useCallback(async (isReinforced: boolean = false) => {
         if (!user) {
             toast({ title: 'Sign in required', variant: 'destructive' });
             return;
@@ -105,20 +108,17 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
                 });
 
                 if (!creditRes.ok) {
-                    const contentType = creditRes.headers.get("content-type");
-                    const errData = contentType && contentType.includes("application/json") ? await creditRes.json() : { error: "Credit system offline." };
-                    toast({ title: "Insufficient Credits", description: errData.error, variant: "destructive" });
+                    const errData = await creditRes.json().catch(() => ({}));
+                    toast({ title: "Insufficient Credits", description: errData.error || "Neural synthesis requires credits.", variant: "destructive" });
                     setGenerationState('idle');
                     return;
                 }
-            } else {
-                setStatusText('Admin access granted (Unlimited)');
             }
 
-            setStatusText('Thinking of a melody...');
+            setStatusText(isReinforced ? 'Reinforcing melody...' : 'Thinking of a melody...');
             onGenerate(); 
 
-            const feedback = rating ? {
+            const feedback = isReinforced && rating ? {
                 previousPrompt: prompt,
                 rating,
                 comment: feedbackComment,
@@ -131,15 +131,14 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
             
             setGeneratedMelody(result);
             setGenerationState('generated');
-            setStatusText('Your tune is ready!');
+            setStatusText(isReinforced ? 'Refinement complete!' : 'Your tune is ready!');
+            setShowFeedbackInput(false);
+            setRating(null);
+            setFeedbackComment('');
 
             if (firestore) {
                 const historyRef = collection(firestore, 'users', user.uid, 'generatedMelodies');
-                
-                const flatNotes = result.notes.map(n => {
-                    const keyStr = Array.isArray(n.key) ? n.key.join('+') : n.key;
-                    return `${keyStr} (${n.duration})`;
-                });
+                const flatNotes = result.notes.map(n => `${Array.isArray(n.key) ? n.key.join('+') : n.key} (${n.duration})`);
 
                 addDocumentNonBlocking(historyRef, {
                     userId: user.uid,
@@ -151,14 +150,10 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
                 });
             }
         } catch (err: any) {
-            console.error("Composer Error:", err);
-            const message = err.name === 'TypeError' && err.message === 'Failed to fetch'
-                ? "Could not connect to the AI engine. Please check your internet connection."
-                : err.message;
-            toast({ title: 'Oops!', description: message, variant: 'destructive' });
+            toast({ title: 'Oops!', description: err.message, variant: 'destructive' });
             setGenerationState('idle');
         }
-    }, [prompt, feedbackComment, toast, stopPlayback, onGenerate, user, firestore]);
+    }, [prompt, feedbackComment, rating, toast, stopPlayback, onGenerate, user, firestore]);
 
     const handlePlayDemo = useCallback(async () => {
         if (!generatedMelody) return;
@@ -204,8 +199,8 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
         setCurrentNoteIndex(0);
         const firstNoteKey = Array.isArray(sortedNotes[0].key) ? sortedNotes[0].key : [sortedNotes[0].key];
         setHighlightedKeys(firstNoteKey);
-        setStatusText('Play the glowing keys...');
-        toast({ title: "Learning Mode", description: "Follow the highlighted keys on the piano." });
+        setStatusText('Follow the glowing keys...');
+        toast({ title: "Learning Mode", description: "Play the highlighted keys on the piano." });
     }, [generatedMelody, sortedNotes, stopPlayback, toast]);
 
     const handleNoteDown = useCallback((note: string) => {
@@ -230,54 +225,116 @@ export function AIComposer({ initialPrompt, autogen, autoplay, onGenerate }: { i
         }
     }, [mode, currentNoteIndex, sortedNotes, toast]);
 
+    const handleFeedback = (val: 'good' | 'bad') => {
+        setRating(val);
+        if (val === 'bad') setShowFeedbackInput(true);
+        else {
+            toast({ title: "Glad you liked it!", description: "AI learning protocol updated." });
+            setShowFeedbackInput(false);
+        }
+    };
+
     const lessonNoteStringsForDisplay = useMemo(() => sortedNotes.map(n => Array.isArray(n.key) ? n.key.join('+') : n.key), [sortedNotes]);
 
     return (
-        <Card className="border-primary/10 overflow-hidden">
-            <CardContent className="space-y-4 pt-6">
-                <div className="flex justify-between items-center px-1">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Prompt Description</label>
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary">
-                        <Zap className="h-3 w-3 fill-primary" /> {user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${MELODY_COST} Credits`}
+        <Card className="border-primary/10 overflow-hidden bg-card/30 rounded-[2.5rem]">
+            <CardContent className="space-y-6 pt-10 px-8 pb-12">
+                
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center px-1">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                            <Music className="h-3 w-3 text-primary" />
+                            Melody Concept
+                        </label>
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-black text-primary uppercase">
+                            <Zap className="h-3 w-3 fill-primary" /> {user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${MELODY_COST} Credits`}
+                        </div>
+                    </div>
+                    
+                    <div className="relative group">
+                        <div className="absolute inset-0 bg-primary/5 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                        <Textarea
+                            placeholder="e.g., 'A melancholic rainy day tune' or 'Fast happy birthday version'"
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            disabled={generationState === 'loading'}
+                            className="min-h-[100px] rounded-3xl bg-muted/20 border-primary/10 focus:border-primary/30 transition-all resize-none p-5 text-sm italic"
+                        />
+                    </div>
+                    
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <Button 
+                            onClick={() => handleGeneration(false)} 
+                            disabled={generationState === 'loading'} 
+                            className="flex-1 h-14 rounded-2xl font-black text-md shadow-xl shadow-primary/20"
+                        >
+                            {generationState === 'loading' ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : <RefreshCw className="mr-2 h-5 w-5" />}
+                            {generationState === 'generated' ? 'Regenerate New' : 'Initialize Composition'}
+                        </Button>
+                        
+                        {generationState === 'generated' && (
+                            <div className="flex gap-2">
+                                <Button onClick={handlePlayDemo} variant="secondary" className="h-14 px-6 rounded-2xl font-bold">
+                                    <Play className="mr-2 h-4 w-4" /> Listen
+                                </Button>
+                                <Button onClick={handleStartLearn} variant="outline" className="h-14 px-6 rounded-2xl font-bold border-primary/20 hover:bg-primary/5">
+                                    <BookOpen className="mr-2 h-4 w-4" /> Learn
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
-                <Textarea
-                    placeholder="e.g., 'A happy song' or 'Rainy day tune'"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    disabled={generationState === 'loading'}
-                    className="min-h-[80px] rounded-2xl bg-muted/20 border-primary/10 focus:border-primary/20"
-                />
-                
-                <div className="flex flex-col sm:flex-row gap-2">
-                    <Button onClick={() => handleGeneration(false)} disabled={generationState === 'loading'} className="w-full sm:w-auto h-12 rounded-xl font-bold shadow-xl shadow-primary/20">
-                        {generationState === 'loading' ? <Loader2 className="animate-spin mr-2" /> : <Music className="mr-2 h-4 w-4" />}
-                        {generationState === 'generated' ? 'Generate New' : 'Generate'}
-                    </Button>
-                    
-                    {generationState === 'generated' && (
-                        <>
-                            <Button onClick={handlePlayDemo} variant="secondary" className="w-full sm:w-auto h-12 rounded-xl font-bold">
-                                <Play className="mr-2 h-4 w-4" /> Play Demo
-                            </Button>
-                            <Button onClick={handleStartLearn} variant="outline" className="w-full sm:w-auto h-12 rounded-xl font-bold border-primary/20">
-                                <BookOpen className="mr-2 h-4 w-4" /> Start Learning
-                            </Button>
-                        </>
-                    )}
-                </div>
 
-                <div className="text-center p-4 mb-2 border rounded-xl h-16 flex items-center justify-center bg-muted/20 border-primary/5">
-                    <p className="text-sm font-bold">
-                        <span className="text-muted-foreground italic">{statusText}</span>
-                    </p>
-                </div>
+                {generationState === 'generated' && (
+                    <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-4">
+                        <div className="flex items-center justify-between p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                            <div className="flex items-center gap-3">
+                                <Zap className="h-4 w-4 text-primary" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">{statusText}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => handleFeedback('good')}
+                                    className={cn("h-8 w-8 p-0 rounded-full", rating === 'good' && "bg-primary/20 text-primary")}
+                                >
+                                    <ThumbsUp className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => handleFeedback('bad')}
+                                    className={cn("h-8 w-8 p-0 rounded-full", rating === 'bad' && "bg-destructive/20 text-destructive")}
+                                >
+                                    <ThumbsDown className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
 
-                {generatedMelody && (
-                    <NoteDisplay notes={lessonNoteStringsForDisplay} currentNoteIndex={mode === 'learn' ? currentNoteIndex : null} />
+                        {showFeedbackInput && (
+                            <div className="p-4 rounded-3xl bg-muted/20 border border-destructive/20 space-y-3 animate-in zoom-in-95">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-destructive">Reinforcement Protocol Required</p>
+                                <div className="flex gap-2">
+                                    <Input 
+                                        placeholder="What should I fix? (e.g., 'Make it slower', 'More complex')"
+                                        value={feedbackComment}
+                                        onChange={(e) => setFeedbackComment(e.target.value)}
+                                        className="h-10 bg-muted/40 border-none text-xs"
+                                    />
+                                    <Button size="icon" onClick={() => handleGeneration(true)} className="h-10 w-10 shrink-0">
+                                        <Send className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        <NoteDisplay notes={lessonNoteStringsForDisplay} currentNoteIndex={mode === 'learn' ? currentNoteIndex : null} />
+                    </div>
                 )}
 
-                <div className="flex-1 min-h-[300px] bg-card rounded-2xl flex items-center justify-center p-4 mt-4 border border-primary/5 shadow-inner">
+                <div className="flex-1 min-h-[350px] bg-black/40 rounded-[2rem] flex items-center justify-center p-4 mt-4 border border-white/5 shadow-inner group relative">
+                    <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none" />
                     <Suspense fallback={<InstrumentLoader />}>
                         <Piano 
                             onNoteDown={handleNoteDown}

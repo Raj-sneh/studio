@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,26 +6,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AIComposer } from '@/components/suite/AIComposer';
 import { VocalStudio } from '@/components/suite/VocalStudio';
 import { VoiceCloner } from '@/components/suite/VoiceCloner';
-import { BgmGenerator } from '@/components/suite/BgmGenerator';
-import { Music, Mic, UserRoundPlus, AlertCircle, LogIn, Disc } from 'lucide-react';
+import { Music, Mic, UserRoundPlus, AlertCircle, LogIn } from 'lucide-react';
 import { useUser } from '@/firebase';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 /**
  * Defines the available tabs for music-specific tools.
- * Studio has been moved to its own dedicated page for pure animation making.
+ * Removed BGM Composer as requested.
  */
 const TABS = [
     { value: 'composer', label: 'Melody Maker', icon: Music },
-    { value: 'bgm', label: 'BGM Composer', icon: Disc },
     { value: 'singer', label: 'Vocal Studio', icon: Mic },
     { value: 'cloner', label: 'Voice Cloner', icon: UserRoundPlus },
 ];
 
 /**
  * The unified UI for the AI Music Creative Studio.
- * Allows users to compose melodies, sync BGM, or clone voices via tabs.
+ * Allows users to compose melodies, transform vocals, or clone voices.
  */
 export function SargamSuite() {
     const { user } = useUser();
@@ -34,7 +31,6 @@ export function SargamSuite() {
     const requestedTab = searchParams.get('tab');
     const initialPrompt = searchParams.get('prompt');
     const autogen = searchParams.get('autogen') === 'true';
-    const autoplay = searchParams.get('autoplay') === 'true';
 
     // Initialize the active tab from URL or default to the first tab.
     const [activeTab, setActiveTab] = useState(requestedTab && TABS.some(t => t.value === requestedTab) ? requestedTab : TABS[0].value);
@@ -54,7 +50,7 @@ export function SargamSuite() {
                 <div className="text-center max-w-2xl mx-auto space-y-4">
                     <h1 className="font-headline text-4xl font-bold tracking-tight text-foreground">AI Music Suite</h1>
                     <p className="text-muted-foreground">
-                        Create unique piano melodies, generate synchronized background tracks, or transform vocals using neural research tools.
+                        Create unique piano melodies with reinforcement learning or transform vocals using neural research tools.
                     </p>
                 </div>
 
@@ -80,7 +76,7 @@ export function SargamSuite() {
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-6xl mx-auto">
                     <div className="flex justify-center mb-12">
-                        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 max-w-3xl h-auto p-1 bg-muted/50 border border-border/50 rounded-2xl">
+                        <TabsList className="grid w-full grid-cols-3 max-w-2xl h-auto p-1 bg-muted/50 border border-border/50 rounded-2xl">
                             {TABS.map(tab => (
                                 <TabsTrigger 
                                     key={tab.value} 
@@ -100,12 +96,8 @@ export function SargamSuite() {
                             <AIComposer 
                                 initialPrompt={initialPrompt}
                                 autogen={autogen}
-                                autoplay={autoplay}
                                 onGenerate={() => {}}
                             />
-                        )}
-                        {activeTab === 'bgm' && (
-                            <BgmGenerator />
                         )}
                         {activeTab === 'singer' && (
                             <VocalStudio 
