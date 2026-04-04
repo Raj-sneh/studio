@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import * as Tone from 'tone';
 import { cn } from '@/lib/utils';
 import { getSampler } from '@/lib/samplers';
-import { Loader2, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
+import { Loader2, ZoomIn, ZoomOut, RotateCw, Sparkles, Music } from 'lucide-react';
 import { PIANO_KEYS } from '@/lib/constants';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
@@ -19,6 +19,15 @@ interface PianoProps {
   activeKeys?: string[] | null;
   holdState?: { key: string | string[]; progress: number } | null;
   interactiveMode?: boolean;
+}
+
+interface VisualEffect {
+  id: number;
+  note: string;
+  x: number;
+  y: number;
+  type: 'ripple' | 'sparkle';
+  icon?: any;
 }
 
 const whiteKeys = PIANO_KEYS.filter(k => !k.isBlack);
@@ -53,9 +62,12 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
     const [isLoading, setIsLoading] = useState(true);
     const [zoom, setZoom] = useState(1);
     const [rotation, setRotation] = useState(0);
+    const [effects, setEffects] = useState<VisualEffect[]>([]);
+    
     const synthRef = useRef<PianoSynth | null>(null);
     const keyRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
     const pressedNotes = useRef<Set<string>>(new Set());
+    const effectCounter = useRef(0);
 
     const whiteKeyWidth = BASE_WHITE_KEY_WIDTH * zoom;
     const whiteKeyMargin = BASE_WHITE_KEY_MARGIN * zoom;
@@ -106,6 +118,30 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
         }
     }, [highlightedKeys]);
 
+    const triggerVisualEffect = (note: string) => {
+        const keyElement = keyRefs.current.get(note);
+        if (!keyElement) return;
+
+        const rect = keyElement.getBoundingClientRect();
+        const parentRect = keyElement.parentElement?.getBoundingClientRect();
+        if (!parentRect) return;
+
+        const x = rect.left - parentRect.left + rect.width / 2;
+        const y = rect.top - parentRect.top + rect.height / 2;
+
+        const newEffects: VisualEffect[] = [
+            { id: ++effectCounter.current, note, x, y, type: 'ripple' },
+            { id: ++effectCounter.current, note, x, y: y - 20, type: 'sparkle', icon: Math.random() > 0.5 ? Sparkles : Music }
+        ];
+
+        setEffects(prev => [...prev, ...newEffects]);
+
+        // Cleanup effects after animation
+        setTimeout(() => {
+            setEffects(prev => prev.filter(e => !newEffects.some(ne => ne.id === e.id)));
+        }, 1000);
+    };
+
     const playNoteTone = useCallback(async (note: string) => {
         await Tone.start();
         if (!synthRef.current || synthRef.current.disposed) {
@@ -116,6 +152,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
         if (!pressedNotes.current.has(note)) {
             pressedNotes.current.add(note);
             synthRef.current.triggerAttack(note);
+            triggerVisualEffect(note);
         }
     }, []);
 
@@ -188,6 +225,28 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                         height: pianoHeight
                       }}
                     >
+                        {/* Visual Effects Layer */}
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden z-50">
+                            {effects.map(effect => (
+                                <div 
+                                    key={effect.id}
+                                    className={effect.type === 'ripple' ? 'piano-ripple' : 'piano-sparkle'}
+                                    style={{
+                                        left: effect.x,
+                                        top: effect.y,
+                                        width: effect.type === 'ripple' ? '40px' : 'auto',
+                                        height: effect.type === 'ripple' ? '40px' : 'auto',
+                                        marginLeft: effect.type === 'ripple' ? '-20px' : '0',
+                                        marginTop: effect.type === 'ripple' ? '-20px' : '0',
+                                    }}
+                                >
+                                    {effect.type === 'sparkle' && effect.icon && (
+                                        <effect.icon className="h-6 w-6" />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
                         {whiteKeys.map(({ note }) => {
                             const isKeyActive = !disabled && (!activeKeys || activeKeys.includes(note));
                             const isHighlighted = highlightedKeys?.includes(note);
