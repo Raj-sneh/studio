@@ -23,7 +23,8 @@ import {
     RefreshCw,
     Bot,
     User,
-    Timer
+    Timer,
+    AlertCircle
 } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
@@ -53,7 +54,8 @@ export function SargamStudio() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [progress, setProgress] = useState(0);
     const [resultUrl, setResultUrl] = useState<string | null>(null);
-    const [errorState, setErrorState] = useState<'none' | 'timeout' | 'error'>('none');
+    const [errorState, setErrorState] = useState<'none' | 'timeout' | 'error' | 'content-block'>('none');
+    const [lastErrorMessage, setLastErrorMessage] = useState<string | null>(null);
     const [isRefinementMode, setIsRefinementMode] = useState(false);
 
     const handleGenerate = async (newInstruction?: string) => {
@@ -73,6 +75,7 @@ export function SargamStudio() {
         setIsGenerating(true);
         setProgress(2);
         setErrorState('none');
+        setLastErrorMessage(null);
         if (!isRefinementMode) setIsRefinementMode(true);
 
         const interval = setInterval(() => {
@@ -90,8 +93,13 @@ export function SargamStudio() {
                 });
 
                 if (!creditRes.ok) {
-                    const errData = await creditRes.json().catch(() => ({}));
-                    throw new Error(errData.error || "Insufficient credits.");
+                    const text = await creditRes.text();
+                    let errMessage = "Insufficient credits.";
+                    try {
+                        const errData = text ? JSON.parse(text) : {};
+                        errMessage = errData.error || errMessage;
+                    } catch (e) {}
+                    throw new Error(errMessage);
                 }
             }
 
@@ -116,22 +124,32 @@ export function SargamStudio() {
             }
 
             const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                const errorText = await response.text().catch(() => "Unknown Server Error");
-                throw new Error(`Neural Studio Connectivity Issue (Status ${response.status}): ${errorText.substring(0, 50)}...`);
+            const isJson = contentType && contentType.includes("application/json");
+            
+            if (!response.ok) {
+                const data = isJson ? await response.json().catch(() => ({})) : { message: "Neural Engine Connectivity Issue" };
+                const msg = data.message || "Rendering failed.";
+                
+                if (msg.toLowerCase().includes('third-party') || msg.toLowerCase().includes('provider')) {
+                    setErrorState('content-block');
+                    throw new Error("Content Restriction: Avoid using copyrighted names (e.g. Disney, Doraemon). Describe the look instead.");
+                }
+                
+                throw new Error(msg);
             }
 
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || "Neural Studio rendering failed.");
+            if (!isJson) throw new Error("Unexpected response from Neural Engine.");
 
+            const data = await response.json();
             setResultUrl(data.videoUrl);
             if (newInstruction) setInstructions(activeInstructions);
             setProgress(100);
             toast({ title: "Scene Added!", description: "The iteration has been synthesized." });
         } catch (e: any) {
             console.error("Studio Logic Error:", e);
+            setLastErrorMessage(e.message);
+            if (errorState !== 'content-block') setErrorState('error');
             toast({ title: "Studio Error", description: e.message, variant: "destructive" });
-            setErrorState('error');
         } finally {
             clearInterval(interval);
             setIsGenerating(false);
@@ -145,6 +163,7 @@ export function SargamStudio() {
         setResultUrl(null);
         setIsRefinementMode(false);
         setErrorState('none');
+        setLastErrorMessage(null);
     };
 
     return (
@@ -177,11 +196,12 @@ export function SargamStudio() {
                                     Visual Concept
                                     <span className="text-primary font-bold">{user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${STUDIO_COST} Credits`}</span>
                                 </label>
-                                <div className="relative group">
+                                <div className="relative group z-0">
                                     <Textarea 
                                         placeholder="e.g. A duck swimming in a pond with its little ones."
                                         value={prompt}
                                         onChange={(e) => setPrompt(e.target.value)}
+                                        disabled={isGenerating}
                                         className="min-h-[120px] rounded-[1.5rem] bg-muted/20 border-primary/10 focus:border-primary/30 transition-none resize-none p-4 relative z-10"
                                     />
                                     <div className="absolute inset-0 bg-primary/5 blur-xl pointer-events-none -z-10" />
@@ -285,7 +305,7 @@ export function SargamStudio() {
                             <div>
                                 <h4 className="text-sm font-bold uppercase tracking-widest text-primary">Neural Canvas</h4>
                                 <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">
-                                    {isGenerating ? 'Synthesizing Scene...' : resultUrl ? 'Frame Sequence Ready' : errorState === 'timeout' ? 'Long-Term Synthesis' : 'Idle'}
+                                    {isGenerating ? 'Synthesizing Scene...' : resultUrl ? 'Frame Sequence Ready' : errorState === 'timeout' ? 'Long-Term Synthesis' : errorState === 'content-block' ? 'Restriction Warning' : 'Idle'}
                                 </p>
                             </div>
                         </div>
@@ -307,7 +327,7 @@ export function SargamStudio() {
                                 </div>
                                 <div className="space-y-2">
                                     <p className="text-lg font-headline font-bold text-muted-foreground italic">Canvas sequence empty.</p>
-                                    <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto font-medium">Configure yourart protocol and concept on the left to begin.</p>
+                                    <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto font-medium">Configure your art protocol and concept on the left to begin.</p>
                                 </div>
                             </div>
                         )}
@@ -346,7 +366,7 @@ export function SargamStudio() {
                                 
                                 {/* Assistant Command Prompt */}
                                 <div className="w-full max-w-2xl mt-8 animate-in slide-in-from-bottom-4 duration-1000">
-                                    <div className="relative">
+                                    <div className="relative z-0">
                                         <div className="relative flex items-center gap-3 bg-muted/40 backdrop-blur-xl border border-primary/20 rounded-[1.5rem] p-2 shadow-2xl z-10">
                                             <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                                                 <Bot className="h-5 w-5 text-primary" />
@@ -393,6 +413,24 @@ export function SargamStudio() {
                                         <Button variant="outline" onClick={() => handleGenerate()} className="rounded-xl mt-4">Refresh Status</Button>
                                         <Button variant="ghost" onClick={() => setResultUrl(null)} className="rounded-xl mt-4">Clear Canvas</Button>
                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {!isGenerating && errorState === 'content-block' && (
+                            <div className="w-full max-w-md space-y-6 text-center animate-in zoom-in-95 duration-500">
+                                <div className="h-24 w-24 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto mb-4">
+                                    <AlertCircle className="h-10 w-10 text-destructive" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h3 className="text-xl font-bold font-headline">Neural Synthesis Restricted</h3>
+                                    <p className="text-sm text-muted-foreground leading-relaxed italic px-4">
+                                        "{lastErrorMessage}"
+                                    </p>
+                                    <p className="text-xs text-muted-foreground/60 pt-2">
+                                        Try using descriptive terms (e.g. "blue robotic cat") instead of specific character names.
+                                    </p>
+                                    <Button variant="outline" onClick={() => { setErrorState('none'); setIsRefinementMode(false); }} className="rounded-xl mt-6">Modify Description</Button>
                                 </div>
                             </div>
                         )}
