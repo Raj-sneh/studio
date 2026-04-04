@@ -252,15 +252,15 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
                         </div>
                     </div>
                     
-                    <div className="relative group z-0">
-                        <div className="absolute inset-0 bg-primary/5 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" />
+                    <div className="relative">
                         <Textarea
                             placeholder="e.g., 'A melancholic rainy day tune' or 'Fast happy birthday version'"
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
                             disabled={generationState === 'loading'}
-                            className="relative z-10 min-h-[100px] rounded-3xl bg-muted/20 border-primary/10 focus:border-primary/30 transition-all resize-none p-5 text-sm"
+                            className="min-h-[100px] rounded-3xl bg-muted/20 border-primary/10 focus:border-primary/30 transition-none resize-none p-5 text-sm relative z-10"
                         />
+                        <div className="absolute inset-0 bg-primary/5 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none -z-10" />
                     </div>
                     
                     <div className="flex flex-col sm:flex-row gap-3">

@@ -87,8 +87,7 @@ export function SargamStudio() {
                 });
 
                 if (!creditRes.ok) {
-                    const contentType = creditRes.headers.get("content-type");
-                    const errData = contentType && contentType.includes("application/json") ? await creditRes.json() : { error: "Credit system is busy." };
+                    const errData = await creditRes.json().catch(() => ({}));
                     throw new Error(errData.error || "Insufficient credits.");
                 }
             }
@@ -110,7 +109,7 @@ export function SargamStudio() {
                     title: "Neural Engine Processing", 
                     description: "High-fidelity rendering is ongoing in the cloud. This can take up to 10 minutes." 
                 });
-                return; // Exit without throwing to keep UI stable
+                return;
             }
 
             const contentType = response.headers.get("content-type");
@@ -175,12 +174,15 @@ export function SargamStudio() {
                                     Visual Concept
                                     <span className="text-primary font-bold">{user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${STUDIO_COST} Credits`}</span>
                                 </label>
-                                <Textarea 
-                                    placeholder="e.g. A duck swimming in a pond."
-                                    value={prompt}
-                                    onChange={(e) => setPrompt(e.target.value)}
-                                    className="min-h-[150px] rounded-[1.5rem] bg-muted/20 border-primary/10 focus:border-primary/30 transition-all resize-none p-4"
-                                />
+                                <div className="relative">
+                                    <Textarea 
+                                        placeholder="e.g. A duck swimming in a pond."
+                                        value={prompt}
+                                        onChange={(e) => setPrompt(e.target.value)}
+                                        className="min-h-[150px] rounded-[1.5rem] bg-muted/20 border-primary/10 focus:border-primary/30 transition-none resize-none p-4 relative z-10"
+                                    />
+                                    <div className="absolute inset-0 bg-primary/5 blur-xl pointer-events-none -z-10" />
+                                </div>
                             </div>
 
                             <div className="space-y-3">
@@ -189,6 +191,7 @@ export function SargamStudio() {
                                     {STYLES.map(style => (
                                         <button
                                             key={style.id}
+                                            type="button"
                                             onClick={() => setSelectedStyle(style.id)}
                                             className={cn(
                                                 "flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all text-center group",
@@ -207,7 +210,7 @@ export function SargamStudio() {
                             <Button 
                                 onClick={() => handleGenerate()} 
                                 disabled={isGenerating || !prompt.trim()} 
-                                className="w-full h-16 rounded-2xl font-black text-lg shadow-2xl shadow-primary/20 group overflow-hidden relative"
+                                className="w-full h-16 rounded-2xl font-black text-lg shadow-2xl shadow-primary/20"
                             >
                                 <Sparkles className="mr-2 h-6 w-6 fill-primary-foreground" /> 
                                 Initialize Render
@@ -323,9 +326,8 @@ export function SargamStudio() {
                                 
                                 {/* Assistant Command Prompt */}
                                 <div className="w-full max-w-2xl mt-8 animate-in slide-in-from-bottom-4 duration-1000">
-                                    <div className="relative group/input">
-                                        <div className="absolute inset-0 bg-primary/20 blur-xl opacity-0 group-focus-within/input:opacity-50 transition-opacity" />
-                                        <div className="relative flex items-center gap-3 bg-muted/40 backdrop-blur-xl border border-primary/20 rounded-[1.5rem] p-2 shadow-2xl">
+                                    <div className="relative">
+                                        <div className="relative flex items-center gap-3 bg-muted/40 backdrop-blur-xl border border-primary/20 rounded-[1.5rem] p-2 shadow-2xl z-10">
                                             <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                                                 <Bot className="h-5 w-5 text-primary" />
                                             </div>
@@ -334,11 +336,12 @@ export function SargamStudio() {
                                                 value={currentInstruction}
                                                 onChange={(e) => setCurrentInstruction(e.target.value)}
                                                 onKeyDown={(e) => e.key === 'Enter' && currentInstruction.trim() && handleGenerate(currentInstruction)}
-                                                className="bg-transparent border-none focus-visible:ring-0 text-sm h-12"
+                                                className="bg-transparent border-none focus-visible:ring-0 text-sm h-12 relative z-20"
                                                 disabled={isGenerating}
                                             />
                                             <Button 
                                                 size="icon" 
+                                                type="button"
                                                 onClick={() => handleGenerate(currentInstruction)}
                                                 disabled={isGenerating || !currentInstruction.trim()}
                                                 className="h-10 w-10 rounded-xl shadow-lg shadow-primary/20 shrink-0"
@@ -346,6 +349,7 @@ export function SargamStudio() {
                                                 <Send className="h-4 w-4" />
                                             </Button>
                                         </div>
+                                        <div className="absolute inset-0 bg-primary/20 blur-xl opacity-0 transition-opacity pointer-events-none -z-10" />
                                     </div>
                                     <p className="text-[9px] text-center mt-3 text-muted-foreground font-black uppercase tracking-[0.2em] italic">
                                         Assistant is listening. Describe colors, motion, or additions to your concept.
