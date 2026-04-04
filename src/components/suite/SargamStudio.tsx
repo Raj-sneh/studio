@@ -141,7 +141,7 @@ export function SargamStudio() {
             setResultUrl(data.videoUrl);
             if (newInstruction) setInstructions(activeInstructions);
             setProgress(100);
-            toast({ title: "Scene Added!", description: "The iteration has been synthesized." });
+            toast({ title: "Scene Added!", description: "The iteration has been synthesized with narrative persistence." });
         } catch (e: any) {
             console.error("Studio Logic Error:", e);
             setLastErrorMessage(e.message);
@@ -243,7 +243,7 @@ export function SargamStudio() {
                                 <p className="text-sm italic text-muted-foreground leading-relaxed">"{prompt}"</p>
                                 <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground">
                                     <span className="flex items-center gap-2"><Box className="h-3 w-3" /> {selectedStyle.toUpperCase()}</span>
-                                    <span className="flex items-center gap-2"><Timer className="h-3 w-3" /> AI Managed Flow</span>
+                                    <span className="flex items-center gap-2"><Timer className="h-3 w-3" /> Continuous Flow</span>
                                 </div>
                             </div>
 
@@ -279,9 +279,9 @@ export function SargamStudio() {
                                 <Film className="h-4 w-4 text-primary" />
                             </div>
                             <div>
-                                <h4 className="text-sm font-bold uppercase tracking-widest text-primary">Neural Canvas</h4>
+                                <h4 className="text-sm font-bold uppercase tracking-widest text-primary">Neural Canvas (Veo 3.0)</h4>
                                 <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">
-                                    {isGenerating ? 'Synthesizing Scene...' : resultUrl ? 'Frame Sequence Ready' : errorState === 'timeout' ? 'Long-Term Synthesis' : errorState === 'content-block' ? 'Restriction Warning' : 'Idle'}
+                                    {isGenerating ? 'Synthesizing Persistent Scene...' : resultUrl ? 'Coherent Frame Sequence Ready' : errorState === 'timeout' ? 'Extended Synthesis' : errorState === 'content-block' ? 'Restriction Warning' : 'Idle'}
                                 </p>
                             </div>
                         </div>
@@ -314,8 +314,8 @@ export function SargamStudio() {
                                     <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent animate-pulse" />
                                     <Loader2 className="h-12 w-12 animate-spin text-primary mb-6" />
                                     <div className="space-y-1 relative z-10">
-                                        <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Adding Scene {instructions.length + 1}</p>
-                                        <p className="text-[10px] text-muted-foreground italic">Neural Synthesis Active...</p>
+                                        <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Anchoring Scene {instructions.length + 1}</p>
+                                        <p className="text-[10px] text-muted-foreground italic">Neural Coherence Protocol Active...</p>
                                     </div>
                                 </div>
                                 <div className="space-y-3">
@@ -348,7 +348,7 @@ export function SargamStudio() {
                                                 <Bot className="h-5 w-5 text-primary" />
                                             </div>
                                             <Input 
-                                                placeholder="What happens next in the story? (e.g. 'then it catches a fish')"
+                                                placeholder="What happens next? (e.g. 'then the duck flies away')"
                                                 value={currentInstruction}
                                                 onChange={(e) => setCurrentInstruction(e.target.value)}
                                                 onKeyDown={(e) => e.key === 'Enter' && currentInstruction.trim() && handleGenerate(currentInstruction)}
@@ -368,7 +368,7 @@ export function SargamStudio() {
                                         <div className="absolute inset-0 bg-primary/20 blur-xl opacity-0 transition-opacity pointer-events-none -z-10" />
                                     </div>
                                     <p className="text-[9px] text-center mt-3 text-muted-foreground font-black uppercase tracking-[0.2em] italic">
-                                        Describe the next scene. The AI will add it to the existing narrative logic.
+                                        Describe the next scene. The AI will preserve your base concept while adding the new action.
                                     </p>
                                 </div>
                             </div>
@@ -380,10 +380,10 @@ export function SargamStudio() {
                                     <Clock className="h-10 w-10 text-primary animate-pulse" />
                                 </div>
                                 <div className="space-y-2">
-                                    <h3 className="text-xl font-bold font-headline">Extended Synthesis Ongoing</h3>
+                                    <h3 className="text-xl font-bold font-headline">Coherence Synthesis Ongoing</h3>
                                     <p className="text-sm text-muted-foreground leading-relaxed">
-                                        Longer cinematic scenes require sequential cloud rendering. 
-                                        The synthesis is continuing in the background. Please wait or refresh the status.
+                                        Maintaining visual persistence across complex scenes takes extra time.
+                                        Synthesis is continuing in the neural cloud.
                                     </p>
                                     <div className="flex gap-2 justify-center">
                                         <Button variant="outline" onClick={() => handleGenerate()} className="rounded-xl mt-4">Refresh Status</Button>
@@ -404,7 +404,7 @@ export function SargamStudio() {
                                         "{lastErrorMessage}"
                                     </p>
                                     <p className="text-xs text-muted-foreground/60 pt-2">
-                                        Try using descriptive terms (e.g. "blue robotic cat") instead of specific character names.
+                                        Try using descriptive terms (e.g. "small robotic boy") instead of specific character names.
                                     </p>
                                     <Button variant="outline" onClick={() => { setErrorState('none'); setIsRefinementMode(false); }} className="rounded-xl mt-6">Modify Description</Button>
                                 </div>

@@ -1,11 +1,9 @@
 'use server';
 /**
- * @fileOverview Sargam Studio AI Animation Flow - Prototype Animator Edition.
- * Uses a "Director" LLM to synthesize iterative user modifications before 
- * rendering with Google Veo 2.0.
- * Optimized for additive scene logic where modifications add new story beats.
- * Updated with safety protocols to prevent third-party content blocks.
- * Duration is now managed automatically by the narrative flow.
+ * @fileOverview Sargam Studio AI Animation Flow - Veo 3.0 Cinematic Edition.
+ * Uses a "Director" LLM to synthesize iterative user modifications with a focus
+ * on visual persistence and chronological continuity.
+ * Rendered using the latest Google Veo 3.0 Preview model.
  */
 
 import { ai } from '@/ai/genkit';
@@ -31,64 +29,55 @@ export const studioFlow = ai.defineFlow(
     }),
   },
   async (input) => {
-    // 1. The Director Layer: Synthesize iterative feedback into a single high-fidelity narrative
-    const directorPrompt = `You are a cinematic AI director for the Sargam Studio Prototype Animator.
+    // 1. The Director Layer: Use Chronological Anchoring to prevent scene loss
+    const directorPrompt = `You are a cinematic AI director for Sargam Studio. 
+    You are synthesizing a script for a high-fidelity video generation model.
     
-    BASE CONCEPT: "${input.prompt}"
-    USER STYLE PROTOCOL: "${input.style}"
-    SCENE LOG (MODIFICATIONS): ${input.instructions?.length ? input.instructions.join(' -> ') : 'First scene only.'}
+    BASE CONCEPT (The Foundation): "${input.prompt}"
+    STYLE PROTOCOL: "${input.style}"
+    SCENE CHRONOLOGY (The Evolution): ${input.instructions?.length ? input.instructions.join(' -> ') : 'Initial shot.'}
 
-    YOUR GOAL: Synthesize these into a single descriptive paragraph for a video generation model.
+    YOUR GOAL: Create a single, highly descriptive paragraph that describes a CONTINUOUS NARRATIVE.
     
-    NARRATIVE PROGRESSION RULES:
-    - Treat each instruction as a "Next Scene" beat. 
-    - Do NOT just show the final result. Describe the TRANSITION and the flow of time.
-    - Start by establishing the base concept.
-    - Then describe the subsequent action added by the user.
+    CRITICAL RULES FOR VISUAL PERSISTENCE:
+    - The video MUST start by establishing the environment and characters from the BASE CONCEPT.
+    - Each beat in the SCENE CHRONOLOGY must occur AFTER the previous one within the SAME environment.
+    - Ensure the characters and core setting from the base concept PERSIST throughout the entire video.
+    - Describe the TRANSITION and the flow of time (e.g., "Then, while still in the pond, the duck...")
     
-    VISUAL PROTOCOL RULES:
-    - 3D Render Style: High-quality 3D CGI animation with stylized characters, soft rounded surfaces, and vibrant colors (Doraemon Stand By Me style).
-    - 2D Animation Style: High-quality professional 2D digital cartoon animation, clean line art, vibrant colors, fluid character motion, solid fills.
-    - Anime Style: Hybrid 3D anime style, dynamic cinematic shading, intense motion blur, modern shonen aesthetic.
-    - Cinematic Style: Hyper-realistic live-action footage, professional film lighting, 8k textures.
+    STYLE GUIDELINES:
+    - 3D Render: Stylized 3D CGI animation, soft subsurface scattering, vibrant saturated lighting, smooth character physics (Doraemon Stand By Me style).
+    - 2D Animation: High-quality professional 2D digital cartoon animation, clean line art, vibrant flat colors, fluid traditional motion, solid fills.
+    - Anime: Modern hybrid 3D anime style, sharp line art, cinematic dynamic shading, intense motion blur.
+    - Cinematic: Hyper-realistic cinematic live-action footage, professional IMAX quality, 8k resolution.
 
-    CRITICAL SAFETY RULES:
-    - DO NOT use copyrighted names, characters, brands, or franchises.
-    - Describe the AESTHETIC without using the brand name.
+    SAFETY: Use purely descriptive terms. DO NOT mention copyrighted names or brands.
     
-    Return ONLY the final descriptive narrative paragraph.`;
+    Return ONLY the final descriptive paragraph.`;
 
     const { text: masterPrompt } = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
       prompt: directorPrompt,
-      config: {
-        safetySettings: [
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-        ]
-      }
     });
 
     const stylePrompts: Record<string, string> = {
-      '3d-render': 'stylized 3D CGI animation, soft subsurface scattering, vibrant saturated lighting, smooth character physics, high-fidelity surfaces',
-      '2d-animation': 'high-quality 2D digital cartoon animation, clean line art, vibrant flat colors, fluid traditional animation style, professional character design, solid fills',
-      'cinematic': 'hyper-realistic cinematic live-action footage, professional IMAX film quality, realistic physics, 8k resolution',
+      '3d-render': 'stylized 3D CGI animation, soft subsurface scattering, vibrant saturated lighting, smooth character physics, professional 3D rendering',
+      '2d-animation': 'high-quality 2D digital cartoon animation, clean line art, vibrant flat colors, fluid traditional motion, solid fills, professional animation',
+      'cinematic': 'hyper-realistic cinematic live-action footage, professional film lighting, realistic textures, 8k resolution',
       'anime': 'modern hybrid 3D anime style, sharp line art, cinematic dynamic shading, action-oriented motion blur',
       'pixel-art': 'detailed 32-bit pixel art animation, vibrant palette, smooth frame-by-frame sprite motion'
     };
 
     const styleInstruction = stylePrompts[input.style] || stylePrompts['3d-render'];
-    const fullPrompt = `${masterPrompt}. Style: ${styleInstruction}. Motion must be smooth and show clear story progression from the first concept to the latest added scene.`;
+    const fullPrompt = `${masterPrompt}. Style: ${styleInstruction}. The video must show clear narrative continuity from the start to the end.`;
 
-    // 2. The Render Layer: Call Veo 2.0
+    // 2. The Render Layer: Call Veo 3.0 Preview
+    // Veo 3.0 manages duration automatically (default 8s) and supports sound.
     let { operation } = await ai.generate({
-      model: 'googleai/veo-2.0-generate-001',
+      model: 'googleai/veo-3.0-generate-preview',
       prompt: fullPrompt,
       config: {
-        aspectRatio: input.aspectRatio as any,
-        durationSeconds: 5, // Fixed duration per generation, narrative handles flow
+        aspectRatio: input.aspectRatio === '1:1' ? '16:9' : input.aspectRatio as any, // 1:1 fallback to 16:9 if needed
         personGeneration: 'allow_all',
       },
     });
@@ -134,7 +123,7 @@ export const studioFlow = ai.defineFlow(
 
     return {
       videoUrl: `data:video/mp4;base64,${base64Video}`,
-      description: `Scene added successfully. The sequence now depicts the narrative progression up to your latest instruction.`,
+      description: `Narrative synthesized. The animation now depicts the chronological evolution from your base concept to the latest added scene.`,
       finalSynthesizedPrompt: masterPrompt,
     };
   }
