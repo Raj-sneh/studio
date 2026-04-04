@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Loader2, Sparkles, Mic2, Upload, FileAudio, BrainCircuit, Globe, Lock, Zap, ShieldAlert
@@ -171,7 +172,10 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                                     </div>
                                 </FormLabel>
                                 <FormControl>
-                                    <Textarea placeholder="What should the AI say?" {...field} className="min-h-[200px] rounded-3xl bg-muted/20 border-primary/10" />
+                                    <div className="relative group z-0">
+                                        <div className="absolute inset-0 bg-primary/5 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" />
+                                        <Textarea placeholder="What should the AI say?" {...field} className="relative z-10 min-h-[200px] rounded-3xl bg-muted/20 border-primary/10" />
+                                    </div>
                                 </FormControl>
                             </FormItem>
                         )}/>

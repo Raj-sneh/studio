@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef, lazy, Suspense, useMemo } fro
 import * as Tone from 'tone';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { generateNotes } from '@/ai/flows/generate-notes-flow';
 import type { GenerateNotesOutput, NoteObject } from '@/ai/flows/generate-notes-types';
@@ -251,14 +252,14 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
                         </div>
                     </div>
                     
-                    <div className="relative group">
-                        <div className="absolute inset-0 bg-primary/5 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                    <div className="relative group z-0">
+                        <div className="absolute inset-0 bg-primary/5 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" />
                         <Textarea
                             placeholder="e.g., 'A melancholic rainy day tune' or 'Fast happy birthday version'"
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
                             disabled={generationState === 'loading'}
-                            className="min-h-[100px] rounded-3xl bg-muted/20 border-primary/10 focus:border-primary/30 transition-all resize-none p-5 text-sm italic"
+                            className="relative z-10 min-h-[100px] rounded-3xl bg-muted/20 border-primary/10 focus:border-primary/30 transition-all resize-none p-5 text-sm"
                         />
                     </div>
                     
