@@ -100,23 +100,24 @@
     @apply bg-card/40 backdrop-blur-md border border-white/10 shadow-xl;
   }
 
-  /* Fun Piano Effects */
+  /* Optimized Performance Piano Effects */
   .piano-ripple {
     position: absolute;
     border-radius: 50%;
-    background: radial-gradient(circle, hsl(var(--primary) / 0.8) 0%, transparent 70%);
+    background: radial-gradient(circle, hsl(var(--primary) / 0.6) 0%, transparent 70%);
     pointer-events: none;
-    animation: ripple-out 0.6s ease-out forwards;
+    will-change: transform, opacity;
+    animation: ripple-optimized 0.5s cubic-bezier(0, 0, 0.2, 1) forwards;
     z-index: 100;
   }
 
-  @keyframes ripple-out {
-    from {
-      transform: scale(0);
+  @keyframes ripple-optimized {
+    0% {
+      transform: translate3d(-50%, -50%, 0) scale(0);
       opacity: 1;
     }
-    to {
-      transform: scale(4);
+    100% {
+      transform: translate3d(-50%, -50%, 0) scale(3);
       opacity: 0;
     }
   }
@@ -124,19 +125,34 @@
   .piano-sparkle {
     position: absolute;
     pointer-events: none;
-    animation: sparkle-up 1s ease-out forwards;
+    will-change: transform, opacity;
+    animation: sparkle-optimized 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     z-index: 101;
     color: hsl(var(--primary));
+    filter: drop-shadow(0 0 5px hsl(var(--primary)));
   }
 
-  @keyframes sparkle-up {
+  @keyframes sparkle-optimized {
     0% {
-      transform: translateY(0) scale(1) rotate(0deg);
+      transform: translate3d(-50%, 0, 0) scale(1) rotate(0deg);
       opacity: 1;
     }
     100% {
-      transform: translateY(-100px) scale(0.5) rotate(45deg);
+      transform: translate3d(-50%, -80px, 0) scale(0.5) rotate(90deg);
       opacity: 0;
+    }
+  }
+
+  .key-learning-pulse {
+    animation: key-guide-pulse 1.5s infinite;
+  }
+
+  @keyframes key-guide-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 20px 5px hsl(var(--primary) / 0.6);
     }
   }
 }

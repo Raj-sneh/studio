@@ -23,7 +23,6 @@ interface PianoProps {
 
 interface VisualEffect {
   id: number;
-  note: string;
   x: number;
   y: number;
   type: 'ripple' | 'sparkle';
@@ -118,29 +117,33 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
         }
     }, [highlightedKeys]);
 
-    const triggerVisualEffect = (note: string) => {
+    const triggerVisualEffect = useCallback((note: string) => {
         const keyElement = keyRefs.current.get(note);
         if (!keyElement) return;
 
         const rect = keyElement.getBoundingClientRect();
-        const parentRect = keyElement.parentElement?.getBoundingClientRect();
-        if (!parentRect) return;
+        const parentElement = keyElement.offsetParent as HTMLElement;
+        if (!parentElement) return;
 
+        const parentRect = parentElement.getBoundingClientRect();
         const x = rect.left - parentRect.left + rect.width / 2;
         const y = rect.top - parentRect.top + rect.height / 2;
 
+        const effectId1 = ++effectCounter.current;
+        const effectId2 = ++effectCounter.current;
+
         const newEffects: VisualEffect[] = [
-            { id: ++effectCounter.current, note, x, y, type: 'ripple' },
-            { id: ++effectCounter.current, note, x, y: y - 20, type: 'sparkle', icon: Math.random() > 0.5 ? Sparkles : Music }
+            { id: effectId1, x, y, type: 'ripple' },
+            { id: effectId2, x, y: y - 20, type: 'sparkle', icon: Math.random() > 0.5 ? Sparkles : Music }
         ];
 
         setEffects(prev => [...prev, ...newEffects]);
 
-        // Cleanup effects after animation
+        // Optimized Cleanup
         setTimeout(() => {
-            setEffects(prev => prev.filter(e => !newEffects.some(ne => ne.id === e.id)));
+            setEffects(prev => prev.filter(e => e.id !== effectId1 && e.id !== effectId2));
         }, 1000);
-    };
+    }, []);
 
     const playNoteTone = useCallback(async (note: string) => {
         await Tone.start();
@@ -154,7 +157,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
             synthRef.current.triggerAttack(note);
             triggerVisualEffect(note);
         }
-    }, []);
+    }, [triggerVisualEffect]);
 
     const releaseNoteTone = useCallback(async (note: string) => {
       if (!synthRef.current || synthRef.current.disposed) return;
@@ -183,14 +186,14 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
       return (
           <div className="flex flex-col items-center justify-center min-h-[200px] text-center bg-card rounded-lg w-full border border-dashed border-primary/20">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
-              <p className="mt-4 text-muted-foreground font-headline">Concert Grand Tuning...</p>
+              <p className="mt-4 text-muted-foreground font-headline uppercase tracking-widest text-[10px] font-black">Neural Calibration...</p>
           </div>
       );
     }
 
     return (
         <div className="w-full flex flex-col items-center justify-center p-2 md:p-6 overflow-hidden">
-            <div className="w-full max-w-md flex items-center gap-4 self-center mb-8 px-4 bg-muted/30 py-3 rounded-full border shadow-sm backdrop-blur-sm">
+            <div className="w-full max-w-md flex items-center gap-4 self-center mb-8 px-4 bg-muted/30 py-3 rounded-full border border-primary/10 shadow-sm backdrop-blur-sm">
                 <ZoomOut className="h-4 w-4 text-muted-foreground" />
                 <Slider
                     value={[zoom]}
@@ -217,7 +220,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                 className="w-full transition-all duration-500 ease-in-out origin-center"
                 style={{ transform: `rotate(${rotation}deg)` }}
             >
-                <ScrollArea className="w-full max-w-full rounded-2xl border-4 border-muted bg-muted p-2 shadow-2xl">
+                <ScrollArea className="w-full max-w-full rounded-2xl border-4 border-muted bg-muted p-2 shadow-2xl relative">
                     <div 
                       className="relative flex bg-black rounded-xl select-none"
                       style={{
@@ -225,19 +228,15 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                         height: pianoHeight
                       }}
                     >
-                        {/* Visual Effects Layer */}
+                        {/* High-Performance Visual Effects Layer */}
                         <div className="absolute inset-0 pointer-events-none overflow-hidden z-50">
                             {effects.map(effect => (
                                 <div 
                                     key={effect.id}
                                     className={effect.type === 'ripple' ? 'piano-ripple' : 'piano-sparkle'}
                                     style={{
-                                        left: effect.x,
-                                        top: effect.y,
-                                        width: effect.type === 'ripple' ? '40px' : 'auto',
-                                        height: effect.type === 'ripple' ? '40px' : 'auto',
-                                        marginLeft: effect.type === 'ripple' ? '-20px' : '0',
-                                        marginTop: effect.type === 'ripple' ? '-20px' : '0',
+                                        left: `${effect.x}px`,
+                                        top: `${effect.y}px`,
                                     }}
                                 >
                                     {effect.type === 'sparkle' && effect.icon && (
@@ -260,9 +259,10 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                                     onPointerUp={(e) => { e.currentTarget.releasePointerCapture(e.pointerId); if(isKeyActive) handleNoteUp(note); }}
                                     onPointerLeave={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) handleNoteUp(note); }}
                                     className={cn(
-                                        "key flex items-end justify-center pb-4 cursor-pointer transition-all duration-100 rounded-b-lg user-select-none relative",
+                                        "key flex items-end justify-center pb-4 cursor-pointer transition-all duration-150 rounded-b-lg user-select-none relative",
                                         "bg-gradient-to-b from-gray-100 to-white border-x border-gray-200 shadow-sm text-gray-400 font-bold",
                                         isHighlighted && "from-primary/20 to-primary/40 border-primary ring-4 ring-primary/30 z-30 text-primary-foreground",
+                                        isHighlighted && interactiveMode && "key-learning-pulse",
                                         !isKeyActive && 'opacity-40 cursor-not-allowed bg-gray-300'
                                     )}
                                     style={{
@@ -282,7 +282,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                                             }}
                                         />
                                     )}
-                                    <span className="pointer-events-none z-10 select-none" style={{ fontSize: fontSize }}>{note}</span>
+                                    <span className="pointer-events-none z-10 select-none uppercase tracking-tighter" style={{ fontSize: fontSize }}>{note}</span>
                                 </div>
                             )
                         })}
@@ -298,9 +298,10 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                                     onPointerUp={(e) => { e.currentTarget.releasePointerCapture(e.pointerId); if(isKeyActive) handleNoteUp(note); }}
                                     onPointerLeave={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) handleNoteUp(note); }}
                                     className={cn(
-                                        "key flex items-end justify-center pb-4 cursor-pointer transition-all duration-100 rounded-b-md user-select-none text-gray-500 font-bold",
+                                        "key flex items-end justify-center pb-4 cursor-pointer transition-all duration-150 rounded-b-md user-select-none text-gray-500 font-bold",
                                         "bg-gradient-to-b from-gray-900 to-black border-x border-gray-800 shadow-lg z-20 absolute",
                                         isHighlighted && "from-primary/60 to-primary border-primary ring-4 ring-primary/40 text-white",
+                                        isHighlighted && interactiveMode && "key-learning-pulse",
                                         !isKeyActive && "opacity-30 cursor-not-allowed bg-black"
                                     )}
                                     style={{ 
@@ -320,7 +321,7 @@ export default function Piano({ onNoteDown, onNoteUp, onNotePlay, disabled = fal
                                             }}
                                         />
                                     )}
-                                    <span className="pointer-events-none z-10 select-none" style={{ fontSize: fontSize }}>{note}</span>
+                                    <span className="pointer-events-none z-10 select-none uppercase tracking-tighter" style={{ fontSize: fontSize }}>{note}</span>
                                 </div>
                             )
                         })}
