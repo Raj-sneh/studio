@@ -18,12 +18,19 @@ export async function POST(req: Request) {
       cache: 'no-store'
     });
     
+    const contentType = response.headers.get("content-type");
+    const isJson = contentType && contentType.includes("application/json");
+
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = isJson ? await response.json().catch(() => ({})) : { error: `Neural Engine status: ${response.status}` };
         return NextResponse.json(
-            { error: errorData.error || `Neural Engine error: ${response.status}` }, 
+            { error: errorData.error || `Payment service returned error ${response.status}` }, 
             { status: response.status }
         );
+    }
+
+    if (!isJson) {
+      return NextResponse.json({ error: "Invalid response from payment service." }, { status: 502 });
     }
 
     const data = await response.json();
@@ -31,7 +38,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Proxy create-order error:", error);
     return NextResponse.json(
-        { error: `Could not connect to the Neural Engine: ${error.message || 'fetch failed'}. Ensure the Python server is running.` }, 
+        { error: `Could not connect to the Neural Engine: ${error.message || 'fetch failed'}.` }, 
         { status: 500 }
     );
   }

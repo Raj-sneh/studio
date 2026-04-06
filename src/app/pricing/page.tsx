@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from "react";
@@ -85,7 +86,6 @@ export default function PricingPage() {
     setIsProcessing(itemId);
     
     try {
-      // Use internal Next.js proxy route instead of direct backend call
       const orderRes = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -96,7 +96,13 @@ export default function PricingPage() {
         })
       });
 
-      const orderData = await orderRes.json();
+      const text = await orderRes.text();
+      let orderData;
+      try {
+        orderData = text ? JSON.parse(text) : {};
+      } catch (e) {
+        throw new Error("Invalid response from payment server. Please try again.");
+      }
       
       if (!orderRes.ok) throw new Error(orderData.error || `Payment initiation failed.`);
 
@@ -150,10 +156,7 @@ export default function PricingPage() {
 
     } catch (e: any) {
       console.error("Payment Error:", e);
-      const message = e.name === 'TypeError' && e.message === 'Failed to fetch' 
-        ? "Could not connect to payment server. Check your connection." 
-        : e.message;
-      toast({ title: "Payment Error", description: message, variant: "destructive" });
+      toast({ title: "Payment Error", description: e.message, variant: "destructive" });
       setIsProcessing(null);
     }
   };
