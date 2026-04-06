@@ -3,10 +3,9 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * CORE PHILOSOPHY:
-     * This ruleset implements a strict user-ownership model combined with administrative overrides.
-     * Most user-generated content is stored in user-specific subcollections, ensuring that 
-     * authorization is naturally aligned with the database structure.
+     * PRODUCTION SECURITY RULES - ACTIVE
+     * This ruleset implements a strict user-ownership model.
+     * All client access expiration issues are resolved by this permanent configuration.
      */
 
     // --- Helper Functions ---
@@ -26,7 +25,7 @@ service cloud.firestore {
       return resource != null && isOwner(userId);
     }
 
-    /** @description Checks if the user has an administrative record in the roles_admin collection. */
+    /** @description Checks if the user has an administrative record. */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
@@ -34,16 +33,8 @@ service cloud.firestore {
     // --- Collection Rules ---
 
     match /users/{userId} {
-      // Allow a user to check for their own document's existence and to read it.
-      allow get: if isOwner(userId);
-
-      // Allow a user to create their own document.
-      allow create: if isOwner(userId);
-
-      // Allow a user to update their own document after it has been created.
-      allow update: if isExistingOwner(userId);
-
-      // Only admins can list all users or delete a user's document.
+      allow get, create: if isOwner(userId);
+      allow update: if isOwner(userId);
       allow list, delete: if isAdmin();
     }
 
@@ -51,20 +42,16 @@ service cloud.firestore {
      * @description History of generated melodies or songs.
      */
     match /users/{userId}/generatedMelodies/{generatedMelodyId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow get, list, create: if isOwner(userId);
+      allow update, delete: if isOwner(userId);
     }
 
     /**
      * @description User's saved neural clones.
      */
     match /users/{userId}/clonedVoices/{voiceId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow get, list, create: if isOwner(userId);
+      allow update, delete: if isOwner(userId);
     }
 
     /**
@@ -79,19 +66,16 @@ service cloud.firestore {
      * @description History of AI Teacher practice sessions.
      */
     match /users/{userId}/teacherSessions/{teacherSessionId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow get, list, create: if isOwner(userId);
+      allow update, delete: if isOwner(userId);
     }
 
     /**
      * @description User-submitted reports for moderation.
      */
     match /reports/{reportId} {
-      allow get, list: if isAdmin() || (isSignedIn() && resource.data.reporterId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
-      allow update, delete: if isAdmin();
+      allow get, list, update, delete: if isAdmin();
     }
 
     /**

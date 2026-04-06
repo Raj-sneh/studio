@@ -1,77 +1,67 @@
-
 {
   "entities": {
     "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
-      "type": "object",
       "description": "Represents a user profile within the application.",
+      "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "displayName": {
-          "type": "string",
-          "description": "The user's display name."
-        },
-        "email": {
-          "type": "string",
-          "description": "The user's email address.",
-          "format": "email"
-        },
-        "avatarUrl": {
-          "type": "string",
-          "description": "URL to the user's profile picture.",
-          "format": "uri"
-        },
-        "credits": {
-          "type": "number",
-          "description": "Current available research credits."
-        },
-        "plan": {
-          "type": "string",
-          "enum": ["free", "creator", "pro"],
-          "description": "Current subscription tier."
-        },
-        "lastReset": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp of the last daily credit reset."
-        },
-        "redeemedCoupons": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the account was created.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "avatarUrl": { "type": "string", "format": "uri" },
+        "credits": { "type": "number" },
+        "plan": { "type": "string", "enum": ["free", "creator", "pro"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "dob": { "type": "string", "format": "date-time" },
+        "gender": { "type": "string", "enum": ["male", "female", "other", "prefer-not-to-say"] }
       },
-      "required": [
-        "id",
-        "displayName",
-        "email",
-        "createdAt",
-        "credits",
-        "plan"
-      ]
+      "required": ["id", "displayName", "email", "credits", "plan"]
+    },
+    "GeneratedMelody": {
+      "title": "GeneratedMelody",
+      "description": "A saved AI-composed melody.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "notes": { "type": "array", "items": { "type": "string" } },
+        "instrument": { "type": "string" },
+        "generationContext": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ClonedVoice": {
+      "title": "ClonedVoice",
+      "description": "A saved neural voice clone record.",
+      "type": "object",
+      "properties": {
+        "voiceId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "language": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
-    "providers": ["password", "anonymous", "google", "phone"]
+    "providers": ["google", "password", "phone", "anonymous"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": { "$ref": "#/backend/entities/User" },
-          "description": "Individual user profiles."
-        }
-      }
-    ]
+    "/users/{userId}": {
+      "schema": { "$ref": "#/backend/entities/User" },
+      "description": "Individual user profiles."
+    },
+    "/users/{userId}/generatedMelodies/{melodyId}": {
+      "schema": { "$ref": "#/backend/entities/GeneratedMelody" },
+      "description": "User's saved AI melodies."
+    },
+    "/users/{userId}/clonedVoices/{voiceId}": {
+      "schema": { "$ref": "#/backend/entities/ClonedVoice" },
+      "description": "User's saved neural voice clones."
+    },
+    "/lessons/{lessonId}": {
+      "schema": "object",
+      "description": "Publicly readable music lessons."
+    }
   }
 }
