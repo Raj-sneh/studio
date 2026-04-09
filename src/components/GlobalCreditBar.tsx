@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 /**
  * @fileOverview A persistent bottom bar showing user status and offering a quick upgrade path.
+ * Updated to use native Link components for reliable navigation across all devices.
  */
 export function GlobalCreditBar() {
   const [isMounted, setIsMounted] = useState(false);
@@ -18,7 +18,6 @@ export function GlobalCreditBar() {
   
   const { user } = useUser();
   const firestore = useFirestore();
-  const router = useRouter();
 
   const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
   const { data: profile, isLoading } = useDoc<UserProfile>(userDocRef);
@@ -34,43 +33,48 @@ export function GlobalCreditBar() {
       <Button 
         variant="ghost" 
         size="icon" 
-        className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-primary"
+        className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-primary z-50"
         onClick={() => setIsVisible(false)}
       >
         <X className="h-4 w-4" />
       </Button>
 
-      <div className="container max-w-7xl mx-auto flex items-center justify-between gap-6 py-1">
-        <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shadow-[0_0_15px_rgba(0,255,255,0.1)]">
-                <Sparkles className="h-5 w-5 text-primary" />
+      <div className="container max-w-7xl mx-auto flex items-center justify-between gap-4 py-1">
+        <div className="flex items-center gap-3 sm:gap-4">
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shadow-[0_0_15px_rgba(0,255,255,0.1)]">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             </div>
             <div className="text-left">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">Neural Status</p>
+                <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] text-primary">Neural Status</p>
                 <div className="flex items-center gap-2">
                     {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-muted-foreground" />
                     ) : (
-                        <p className="text-md font-bold text-foreground flex items-center gap-2">
-                            {profile?.credits ?? 0} 
-                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Credits Available</span>
-                            <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-black uppercase tracking-widest ml-2">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <p className="text-sm sm:text-md font-bold text-foreground">
+                                {profile?.credits ?? 0} 
+                                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Credits</span>
+                            </p>
+                            <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-black uppercase tracking-widest">
                                 {profile?.plan || 'Free'}
                             </span>
-                        </p>
+                        </div>
                     )}
                 </div>
             </div>
         </div>
 
         <Button 
+            asChild
             variant="default" 
             size="sm" 
-            className="h-10 px-8 shadow-xl shadow-primary/20 text-xs font-bold gap-2 rounded-full hidden sm:flex"
-            onClick={() => router.push('/pricing')}
+            className="h-9 sm:h-10 px-4 sm:px-8 shadow-xl shadow-primary/20 text-[10px] sm:text-xs font-bold gap-2 rounded-full whitespace-nowrap"
         >
-            <ArrowUpCircle className="h-4 w-4" /> 
-            Get More Credits
+            <Link href="/pricing">
+                <ArrowUpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
+                <span className="hidden xs:inline">Get More Credits</span>
+                <span className="xs:hidden">Top-up</span>
+            </Link>
         </Button>
       </div>
     </div>

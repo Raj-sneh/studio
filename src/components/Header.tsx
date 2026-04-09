@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -87,12 +86,16 @@ export default function Header() {
           <div className="flex items-center gap-4">
             {user && (
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 shadow-sm">
+                <Link 
+                  href="/pricing" 
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 shadow-sm transition-all hover:bg-primary/20 hover:scale-105 active:scale-95"
+                  title="Top-up Credits"
+                >
                   <Zap className="h-3.5 w-3.5 text-primary fill-primary" />
                   <span className="text-xs font-bold text-primary">
                     {isProfileLoading ? "..." : (profile?.credits ?? 0)}
                   </span>
-                </div>
+                </Link>
 
                 <div className="relative" ref={menuRef}>
                   <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center gap-2">
