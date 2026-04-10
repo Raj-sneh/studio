@@ -1,10 +1,8 @@
-
 'use server';
 /**
  * @fileOverview Sargam Studio AI Animation Flow - Stable Cinematic Edition.
  * Uses a "Director" LLM to synthesize iterative user modifications with a focus
- * on visual persistence and narrative continuity.
- * Rendered using the stable Google Veo 2.0 model for maximum availability.
+ * on mandatory visual persistence and narrative continuity.
  */
 
 import { ai } from '@/ai/genkit';
@@ -30,29 +28,29 @@ export const studioFlow = ai.defineFlow(
     }),
   },
   async (input) => {
-    // 1. The Director Layer: Use Chronological Anchoring to prevent scene loss
+    // 1. The Director Layer: Use Mandatory Environment Anchoring to prevent scene loss
     const directorPrompt = `You are a cinematic AI director for Sargam Studio. 
     You are synthesizing a detailed script for a high-fidelity video generation model.
     
-    BASE CONCEPT (The Foundation): "${input.prompt}"
+    BASE CONCEPT (The Unchangeable Foundation): "${input.prompt}"
     STYLE PROTOCOL: "${input.style}"
-    SCENE CHRONOLOGY (The Evolution): ${input.instructions?.length ? input.instructions.join(' -> ') : 'Initial shot.'}
+    SCENE PROGRESSION (The Evolution): ${input.instructions?.length ? input.instructions.join(' -> ') : 'Initial shot.'}
 
     YOUR GOAL: Create a single, highly descriptive paragraph that describes a CONTINUOUS NARRATIVE.
     
     CRITICAL RULES FOR VISUAL PERSISTENCE:
-    - The video MUST start by establishing the environment and characters from the BASE CONCEPT.
-    - Each beat in the SCENE CHRONOLOGY must occur AFTER the previous one within the SAME environment.
-    - Describe the TRANSITION and the flow of time (e.g., "Continuing from the scene in the pond, the camera follows the duck as it now...")
-    - Ensure characters and settings PERSIST. Do not replace them; evolve their actions.
+    - MANDATORY ANCHORING: The video MUST establish the exact environment and characters from the BASE CONCEPT.
+    - NARRATIVE CONTINUITY: Do NOT replace the initial scene. Simply add the next action.
+    - DESCRIBE TRANSITIONS: Use phrases like "As the camera continues to follow [character] in the same setting..."
+    - PERSISTENT ELEMENTS: Characters, colors, and the environment from the base concept MUST persist throughout the evolution.
     
-    STYLE GUIDELINES:
-    - 3D Render: Stylized 3D CGI animation, soft subsurface scattering, vibrant saturated lighting, smooth character physics (Doraemon Stand By Me style).
-    - 2D Animation: High-quality professional 2D digital cartoon animation, clean line art, vibrant flat colors, fluid traditional motion, solid fills.
-    - Anime: Modern hybrid 3D anime style, sharp line art, cinematic dynamic shading, intense motion blur.
-    - Cinematic: Hyper-realistic cinematic live-action footage, professional IMAX quality, 8k resolution.
+    STYLE GUIDELINES (Purely Descriptive):
+    - 3D Render: Stylized 3D CGI animation, soft subsurface scattering, vibrant lighting, smooth physics (Modern high-end CGI look).
+    - 2D Animation: High-quality professional 2D digital cartoon animation, clean line art, vibrant flat colors, fluid traditional motion.
+    - Anime: Modern hybrid 3D anime style, sharp line art, cinematic shading, action motion blur.
+    - Cinematic: Hyper-realistic cinematic footage, professional IMAX quality, 8k resolution.
 
-    SAFETY: Use purely descriptive terms. DO NOT mention copyrighted names or brands.
+    SAFETY: Use purely descriptive terms. DO NOT mention copyrighted names, studios, or specific character brands.
     
     Return ONLY the final descriptive paragraph.`;
 
@@ -70,14 +68,14 @@ export const studioFlow = ai.defineFlow(
     };
 
     const styleInstruction = stylePrompts[input.style] || stylePrompts['3d-render'];
-    const fullPrompt = `${masterPrompt}. Style: ${styleInstruction}. The video must show clear narrative continuity from the start to the end.`;
+    const fullPrompt = `${masterPrompt}. Style: ${styleInstruction}. The video must show absolute environment persistence from start to end.`;
 
     // 2. The Render Layer: Call Veo 2.0 (Stable & Supported)
     let { operation } = await ai.generate({
       model: 'googleai/veo-2.0-generate-001',
       prompt: fullPrompt,
       config: {
-        durationSeconds: 8, // Maximum single-clip duration for Veo 2.0
+        durationSeconds: 8, 
         aspectRatio: input.aspectRatio === '1:1' ? '16:9' : input.aspectRatio as any,
         personGeneration: 'allow_adult',
       },
@@ -88,7 +86,7 @@ export const studioFlow = ai.defineFlow(
     }
 
     let attempts = 0;
-    const maxAttempts = 120; // 10 minutes total
+    const maxAttempts = 120; 
 
     while (!operation.done && attempts < maxAttempts) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -101,9 +99,6 @@ export const studioFlow = ai.defineFlow(
     }
 
     if (operation.error) {
-      if (operation.error.message?.toLowerCase().includes('third-party') || operation.error.message?.toLowerCase().includes('content provider')) {
-        throw new Error("The description contains terms restricted by content providers. Please use more generic descriptions and avoid character names.");
-      }
       throw new Error(`Rendering failed: ${operation.error.message}`);
     }
 
@@ -124,7 +119,7 @@ export const studioFlow = ai.defineFlow(
 
     return {
       videoUrl: `data:video/mp4;base64,${base64Video}`,
-      description: `Narrative synthesized. The animation now depicts the chronological evolution from your base concept to the latest added scene.`,
+      description: `Narrative synthesized. Continuity Protocol Active.`,
       finalSynthesizedPrompt: masterPrompt,
     };
   }

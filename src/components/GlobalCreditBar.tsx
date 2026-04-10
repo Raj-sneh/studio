@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Sparkles, Loader2, ArrowUpCircle } from 'lucide-react';
+import { X, Sparkles, Loader2, ArrowUpCircle, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -10,7 +10,7 @@ import Link from 'next/link';
 
 /**
  * @fileOverview A persistent bottom bar showing user status and offering a quick upgrade path.
- * Updated to use native Link components for reliable navigation across all devices.
+ * Reinforced with high z-index and heartbeat indicator to ensure interaction reliability.
  */
 export function GlobalCreditBar() {
   const [isMounted, setIsMounted] = useState(false);
@@ -29,11 +29,11 @@ export function GlobalCreditBar() {
   if (!isMounted || !isVisible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 w-full z-[100] bg-background/95 backdrop-blur-md border-t border-primary/20 p-4 shadow-2xl animate-in slide-in-from-bottom duration-500">
+    <div className="fixed bottom-0 left-0 w-full z-[110] bg-background/95 backdrop-blur-xl border-t border-primary/30 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom duration-500">
       <Button 
         variant="ghost" 
         size="icon" 
-        className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-primary z-50"
+        className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-primary z-[120]"
         onClick={() => setIsVisible(false)}
       >
         <X className="h-4 w-4" />
@@ -41,11 +41,16 @@ export function GlobalCreditBar() {
 
       <div className="container max-w-7xl mx-auto flex items-center justify-between gap-4 py-1">
         <div className="flex items-center gap-3 sm:gap-4">
-            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shadow-[0_0_15px_rgba(0,255,255,0.1)]">
-                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+            <div className="relative">
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shadow-[0_0_15px_rgba(0,255,255,0.1)]">
+                    <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-background flex items-center justify-center border border-primary/20">
+                    <Activity className="h-2 w-2 text-primary animate-pulse" />
+                </div>
             </div>
             <div className="text-left">
-                <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] text-primary">Neural Status</p>
+                <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] text-primary">Neural Status: Active</p>
                 <div className="flex items-center gap-2">
                     {isLoading ? (
                         <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-muted-foreground" />
@@ -68,10 +73,10 @@ export function GlobalCreditBar() {
             asChild
             variant="default" 
             size="sm" 
-            className="h-9 sm:h-10 px-4 sm:px-8 shadow-xl shadow-primary/20 text-[10px] sm:text-xs font-bold gap-2 rounded-full whitespace-nowrap"
+            className="h-10 px-6 sm:px-8 shadow-xl shadow-primary/30 text-[10px] sm:text-xs font-black gap-2 rounded-full whitespace-nowrap active:scale-95 transition-transform bg-primary text-primary-foreground hover:bg-primary/90"
         >
             <Link href="/pricing">
-                <ArrowUpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
+                <ArrowUpCircle className="h-4 w-4" /> 
                 <span className="hidden xs:inline">Get More Credits</span>
                 <span className="xs:hidden">Top-up</span>
             </Link>
