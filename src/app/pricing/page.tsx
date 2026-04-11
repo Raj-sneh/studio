@@ -85,6 +85,8 @@ export default function PricingPage() {
 
     setIsProcessing(itemId);
     
+    let options: any = {};
+
     try {
       const orderRes = await fetch('/api/payments/create-order', {
         method: 'POST',
@@ -106,9 +108,12 @@ export default function PricingPage() {
       
       if (!orderRes.ok) throw new Error(orderData.error || `Payment initiation failed.`);
 
-      const options = {
+      // STEP 1: Using NEXT_PUBLIC_ prefix for the Key
+      // STEP 2: Amount multiplied by 100 and floor'd to ensure integer sub-units (paise)
+      // STEP 3: order_id correctly mapped from backend result
+      options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder",
-        amount: orderData.amount,
+        amount: Math.floor(Number(orderData.amount) * 100),
         currency: orderData.currency || "INR",
         name: "Sargam AI",
         description: type === 'plan' ? `Upgrade to ${itemId}` : `${itemId} Credits Pack`,
@@ -147,15 +152,21 @@ export default function PricingPage() {
           email: user.email || "",
         },
         theme: { color: "#00ffff" },
-        modal: { ondismiss: () => setIsProcessing(null) }
+        modal: { 
+          ondismiss: () => setIsProcessing(null)
+        }
       };
 
       if (typeof (window as any).Razorpay === 'undefined') throw new Error("Payment gateway is loading. Please try again in a moment.");
+      
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
 
     } catch (e: any) {
-      console.error("Payment Error:", e);
+      // STEP 4: Detailed console error tracking
+      console.error("Razorpay Payment Failure Error:", e);
+      console.error("Razorpay Options attempted:", options);
+      
       toast({ title: "Payment Error", description: e.message, variant: "destructive" });
       setIsProcessing(null);
     }
