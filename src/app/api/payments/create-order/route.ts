@@ -1,15 +1,16 @@
-
 import { NextResponse } from 'next/server';
 
 /**
  * Proxy route for creating a Razorpay order via the Python backend.
- * Explicitly uses the uppercase NEURAL_ENGINE_URL for internal routing.
+ * Uses the specific production backend URL as the primary fallback.
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    const baseUrl = process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
+    const baseUrl = process.env.NEURAL_ENGINE_URL || 
+                    process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || 
+                    "https://sargam-backend-398550479414.us-central1.run.app";
     
     const response = await fetch(`${baseUrl}/api/payments/create-order`, {
       method: 'POST',

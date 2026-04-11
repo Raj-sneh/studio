@@ -1,8 +1,7 @@
-
 'use server';
 /**
  * @fileOverview A friendly AI helper for the app using Gemini 2.5 Flash.
- * Optimized with explicit coupon logic and secure server-side account management.
+ * Optimized with the specific production backend URL for credit actions.
  */
 
 import { ai } from '@/ai/genkit';
@@ -42,7 +41,7 @@ const getLessonLibrary = ai.defineTool(
 );
 
 /**
- * Emergency Coupon Tool - Securely calls the Neural Engine backend.
+ * Emergency Coupon Tool - Securely calls the specific production Neural Engine backend.
  */
 const applyEmergencyCoupon = ai.defineTool(
   {
@@ -60,7 +59,10 @@ const applyEmergencyCoupon = ai.defineTool(
   },
   async ({ userId, code }) => {
     try {
-      const baseUrl = process.env.NEURAL_ENGINE_URL || "http://localhost:8080";
+      const baseUrl = process.env.NEURAL_ENGINE_URL || 
+                      process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || 
+                      "https://sargam-backend-398550479414.us-central1.run.app";
+
       const response = await fetch(`${baseUrl}/api/redeem`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

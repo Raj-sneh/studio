@@ -19,26 +19,21 @@ Sargam is an interactive, AI-powered web application designed to make piano lear
 
 ## 🔧 Configuration Guide
 
-To fully unlock the AI features, you need to set up your environment variables with your Backend URL.
+Your app is pre-configured to connect to your live neural engine.
 
 ### 🎙️ Neural Engine (Cloud Run Backend)
-The URL of your Python backend. Based on your Cloud Run console, this is the **`sargam-backend`** service.
+**Your Production URL:** `https://sargam-backend-398550479414.us-central1.run.app`
 
-**How to get the link:**
-1. Go to Cloud Run in Google Cloud Console.
-2. Click on **`sargam-backend`**.
-3. Copy the **URL** at the top of the page.
-
-**Where to set in Google Cloud Run Console:**
-1. Select your **frontend** service (likely named `studio`) -> **Edit & Deploy New Revision**.
+**Where to set in Google Cloud Run Console (Frontend Service):**
+1. Select your **frontend** service -> **Edit & Deploy New Revision**.
 2. Go to **Variables & Secrets** tab.
-3. Add `NEURAL_ENGINE_URL` and `NEXT_PUBLIC_NEURAL_ENGINE_URL` with the copied URL.
+3. Add `NEURAL_ENGINE_URL` and `NEXT_PUBLIC_NEURAL_ENGINE_URL` with the URL above.
 4. Click **Deploy**.
 
 **Where to set in Firebase Console (App Hosting):**
 1. App Hosting -> [Your App] -> **Settings**.
 2. Go to **Environment Variables** section.
-3. Add the keys mentioned above with the copied URL.
+3. Add the keys mentioned above with the production URL.
 
 ### 🔑 AI API Keys
 1. **ELEVENLABS_API_KEY**: Your API key from the ElevenLabs dashboard for voice cloning.

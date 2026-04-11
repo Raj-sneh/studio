@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 /**
  * Proxy route for deducting credits via the Python backend.
- * Standardizes backend URL resolution and handles connection refusal without crashing.
+ * Standardizes backend URL resolution with the production link as the primary fallback.
  */
 export async function POST(req: Request) {
   try {
@@ -18,8 +18,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid JSON input" }, { status: 400 });
     }
 
-    // Priority: NEURAL_ENGINE_URL -> NEXT_PUBLIC_NEURAL_ENGINE_URL -> Localhost
-    const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || process.env.VOICE_ENGINE_URL || "http://localhost:8080";
+    // Priority: NEURAL_ENGINE_URL -> Production Link -> Localhost
+    const baseUrl = process.env.NEURAL_ENGINE_URL || 
+                    process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || 
+                    "https://sargam-backend-398550479414.us-central1.run.app";
 
     const response = await fetch(`${baseUrl}/api/credits/use`, {
       method: 'POST',

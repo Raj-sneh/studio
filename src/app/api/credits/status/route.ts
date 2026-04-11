@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 /**
  * Proxy route for checking credit status via the Python backend.
- * Refactored to handle ECONNREFUSED and other network errors gracefully.
+ * Refactored to use the specific production backend as the primary fallback.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,8 +12,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Missing userId" }, { status: 400 });
   }
 
-  // Priority: NEURAL_ENGINE_URL -> NEXT_PUBLIC_NEURAL_ENGINE_URL -> Localhost
-  const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || process.env.VOICE_ENGINE_URL || "http://localhost:8080";
+  // Priority: NEURAL_ENGINE_URL -> Production Link -> Localhost
+  const baseUrl = process.env.NEURAL_ENGINE_URL || 
+                  process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || 
+                  "https://sargam-backend-398550479414.us-central1.run.app";
 
   try {
     const response = await fetch(`${baseUrl}/api/credits/status/${userId}`, {
@@ -34,7 +36,6 @@ export async function GET(request: Request) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error: any) {
-    // Log minimal info to prevent server console spam
     console.warn(`Neural Engine connectivity: ${error.message || 'Connection refused'}`);
     
     return NextResponse.json({ 
