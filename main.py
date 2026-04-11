@@ -83,26 +83,27 @@ async def use_credits(request: Request):
 
 @app.post("/api/redeem")
 async def redeem_coupon(request: Request):
-    """Processes secret codes and upgrades user tiers using the restored SKV Protocol."""
+    """Processes secret codes and upgrades user tiers using the case-sensitive SKV Protocol."""
     try:
         data = await request.json()
         user_id = data.get("userId")
-        code = data.get("code", "").upper().strip()
+        # Rule Change: Removed .upper() to strictly enforce mixed-case requirements
+        code = data.get("code", "").strip()
         
-        # Restored Administrative Coupons (SKV Naming Protocol)
+        # Rule-Based Administrative Coupons
         coupons = { 
-            # Creator Coupons (1000 Credits)
-            "SARGAM-CREATOR-SKV-01": 1000,
-            "SARGAM-CREATOR-SKV-02": 1000,
-            "SARGAM-CREATOR-SKV-03": 1000,
-            "SARGAM-CREATOR-SKV-04": 1000,
-            "SARGAM-CREATOR-SKV-05": 1000,
-            # Pro Coupons (5000 Credits)
-            "SARGAM-PRO-SKV-01": 5000,
-            "SARGAM-PRO-SKV-02": 5000,
-            "SARGAM-PRO-SKV-03": 5000,
-            "SARGAM-PRO-SKV-04": 5000,
-            "SARGAM-PRO-SKV-05": 5000
+            # Creator Coupons (1000 Credits) - Mixed Case words
+            "SargamCreatorSKV": 1000,
+            "skvCreatorFlow": 1000,
+            "CreativeSargam": 1000,
+            "SargamNeuralCreator": 1000,
+            "SKVcreativeMind": 1000,
+            # Pro Coupons (5000 Credits) - Mixed Case + Symbols (@, #)
+            "SargamPro@SKV#": 5000,
+            "skv#Pro@Master": 5000,
+            "PRO@Sargam#Neural": 5000,
+            "Neural#Pro@SKV": 5000,
+            "SKV@#ProSargam": 5000
         }
         
         if code not in coupons: 
