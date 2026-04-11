@@ -7,6 +7,7 @@ import os, json, base64, gc
 import librosa
 import numpy as np
 import soundfile as sf
+import razorpay
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -21,6 +22,11 @@ if not firebase_admin._apps:
         })
 
 db = firestore.client()
+
+# Initialize Razorpay Client
+RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_test_placeholder')
+RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', 'placeholder_secret')
+client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 @app.get("/api/status")
 @app.get("/")
@@ -109,13 +115,89 @@ async def redeem_coupon(request: Request):
 
 @app.post("/api/payments/create-order")
 async def create_order(request: Request):
-    """Placeholder for Razorpay order creation."""
-    return {"id": f"order_{os.urandom(4).hex()}", "amount": 1000, "currency": "INR"}
+    """Creates a real Razorpay order based on item selection."""
+    try:
+        data = await request.json()
+        item_id = data.get("item_id")
+        
+        # Match pricing from PricingPage frontend
+        pricing_map = {
+            'creator': 99,
+            'pro': 299,
+            'pack_20': 10,
+            'pack_120': 50,
+            'pack_300': 100
+        }
+        
+        amount = pricing_map.get(item_id, 0)
+        if amount == 0: raise Exception("Invalid item selected.")
+
+        # Razorpay expects amount in paise (integers)
+        order_data = {
+            "amount": amount * 100,
+            "currency": "INR",
+            "receipt": f"receipt_{os.urandom(4).hex()}",
+            "notes": { "user_id": data.get("user_id"), "item_id": item_id }
+        }
+        
+        order = client.order.create(data=order_data)
+        return order
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"error": str(e)})
 
 @app.post("/api/payments/verify")
 async def verify_payment(request: Request):
-    """Placeholder for payment verification."""
-    return {"status": "success", "message": "Neural credits provisioned."}
+    """Verifies Razorpay signature and provisions credits."""
+    try:
+        data = await request.json()
+        
+        params_dict = {
+            'razorpay_order_id': data.get('razorpay_order_id'),
+            'razorpay_payment_id': data.get('razorpay_payment_id'),
+            'razorpay_signature': data.get('razorpay_signature')
+        }
+        
+        # 1. Verify Signature
+        try:
+            client.utility.verify_payment_signature(params_dict)
+        except Exception:
+            raise Exception("Signature verification failed.")
+
+        # 2. Provision Credits
+        user_id = data.get("user_id")
+        item_id = data.get("item_id")
+        
+        credit_map = {
+            'creator': 1000,
+            'pro': 5000,
+            'pack_20': 20,
+            'pack_120': 120,
+            'pack_300': 300
+        }
+        
+        credits_to_add = credit_map.get(item_id, 0)
+        user_ref = db.collection('users').document(user_id)
+        
+        @firestore.transactional
+        def provision_transaction(transaction, user_ref):
+            snap = user_ref.get(transaction=transaction)
+            u_data = snap.to_dict() or {}
+            current_credits = u_data.get('credits', 0)
+            
+            update_fields = { 'credits': current_credits + credits_to_add }
+            
+            # If it's a plan upgrade, update the plan name
+            if item_id in ['creator', 'pro']:
+                update_fields['plan'] = item_id
+                
+            transaction.update(user_ref, update_fields)
+            return True
+            
+        provision_transaction(db.transaction(), user_ref)
+        return {"status": "success", "message": "Neural credits provisioned."}
+        
+    except Exception as e: 
+        return JSONResponse(status_code=400, content={"error": str(e)})
 
 if __name__ == "__main__":
     import uvicorn
