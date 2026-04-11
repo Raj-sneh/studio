@@ -1,7 +1,7 @@
 'use server';
 /**
- * @fileOverview Sargam Studio AI Animation Flow - Veo 3 Production Edition.
- * Upgraded to veo-3.0-generate-preview for sound support and higher quality.
+ * @fileOverview Sargam Studio AI Animation Flow - Production Stability Edition.
+ * Reverted to veo-2.0-generate-001 to resolve 404 API errors while maintaining high quality.
  */
 
 import { ai } from '@/ai/genkit';
@@ -35,7 +35,7 @@ export const studioFlow = ai.defineFlow(
     GOAL: Create a single, continuous narrative paragraph.
     RULES:
     - Persistence: Establish the exact environment from the BASE and keep it.
-    - Sound Ready: Describe sounds clearly so the audio engine can generate them (e.g., "The sound of rushing wind and synth music...").
+    - Motion: Describe camera movements and character actions clearly.
     - Style: ${input.style}.
     
     Return ONLY the paragraph.`;
@@ -47,13 +47,14 @@ export const studioFlow = ai.defineFlow(
 
     const fullPrompt = `${masterPrompt}. Cinematic high-quality production.`;
 
-    // Upgraded to Veo 3 for Sound Support
+    // Switching back to Veo 2.0 for API stability
     let { operation } = await ai.generate({
-      model: 'googleai/veo-3.0-generate-preview',
+      model: 'googleai/veo-2.0-generate-001',
       prompt: fullPrompt,
       config: {
+        durationSeconds: 5,
         aspectRatio: '16:9',
-        personGeneration: 'allow_all', // Veo 3 default
+        personGeneration: 'allow_adult',
       },
     });
 
@@ -84,7 +85,7 @@ export const studioFlow = ai.defineFlow(
 
     return {
       videoUrl: `data:video/mp4;base64,${base64Video}`,
-      description: `Narrative synthesized with sound.`,
+      description: `Narrative synthesized with cinematic quality.`,
       finalSynthesizedPrompt: masterPrompt,
     };
   }
