@@ -2,8 +2,10 @@ fastapi
 uvicorn
 python-multipart
 firebase-admin
+flask
 flask-cors
 python-dotenv
 requests
+librosa
 numpy
 soundfile
