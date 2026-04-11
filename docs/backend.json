@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -13,7 +14,8 @@
         "plan": { "type": "string", "enum": ["free", "creator", "pro"] },
         "createdAt": { "type": "string", "format": "date-time" },
         "dob": { "type": "string", "format": "date-time" },
-        "gender": { "type": "string", "enum": ["male", "female", "other", "prefer-not-to-say"] }
+        "gender": { "type": "string", "enum": ["male", "female", "other", "prefer-not-to-say"] },
+        "redeemedCoupons": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["id", "displayName", "email", "credits", "plan"]
     },

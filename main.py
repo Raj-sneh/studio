@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -83,11 +84,10 @@ async def use_credits(request: Request):
 
 @app.post("/api/redeem")
 async def redeem_coupon(request: Request):
-    """Processes secret codes and upgrades user tiers using the case-sensitive SKV Protocol."""
+    """Processes secret codes and upgrades user tiers. Users can use every code exactly once."""
     try:
         data = await request.json()
         user_id = data.get("userId")
-        # Rule Change: Removed .upper() to strictly enforce mixed-case requirements
         code = data.get("code", "").strip()
         
         # Rule-Based Administrative Coupons
@@ -116,9 +116,11 @@ async def redeem_coupon(request: Request):
         def add_credits(transaction, user_ref):
             snap = user_ref.get(transaction=transaction)
             u_data = snap.to_dict() or {}
+            
+            # TRACKING PROTOCOL: Check if user has already used THIS specific code
             redeemed = u_data.get('redeemedCoupons', [])
             if code in redeemed: 
-                raise Exception("This coupon has already been redeemed by this account.")
+                raise Exception("This specific coupon has already been used by this account.")
             
             # Determine new plan based on coupon value
             current_plan = u_data.get('plan', 'free')

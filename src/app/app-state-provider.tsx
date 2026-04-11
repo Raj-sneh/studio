@@ -14,7 +14,7 @@ import { WelcomeModal } from '@/components/WelcomeModal';
 import { useToast } from '@/hooks/use-toast';
 
 const GUEST_AVATAR_URL = "https://firebasestorage.googleapis.com/v0/b/studio-4164192500-df01a.firebasestorage.app/o/1000018646%5B1%5D.png?alt=media&token=2b2f8cea-03cd-477c-bc0d-88988246fdeb";
-const INITIAL_CREDITS = 10; // INCREASED TO 10 AS REQUESTED
+const INITIAL_CREDITS = 10; 
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const { user, isFirebaseReady } = useUser();
@@ -78,6 +78,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
             if (userProfile.credits === undefined) {
               updateDoc(userDocRef, { credits: INITIAL_CREDITS });
             }
+            
+            // Ensure tracking array exists
+            if (userProfile.redeemedCoupons === undefined) {
+              updateDoc(userDocRef, { redeemedCoupons: [] });
+            }
 
             if (
               (userProfile.displayName === 'Guest User' || userProfile.displayName === 'New User') &&
@@ -94,6 +99,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
               avatarUrl: user.photoURL || GUEST_AVATAR_URL,
               credits: INITIAL_CREDITS,
               plan: 'free',
+              redeemedCoupons: [], // Initialize empty tracking list
               createdAt: serverTimestamp(),
             };
             
