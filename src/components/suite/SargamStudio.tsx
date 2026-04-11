@@ -348,10 +348,10 @@ export function SargamStudio() {
                                 <div className="space-y-3">
                                     <h3 className="text-xl font-bold text-foreground">Restricted Generation</h3>
                                     <p className="text-sm text-muted-foreground leading-relaxed italic">
-                                        Our protocol only restricts content related to pornography or illegal activities. This platform is purely for educational research.
+                                        This generation is restricted. This platform is purely for educational research.
                                     </p>
                                     <p className="text-[10px] text-primary font-black uppercase tracking-widest pt-2">
-                                        Note: User assumes full responsibility for misuse; owner is not liable.
+                                        The website and its owner are not responsible for user inputs.
                                     </p>
                                 </div>
                                 <Button variant="outline" onClick={() => setErrorState('none')} className="rounded-xl mt-4">Dismiss & Retry</Button>
@@ -458,7 +458,7 @@ export function SargamStudio() {
             </div>
             
             <div className="text-center text-[10px] text-muted-foreground/50 italic pt-8 pb-4">
-                Misuse of this platform depends on the user; the website or its owner is not responsible. Educational research only.
+                The website and its owner are not responsible for user inputs. Educational research protocol.
             </div>
         </div>
     );
