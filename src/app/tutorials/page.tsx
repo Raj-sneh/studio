@@ -1,7 +1,10 @@
+
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { 
   PlayCircle, 
   MonitorPlay, 
@@ -11,10 +14,18 @@ import {
   BrainCircuit, 
   ArrowRight,
   GraduationCap,
-  Info
+  Info,
+  Loader2,
+  Zap,
+  Download,
+  Video
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useUser } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+
+const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com'];
 
 const TUTORIALS = [
   {
@@ -24,6 +35,7 @@ const TUTORIALS = [
     icon: MonitorPlay,
     color: 'text-primary',
     tag: 'Advanced AI',
+    videoPrompt: 'A futuristic robotic director chair in a high-tech studio with glowing holographic screens showing cinematic scenes, 3D CGI style.',
     steps: [
       'Establishing your base visual concept',
       'Using Art Protocols (3D vs 2D)',
@@ -38,6 +50,7 @@ const TUTORIALS = [
     icon: Mic2,
     color: 'text-secondary',
     tag: 'Vocal Design',
+    videoPrompt: 'A high-fidelity floating microphone surrounded by glowing neural networks and sound waves in a dark neon studio, cinematic render.',
     steps: [
       'Choosing the right neural voice profile',
       'Optimizing text for expressive speech',
@@ -52,6 +65,7 @@ const TUTORIALS = [
     icon: Music,
     color: 'text-accent',
     tag: 'Music Basics',
+    videoPrompt: 'A magnificent grand piano made of crystal and light, with glowing keys that play themselves in a cosmic concert hall, beautiful lighting.',
     steps: [
       'Calibrating your audio engine',
       'Recording and listening to sessions',
@@ -66,6 +80,7 @@ const TUTORIALS = [
     icon: BrainCircuit,
     color: 'text-primary',
     tag: 'Neural Training',
+    videoPrompt: 'A DNA-like double helix made of colorful sound waves and human silhouettes representing voice diversity, abstract 3D render.',
     steps: [
       'Naming your neural artist',
       'Recording phonetic training scripts',
@@ -80,6 +95,7 @@ const TUTORIALS = [
     icon: Sparkles,
     color: 'text-secondary',
     tag: 'Composition',
+    videoPrompt: 'A brain-shaped constellation in the night sky connecting musical notes with glowing neural pathways, epic cinematic scale.',
     steps: [
       'Writing effective descriptive prompts',
       'Initializing the neural composition',
@@ -90,6 +106,56 @@ const TUTORIALS = [
 ];
 
 export default function TutorialsPage() {
+  const { user } = useUser();
+  const { toast } = useToast();
+  
+  const [videoUrls, setVideoUrls] = useState<Record<string, string>>({});
+  const [generatingIds, setGeneratingIds] = useState<Record<string, number>>({});
+
+  const handleGeneratePreview = async (id: string, prompt: string) => {
+    if (!user) {
+      toast({ title: "Login Required", description: "Sign in to generate AI tutorial previews.", variant: "destructive" });
+      return;
+    }
+
+    setGeneratingIds(prev => ({ ...prev, [id]: 2 }));
+    
+    const progressInterval = setInterval(() => {
+      setGeneratingIds(prev => {
+        const current = prev[id];
+        if (!current) return prev;
+        return { ...prev, [id]: current >= 98 ? 99 : current + 0.5 };
+      });
+    }, 2000);
+
+    try {
+      const response = await fetch('/api/studio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          prompt, 
+          style: '3d-render',
+          instructions: [] 
+        })
+      });
+
+      if (!response.ok) throw new Error("Neural synthesis is currently busy. Try again in a moment.");
+
+      const data = await response.json();
+      setVideoUrls(prev => ({ ...prev, [id]: data.videoUrl }));
+      toast({ title: "Neural Preview Ready!", description: "The AI has generated a visual guide for this module." });
+    } catch (error: any) {
+      toast({ title: "Render Failed", description: error.message, variant: "destructive" });
+    } finally {
+      clearInterval(progressInterval);
+      setGeneratingIds(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
+  };
+
   return (
     <div className="space-y-16 pb-32">
       {/* Header */}
@@ -99,53 +165,101 @@ export default function TutorialsPage() {
         </div>
         <h1 className="font-headline text-5xl font-bold tracking-tight text-foreground">Tutorial Hub</h1>
         <p className="text-xl text-muted-foreground leading-relaxed">
-          Master the Sargam AI ecosystem with our step-by-step visual guides and neural research protocols.
+          Master the Sargam AI ecosystem with step-by-step visual guides and neural research previews.
         </p>
       </div>
 
       {/* Tutorial Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-7xl mx-auto px-4">
-        {TUTORIALS.map((tut) => (
-          <Card key={tut.id} className="group border-primary/10 bg-card/50 backdrop-blur-md overflow-hidden hover:border-primary/30 transition-all flex flex-col">
-            <div className="relative aspect-video bg-muted/20 flex flex-col items-center justify-center border-b border-white/5 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
-              <tut.icon className={cn("h-16 w-16 mb-4 opacity-20 group-hover:scale-110 group-hover:opacity-40 transition-all duration-700", tut.color)} />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm cursor-pointer">
-                <div className="flex flex-col items-center gap-2">
-                  <PlayCircle className="h-12 w-12 text-primary fill-primary/20" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Initialize Guide</span>
+        {TUTORIALS.map((tut) => {
+          const isGenerating = generatingIds[tut.id] !== undefined;
+          const progress = generatingIds[tut.id] || 0;
+          const videoUrl = videoUrls[tut.id];
+
+          return (
+            <Card key={tut.id} className="group border-primary/10 bg-card/50 backdrop-blur-md overflow-hidden hover:border-primary/30 transition-all flex flex-col">
+              <div className="relative aspect-video bg-muted/20 flex flex-col items-center justify-center border-b border-white/5 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
+                
+                {/* Visual Content: Video or Icon */}
+                {videoUrl ? (
+                  <video 
+                    src={videoUrl} 
+                    className="absolute inset-0 w-full h-full object-cover" 
+                    autoPlay 
+                    loop 
+                    muted 
+                    playsInline
+                  />
+                ) : isGenerating ? (
+                  <div className="z-10 w-full max-w-[200px] text-center space-y-4">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+                    <div className="space-y-1">
+                      <Progress value={progress} className="h-1" />
+                      <p className="text-[8px] font-black uppercase tracking-widest text-primary animate-pulse">Synthesizing Protocol...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <tut.icon className={cn("h-16 w-16 mb-4 opacity-20 group-hover:scale-110 group-hover:opacity-40 transition-all duration-700", tut.color)} />
+                )}
+
+                {/* Overlay Controls */}
+                {!isGenerating && (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm">
+                    {videoUrl ? (
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="secondary" className="rounded-full h-10 px-6 font-bold" asChild>
+                          <a href={videoUrl} download={`${tut.id}-preview.mp4`}>
+                            <Download className="h-4 w-4 mr-2" /> Save Render
+                          </a>
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button 
+                        size="sm" 
+                        className="rounded-full h-12 px-8 font-black text-xs gap-2 shadow-2xl"
+                        onClick={() => handleGeneratePreview(tut.id, tut.videoPrompt)}
+                      >
+                        <Zap className="h-4 w-4 fill-primary-foreground" /> Initialize Neural Preview
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                <div className="absolute top-4 left-4 z-20">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded-full backdrop-blur-md">
+                    {tut.tag}
+                  </span>
                 </div>
               </div>
-              <div className="absolute top-4 left-4">
-                <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded-full">
-                  {tut.tag}
-                </span>
+
+              <CardHeader>
+                <CardTitle className="text-2xl font-headline group-hover:text-primary transition-colors">{tut.title}</CardTitle>
+                <CardDescription className="text-sm leading-relaxed mt-2">{tut.description}</CardDescription>
+              </CardHeader>
+              
+              <CardContent className="flex-grow space-y-4">
+                <div className="space-y-2">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Key Outcomes:</p>
+                  <ul className="grid grid-cols-1 gap-2">
+                    {tut.steps.map((step, i) => (
+                      <li key={i} className="flex items-center gap-3 text-xs text-muted-foreground italic">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary/40" />
+                        {step}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </CardContent>
+              
+              <div className="p-6 pt-0 mt-auto">
+                <Button variant="outline" className="w-full rounded-xl border-primary/20 hover:bg-primary/5 font-bold group/btn h-12">
+                  Launch Visual Guide <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+                </Button>
               </div>
-            </div>
-            <CardHeader>
-              <CardTitle className="text-2xl font-headline group-hover:text-primary transition-colors">{tut.title}</CardTitle>
-              <CardDescription className="text-sm leading-relaxed mt-2">{tut.description}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow space-y-4">
-              <div className="space-y-2">
-                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">What you will learn:</p>
-                <ul className="grid grid-cols-1 gap-2">
-                  {tut.steps.map((step, i) => (
-                    <li key={i} className="flex items-center gap-3 text-xs text-muted-foreground italic">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary/40" />
-                      {step}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </CardContent>
-            <div className="p-6 pt-0 mt-auto">
-              <Button variant="outline" className="w-full rounded-xl border-primary/20 hover:bg-primary/5 font-bold group/btn">
-                Launch Tutorial <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
-              </Button>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
 
       {/* Global Help Footer */}
@@ -157,11 +271,11 @@ export default function TutorialsPage() {
           <div className="space-y-2 text-center md:text-left">
             <h3 className="text-xl font-bold font-headline">Need Technical Assistance?</h3>
             <p className="text-sm text-muted-foreground leading-relaxed italic">
-              Our tutorials cover 90% of user queries. For specific neural errors or credit management issues, please visit our support portal or contact the developer directly.
+              Tutorial previews utilize the Veo engine and may take up to 2 minutes to synthesize. For specific neural errors, please contact the developer.
             </p>
             <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-4">
-              <Link href="/profile/support" className="p-0 h-auto font-black uppercase text-[10px] tracking-widest">Visit Support Portal</Link>
-              <Link href="/blog" className="p-0 h-auto font-black uppercase text-[10px] tracking-widest text-secondary">Explore Research Blog</Link>
+              <Link href="/profile/support" className="text-[10px] font-black uppercase tracking-widest hover:text-primary transition-colors">Visit Support Portal</Link>
+              <Link href="/blog" className="text-[10px] font-black uppercase tracking-widest text-secondary hover:underline">Explore Research Blog</Link>
             </div>
           </div>
         </div>
