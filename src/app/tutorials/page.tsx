@@ -6,6 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { 
   PlayCircle, 
   MonitorPlay, 
   Mic2, 
@@ -18,16 +25,31 @@ import {
   Loader2,
   Zap,
   Download,
-  Video
+  CheckCircle2,
+  ArrowRightCircle
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
-const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com'];
+type TutorialDetail = {
+  id: string;
+  title: string;
+  description: string;
+  icon: any;
+  color: string;
+  tag: string;
+  videoPrompt: string;
+  imageSeed: number;
+  steps: {
+    title: string;
+    text: string;
+  }[];
+};
 
-const TUTORIALS = [
+const TUTORIALS: TutorialDetail[] = [
   {
     id: 'studio-guide',
     title: 'Mastering AI Studio',
@@ -36,11 +58,12 @@ const TUTORIALS = [
     color: 'text-primary',
     tag: 'Advanced AI',
     videoPrompt: 'A futuristic robotic director chair in a high-tech studio with glowing holographic screens showing cinematic scenes, 3D CGI style.',
+    imageSeed: 101,
     steps: [
-      'Establishing your base visual concept',
-      'Using Art Protocols (3D vs 2D)',
-      'Adding iterative scene instructions',
-      'Maintaining narrative persistence'
+      { title: 'Base Concept', text: 'Start by describing your initial scene in detail. This establishes the environment and characters.' },
+      { title: 'Art Protocols', text: 'Choose between 3D CGI, 2D Animation, or Cinematic styles to set the visual DNA of your video.' },
+      { title: 'Iterative Beats', text: 'Use the Assistant prompt to add actions. The AI will preserve the first scene while adding new narrative layers.' },
+      { title: 'Exporting', text: 'Once the neural engine finalizes the coherent frames, download your MP4 for professional use.' }
     ]
   },
   {
@@ -51,11 +74,12 @@ const TUTORIALS = [
     color: 'text-secondary',
     tag: 'Vocal Design',
     videoPrompt: 'A high-fidelity floating microphone surrounded by glowing neural networks and sound waves in a dark neon studio, cinematic render.',
+    imageSeed: 102,
     steps: [
-      'Choosing the right neural voice profile',
-      'Optimizing text for expressive speech',
-      'Uploading audio for Neural Voice Swap',
-      'Understanding Speech-to-Speech (STS)'
+      { title: 'Voice Selection', text: 'Select a neural profile from our library, ranging from the SKV Master to specialized Pro voices like Clara.' },
+      { title: 'Speech Synthesis', text: 'Enter your script. The Director AI will automatically add natural pauses and expressive punctuation.' },
+      { title: 'Neural Voice Swap', text: 'Upload a recording of your own voice. The engine will "skin" your performance with the target profile.' },
+      { title: 'Fine Tuning', text: 'Adjust stability and similarity boost settings to match the emotional tone of your project.' }
     ]
   },
   {
@@ -66,11 +90,12 @@ const TUTORIALS = [
     color: 'text-accent',
     tag: 'Music Basics',
     videoPrompt: 'A magnificent grand piano made of crystal and light, with glowing keys that play themselves in a cosmic concert hall, beautiful lighting.',
+    imageSeed: 103,
     steps: [
-      'Calibrating your audio engine',
-      'Recording and listening to sessions',
-      'Following glowing keys in lessons',
-      'Using the piano zoom and rotate tools'
+      { title: 'Interface Setup', text: 'Use the zoom and rotate tools to adjust the keyboard to your screen size and playing preference.' },
+      { title: 'Recording Sessions', text: 'Hit the record button to capture MIDI-accurate performances. Listen back instantly to find errors.' },
+      { title: 'Interactive Lessons', text: 'Follow the glowing keys in our curated lessons. The engine waits for your input before advancing.' },
+      { title: 'Panic Protocol', text: 'If audio loops occur, use the Panic Button to instantly clear the neural audio buffer.' }
     ]
   },
   {
@@ -81,11 +106,12 @@ const TUTORIALS = [
     color: 'text-primary',
     tag: 'Neural Training',
     videoPrompt: 'A DNA-like double helix made of colorful sound waves and human silhouettes representing voice diversity, abstract 3D render.',
+    imageSeed: 104,
     steps: [
-      'Naming your neural artist',
-      'Recording phonetic training scripts',
-      'Processing high-quality vocal samples',
-      'Adding your clone to the Studio'
+      { title: 'Naming Your Artist', text: 'Give your neural clone a unique name. This profile will be saved to your private library.' },
+      { title: 'Training Scripts', text: 'Read the generated phonetic scripts aloud. These are designed to capture 1,000+ vocal parameters.' },
+      { title: 'Sample Collection', text: 'Upload or record multiple 10-second samples. Clean "dry" audio leads to higher-fidelity clones.' },
+      { title: 'Finalizing', text: 'The engine processes your data to create a neural embedding. Your voice is now ready for TTS and Swap.' }
     ]
   },
   {
@@ -96,11 +122,12 @@ const TUTORIALS = [
     color: 'text-secondary',
     tag: 'Composition',
     videoPrompt: 'A brain-shaped constellation in the night sky connecting musical notes with glowing neural pathways, epic cinematic scale.',
+    imageSeed: 105,
     steps: [
-      'Writing effective descriptive prompts',
-      'Initializing the neural composition',
-      'Using Reinforcement Logs to refine tunes',
-      'Learning your new melody step-by-step'
+      { title: 'Writing Prompts', text: 'Describe a mood rather than just notes. E.g., "A melancholic rainy day tune with high trills."' },
+      { title: 'Initial Composition', text: 'Click Initialize. The AI will generate a unique piano track matching your description.' },
+      { title: 'Reinforcement Loop', text: 'Rate the tune. If it is "Bad", tell the AI what to fix (e.g., "make it faster") to regenerate.' },
+      { title: 'Performance Learning', text: 'Switch to Learn mode to practice the generated melody on the virtual piano.' }
     ]
   }
 ];
@@ -111,6 +138,7 @@ export default function TutorialsPage() {
   
   const [videoUrls, setVideoUrls] = useState<Record<string, string>>({});
   const [generatingIds, setGeneratingIds] = useState<Record<string, number>>({});
+  const [selectedTutorial, setSelectedTutorial] = useState<TutorialDetail | null>(null);
 
   const handleGeneratePreview = async (id: string, prompt: string) => {
     if (!user) {
@@ -235,25 +263,15 @@ export default function TutorialsPage() {
 
               <CardHeader>
                 <CardTitle className="text-2xl font-headline group-hover:text-primary transition-colors">{tut.title}</CardTitle>
-                <CardDescription className="text-sm leading-relaxed mt-2">{tut.description}</CardDescription>
+                <CardDescription className="text-sm leading-relaxed mt-2 line-clamp-2">{tut.description}</CardDescription>
               </CardHeader>
               
-              <CardContent className="flex-grow space-y-4">
-                <div className="space-y-2">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Key Outcomes:</p>
-                  <ul className="grid grid-cols-1 gap-2">
-                    {tut.steps.map((step, i) => (
-                      <li key={i} className="flex items-center gap-3 text-xs text-muted-foreground italic">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary/40" />
-                        {step}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </CardContent>
-              
               <div className="p-6 pt-0 mt-auto">
-                <Button variant="outline" className="w-full rounded-xl border-primary/20 hover:bg-primary/5 font-bold group/btn h-12">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSelectedTutorial(tut)}
+                  className="w-full rounded-xl border-primary/20 hover:bg-primary/5 font-bold group/btn h-12"
+                >
                   Launch Visual Guide <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
                 </Button>
               </div>
@@ -261,6 +279,82 @@ export default function TutorialsPage() {
           );
         })}
       </div>
+
+      {/* Visual Guide Dialog */}
+      <Dialog open={!!selectedTutorial} onOpenChange={(open) => !open && setSelectedTutorial(null)}>
+        <DialogContent className="max-w-3xl h-[90vh] flex flex-col p-0 overflow-hidden bg-background/95 backdrop-blur-2xl border-primary/20 rounded-[2.5rem]">
+          {selectedTutorial && (
+            <>
+              <div className="relative h-64 w-full shrink-0">
+                <Image 
+                  src={`https://picsum.photos/seed/${selectedTutorial.imageSeed}/1200/600`}
+                  alt={selectedTutorial.title}
+                  fill
+                  className="object-cover"
+                  data-ai-hint="visual guide"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+                <div className="absolute bottom-6 left-8">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] font-black uppercase tracking-widest mb-3">
+                    <selectedTutorial.icon className="h-3 w-3" /> Step-by-Step Mastery
+                  </div>
+                  <h2 className="text-4xl font-bold font-headline text-foreground">{selectedTutorial.title}</h2>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                <div className="space-y-10">
+                  <p className="text-muted-foreground text-lg leading-relaxed italic border-l-4 border-primary/30 pl-6">
+                    {selectedTutorial.description}
+                  </p>
+
+                  <div className="grid gap-8">
+                    {selectedTutorial.steps.map((step, i) => (
+                      <div key={i} className="flex gap-6 items-start group">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 font-black text-primary group-hover:scale-110 transition-transform">
+                          {i + 1}
+                        </div>
+                        <div className="space-y-2 pt-1">
+                          <h4 className="font-bold text-xl flex items-center gap-2">
+                            {step.title}
+                            <CheckCircle2 className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </h4>
+                          <p className="text-muted-foreground leading-relaxed">
+                            {step.text}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-8">
+                    <Card className="bg-primary/5 border-primary/10 rounded-3xl p-6">
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center">
+                          <Info className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold">Pro Tip for {selectedTutorial.tag}</p>
+                          <p className="text-xs text-muted-foreground">For optimal neural performance, ensure a stable internet connection while the engine is synthesizing your request.</p>
+                        </div>
+                      </div>
+                    </Card>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-white/5 bg-card/50 flex justify-end gap-4">
+                <Button variant="ghost" onClick={() => setSelectedTutorial(null)} className="rounded-xl font-bold">Close Guide</Button>
+                <Button asChild className="rounded-xl font-bold px-8 shadow-xl shadow-primary/20">
+                  <Link href="/suite">
+                    Open AI Suite <ArrowRightCircle className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Global Help Footer */}
       <div className="max-w-4xl mx-auto">
@@ -271,7 +365,7 @@ export default function TutorialsPage() {
           <div className="space-y-2 text-center md:text-left">
             <h3 className="text-xl font-bold font-headline">Need Technical Assistance?</h3>
             <p className="text-sm text-muted-foreground leading-relaxed italic">
-              Tutorial previews utilize the Veo engine and may take up to 2 minutes to synthesize. For specific neural errors, please contact the developer.
+              Our guides are updated weekly to match the latest neural research parameters. For specific errors, please reach out to our research support.
             </p>
             <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-4">
               <Link href="/profile/support" className="text-[10px] font-black uppercase tracking-widest hover:text-primary transition-colors">Visit Support Portal</Link>
