@@ -36,10 +36,10 @@ const MODIFICATION_COST = 5;
 const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com'];
 
 const STYLES = [
-    { id: '3d-render', label: '3D CGI', icon: Box, description: 'Stand By Me Style.' },
-    { id: '2d-animation', label: '2D Cartoon', icon: Layers, description: 'Bold, vibrant cartoonistic motion.' },
-    { id: 'cinematic', label: 'Cinematic', icon: Film, description: 'Film quality.' },
-    { id: 'anime', label: 'Hybrid 3D', icon: Palette, description: 'Action anime style.' }
+    { id: '3d-render', label: 'Masterpiece 3D', icon: Box, description: 'Hyper-realistic path-traced CGI.' },
+    { id: '2d-animation', label: 'Polished 2D', icon: Layers, description: 'Hand-drawn digital fluid motion.' },
+    { id: 'cinematic', label: '8K Film', icon: Film, description: 'Professional cinema quality.' },
+    { id: 'anime', label: 'High-Fidelity Anime', icon: Palette, description: 'Studio Ghibli inspired quality.' }
 ];
 
 export function SargamStudio() {
@@ -130,7 +130,6 @@ export function SargamStudio() {
                 const data = isJson ? await response.json().catch(() => ({})) : { message: "Neural Engine Connectivity Issue" };
                 const msg = data.message || "Rendering failed.";
                 
-                // Detect safety blocks including "Responsible AI" or "Sensitive words"
                 if (msg.toLowerCase().includes('third-party') || 
                     msg.toLowerCase().includes('sensitive') || 
                     msg.toLowerCase().includes('practices') || 
@@ -153,7 +152,6 @@ export function SargamStudio() {
             toast({ title: isInitial ? "Scene 1 Rendered!" : "Iteration Added!", description: "Continuity Protocol Synchronized." });
         } catch (e: any) {
             setLastErrorMessage(e.message);
-            // Only toast if it's not a safety block (handled by UI)
             if (errorState !== 'content-block') {
                 toast({ title: "Studio Error", description: e.message, variant: "destructive" });
             }
@@ -208,7 +206,6 @@ export function SargamStudio() {
         <div className="p-6 md:p-12 space-y-10 animate-in fade-in duration-1000">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                 
-                {/* Protocol Settings Panel */}
                 <div className="lg:col-span-1 space-y-8">
                     <div className="flex items-center justify-between">
                         <div className="space-y-1">
@@ -217,7 +214,7 @@ export function SargamStudio() {
                                 {isRefinementMode ? 'Project Evolution' : 'Initial Protocol'}
                             </h3>
                             <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">
-                                {isRefinementMode ? `Active Scenes: ${sceneVideos.length}` : 'Configure Base Animation'}
+                                {isRefinementMode ? `Active Scenes: ${sceneVideos.length}` : 'Configure High-Fidelity Render'}
                             </p>
                         </div>
                         {isRefinementMode && (
@@ -231,12 +228,12 @@ export function SargamStudio() {
                         <div className="space-y-6 animate-in slide-in-from-left duration-500">
                             <div className="space-y-3">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1 flex justify-between items-center">
-                                    Base Concept (Scene 1)
+                                    Master Concept (Scene 1)
                                     <span className="text-primary font-bold">{user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${INITIAL_COST} Credits`}</span>
                                 </label>
                                 <div className="relative z-10">
                                     <Textarea 
-                                        placeholder="e.g. A robotic explorer stepping onto a neon planet."
+                                        placeholder="Describe your cinematic vision in detail..."
                                         value={prompt}
                                         onChange={(e) => setPrompt(e.target.value)}
                                         disabled={isGenerating}
@@ -247,7 +244,7 @@ export function SargamStudio() {
                             </div>
 
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Art Style</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Art Style Protocol</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     {STYLES.map(style => (
                                         <button
@@ -274,7 +271,7 @@ export function SargamStudio() {
                                 className="w-full h-16 rounded-2xl font-black text-lg shadow-2xl shadow-primary/20"
                             >
                                 <Sparkles className="mr-2 h-6 w-6 fill-primary-foreground" /> 
-                                Initialize Master
+                                Initialize Master Render
                             </Button>
                         </div>
                     ) : (
@@ -308,17 +305,15 @@ export function SargamStudio() {
                                 className="w-full h-14 rounded-2xl font-black text-md bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-xl shadow-secondary/20"
                             >
                                 {isStitching ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : <Save className="mr-2 h-5 w-5" />}
-                                Finish & Stitch Project
+                                Finish & Stitch Masterpiece
                             </Button>
                         </div>
                     )}
                 </div>
 
-                {/* Canvas & Studio Assistant Panel */}
                 <div className="lg:col-span-2 min-h-[600px] flex flex-col bg-black/20 rounded-[2rem] border border-white/5 relative overflow-hidden group">
                     <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none" />
                     
-                    {/* Canvas Header */}
                     <div className="p-6 border-b border-white/5 flex items-center justify-between z-10">
                         <div className="flex items-center gap-3">
                             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -329,20 +324,19 @@ export function SargamStudio() {
                                     {finalVideoUrl ? 'Final Production Master' : `Scene ${sceneVideos.length || 1} Preview`}
                                 </h4>
                                 <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">
-                                    {isGenerating ? 'Neural Rendering...' : isStitching ? 'Stitching Frames...' : 'Ready'}
+                                    {isGenerating ? 'Neural Rendering...' : isStitching ? 'Stitching Frames...' : 'Studio Active'}
                                 </p>
                             </div>
                         </div>
                         {(currentVideoUrl || finalVideoUrl) && !isGenerating && !isStitching && (
                             <Button variant="outline" size="sm" className="rounded-full gap-2 border-primary/20 hover:bg-primary/10 h-10 px-6 font-bold" asChild>
-                                <a href={finalVideoUrl || currentVideoUrl || ''} download={`sargam-${finalVideoUrl ? 'final' : 'scene'}-${Date.now()}.mp4`}>
-                                    <Download className="h-4 w-4 text-primary" /> Download {finalVideoUrl ? 'Final' : 'Clip'}
+                                <a href={finalVideoUrl || currentVideoUrl || ''} download={`sargam-studio-${Date.now()}.mp4`}>
+                                    <Download className="h-4 w-4 text-primary" /> Download Master
                                 </a>
                             </Button>
                         )}
                     </div>
 
-                    {/* Render Area */}
                     <div className="flex-1 flex flex-col items-center justify-center p-8 z-10 relative">
                         {errorState === 'content-block' && (
                             <div className="text-center space-y-6 max-w-md animate-in zoom-in-95 duration-500">
@@ -352,10 +346,10 @@ export function SargamStudio() {
                                 <div className="space-y-3">
                                     <h3 className="text-xl font-bold text-foreground">Safety Protocol Active</h3>
                                     <p className="text-sm text-muted-foreground leading-relaxed italic">
-                                        The current scene description contains restricted or sensitive concepts. The <strong>Director AI</strong> has been instructed to use safe, creative equivalents. 
+                                        The current scene description contains restricted concepts. The <strong>Director AI</strong> has been instructed to use high-fidelity safe equivalents.
                                     </p>
                                     <p className="text-xs text-primary font-black uppercase tracking-widest pt-2">
-                                        Action: Please try rephrasing or using a generic concept.
+                                        Action: Please rephrase or use generic descriptions.
                                     </p>
                                 </div>
                                 <Button variant="outline" onClick={() => setErrorState('none')} className="rounded-xl mt-4">Dismiss & Retry</Button>
@@ -369,7 +363,7 @@ export function SargamStudio() {
                                 </div>
                                 <div className="space-y-2">
                                     <p className="text-lg font-headline font-bold text-muted-foreground italic">Studio Canvas Empty.</p>
-                                    <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto font-medium">Describe your base concept to initialize Scene 1.</p>
+                                    <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto font-medium">Describe your vision to initialize the first scene.</p>
                                 </div>
                             </div>
                         )}
@@ -384,7 +378,7 @@ export function SargamStudio() {
                                             {isStitching ? 'Neural Concatenation' : `Synthesizing Scene ${sceneVideos.length + 1}`}
                                         </p>
                                         <p className="text-[10px] text-muted-foreground italic">
-                                            {isStitching ? 'Merging frames into master clip...' : 'Calculating lighting & physics...'}
+                                            {isStitching ? 'Merging frames into production master...' : 'Calculating lighting & physics...'}
                                         </p>
                                     </div>
                                 </div>
@@ -411,7 +405,6 @@ export function SargamStudio() {
                                     />
                                 </div>
                                 
-                                {/* Assistant Command Prompt */}
                                 {!finalVideoUrl && (
                                     <div className="w-full max-w-2xl mt-8 animate-in slide-in-from-bottom-4 duration-1000">
                                         <div className="relative z-10">
@@ -420,7 +413,7 @@ export function SargamStudio() {
                                                     <Bot className="h-5 w-5 text-primary" />
                                                 </div>
                                                 <Input 
-                                                    placeholder={`Scene ${sceneVideos.length + 1}: What happens next?`}
+                                                    placeholder={`Scene ${sceneVideos.length + 1}: Describe the next cinematic beat...`}
                                                     value={currentInstruction}
                                                     onChange={(e) => setCurrentInstruction(e.target.value)}
                                                     onKeyDown={(e) => e.key === 'Enter' && currentInstruction.trim() && handleGenerate(currentInstruction)}
@@ -442,7 +435,7 @@ export function SargamStudio() {
                                             </div>
                                         </div>
                                         <p className="text-[9px] text-center mt-3 text-muted-foreground font-black uppercase tracking-[0.2em] italic">
-                                            Describe the next action. Click "Finish" in the menu to stitch all clips into one.
+                                            Build your story step-by-step. Click "Finish" to synthesize all scenes.
                                         </p>
                                     </div>
                                 )}
@@ -450,10 +443,10 @@ export function SargamStudio() {
                                 {finalVideoUrl && (
                                     <div className="mt-8 text-center space-y-4 animate-in fade-in duration-1000">
                                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest">
-                                            <CheckCircle2 className="h-4 w-4" /> Final Master Ready
+                                            <CheckCircle2 className="h-4 w-4" /> Production Master Ready
                                         </div>
-                                        <p className="text-sm text-muted-foreground italic">Project contains {sceneVideos.length} neural scenes.</p>
-                                        <Button variant="outline" onClick={resetStudio} className="rounded-xl mt-4">Start New Project</Button>
+                                        <p className="text-sm text-muted-foreground italic">Masterpiece synthesized from {sceneVideos.length} neural scenes.</p>
+                                        <Button variant="outline" onClick={resetStudio} className="rounded-xl mt-4">Start New Masterpiece</Button>
                                     </div>
                                 )}
                             </div>

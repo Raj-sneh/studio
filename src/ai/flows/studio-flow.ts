@@ -1,8 +1,7 @@
 'use server';
 /**
- * @fileOverview Sargam Studio AI Animation Flow - Production Stability Edition.
- * Reverted to veo-2.0-generate-001 to resolve 404 API errors while maintaining high quality.
- * Enhanced safety instructions to avoid "Responsible AI" and "third-party content" blocks.
+ * @fileOverview Sargam Studio AI Animation Flow - High-Fidelity Masterpiece Edition.
+ * Optimized for professional aesthetics and cinematic persistence.
  */
 
 import { ai } from '@/ai/genkit';
@@ -28,33 +27,33 @@ export const studioFlow = ai.defineFlow(
     }),
   },
   async (input) => {
-    // Style-specific guidance for the director
+    // Style-specific guidance for the director - Refined for "Perfection"
     const styleGuides: Record<string, string> = {
-      '2d-animation': 'Extremely cartoonistic, bold outlines, vibrant flat colors, exaggerated character expressions and squash-and-stretch motion.',
-      '3d-render': 'Hyper-realistic 3D CGI, soft global illumination, detailed textures, Pixar-like quality.',
-      'cinematic': 'Live-action film aesthetic, shallow depth of field, natural lighting, professional cinematography.',
-      'anime': 'Modern high-action anime style, dynamic line work, dramatic lighting, hand-drawn aesthetic.',
-      'pixel-art': 'Retro 16-bit pixel art, vibrant color palette, limited resolution, nostalgic gaming aesthetic.'
+      '2d-animation': 'High-fidelity professional 2D hand-drawn animation, fluid cinematic motion, vibrant but balanced color palette, expressive and polished character design, Studio Ghibli inspired quality.',
+      '3d-render': 'Hyper-realistic 3D CGI, path-traced lighting, soft global illumination, intricate masterpiece textures, Pixar-like production value.',
+      'cinematic': 'Professional 8K live-action film aesthetic, shallow depth of field, anamorphic lens flares, natural cinematic lighting, high-end cinematography.',
+      'anime': 'Modern high-fidelity anime style, Makoto Shinkai inspired backgrounds, breathtaking dynamic lighting, smooth frame rates, professional studio production.',
+      'pixel-art': 'High-end retro pixel art, vibrant atmospheric lighting, 32-bit depth aesthetic, smooth nostalgic gaming motion.'
     };
 
     const specificStyleGuide = styleGuides[input.style] || input.style;
 
-    const directorPrompt = `You are a cinematic director. Synthesize a detailed paragraph for a high-fidelity video model.
+    const directorPrompt = `You are a cinematic director. Synthesize a detailed, visually breathtaking paragraph for a high-fidelity video model.
     
     BASE: "${input.prompt}"
-    EVOLUTION: ${input.instructions?.length ? input.instructions.join(' -> ') : 'Initial shot.'}
+    EVOLUTION: ${input.instructions?.length ? input.instructions.join(' -> ') : 'Initial establishment shot.'}
 
-    GOAL: Create a single, continuous narrative paragraph that describes the scene visually and dynamically.
+    GOAL: Create a single, continuous narrative paragraph that describes the scene with immense detail and dynamic energy.
     
-    CRITICAL SAFETY RULES:
-    - ABSOLUTELY NO real-world celebrities, public figures, trademarked brands, or copyrighted characters (e.g. no Mickey Mouse, no superheroes, no specific logos).
-    - NO sensitive, controversial, violent, or restricted content. 
-    - If the user's input contains restricted concepts, REWRITE them into wholesome, beautiful, and artistic equivalents.
-    - Use poetic and visual language. Avoid blunt words that trigger filters (e.g., use "shimmering tool" instead of a specific weapon).
+    CRITICAL SAFETY & QUALITY RULES:
+    - ABSOLUTELY NO logos, watermarks, text overlays, or trademarked characters.
+    - NO real-world celebrities or public figures.
+    - If restricted concepts are found, REWRITE them into wholesome, majestic, and artistic equivalents.
+    - Use poetic, visual, and highly descriptive language. Avoid blunt triggers.
     
-    CINEMATIC RULES:
-    - Persistence: Establish the exact environment from the BASE and keep it consistent.
-    - Motion: Describe camera movements and character actions clearly.
+    CINEMATIC PROTOCOL:
+    - Persistence: Maintain the environment from the BASE consistently.
+    - Motion: Use fluid, professional camera movements (pans, dollies, cranes).
     - Style: ${specificStyleGuide}.
     
     Return ONLY the synthesized paragraph.`;
@@ -72,10 +71,9 @@ export const studioFlow = ai.defineFlow(
       }
     });
 
-    const fullPrompt = `${masterPrompt}. High-quality visual production.`;
+    const fullPrompt = `${masterPrompt}. High-quality visual production, no watermarks, no text.`;
 
-    // Using Veo 2.0 for API stability. 
-    // safetySettings removed as they are not supported by the predictLongRunning endpoint for this model.
+    // Using Veo 2.0 for stable high-fidelity rendering.
     let { operation } = await ai.generate({
       model: 'googleai/veo-2.0-generate-001',
       prompt: fullPrompt,
@@ -120,7 +118,7 @@ export const studioFlow = ai.defineFlow(
 
     return {
       videoUrl: `data:video/mp4;base64,${base64Video}`,
-      description: `Narrative synthesized with ${input.style} protocol.`,
+      description: `Narrative synthesized with perfected ${input.style} protocol.`,
       finalSynthesizedPrompt: masterPrompt,
     };
   }
