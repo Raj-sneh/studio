@@ -1,11 +1,10 @@
-
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Music, BookOpen, Wand2, Sparkles, Mic2, Disc, ArrowRight, GraduationCap, Zap, BrainCircuit, MonitorPlay } from 'lucide-react';
+import { Music, BookOpen, Wand2, Sparkles, Mic2, Disc, ArrowRight, GraduationCap, Zap, BrainCircuit, MonitorPlay, PlayCircle } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { AnimatedMusicBackground } from '@/components/AnimatedMusicBackground';
 import { cn } from '@/lib/utils';
@@ -60,6 +59,18 @@ export default function LandingPage() {
         <p className="text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
           The definitive AI workspace for creators. Render cinematic 3D animations, clone any voice, or practice on our professional virtual grand piano.
         </p>
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+          <Link href="/suite">
+            <Button size="lg" className="rounded-full px-10 h-16 font-black text-lg shadow-2xl shadow-primary/30">
+              Start Creating <Wand2 className="ml-2 h-6 w-6" />
+            </Button>
+          </Link>
+          <Link href="/tutorials">
+            <Button size="lg" variant="outline" className="rounded-full px-10 h-16 font-black text-lg border-primary/20 hover:bg-primary/5">
+              Watch Tutorials <PlayCircle className="ml-2 h-6 w-6" />
+            </Button>
+          </Link>
+        </div>
       </section>
 
       {/* Feature Grid */}

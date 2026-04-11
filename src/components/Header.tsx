@@ -6,7 +6,7 @@ import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/fireb
 import { signOut } from "firebase/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap, LifeBuoy, MonitorPlay } from "lucide-react";
+import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap, LifeBuoy, MonitorPlay, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { doc } from "firebase/firestore";
@@ -17,6 +17,7 @@ const navLinks = [
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/suite", label: "Music Suite", icon: Wand2 },
   { href: "/studio", label: "AI Studio", icon: MonitorPlay },
+  { href: "/tutorials", label: "Tutorials", icon: PlayCircle },
   { href: "/blog", label: "Learn", icon: GraduationCap },
 ];
 
