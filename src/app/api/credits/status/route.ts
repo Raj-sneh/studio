@@ -12,6 +12,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Missing userId" }, { status: 400 });
   }
 
+  // Priority: NEURAL_ENGINE_URL -> NEXT_PUBLIC_NEURAL_ENGINE_URL -> Localhost
   const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || process.env.VOICE_ENGINE_URL || "http://localhost:8080";
 
   try {

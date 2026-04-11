@@ -22,6 +22,7 @@ export async function POST(req: Request) {
        return NextResponse.json({ status: "invalid", message: "Missing code or user ID" }, { status: 400 });
     }
 
+    // Priority: NEURAL_ENGINE_URL -> NEXT_PUBLIC_NEURAL_ENGINE_URL -> Localhost
     const baseUrl = process.env.NEURAL_ENGINE_URL || process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || process.env.VOICE_ENGINE_URL || "http://localhost:8080";
 
     const response = await fetch(`${baseUrl}/api/redeem`, {

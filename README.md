@@ -5,28 +5,35 @@ Sargam is an interactive, AI-powered web application designed to make piano lear
 ## ✨ Features
 
 - **🎹 Virtual Piano**: High-quality Salamander Grand Piano samples for practice and recording.
-- **🎼 Interactive Lessons**: Learn classics and rhymes with real-time feedback and visual demos.
-- **🎙️ Vocal Studio**: High-fidelity AI speech and singing powered by **ElevenLabs**.
-- **👥 Voice Cloner**: Instant AI voice cloning using ElevenLabs and SKV AI (Gemini 2.5 Flash).
+- **🎬 Sargam Studio**: Cinematic AI animation engine with iterative narrative beats.
+- **🎙️ Vocal Studio**: High-fidelity AI speech and neural voice replacement.
+- **👥 Voice Cloner**: Instant AI voice cloning using ElevenLabs and Gemini 2.5 Flash.
 - **🤖 SKV AI Assistant**: A friendly helper to guide you through the app and answer questions.
 
 ## 🚀 Technology Stack
 
 - **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS, ShadCN UI.
 - **AI Backend**: Genkit (Google AI / Gemini 2.5 Flash), ElevenLabs API.
-- **Voice Engine**: Flask (Python), librosa, FFmpeg (for vocal separation and mixing).
+- **Voice Engine**: FastAPI / Flask (Python), librosa, FFmpeg (for vocal separation and mixing).
 - **Database**: Firebase (Auth, Firestore).
 
 ## 🔧 Configuration Guide
 
-To fully unlock the AI features, you need to set up your environment variables in a `.env` file:
+To fully unlock the AI features, you need to set up your environment variables in the Firebase Console (App Hosting Settings) or a `.env` file:
 
-### 🎙️ ElevenLabs (Vocal Studio & Cloner)
-1. **ELEVENLABS_API_KEY**: Your API key from the ElevenLabs dashboard.
-2. **VOICE_ENGINE_URL**: The URL of your Python Voice Engine (e.g., `http://127.0.0.1:8080`).
+### 🎙️ Neural Engine (Cloud Run Backend)
+The URL of your Python backend (e.g., `https://sargam-backend-xxxxxx.a.run.app`). Set this in both variables below for maximum reliability:
+1. **NEURAL_ENGINE_URL**: Used for server-side API requests.
+2. **NEXT_PUBLIC_NEURAL_ENGINE_URL**: Used for client-side status checks.
+
+### 🔑 AI API Keys
+1. **ELEVENLABS_API_KEY**: Your API key from the ElevenLabs dashboard for voice cloning.
+2. **GEMINI_API_KEY**: For Genkit and Sargam Studio animations.
 
 ## 🔧 Getting Started
 
 1. **Install Frontend**: `npm install`
 2. **Run Frontend**: `npm run dev`
-3. **Run Voice Engine**: `python app.py` (in a separate terminal)
+3. **Run Backend**: `python main.py` (ensure `librosa` and `ffmpeg` are installed)
+
+Made with ❤️ by Sneh Kumar Verma.
