@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -6,7 +7,7 @@ import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/fireb
 import { signOut } from "firebase/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap, LifeBuoy, MonitorPlay, PlayCircle, Sparkles } from "lucide-react";
+import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap, LifeBuoy, MonitorPlay, PlayCircle, Sparkles, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { doc } from "firebase/firestore";
@@ -22,6 +23,7 @@ const navLinks = [
 ];
 
 const GUEST_AVATAR_URL = "https://firebasestorage.googleapis.com/v0/b/studio-4164192500-df01a.firebasestorage.app/o/1000018646%5B1%5D.png?alt=media&token=2b2f8cea-03cd-477c-bc0d-88988246fdeb";
+const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com'];
 
 export default function Header() {
   const pathname = usePathname();
@@ -35,6 +37,11 @@ export default function Header() {
 
   const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
   const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+  const adminRoleRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'roles_admin', user.uid) : null), [firestore, user?.uid]);
+  const { data: adminDoc } = useDoc(adminRoleRef);
+
+  const isAdmin = user?.email && (ADMIN_EMAILS.includes(user.email) || adminDoc);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -91,6 +98,18 @@ export default function Header() {
                   )}
                 </Link>
               ))}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className={cn(
+                    "flex items-center gap-2 transition-all text-secondary hover:text-secondary/80",
+                    pathname.startsWith('/admin') && "font-black"
+                  )}
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  Admin
+                </Link>
+              )}
           </nav>
 
           <div className="flex items-center gap-4">
@@ -125,6 +144,11 @@ export default function Header() {
                         </span>
                         <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{profile?.plan || 'Free'} Plan</span>
                       </div>
+                      {isAdmin && (
+                        <Link href="/admin" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg text-secondary font-bold">
+                          <Settings className="mr-3 h-4 w-4" /> Command Center
+                        </Link>
+                      )}
                       <Link href="/profile" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg">
                         <UserIcon className="mr-3 h-4 w-4 text-primary" /> Profile
                       </Link>
