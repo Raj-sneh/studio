@@ -83,26 +83,26 @@ async def use_credits(request: Request):
 
 @app.post("/api/redeem")
 async def redeem_coupon(request: Request):
-    """Processes secret codes and upgrades user tiers."""
+    """Processes secret codes and upgrades user tiers using the restored SKV Protocol."""
     try:
         data = await request.json()
         user_id = data.get("userId")
         code = data.get("code", "").upper().strip()
         
-        # Fresh Administrative Coupons
+        # Restored Administrative Coupons (SKV Naming Protocol)
         coupons = { 
             # Creator Coupons (1000 Credits)
-            "SARGAM-CREATOR-ALPHA": 1000,
-            "SARGAM-CREATOR-BETA": 1000,
-            "SARGAM-CREATOR-GAMMA": 1000,
-            "SARGAM-CREATOR-DELTA": 1000,
-            "SARGAM-CREATOR-EPSILON": 1000,
+            "SARGAM-CREATOR-SKV-01": 1000,
+            "SARGAM-CREATOR-SKV-02": 1000,
+            "SARGAM-CREATOR-SKV-03": 1000,
+            "SARGAM-CREATOR-SKV-04": 1000,
+            "SARGAM-CREATOR-SKV-05": 1000,
             # Pro Coupons (5000 Credits)
-            "SARGAM-PRO-ZETA": 5000,
-            "SARGAM-PRO-ETA": 5000,
-            "SARGAM-PRO-THETA": 5000,
-            "SARGAM-PRO-IOTA": 5000,
-            "SARGAM-PRO-KAPPA": 5000
+            "SARGAM-PRO-SKV-01": 5000,
+            "SARGAM-PRO-SKV-02": 5000,
+            "SARGAM-PRO-SKV-03": 5000,
+            "SARGAM-PRO-SKV-04": 5000,
+            "SARGAM-PRO-SKV-05": 5000
         }
         
         if code not in coupons: 
@@ -126,7 +126,6 @@ async def redeem_coupon(request: Request):
             if credits_to_add >= 5000:
                 new_plan = 'pro'
             elif credits_to_add >= 1000:
-                # Only upgrade if they aren't already Pro
                 if current_plan != 'pro':
                     new_plan = 'creator'
             
@@ -149,7 +148,6 @@ async def create_order(request: Request):
         data = await request.json()
         item_id = data.get("item_id")
         
-        # Match pricing from PricingPage frontend
         pricing_map = {
             'creator': 99,
             'pro': 299,
@@ -161,7 +159,6 @@ async def create_order(request: Request):
         amount = pricing_map.get(item_id, 0)
         if amount == 0: raise Exception("Invalid item selected.")
 
-        # Razorpay expects amount in paise (integers)
         order_data = {
             "amount": amount * 100,
             "currency": "INR",
@@ -186,13 +183,11 @@ async def verify_payment(request: Request):
             'razorpay_signature': data.get('razorpay_signature')
         }
         
-        # 1. Verify Signature
         try:
             client.utility.verify_payment_signature(params_dict)
         except Exception:
             raise Exception("Signature verification failed.")
 
-        # 2. Provision Credits
         user_id = data.get("user_id")
         item_id = data.get("item_id")
         
@@ -215,7 +210,6 @@ async def verify_payment(request: Request):
             
             update_fields = { 'credits': current_credits + credits_to_add }
             
-            # If it's a plan upgrade, update the plan name
             if item_id in ['creator', 'pro']:
                 update_fields['plan'] = item_id
                 
