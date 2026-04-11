@@ -27,27 +27,38 @@ export const studioFlow = ai.defineFlow(
     }),
   },
   async (input) => {
+    // Style-specific guidance for the director
+    const styleGuides: Record<string, string> = {
+      '2d-animation': 'Extremely cartoonistic, bold outlines, vibrant flat colors, exaggerated character expressions and squash-and-stretch motion.',
+      '3d-render': 'Hyper-realistic 3D CGI, soft global illumination, detailed textures, Pixar-like quality.',
+      'cinematic': 'Live-action film aesthetic, shallow depth of field, natural lighting, professional cinematography.',
+      'anime': 'Modern high-action anime style, dynamic line work, dramatic lighting, hand-drawn aesthetic.',
+      'pixel-art': 'Retro 16-bit pixel art, vibrant color palette, limited resolution, nostalgic gaming aesthetic.'
+    };
+
+    const specificStyleGuide = styleGuides[input.style] || input.style;
+
     const directorPrompt = `You are a cinematic director. Synthesize a detailed paragraph for a high-fidelity video model.
     
     BASE: "${input.prompt}"
     EVOLUTION: ${input.instructions?.length ? input.instructions.join(' -> ') : 'Initial shot.'}
 
-    GOAL: Create a single, continuous narrative paragraph.
+    GOAL: Create a single, continuous narrative paragraph that describes the scene visually and dynamically.
     RULES:
-    - Persistence: Establish the exact environment from the BASE and keep it.
+    - Persistence: Establish the exact environment from the BASE and keep it consistent.
     - Motion: Describe camera movements and character actions clearly.
-    - Style: ${input.style}.
+    - Style: ${specificStyleGuide}.
     
-    Return ONLY the paragraph.`;
+    Return ONLY the synthesized paragraph.`;
 
     const { text: masterPrompt } = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
       prompt: directorPrompt,
     });
 
-    const fullPrompt = `${masterPrompt}. Cinematic high-quality production.`;
+    const fullPrompt = `${masterPrompt}. High-quality visual production.`;
 
-    // Switching back to Veo 2.0 for API stability
+    // Using Veo 2.0 for API stability
     let { operation } = await ai.generate({
       model: 'googleai/veo-2.0-generate-001',
       prompt: fullPrompt,
@@ -85,7 +96,7 @@ export const studioFlow = ai.defineFlow(
 
     return {
       videoUrl: `data:video/mp4;base64,${base64Video}`,
-      description: `Narrative synthesized with cinematic quality.`,
+      description: `Narrative synthesized with ${input.style} protocol.`,
       finalSynthesizedPrompt: masterPrompt,
     };
   }

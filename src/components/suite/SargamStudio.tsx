@@ -36,7 +36,7 @@ const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com'];
 
 const STYLES = [
     { id: '3d-render', label: '3D CGI', icon: Box, description: 'Stand By Me Style.' },
-    { id: '2d-animation', label: '2D Cartoon', icon: Layers, description: 'Classic animation.' },
+    { id: '2d-animation', label: '2D Cartoon', icon: Layers, description: 'Bold, vibrant cartoonistic motion.' },
     { id: 'cinematic', label: 'Cinematic', icon: Film, description: 'Film quality.' },
     { id: 'anime', label: 'Hybrid 3D', icon: Palette, description: 'Action anime style.' }
 ];
