@@ -1,10 +1,9 @@
-
 import { askSargam } from '@/ai/flows/assistant-flow';
 import {
   type AssistantInput,
 } from '@/ai/flows/assistant-types';
 
-export const maxDuration = 60; // Increase timeout for slow AI flows
+export const maxDuration = 120; // Increased for complex polymath logic
 
 export async function POST(req: Request) {
   try {
@@ -28,7 +27,7 @@ export async function POST(req: Request) {
       prompt: body.prompt,
       history: body.history || [],
       userName: body.userName || undefined,
-      userId: body.userId || undefined, // PASS UID TO ASSISTANT
+      userId: body.userId || undefined,
       photoDataUri: body.photoDataUri || undefined,
     };
 

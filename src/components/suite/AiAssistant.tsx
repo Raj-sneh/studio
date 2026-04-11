@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bot, Loader2, Send, User, ImagePlus, X, ChevronDown, Volume2 } from 'lucide-react';
+import { Bot, Loader2, Send, User, ImagePlus, X, ChevronDown, Volume2, Mic, MicOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import type { UserProfile } from '@/types';
@@ -27,7 +27,6 @@ type Message = {
   role: 'user' | 'model';
   content: string;
   image?: string;
-  audioUrl?: string | null;
 };
 
 const CHAT_HISTORY_KEY = 'skv-ai-history';
@@ -38,6 +37,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState<number | null>(null);
+  const [isListening, setIsListening] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   
@@ -63,14 +63,14 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     }
   }, []);
 
-  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     if (scrollAreaRef.current) {
       const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (viewport) {
         viewport.scrollTo({ top: viewport.scrollHeight, behavior });
       }
     }
-  };
+  }, []);
 
   const handleScroll = () => {
     if (scrollAreaRef.current) {
@@ -87,7 +87,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
       localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify({ messages }));
     }
     scrollToBottom();
-  }, [messages, isLoading]);
+  }, [messages, isLoading, scrollToBottom]);
 
   const speak = async (text: string, index: number) => {
     if (isSpeaking !== null) return;
@@ -109,6 +109,35 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     } catch (e) {
       setIsSpeaking(null);
     }
+  };
+
+  const toggleListening = () => {
+    if (typeof window === 'undefined') return;
+    
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice input is not supported in this browser.");
+      return;
+    }
+
+    if (isListening) {
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      form.setValue('prompt', transcript, { shouldValidate: true });
+    };
+
+    recognition.start();
   };
 
   const handleSubmit = async (data: { prompt: string }) => {
@@ -147,12 +176,12 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
   };
 
   return (
-    <Card className="h-full flex flex-col border-none shadow-none bg-transparent overflow-hidden">
-      <CardHeader className="px-4 pb-2 shrink-0 border-b bg-card/50 backdrop-blur-md">
+    <Card className="h-full flex flex-col border-none shadow-none bg-transparent overflow-hidden relative">
+      <CardHeader className="px-4 pb-2 shrink-0 border-b bg-card/50 backdrop-blur-md sticky top-0 z-20">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
               <Bot className="text-primary h-5 w-5" />
-              Sargam AI
+              Sargam AI Assistant
           </CardTitle>
           <Button variant="ghost" size="icon" onClick={() => setMessages([])} className="h-8 w-8 opacity-50 hover:opacity-100">
             <X className="h-4 w-4" />
@@ -186,6 +215,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
                                 size="icon" 
                                 onClick={() => speak(message.content, index)}
                                 className={cn("h-6 w-6 mt-2 rounded-full", isSpeaking === index && "animate-pulse text-primary")}
+                                title="Listen to response"
                               >
                                 <Volume2 className="h-3 w-3" />
                               </Button>
@@ -209,7 +239,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         {showScrollButton && (
             <Button
                 size="icon"
-                className="absolute bottom-4 right-4 h-8 w-8 rounded-full shadow-lg border border-primary bg-background/90"
+                className="absolute bottom-4 right-4 h-8 w-8 rounded-full shadow-lg border border-primary bg-background/90 z-10"
                 onClick={() => scrollToBottom()}
             >
                 <ChevronDown className="h-4 w-4" />
@@ -217,7 +247,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         )}
       </div>
 
-      <div className="p-4 border-t bg-card/90 backdrop-blur-xl shrink-0">
+      <div className="p-4 border-t bg-card/90 backdrop-blur-xl shrink-0 sticky bottom-0 z-20">
           {selectedImage && (
             <div className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-primary/20 mb-4 shadow-xl">
               <Image src={selectedImage} alt="Preview" fill className="object-cover" />
@@ -236,14 +266,19 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
                   reader.readAsDataURL(file);
                 }
               }} />
-              <Button type="button" variant="ghost" size="icon" className="h-12 w-12 shrink-0 rounded-2xl bg-muted/50" onClick={() => fileInputRef.current?.click()} disabled={isLoading}>
-                <ImagePlus className="h-5 w-5 opacity-60" />
-              </Button>
+              <div className="flex gap-1">
+                <Button type="button" variant="ghost" size="icon" className="h-12 w-12 shrink-0 rounded-2xl bg-muted/50" onClick={() => fileInputRef.current?.click()} disabled={isLoading}>
+                  <ImagePlus className="h-5 w-5 opacity-60" />
+                </Button>
+                <Button type="button" variant="ghost" size="icon" className={cn("h-12 w-12 shrink-0 rounded-2xl bg-muted/50", isListening && "text-red-500 animate-pulse")} onClick={toggleListening} disabled={isLoading}>
+                  {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5 opacity-60" />}
+                </Button>
+              </div>
               <FormField control={form.control} name="prompt" render={({ field }) => (
                   <FormItem className="flex-grow">
                     <FormControl>
                       <Input 
-                        placeholder="Type short message..." 
+                        placeholder={isListening ? "Listening..." : "Solve math, ask science..."} 
                         {...field} 
                         autoComplete="off" 
                         disabled={isLoading} 
