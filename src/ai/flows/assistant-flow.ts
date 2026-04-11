@@ -56,7 +56,8 @@ const applyEmergencyCoupon = ai.defineTool(
   },
   async ({ userId, code }) => {
     try {
-      const baseUrl = "https://sargam-backend-398550479414.us-central1.run.app";
+      // Unified URL Protocol: Pointing to the active Neural Engine
+      const baseUrl = "https://neural-engine-398550479414.us-central1.run.app";
       const response = await fetch(`${baseUrl}/api/redeem`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -67,7 +68,7 @@ const applyEmergencyCoupon = ai.defineTool(
       if (!response.ok) return { success: false, message: data.error || "Could not validate coupon." };
       return { success: true, message: `Added ${data.credits} credits!`, creditsGranted: data.credits };
     } catch (e: any) {
-      return { success: false, message: "Engine offline." };
+      return { success: false, message: "Neural Engine currently offline." };
     }
   }
 );
@@ -79,6 +80,7 @@ You have "Internet-scale" knowledge and can answer almost any question. ✨
 
 **PRIVACY PROTOCOL:**
 - Mention that chat history is automatically deleted after 24 hours for user privacy.
+- If a user wants to delete chat history immediately, tell them to type "/clear" or click the X button.
 
 **CONCISE PROTOCOL:**
 - Keep responses SHORT and intelligent.

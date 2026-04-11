@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bot, Loader2, Send, User, ImagePlus, X, ChevronDown, Volume2, Mic, MicOff } from 'lucide-react';
+import { Bot, Loader2, Send, User, ImagePlus, X, ChevronDown, Volume2, Mic, MicOff, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import type { UserProfile } from '@/types';
@@ -54,6 +54,11 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     defaultValues: { prompt: '' },
   });
 
+  const handleClearHistory = useCallback(() => {
+    setMessages([]);
+    localStorage.removeItem(CHAT_HISTORY_KEY);
+  }, []);
+
   // Load history with 24h expiry check
   useEffect(() => {
     const saved = localStorage.getItem(CHAT_HISTORY_KEY);
@@ -63,11 +68,9 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         const now = Date.now();
         const savedAt = parsed.timestamp || 0;
 
-        // Only load if within the 24 hour window
         if (now - savedAt < HISTORY_EXPIRY_MS) {
           if (parsed.messages) setMessages(parsed.messages);
         } else {
-          // Automatic Deletion: Expired
           localStorage.removeItem(CHAT_HISTORY_KEY);
         }
       } catch (e) {
@@ -95,7 +98,6 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     }
   };
 
-  // Save history with timestamp (Sliding Window Protocol)
   useEffect(() => {
     if (messages.length > 0) {
       localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify({ 
@@ -130,12 +132,8 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
 
   const toggleListening = () => {
     if (typeof window === 'undefined') return;
-    
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Voice input is not supported in this browser.");
-      return;
-    }
+    if (!SpeechRecognition) return;
 
     if (isListening) {
       setIsListening(false);
@@ -145,19 +143,23 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
     recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       form.setValue('prompt', transcript, { shouldValidate: true });
     };
-
     recognition.start();
   };
 
   const handleSubmit = async (data: { prompt: string }) => {
+    // COMMAND PROTOCOL: Deletion check
+    if (data.prompt.toLowerCase().trim() === '/clear') {
+      handleClearHistory();
+      form.reset();
+      return;
+    }
+
     const userMessage: Message = { role: 'user', content: data.prompt, image: selectedImage || undefined };
     setMessages(prev => [...prev, userMessage]);
     const imageToSend = selectedImage;
@@ -186,15 +188,10 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         if (onAction) onAction();
       }
     } catch (error: any) {
-      setMessages(prev => [...prev, { role: 'model', content: "Glitch in the matrix. 🎹" }]);
+      setMessages(prev => [...prev, { role: 'model', content: "I had a quick glitch. 🎹" }]);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleClearHistory = () => {
-    setMessages([]);
-    localStorage.removeItem(CHAT_HISTORY_KEY);
   };
 
   return (
@@ -203,11 +200,13 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
               <Bot className="text-primary h-5 w-5" />
-              Sargam AI Assistant
+              Sargam Assistant
           </CardTitle>
-          <Button variant="ghost" size="icon" onClick={handleClearHistory} className="h-8 w-8 opacity-50 hover:opacity-100" title="Clear History">
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={handleClearHistory} className="h-8 w-8 text-muted-foreground hover:text-destructive" title="Clear History (/clear)">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
@@ -237,7 +236,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
                                 size="icon" 
                                 onClick={() => speak(message.content, index)}
                                 className={cn("h-6 w-6 mt-2 rounded-full", isSpeaking === index && "animate-pulse text-primary")}
-                                title="Listen to response"
+                                title="Listen"
                               >
                                 <Volume2 className="h-3 w-3" />
                               </Button>
@@ -300,7 +299,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
                   <FormItem className="flex-grow">
                     <FormControl>
                       <Input 
-                        placeholder={isListening ? "Listening..." : "Solve math, ask science..."} 
+                        placeholder={isListening ? "Listening..." : "Solve math, ask anything..."} 
                         {...field} 
                         autoComplete="off" 
                         disabled={isLoading} 

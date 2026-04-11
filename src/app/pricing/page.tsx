@@ -1,10 +1,10 @@
-
 'use client';
 
 import { useState } from "react";
-import { Check, Zap, Sparkles, Rocket, Loader2, CreditCard } from "lucide-react";
+import { Check, Zap, Sparkles, Rocket, Loader2, CreditCard, Ticket, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
@@ -73,6 +73,36 @@ export default function PricingPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  
+  // Coupon State
+  const [couponCode, setCouponCode] = useState("");
+  const [isRedeeming, setIsRedeeming] = useState(false);
+
+  const handleRedeem = async () => {
+    if (!user) return router.push('/login');
+    if (!couponCode.trim()) return;
+
+    setIsRedeeming(true);
+    try {
+      const response = await fetch('/api/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid, code: couponCode.trim() })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Invalid or used code.");
+
+      toast({ title: "Neural Sync Complete!", description: `Successfully added ${data.credits} credits to your account.` });
+      setCouponCode("");
+      router.refresh();
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (e: any) {
+      toast({ title: "Redemption Failed", description: e.message, variant: "destructive" });
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
 
   const handlePayment = async (itemId: string, type: 'plan' | 'pack') => {
     if (!user || user.isAnonymous) {
@@ -85,33 +115,17 @@ export default function PricingPage() {
 
     setIsProcessing(itemId);
     
-    let options: any = {};
-
     try {
       const orderRes = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          user_id: user.uid, 
-          item_id: itemId, 
-          type: type 
-        })
+        body: JSON.stringify({ user_id: user.uid, item_id: itemId, type: type })
       });
 
-      const text = await orderRes.text();
-      let orderData;
-      try {
-        orderData = text ? JSON.parse(text) : {};
-      } catch (e) {
-        throw new Error("Invalid response from payment server. Please try again.");
-      }
-      
+      const orderData = await orderRes.json();
       if (!orderRes.ok) throw new Error(orderData.error || `Payment initiation failed.`);
 
-      // STEP 1: Using NEXT_PUBLIC_ prefix for the Key
-      // STEP 2: Amount multiplied by 100 and floor'd to ensure integer sub-units (paise)
-      // STEP 3: order_id correctly mapped from backend result
-      options = {
+      const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder",
         amount: Math.floor(Number(orderData.amount) * 100),
         currency: orderData.currency || "INR",
@@ -152,21 +166,15 @@ export default function PricingPage() {
           email: user.email || "",
         },
         theme: { color: "#00ffff" },
-        modal: { 
-          ondismiss: () => setIsProcessing(null)
-        }
+        modal: { ondismiss: () => setIsProcessing(null) }
       };
 
-      if (typeof (window as any).Razorpay === 'undefined') throw new Error("Payment gateway is loading. Please try again in a moment.");
+      if (typeof (window as any).Razorpay === 'undefined') throw new Error("Payment gateway is loading.");
       
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
 
     } catch (e: any) {
-      // STEP 4: Detailed console error tracking
-      console.error("Razorpay Payment Failure Error:", e);
-      console.error("Razorpay Options attempted:", options);
-      
       toast({ title: "Payment Error", description: e.message, variant: "destructive" });
       setIsProcessing(null);
     }
@@ -182,6 +190,38 @@ export default function PricingPage() {
           Unlock high-fidelity synthesis and advanced vocal research tools.
         </p>
       </div>
+
+      {/* Redemption Portal */}
+      <section className="max-w-md mx-auto">
+        <Card className="border-primary/20 bg-primary/5 rounded-[2rem] overflow-hidden shadow-2xl shadow-primary/5">
+            <CardHeader className="pb-4">
+                <CardTitle className="text-lg flex items-center gap-2">
+                    <Ticket className="h-5 w-5 text-primary" />
+                    Redeem Neural Code
+                </CardTitle>
+                <CardDescription className="text-xs">Enter your administrative or gift code below.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex gap-2">
+                    <Input 
+                        placeholder="e.g., SargamEliteCreator" 
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                        className="rounded-xl bg-background border-primary/10 h-12"
+                        onKeyDown={(e) => e.key === 'Enter' && handleRedeem()}
+                    />
+                    <Button 
+                        size="icon" 
+                        onClick={handleRedeem} 
+                        disabled={isRedeeming || !couponCode.trim()}
+                        className="h-12 w-12 shrink-0 rounded-xl"
+                    >
+                        {isRedeeming ? <Loader2 className="animate-spin h-5 w-5" /> : <Send className="h-5 w-5" />}
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+      </section>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto px-4">
         {PLANS.map((plan) => (
