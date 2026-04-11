@@ -23,12 +23,15 @@ import {
     Bot,
     User,
     Timer,
-    AlertCircle
+    AlertCircle,
+    CheckCircle2,
+    Save
 } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
 
-const STUDIO_COST = 50;
+const INITIAL_COST = 30;
+const MODIFICATION_COST = 5;
 const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com'];
 
 const STYLES = [
@@ -48,10 +51,15 @@ export function SargamStudio() {
     const [instructions, setInstructions] = useState<string[]>([]);
     const [currentInstruction, setCurrentInstruction] = useState('');
     
+    // Video Cache for Stitching
+    const [sceneVideos, setSceneVideos] = useState<string[]>([]); // Array of data URIs
+    
     // UI Logic State
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isStitching, setIsStitching] = useState(false);
     const [progress, setProgress] = useState(0);
-    const [resultUrl, setResultUrl] = useState<string | null>(null);
+    const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
+    const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
     const [errorState, setErrorState] = useState<'none' | 'timeout' | 'error' | 'content-block'>('none');
     const [lastErrorMessage, setLastErrorMessage] = useState<string | null>(null);
     const [isRefinementMode, setIsRefinementMode] = useState(false);
@@ -61,7 +69,9 @@ export function SargamStudio() {
             toast({ title: "Account Required", description: "Please sign in to access Sargam Studio.", variant: "destructive" });
             return;
         }
-        if (!prompt.trim()) {
+        
+        const isInitial = !isRefinementMode;
+        if (isInitial && !prompt.trim()) {
             toast({ title: "Concept Required", description: "Describe your base animation vision.", variant: "destructive" });
             return;
         }
@@ -71,10 +81,10 @@ export function SargamStudio() {
             : instructions;
 
         setIsGenerating(true);
+        setFinalVideoUrl(null); // Clear finished video while editing
         setProgress(2);
         setErrorState('none');
         setLastErrorMessage(null);
-        if (!isRefinementMode) setIsRefinementMode(true);
 
         const interval = setInterval(() => {
             setProgress(prev => (prev >= 98 ? 99 : prev + 0.5));
@@ -82,12 +92,13 @@ export function SargamStudio() {
 
         try {
             const isAdmin = user.email && ADMIN_EMAILS.includes(user.email);
+            const cost = isInitial ? INITIAL_COST : MODIFICATION_COST;
 
             if (!isAdmin) {
                 const creditRes = await fetch('/api/credits/use', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: user.uid, amount: STUDIO_COST })
+                    body: JSON.stringify({ user_id: user.uid, amount: cost })
                 });
 
                 if (!creditRes.ok) {
@@ -117,26 +128,22 @@ export function SargamStudio() {
             if (!response.ok) {
                 const data = isJson ? await response.json().catch(() => ({})) : { message: "Neural Engine Connectivity Issue" };
                 const msg = data.message || "Rendering failed.";
-                
-                if (msg.toLowerCase().includes('third-party') || msg.toLowerCase().includes('provider')) {
-                    setErrorState('content-block');
-                    throw new Error("Content Restriction: Avoid using copyrighted names. Describe the look instead.");
-                }
-                
+                if (msg.toLowerCase().includes('third-party')) setErrorState('content-block');
+                else setErrorState('error');
                 throw new Error(msg);
             }
 
-            if (!isJson) throw new Error("Unexpected response from Neural Engine.");
-
             const data = await response.json();
-            setResultUrl(data.videoUrl);
+            setCurrentVideoUrl(data.videoUrl);
+            setSceneVideos(prev => [...prev, data.videoUrl]);
+            
             if (newInstruction) setInstructions(activeInstructions);
+            if (isInitial) setIsRefinementMode(true);
+            
             setProgress(100);
-            toast({ title: "Scene Added!", description: "The iteration has been synthesized with narrative persistence." });
+            toast({ title: isInitial ? "Scene 1 Rendered!" : "Iteration Added!", description: "Continuity Protocol Synchronized." });
         } catch (e: any) {
-            console.error("Studio Logic Error:", e);
             setLastErrorMessage(e.message);
-            if (errorState !== 'content-block') setErrorState('error');
             toast({ title: "Studio Error", description: e.message, variant: "destructive" });
         } finally {
             clearInterval(interval);
@@ -145,10 +152,40 @@ export function SargamStudio() {
         }
     };
 
+    const handleFinish = async () => {
+        if (sceneVideos.length === 0) return;
+        if (sceneVideos.length === 1) {
+            setFinalVideoUrl(sceneVideos[0]);
+            toast({ title: "Project Finished", description: "Your single-scene render is ready." });
+            return;
+        }
+
+        setIsStitching(true);
+        try {
+            const response = await fetch('/api/studio/stitch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ videos: sceneVideos })
+            });
+
+            if (!response.ok) throw new Error("Neural stitching failed.");
+            const data = await response.json();
+            setFinalVideoUrl(data.video);
+            toast({ title: "Neural Synthesis Complete", description: "All scenes have been merged into one masterpiece." });
+        } catch (e: any) {
+            toast({ title: "Stitching Error", description: e.message, variant: "destructive" });
+        } finally {
+            setIsStitching(false);
+        }
+    };
+
     const resetStudio = () => {
+        if (isGenerating || isStitching) return;
         setPrompt('');
         setInstructions([]);
-        setResultUrl(null);
+        setCurrentVideoUrl(null);
+        setFinalVideoUrl(null);
+        setSceneVideos([]);
         setIsRefinementMode(false);
         setErrorState('none');
         setLastErrorMessage(null);
@@ -164,14 +201,14 @@ export function SargamStudio() {
                         <div className="space-y-1">
                             <h3 className="text-xl font-bold font-headline flex items-center gap-2">
                                 <MonitorPlay className="h-5 w-5 text-primary" />
-                                {isRefinementMode ? 'Scene Refinement' : 'Initial Protocol'}
+                                {isRefinementMode ? 'Project Evolution' : 'Initial Protocol'}
                             </h3>
                             <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">
-                                {isRefinementMode ? 'Iterative Scene Engine Active' : 'Configure Base Animation'}
+                                {isRefinementMode ? `Active Scenes: ${sceneVideos.length}` : 'Configure Base Animation'}
                             </p>
                         </div>
                         {isRefinementMode && (
-                            <Button variant="ghost" size="icon" onClick={resetStudio} className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary">
+                            <Button variant="ghost" size="icon" onClick={resetStudio} className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive transition-colors">
                                 <RefreshCw className="h-4 w-4" />
                             </Button>
                         )}
@@ -181,12 +218,12 @@ export function SargamStudio() {
                         <div className="space-y-6 animate-in slide-in-from-left duration-500">
                             <div className="space-y-3">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1 flex justify-between items-center">
-                                    Visual Concept
-                                    <span className="text-primary font-bold">{user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${STUDIO_COST} Credits`}</span>
+                                    Base Concept (Scene 1)
+                                    <span className="text-primary font-bold">{user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${INITIAL_COST} Credits`}</span>
                                 </label>
                                 <div className="relative z-10">
                                     <Textarea 
-                                        placeholder="e.g. A friendly duck swimming in a pond with its little ones."
+                                        placeholder="e.g. A robotic explorer stepping onto a neon planet."
                                         value={prompt}
                                         onChange={(e) => setPrompt(e.target.value)}
                                         disabled={isGenerating}
@@ -197,7 +234,7 @@ export function SargamStudio() {
                             </div>
 
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Art Protocol</label>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Art Style</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     {STYLES.map(style => (
                                         <button
@@ -224,37 +261,42 @@ export function SargamStudio() {
                                 className="w-full h-16 rounded-2xl font-black text-lg shadow-2xl shadow-primary/20"
                             >
                                 <Sparkles className="mr-2 h-6 w-6 fill-primary-foreground" /> 
-                                Initialize Render
+                                Initialize Master
                             </Button>
                         </div>
                     ) : (
                         <div className="space-y-6 animate-in slide-in-from-right duration-500">
                             <div className="p-5 rounded-3xl bg-muted/20 border border-primary/10 space-y-3">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-primary">Master Concept</p>
-                                <p className="text-sm italic text-muted-foreground leading-relaxed">"{prompt}"</p>
-                                <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground">
-                                    <span className="flex items-center gap-2"><Box className="h-3 w-3" /> {selectedStyle.toUpperCase()}</span>
-                                    <span className="flex items-center gap-2"><Timer className="h-3 w-3" /> Continuous Flow</span>
-                                </div>
+                                <p className="text-sm italic text-muted-foreground leading-relaxed line-clamp-2">"{prompt}"</p>
                             </div>
 
                             <div className="space-y-4">
                                 <h4 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 px-1">
-                                    <History className="h-3 w-3" /> Scene Instruction Log
+                                    <History className="h-3 w-3" /> Scene Log ({sceneVideos.length})
                                 </h4>
-                                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {instructions.length === 0 ? (
-                                        <p className="text-[10px] text-muted-foreground italic px-1">No iterative modifications yet. Add scenes via the assistant.</p>
-                                    ) : (
-                                        instructions.map((ins, i) => (
-                                            <div key={i} className="p-3 rounded-xl bg-primary/5 border border-primary/10 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
-                                                <Zap className="h-3 w-3 text-primary mt-1 shrink-0" />
-                                                <p className="text-xs text-foreground font-medium">{ins}</p>
-                                            </div>
-                                        ))
-                                    )}
+                                <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                                    <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 flex items-center gap-3">
+                                        <CheckCircle2 className="h-3 w-3 text-primary" />
+                                        <p className="text-xs text-foreground font-medium truncate">Scene 1: Initialized</p>
+                                    </div>
+                                    {instructions.map((ins, i) => (
+                                        <div key={i} className="p-3 rounded-xl bg-primary/5 border border-primary/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                                            <CheckCircle2 className="h-3 w-3 text-primary" />
+                                            <p className="text-xs text-foreground font-medium truncate">Scene {i+2}: {ins}</p>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
+
+                            <Button 
+                                onClick={handleFinish} 
+                                disabled={isGenerating || isStitching || sceneVideos.length === 0}
+                                className="w-full h-14 rounded-2xl font-black text-md bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-xl shadow-secondary/20"
+                            >
+                                {isStitching ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : <Save className="mr-2 h-5 w-5" />}
+                                Finish & Stitch Project
+                            </Button>
                         </div>
                     )}
                 </div>
@@ -270,16 +312,18 @@ export function SargamStudio() {
                                 <Film className="h-4 w-4 text-primary" />
                             </div>
                             <div>
-                                <h4 className="text-sm font-bold uppercase tracking-widest text-primary">Neural Canvas (Veo 2.0 Stable)</h4>
+                                <h4 className="text-sm font-bold uppercase tracking-widest text-primary">
+                                    {finalVideoUrl ? 'Final Production Master' : `Scene ${sceneVideos.length || 1} Preview`}
+                                </h4>
                                 <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">
-                                    {isGenerating ? 'Synthesizing Persistent Scene...' : resultUrl ? 'Coherent Frame Sequence Ready' : errorState === 'timeout' ? 'Extended Synthesis' : errorState === 'content-block' ? 'Restriction Warning' : 'Idle'}
+                                    {isGenerating ? 'Neural Rendering...' : isStitching ? 'Stitching Frames...' : 'Ready'}
                                 </p>
                             </div>
                         </div>
-                        {resultUrl && !isGenerating && (
+                        {(currentVideoUrl || finalVideoUrl) && !isGenerating && !isStitching && (
                             <Button variant="outline" size="sm" className="rounded-full gap-2 border-primary/20 hover:bg-primary/10 h-10 px-6 font-bold" asChild>
-                                <a href={resultUrl} download={`sargam-render-${Date.now()}.mp4`}>
-                                    <Download className="h-4 w-4 text-primary" /> Export
+                                <a href={finalVideoUrl || currentVideoUrl || ''} download={`sargam-${finalVideoUrl ? 'final' : 'scene'}-${Date.now()}.mp4`}>
+                                    <Download className="h-4 w-4 text-primary" /> Download {finalVideoUrl ? 'Final' : 'Clip'}
                                 </a>
                             </Button>
                         )}
@@ -287,114 +331,100 @@ export function SargamStudio() {
 
                     {/* Render Area */}
                     <div className="flex-1 flex flex-col items-center justify-center p-8 z-10 relative">
-                        {!isGenerating && !resultUrl && errorState === 'none' && (
+                        {!isGenerating && !isStitching && !currentVideoUrl && !finalVideoUrl && (
                             <div className="text-center space-y-6">
                                 <div className="h-24 w-24 rounded-full bg-muted/10 border border-white/5 flex items-center justify-center mx-auto opacity-30 group-hover:opacity-50 transition-all duration-700">
                                     <Bot className="h-10 w-10" />
                                 </div>
                                 <div className="space-y-2">
-                                    <p className="text-lg font-headline font-bold text-muted-foreground italic">Canvas sequence empty.</p>
-                                    <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto font-medium">Configure your art protocol and concept on the left to begin.</p>
+                                    <p className="text-lg font-headline font-bold text-muted-foreground italic">Studio Canvas Empty.</p>
+                                    <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto font-medium">Describe your base concept to initialize Scene 1.</p>
                                 </div>
                             </div>
                         )}
 
-                        {isGenerating && (
+                        {(isGenerating || isStitching) && (
                             <div className="w-full max-w-md space-y-8 text-center animate-in fade-in duration-500">
                                 <div className="relative h-72 w-full rounded-[2.5rem] overflow-hidden bg-muted/10 border border-primary/20 flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,255,255,0.1)]">
                                     <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent animate-pulse" />
                                     <Loader2 className="h-12 w-12 animate-spin text-primary mb-6" />
                                     <div className="space-y-1 relative z-10">
-                                        <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Anchoring Scene {instructions.length + 1}</p>
-                                        <p className="text-[10px] text-muted-foreground italic">Neural Coherence Protocol Active...</p>
+                                        <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">
+                                            {isStitching ? 'Neural Concatenation' : `Synthesizing Scene ${sceneVideos.length + 1}`}
+                                        </p>
+                                        <p className="text-[10px] text-muted-foreground italic">
+                                            {isStitching ? 'Merging frames into master clip...' : 'Calculating lighting & physics...'}
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="space-y-3">
                                     <Progress value={progress} className="h-1.5" />
                                     <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">
-                                        <span>Progress</span>
+                                        <span>Synthesis Progress</span>
                                         <span className="text-primary">{Math.round(progress)}%</span>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {resultUrl && !isGenerating && (
+                        {(currentVideoUrl || finalVideoUrl) && !isGenerating && !isStitching && (
                             <div className="w-full h-full flex flex-col items-center animate-in zoom-in-95 duration-700">
                                 <div className="relative w-full rounded-3xl border-4 border-white/10 shadow-2xl overflow-hidden bg-black aspect-video max-h-[50vh]">
                                     <video 
-                                        src={resultUrl} 
+                                        src={finalVideoUrl || currentVideoUrl || ''} 
                                         controls 
                                         className="w-full h-full object-contain"
                                         autoPlay
                                         loop
+                                        key={finalVideoUrl || currentVideoUrl}
                                     />
                                 </div>
                                 
                                 {/* Assistant Command Prompt */}
-                                <div className="w-full max-w-2xl mt-8 animate-in slide-in-from-bottom-4 duration-1000">
-                                    <div className="relative z-10">
-                                        <div className="relative flex items-center gap-3 bg-muted/40 backdrop-blur-xl border border-primary/20 rounded-[1.5rem] p-2 shadow-2xl z-10">
-                                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                                                <Bot className="h-5 w-5 text-primary" />
+                                {!finalVideoUrl && (
+                                    <div className="w-full max-w-2xl mt-8 animate-in slide-in-from-bottom-4 duration-1000">
+                                        <div className="relative z-10">
+                                            <div className="relative flex items-center gap-3 bg-muted/40 backdrop-blur-xl border border-primary/20 rounded-[1.5rem] p-2 shadow-2xl z-10">
+                                                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                                    <Bot className="h-5 w-5 text-primary" />
+                                                </div>
+                                                <Input 
+                                                    placeholder={`Scene ${sceneVideos.length + 1}: What happens next?`}
+                                                    value={currentInstruction}
+                                                    onChange={(e) => setCurrentInstruction(e.target.value)}
+                                                    onKeyDown={(e) => e.key === 'Enter' && currentInstruction.trim() && handleGenerate(currentInstruction)}
+                                                    className="bg-transparent border-none focus-visible:ring-0 text-sm h-12 relative z-20"
+                                                    disabled={isGenerating}
+                                                />
+                                                <div className="flex items-center gap-2 px-2">
+                                                    <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-1 rounded-full">{MODIFICATION_COST}c</span>
+                                                    <Button 
+                                                        size="icon" 
+                                                        type="button"
+                                                        onClick={() => handleGenerate(currentInstruction)}
+                                                        disabled={isGenerating || !currentInstruction.trim()}
+                                                        className="h-10 w-10 rounded-xl shadow-lg shadow-primary/20 shrink-0"
+                                                    >
+                                                        <Send className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
-                                            <Input 
-                                                placeholder="What happens next? (e.g. 'then the duck flies away')"
-                                                value={currentInstruction}
-                                                onChange={(e) => setCurrentInstruction(e.target.value)}
-                                                onKeyDown={(e) => e.key === 'Enter' && currentInstruction.trim() && handleGenerate(currentInstruction)}
-                                                className="bg-transparent border-none focus-visible:ring-0 text-sm h-12 relative z-20"
-                                                disabled={isGenerating}
-                                            />
-                                            <Button 
-                                                size="icon" 
-                                                type="button"
-                                                onClick={() => handleGenerate(currentInstruction)}
-                                                disabled={isGenerating || !currentInstruction.trim()}
-                                                className="h-10 w-10 rounded-xl shadow-lg shadow-primary/20 shrink-0"
-                                            >
-                                                <Send className="h-4 w-4" />
-                                            </Button>
                                         </div>
-                                        <div className="absolute inset-0 bg-primary/20 blur-xl opacity-0 transition-opacity pointer-events-none -z-10" />
+                                        <p className="text-[9px] text-center mt-3 text-muted-foreground font-black uppercase tracking-[0.2em] italic">
+                                            Describe the next action. Click "Finish" in the menu to stitch all clips into one.
+                                        </p>
                                     </div>
-                                    <p className="text-[9px] text-center mt-3 text-muted-foreground font-black uppercase tracking-[0.2em] italic">
-                                        Describe the next scene. The AI will preserve your base concept while adding the new action.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
+                                )}
 
-                        {!isGenerating && errorState === 'error' && (
-                            <div className="w-full max-w-md space-y-6 text-center animate-in zoom-in-95 duration-500">
-                                <div className="h-24 w-24 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto mb-4">
-                                    <AlertCircle className="h-10 w-10 text-destructive" />
-                                </div>
-                                <div className="space-y-2">
-                                    <h3 className="text-xl font-bold font-headline">Neural Synthesis Failed</h3>
-                                    <p className="text-sm text-muted-foreground leading-relaxed italic px-4">
-                                        "{lastErrorMessage}"
-                                    </p>
-                                    <Button variant="outline" onClick={() => { setErrorState('none'); setIsRefinementMode(false); }} className="rounded-xl mt-6">Try Again</Button>
-                                </div>
-                            </div>
-                        )}
-
-                        {!isGenerating && errorState === 'content-block' && (
-                            <div className="w-full max-w-md space-y-6 text-center animate-in zoom-in-95 duration-500">
-                                <div className="h-24 w-24 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto mb-4">
-                                    <AlertCircle className="h-10 w-10 text-destructive" />
-                                </div>
-                                <div className="space-y-2">
-                                    <h3 className="text-xl font-bold font-headline">Neural Synthesis Restricted</h3>
-                                    <p className="text-sm text-muted-foreground leading-relaxed italic px-4">
-                                        "{lastErrorMessage}"
-                                    </p>
-                                    <p className="text-xs text-muted-foreground/60 pt-2">
-                                        Try using descriptive terms (e.g. "small robotic boy") instead of specific character names.
-                                    </p>
-                                    <Button variant="outline" onClick={() => { setErrorState('none'); setIsRefinementMode(false); }} className="rounded-xl mt-6">Modify Description</Button>
-                                </div>
+                                {finalVideoUrl && (
+                                    <div className="mt-8 text-center space-y-4 animate-in fade-in duration-1000">
+                                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest">
+                                            <CheckCircle2 className="h-4 w-4" /> Final Master Ready
+                                        </div>
+                                        <p className="text-sm text-muted-foreground italic">Project contains {sceneVideos.length} neural scenes.</p>
+                                        <Button variant="outline" onClick={resetStudio} className="rounded-xl mt-4">Start New Project</Button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

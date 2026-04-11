@@ -6,6 +6,7 @@ import librosa
 import numpy as np
 import soundfile as sf
 import uuid
+import base64
 
 app = Flask(__name__)
 # Enable CORS for all routes
@@ -50,7 +51,6 @@ def separate():
         sf.write(vocals_path, y_harmonic, sr)
         sf.write(bgm_path, y_percussive, sr)
 
-        import base64
         with open(vocals_path, "rb") as f:
             vocals_b64 = base64.b64encode(f.read()).decode('utf-8')
         with open(bgm_path, "rb") as f:
@@ -95,6 +95,54 @@ def mix():
         ], check=True)
 
         return send_file(out_path, mimetype="audio/mpeg")
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/stitch', methods=['POST'])
+def stitch():
+    """Stitches multiple base64 videos into one master MP4."""
+    try:
+        data = request.json
+        videos_b64 = data.get("videos", [])
+        if not videos_b64:
+            return jsonify({"error": "No video clips provided for stitching."}), 400
+
+        task_id = str(uuid.uuid4())
+        video_paths = []
+
+        # Save clips
+        for i, v_b64 in enumerate(videos_b64):
+            path = os.path.join(UPLOAD_FOLDER, f"{task_id}_{i}.mp4")
+            with open(path, "wb") as f:
+                # Remove data uri prefix if present
+                content = v_b64.split(",")[1] if "," in v_b64 else v_b64
+                f.write(base64.b64decode(content))
+            video_paths.append(path)
+
+        # Create concat file
+        list_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_list.txt")
+        with open(list_path, "w") as f:
+            for p in video_paths:
+                f.write(f"file '{os.path.abspath(p)}'\n")
+
+        out_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_master.mp4")
+        
+        # Concatenate without re-encoding for speed (assumes same resolution/codec)
+        subprocess.run([
+            "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_path,
+            "-c", "copy", out_path
+        ], check=True)
+
+        with open(out_path, "rb") as f:
+            res_b64 = base64.b64encode(f.read()).decode('utf-8')
+
+        # Cleanup
+        for p in video_paths: os.remove(p)
+        os.remove(list_path)
+        os.remove(out_path)
+
+        return jsonify({"video": f"data:video/mp4;base64,{res_b64}"})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
