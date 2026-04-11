@@ -25,7 +25,8 @@ import {
     Timer,
     AlertCircle,
     CheckCircle2,
-    Save
+    Save,
+    ShieldAlert
 } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
@@ -128,8 +129,16 @@ export function SargamStudio() {
             if (!response.ok) {
                 const data = isJson ? await response.json().catch(() => ({})) : { message: "Neural Engine Connectivity Issue" };
                 const msg = data.message || "Rendering failed.";
-                if (msg.toLowerCase().includes('third-party')) setErrorState('content-block');
-                else setErrorState('error');
+                
+                // Detect safety blocks including "Responsible AI" or "Sensitive words"
+                if (msg.toLowerCase().includes('third-party') || 
+                    msg.toLowerCase().includes('sensitive') || 
+                    msg.toLowerCase().includes('practices') || 
+                    msg.toLowerCase().includes('responsible ai')) {
+                    setErrorState('content-block');
+                } else {
+                    setErrorState('error');
+                }
                 throw new Error(msg);
             }
 
@@ -144,7 +153,10 @@ export function SargamStudio() {
             toast({ title: isInitial ? "Scene 1 Rendered!" : "Iteration Added!", description: "Continuity Protocol Synchronized." });
         } catch (e: any) {
             setLastErrorMessage(e.message);
-            toast({ title: "Studio Error", description: e.message, variant: "destructive" });
+            // Only toast if it's not a safety block (handled by UI)
+            if (errorState !== 'content-block') {
+                toast({ title: "Studio Error", description: e.message, variant: "destructive" });
+            }
         } finally {
             clearInterval(interval);
             setIsGenerating(false);
@@ -332,7 +344,25 @@ export function SargamStudio() {
 
                     {/* Render Area */}
                     <div className="flex-1 flex flex-col items-center justify-center p-8 z-10 relative">
-                        {!isGenerating && !isStitching && !currentVideoUrl && !finalVideoUrl && (
+                        {errorState === 'content-block' && (
+                            <div className="text-center space-y-6 max-w-md animate-in zoom-in-95 duration-500">
+                                <div className="h-20 w-20 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(255,0,0,0.1)]">
+                                    <ShieldAlert className="h-10 w-10 text-destructive" />
+                                </div>
+                                <div className="space-y-3">
+                                    <h3 className="text-xl font-bold text-foreground">Safety Protocol Active</h3>
+                                    <p className="text-sm text-muted-foreground leading-relaxed italic">
+                                        The current scene description contains restricted or sensitive concepts. The <strong>Director AI</strong> has been instructed to use safe, creative equivalents. 
+                                    </p>
+                                    <p className="text-xs text-primary font-black uppercase tracking-widest pt-2">
+                                        Action: Please try rephrasing or using a generic concept.
+                                    </p>
+                                </div>
+                                <Button variant="outline" onClick={() => setErrorState('none')} className="rounded-xl mt-4">Dismiss & Retry</Button>
+                            </div>
+                        )}
+
+                        {errorState === 'none' && !isGenerating && !isStitching && !currentVideoUrl && !finalVideoUrl && (
                             <div className="text-center space-y-6">
                                 <div className="h-24 w-24 rounded-full bg-muted/10 border border-white/5 flex items-center justify-center mx-auto opacity-30 group-hover:opacity-50 transition-all duration-700">
                                     <Bot className="h-10 w-10" />
@@ -368,7 +398,7 @@ export function SargamStudio() {
                             </div>
                         )}
 
-                        {(currentVideoUrl || finalVideoUrl) && !isGenerating && !isStitching && (
+                        {errorState === 'none' && (currentVideoUrl || finalVideoUrl) && !isGenerating && !isStitching && (
                             <div className="w-full h-full flex flex-col items-center animate-in zoom-in-95 duration-700">
                                 <div className="relative w-full rounded-3xl border-4 border-white/10 shadow-2xl overflow-hidden bg-black aspect-video max-h-[50vh]">
                                     <video 
