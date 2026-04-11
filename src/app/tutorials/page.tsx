@@ -14,6 +14,7 @@ import {
   Info
 } from 'lucide-react';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 const TUTORIALS = [
   {
@@ -159,12 +160,8 @@ export default function TutorialsPage() {
               Our tutorials cover 90% of user queries. For specific neural errors or credit management issues, please visit our support portal or contact the developer directly.
             </p>
             <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-4">
-              <Link href="/profile/support">
-                <Button variant="link" className="p-0 h-auto font-black uppercase text-[10px] tracking-widest">Visit Support Portal</Button>
-              </Link>
-              <Link href="/blog">
-                <Button variant="link" className="p-0 h-auto font-black uppercase text-[10px] tracking-widest text-secondary">Explore Research Blog</Button>
-              </Link>
+              <Link href="/profile/support" className="p-0 h-auto font-black uppercase text-[10px] tracking-widest">Visit Support Portal</Link>
+              <Link href="/blog" className="p-0 h-auto font-black uppercase text-[10px] tracking-widest text-secondary">Explore Research Blog</Link>
             </div>
           </div>
         </div>
