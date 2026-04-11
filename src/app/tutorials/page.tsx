@@ -283,6 +283,12 @@ export default function TutorialsPage() {
       {/* Visual Guide Dialog */}
       <Dialog open={!!selectedTutorial} onOpenChange={(open) => !open && setSelectedTutorial(null)}>
         <DialogContent className="max-w-3xl h-[90vh] flex flex-col p-0 overflow-hidden bg-background/95 backdrop-blur-2xl border-primary/20 rounded-[2.5rem]">
+          {/* SR-Only labels for accessibility compliance */}
+          <DialogHeader className="sr-only">
+            <DialogTitle>{selectedTutorial?.title || 'Tutorial Guide'}</DialogTitle>
+            <DialogDescription>{selectedTutorial?.description || 'Learn how to use Sargam AI features.'}</DialogDescription>
+          </DialogHeader>
+
           {selectedTutorial && (
             <>
               <div className="relative h-64 w-full shrink-0">
@@ -346,7 +352,7 @@ export default function TutorialsPage() {
               <div className="p-6 border-t border-white/5 bg-card/50 flex justify-end gap-4">
                 <Button variant="ghost" onClick={() => setSelectedTutorial(null)} className="rounded-xl font-bold">Close Guide</Button>
                 <Button asChild className="rounded-xl font-bold px-8 shadow-xl shadow-primary/20">
-                  <Link href="/suite">
+                  <Link href="/suite" onClick={() => setSelectedTutorial(null)}>
                     Open AI Suite <ArrowRightCircle className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
