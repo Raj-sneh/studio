@@ -26,7 +26,8 @@ import {
     AlertCircle,
     CheckCircle2,
     Save,
-    ShieldAlert
+    ShieldAlert,
+    AlertTriangle
 } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
@@ -144,6 +145,8 @@ export function SargamStudio() {
             }
 
             const data = await response.json();
+            if (!data.videoUrl) throw new Error("Synthesis completed but no video data was received.");
+
             setCurrentVideoUrl(data.videoUrl);
             setSceneVideos(prev => [...prev, data.videoUrl]);
             
@@ -154,9 +157,8 @@ export function SargamStudio() {
             toast({ title: isInitial ? "Scene 1 Rendered!" : "Iteration Added!", description: "Continuity Protocol Synchronized." });
         } catch (e: any) {
             setLastErrorMessage(e.message);
-            if (errorState !== 'content-block') {
-                toast({ title: "Studio Error", description: e.message, variant: "destructive" });
-            }
+            if (errorState === 'none') setErrorState('error');
+            toast({ title: "Studio Error", description: e.message, variant: "destructive" });
         } finally {
             clearInterval(interval);
             setIsGenerating(false);
@@ -173,6 +175,7 @@ export function SargamStudio() {
         }
 
         setIsStitching(true);
+        setErrorState('none');
         try {
             const response = await fetch('/api/studio/stitch', {
                 method: 'POST',
@@ -186,6 +189,8 @@ export function SargamStudio() {
             setFinalVideoUrl(data.video);
             toast({ title: "Neural Synthesis Complete", description: "All scenes have been merged into one masterpiece." });
         } catch (e: any) {
+            setErrorState('error');
+            setLastErrorMessage(e.message);
             toast({ title: "Stitching Error", description: e.message, variant: "destructive" });
         } finally {
             setIsStitching(false);
@@ -358,6 +363,23 @@ export function SargamStudio() {
                             </div>
                         )}
 
+                        {errorState === 'error' && (
+                            <div className="text-center space-y-6 max-w-md animate-in zoom-in-95 duration-500">
+                                <div className="h-20 w-20 rounded-full bg-muted/10 border border-white/10 flex items-center justify-center mx-auto">
+                                    <AlertTriangle className="h-10 w-10 text-primary" />
+                                </div>
+                                <div className="space-y-3">
+                                    <h3 className="text-xl font-bold text-foreground">Neural Synthesis Interrupted</h3>
+                                    <p className="text-sm text-muted-foreground leading-relaxed italic">
+                                        {lastErrorMessage || "The synthesis engine encountered a temporary synchronization error."}
+                                    </p>
+                                </div>
+                                <Button variant="outline" onClick={() => setErrorState('none')} className="rounded-xl mt-4 gap-2">
+                                    <RefreshCw className="h-4 w-4" /> Try Again
+                                </Button>
+                            </div>
+                        )}
+
                         {errorState === 'none' && !isGenerating && !isStitching && !currentVideoUrl && !finalVideoUrl && (
                             <div className="text-center space-y-6">
                                 <div className="h-24 w-24 rounded-full bg-muted/10 border border-white/5 flex items-center justify-center mx-auto opacity-30 group-hover:opacity-50 transition-all duration-700">
@@ -403,6 +425,8 @@ export function SargamStudio() {
                                         className="w-full h-full object-contain"
                                         autoPlay
                                         loop
+                                        muted
+                                        playsInline
                                         key={finalVideoUrl || currentVideoUrl}
                                     />
                                 </div>
