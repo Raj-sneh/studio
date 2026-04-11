@@ -30,6 +30,7 @@ type Message = {
 };
 
 const CHAT_HISTORY_KEY = 'skv-ai-history';
+const HISTORY_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 export function AiAssistant({ onAction }: { onAction?: () => void }) {
   const { user } = useUser();
@@ -53,13 +54,25 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     defaultValues: { prompt: '' },
   });
 
+  // Load history with 24h expiry check
   useEffect(() => {
     const saved = localStorage.getItem(CHAT_HISTORY_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.messages) setMessages(parsed.messages);
-      } catch (e) {}
+        const now = Date.now();
+        const savedAt = parsed.timestamp || 0;
+
+        // Only load if within the 24 hour window
+        if (now - savedAt < HISTORY_EXPIRY_MS) {
+          if (parsed.messages) setMessages(parsed.messages);
+        } else {
+          // Automatic Deletion: Expired
+          localStorage.removeItem(CHAT_HISTORY_KEY);
+        }
+      } catch (e) {
+        localStorage.removeItem(CHAT_HISTORY_KEY);
+      }
     }
   }, []);
 
@@ -82,9 +95,13 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     }
   };
 
+  // Save history with timestamp (Sliding Window Protocol)
   useEffect(() => {
     if (messages.length > 0) {
-      localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify({ messages }));
+      localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify({ 
+        messages, 
+        timestamp: Date.now() 
+      }));
     }
     scrollToBottom();
   }, [messages, isLoading, scrollToBottom]);
@@ -175,6 +192,11 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
     }
   };
 
+  const handleClearHistory = () => {
+    setMessages([]);
+    localStorage.removeItem(CHAT_HISTORY_KEY);
+  };
+
   return (
     <Card className="h-full flex flex-col border-none shadow-none bg-transparent overflow-hidden relative">
       <CardHeader className="px-4 pb-2 shrink-0 border-b bg-card/50 backdrop-blur-md sticky top-0 z-20">
@@ -183,7 +205,7 @@ export function AiAssistant({ onAction }: { onAction?: () => void }) {
               <Bot className="text-primary h-5 w-5" />
               Sargam AI Assistant
           </CardTitle>
-          <Button variant="ghost" size="icon" onClick={() => setMessages([])} className="h-8 w-8 opacity-50 hover:opacity-100">
+          <Button variant="ghost" size="icon" onClick={handleClearHistory} className="h-8 w-8 opacity-50 hover:opacity-100" title="Clear History">
             <X className="h-4 w-4" />
           </Button>
         </div>
