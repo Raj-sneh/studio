@@ -4,8 +4,7 @@ service cloud.firestore {
 
     /**
      * PRODUCTION SECURITY RULES - ACTIVE
-     * This ruleset implements a strict user-ownership model.
-     * All client access expiration issues are resolved by this permanent configuration.
+     * This ruleset implements a strict user-ownership model with administrative overrides.
      */
 
     // --- Helper Functions ---
@@ -20,67 +19,40 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks if the authenticated user is the owner and the document exists. */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    /** @description Checks if the user has an administrative record. */
+    /** @description Checks if the user has an administrative record or is the developer. */
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
+        request.auth.token.email == 'snehkumarverma2011@gmail.com'
+      );
     }
 
     // --- Collection Rules ---
 
     match /users/{userId} {
-      allow get, create: if isOwner(userId);
-      allow update: if isOwner(userId);
+      allow get, create: if isOwner(userId) || isAdmin();
+      allow update: if isOwner(userId) || isAdmin();
       allow list, delete: if isAdmin();
+      
+      // Allow admin to see subcollections
+      match /{allSubcollections=**} {
+        allow read, list: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId) || isAdmin();
+      }
     }
 
     /**
-     * @description History of generated melodies or songs.
+     * @description Collection Group access for Admin Activity Monitoring.
      */
-    match /users/{userId}/generatedMelodies/{generatedMelodyId} {
-      allow get, list, create: if isOwner(userId);
-      allow update, delete: if isOwner(userId);
+    match /{path=**}/generatedMelodies/{melodyId} {
+      allow read, list: if isAdmin();
     }
 
-    /**
-     * @description User's saved neural clones.
-     */
-    match /users/{userId}/clonedVoices/{voiceId} {
-      allow get, list, create: if isOwner(userId);
-      allow update, delete: if isOwner(userId);
-    }
-
-    /**
-     * @description Publicly available music lessons.
-     */
     match /lessons/{lessonId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
 
-    /**
-     * @description History of AI Teacher practice sessions.
-     */
-    match /users/{userId}/teacherSessions/{teacherSessionId} {
-      allow get, list, create: if isOwner(userId);
-      allow update, delete: if isOwner(userId);
-    }
-
-    /**
-     * @description User-submitted reports for moderation.
-     */
-    match /reports/{reportId} {
-      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
-      allow get, list, update, delete: if isAdmin();
-    }
-
-    /**
-     * @description Control collection for administrative roles.
-     */
     match /roles_admin/{userId} {
       allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
