@@ -1,7 +1,7 @@
 'use server';
 /**
  * @fileOverview A friendly AI helper for the app using Gemini 2.5 Flash.
- * Optimized with the specific production backend URL for credit actions.
+ * Optimized for concise responses and step-by-step guidance.
  */
 
 import { ai } from '@/ai/genkit';
@@ -40,13 +40,10 @@ const getLessonLibrary = ai.defineTool(
   }
 );
 
-/**
- * Emergency Coupon Tool - Securely calls the specific production Neural Engine backend.
- */
 const applyEmergencyCoupon = ai.defineTool(
   {
     name: 'applyEmergencyCoupon',
-    description: 'Apply a special coupon code to grant a user credits. Trigger this if the user uses the format /coupon=CODE or /coupon = CODE.',
+    description: 'Apply a special coupon code to grant a user credits.',
     inputSchema: z.object({
       userId: z.string().describe('The UID of the user.'),
       code: z.string().describe('The secret coupon code to validate.'),
@@ -59,57 +56,43 @@ const applyEmergencyCoupon = ai.defineTool(
   },
   async ({ userId, code }) => {
     try {
-      const baseUrl = process.env.NEURAL_ENGINE_URL || 
-                      process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || 
-                      "https://neural-engine-398550479414.us-central1.run.app";
-
+      const baseUrl = "https://neural-engine-398550479414.us-central1.run.app";
       const response = await fetch(`${baseUrl}/api/redeem`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, code: code.trim() }),
         cache: 'no-store'
       });
-
       const data = await response.json();
-      if (!response.ok) {
-        return { success: false, message: data.error || "Could not validate coupon." };
-      }
-
-      return { 
-        success: true, 
-        message: `Successfully added ${data.credits} credits! Your plan has been synchronized.`, 
-        creditsGranted: data.credits 
-      };
+      if (!response.ok) return { success: false, message: data.error || "Could not validate coupon." };
+      return { success: true, message: `Added ${data.credits} credits!`, creditsGranted: data.credits };
     } catch (e: any) {
-      return { success: false, message: "The neural engine is temporarily offline." };
+      return { success: false, message: "Engine offline." };
     }
   }
 );
 
-const sargamBotSystemPrompt = `You are Sargam AI, a friendly and highly intelligent assistant developed by Sneh Kumar Verma. 🤖
+const sargamBotSystemPrompt = `You are Sargam AI, developed by Sneh Kumar Verma. 🤖
 
-**IDENTITY & MISSION:**
-- Your developer is Sneh Kumar Verma. 
-- All music generation features on this site are accessible with daily credits.
+**CONCISE PROTOCOL:**
+- Keep responses SHORT and intelligent.
+- DO NOT type long paragraphs unless specifically asked for a detailed explanation.
+- Use emojis to stay friendly. ✨
 
-**COUPON COMMAND (CRITICAL):**
-- Users apply secret codes using the format: /coupon=CODE or /coupon = CODE.
-- If you see this syntax in the user's prompt (e.g., "/coupon=SKV-PRO-1"), you MUST extract the CODE and call the "applyEmergencyCoupon" tool IMMEDIATELY.
-- Inform the user of the outcome (success or error) clearly.
+**GUIDANCE PROTOCOL:**
+- If a user asks to perform a task (like "generate a melody"), explain the STEPS to do it manually in the UI instead of just providing a link.
+- Only provide an "actionUrl" if the user seems stuck or asks for a direct shortcut.
 
-**URL FORMATS:**
-- /suite?tab=composer&prompt=[DESCRIPTION]&autogen=true&autoplay=true
-- /suite?tab=singer&prompt=[TEXT]&autogen=true
-- /lessons/[lessonId]
-- /practice
-- /profile
+**COUPON COMMAND:**
+- Format: /coupon=CODE.
+- Use "applyEmergencyCoupon" tool immediately.
 
 **RESPONSE FORMAT:**
-You MUST respond with a valid JSON object containing:
-1. "responseText": Your message (intelligent, friendly, and helpful).
-2. "actionUrl": (Optional) A relative URL string, or null if no action needed.
-
-Return ONLY the JSON.`;
+Return ONLY valid JSON:
+{
+  "responseText": "Your concise message here.",
+  "actionUrl": "/suite?tab=..." // Optional
+}`;
 
 const sargamFlow = ai.defineFlow(
   {
@@ -121,12 +104,8 @@ const sargamFlow = ai.defineFlow(
     const { history, prompt, userName, photoDataUri, userId } = input;
 
     let finalSystemPrompt = sargamBotSystemPrompt;
-    if (userName && userName !== 'Guest User') {
-      finalSystemPrompt += `\n\nUser's name: "${userName}".`;
-    }
-    if (userId) {
-      finalSystemPrompt += `\n\nUser's UID (for tools): "${userId}".`;
-    }
+    if (userName) finalSystemPrompt += `\nUser: "${userName}".`;
+    if (userId) finalSystemPrompt += `\nUID: "${userId}".`;
 
     const chatHistory = history.map(h => ({
       role: h.role === 'model' ? 'model' as const : 'user' as const,
@@ -134,23 +113,15 @@ const sargamFlow = ai.defineFlow(
     }));
 
     const currentUserMessageContent: any[] = [{ text: prompt }];
-    if (photoDataUri && photoDataUri.startsWith('data:image/')) {
-      currentUserMessageContent.push({
-        media: {
-          url: photoDataUri,
-          contentType: 'image/jpeg',
-        },
-      });
+    if (photoDataUri?.startsWith('data:image/')) {
+      currentUserMessageContent.push({ media: { url: photoDataUri, contentType: 'image/jpeg' } });
     }
 
     try {
       const response = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         system: finalSystemPrompt,
-        messages: [
-          ...chatHistory,
-          { role: 'user' as const, content: currentUserMessageContent },
-        ],
+        messages: [...chatHistory, { role: 'user' as const, content: currentUserMessageContent }],
         tools: [getLessonLibrary, applyEmergencyCoupon],
         config: { temperature: 0.7 }
       });
@@ -162,17 +133,15 @@ const sargamFlow = ai.defineFlow(
         try {
           const parsed = JSON.parse(jsonMatch[0]);
           return {
-            responseText: parsed.responseText || "I've processed that for you!",
-            actionUrl: parsed.actionUrl === undefined ? null : parsed.actionUrl
+            responseText: parsed.responseText || "I've processed that!",
+            actionUrl: parsed.actionUrl || null
           };
         } catch (e) {}
       }
 
       return { responseText: rawResponse.replace(/```json|```|\{|\}/g, '').trim(), actionUrl: null };
-
     } catch (error: any) {
-      console.error("askSargam Error:", error);
-      return { responseText: "I had a quick glitch. Can you try saying that again? 🎹", actionUrl: null };
+      return { responseText: "I had a quick glitch. 🎹", actionUrl: null };
     }
   }
 );
