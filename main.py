@@ -92,18 +92,18 @@ async def redeem_coupon(request: Request):
         
         # Rule-Based Administrative Coupons
         coupons = { 
-            # Creator Coupons (1000 Credits) - Mixed Case words
-            "SargamCreatorSKV": 1000,
-            "skvCreatorFlow": 1000,
-            "CreativeSargam": 1000,
-            "SargamNeuralCreator": 1000,
-            "SKVcreativeMind": 1000,
+            # Creator Coupons (1000 Credits) - Mixed Case
+            "SargamEliteCreator": 1000,
+            "skvMusicMaster": 1000,
+            "CreativeMindSKV": 1000,
+            "NeuralArtistFlow": 1000,
+            "SargamVocalStudio": 1000,
             # Pro Coupons (5000 Credits) - Mixed Case + Symbols (@, #)
-            "SargamPro@SKV#": 5000,
-            "skv#Pro@Master": 5000,
-            "PRO@Sargam#Neural": 5000,
-            "Neural#Pro@SKV": 5000,
-            "SKV@#ProSargam": 5000
+            "SargamPro@#2024": 5000,
+            "SKV#Pro@Neural": 5000,
+            "Ultimate#Sargam@SKV": 5000,
+            "Pro@#MusicMaster": 5000,
+            "skv@#EliteProFlow": 5000
         }
         
         if code not in coupons: 
