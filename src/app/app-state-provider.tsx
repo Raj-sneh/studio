@@ -79,6 +79,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
               updateDoc(userDocRef, { credits: INITIAL_CREDITS });
             }
             
+            // SPECIAL PROVISION: Khushi's Neural Gift (3000 Credits + Pro Plan)
+            if (user.email === 'khushiswayamshreesahoo@gmail.com' && !userProfile.gift3000Claimed) {
+              updateDoc(userDocRef, { 
+                credits: 3000, 
+                gift3000Claimed: true,
+                plan: 'pro'
+              });
+              toast({ title: "Provision Applied", description: "3,000 credits added to Khushi's account." });
+            }
+
             // Ensure tracking array exists
             if (userProfile.redeemedCoupons === undefined) {
               updateDoc(userDocRef, { redeemedCoupons: [] });
@@ -92,14 +102,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
               sessionStorage.setItem('welcomeModalShown', 'true');
             }
           } else {
+             const isKhushi = user.email === 'khushiswayamshreesahoo@gmail.com';
              const userData = {
               id: user.uid,
               displayName: user.displayName || 'Guest User',
               email: user.email || `guest_${user.uid}@example.com`,
               avatarUrl: user.photoURL || GUEST_AVATAR_URL,
-              credits: INITIAL_CREDITS,
-              plan: 'free',
-              redeemedCoupons: [], // Initialize empty tracking list
+              credits: isKhushi ? 3000 : INITIAL_CREDITS,
+              plan: isKhushi ? 'pro' : 'free',
+              gift3000Claimed: isKhushi,
+              redeemedCoupons: [], 
               createdAt: serverTimestamp(),
             };
             
