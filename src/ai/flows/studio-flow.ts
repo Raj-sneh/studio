@@ -48,6 +48,7 @@ export const studioFlow = ai.defineFlow(
     CRITICAL SAFETY & QUALITY RULES:
     - ABSOLUTELY NO logos, watermarks, text overlays, or trademarked characters.
     - NO real-world celebrities or public figures.
+    - STRICTLY NO content involving pornography or illegal activities.
     - If restricted concepts are found, REWRITE them into wholesome, majestic, and artistic equivalents.
     - Use poetic, visual, and highly descriptive language. Avoid blunt triggers.
     
@@ -99,8 +100,8 @@ export const studioFlow = ai.defineFlow(
     
     if (operation.error) {
       const errMsg = operation.error.message?.toLowerCase() || '';
-      if (errMsg.includes('third-party') || errMsg.includes('interest') || errMsg.includes('sensitive') || errMsg.includes('practices')) {
-         throw new Error("Neural Safety Protocol: The scene description contained restricted concepts. The Director has been informed to use generic, creative equivalents. Please try a slightly different phrasing.");
+      if (errMsg.includes('third-party') || errMsg.includes('interest') || errMsg.includes('sensitive') || errMsg.includes('practices') || errMsg.includes('pornography') || errMsg.includes('illegal')) {
+         throw new Error("Neural Safety Protocol: Content involving pornography or illegal activities is restricted. This platform is for educational research. Misuse is the sole responsibility of the user.");
       }
       throw new Error(`Rendering failed: ${operation.error.message}`);
     }

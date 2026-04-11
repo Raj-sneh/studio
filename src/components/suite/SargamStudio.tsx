@@ -133,7 +133,9 @@ export function SargamStudio() {
                 if (msg.toLowerCase().includes('third-party') || 
                     msg.toLowerCase().includes('sensitive') || 
                     msg.toLowerCase().includes('practices') || 
-                    msg.toLowerCase().includes('responsible ai')) {
+                    msg.toLowerCase().includes('responsible ai') ||
+                    msg.toLowerCase().includes('pornography') ||
+                    msg.toLowerCase().includes('illegal')) {
                     setErrorState('content-block');
                 } else {
                     setErrorState('error');
@@ -344,12 +346,12 @@ export function SargamStudio() {
                                     <ShieldAlert className="h-10 w-10 text-destructive" />
                                 </div>
                                 <div className="space-y-3">
-                                    <h3 className="text-xl font-bold text-foreground">Safety Protocol Active</h3>
+                                    <h3 className="text-xl font-bold text-foreground">Restricted Generation</h3>
                                     <p className="text-sm text-muted-foreground leading-relaxed italic">
-                                        The current scene description contains restricted concepts. The <strong>Director AI</strong> has been instructed to use high-fidelity safe equivalents.
+                                        Our protocol only restricts content related to pornography or illegal activities. This platform is purely for educational research.
                                     </p>
-                                    <p className="text-xs text-primary font-black uppercase tracking-widest pt-2">
-                                        Action: Please rephrase or use generic descriptions.
+                                    <p className="text-[10px] text-primary font-black uppercase tracking-widest pt-2">
+                                        Note: User assumes full responsibility for misuse; owner is not liable.
                                     </p>
                                 </div>
                                 <Button variant="outline" onClick={() => setErrorState('none')} className="rounded-xl mt-4">Dismiss & Retry</Button>
@@ -453,6 +455,10 @@ export function SargamStudio() {
                         )}
                     </div>
                 </div>
+            </div>
+            
+            <div className="text-center text-[10px] text-muted-foreground/50 italic pt-8 pb-4">
+                Misuse of this platform depends on the user; the website or its owner is not responsible. Educational research only.
             </div>
         </div>
     );
