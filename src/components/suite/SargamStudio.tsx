@@ -27,7 +27,8 @@ import {
     CheckCircle2,
     Save,
     ShieldAlert,
-    AlertTriangle
+    AlertTriangle,
+    PawPrint
 } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
@@ -234,10 +235,12 @@ export function SargamStudio() {
                     {!isRefinementMode ? (
                         <div className="space-y-6 animate-in slide-in-from-left duration-500">
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1 flex justify-between items-center">
-                                    Master Concept (Scene 1)
-                                    <span className="text-primary font-bold">{user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${INITIAL_COST} Credits`}</span>
-                                </label>
+                                <div className="flex justify-between items-center px-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                        Master Concept (Scene 1)
+                                    </label>
+                                    <span className="text-primary font-bold text-[10px]">{user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${INITIAL_COST} Credits`}</span>
+                                </div>
                                 <div className="relative z-10">
                                     <Textarea 
                                         placeholder="Describe your cinematic vision in detail..."
@@ -248,6 +251,9 @@ export function SargamStudio() {
                                     />
                                     <div className="absolute inset-0 bg-primary/5 blur-xl pointer-events-none -z-10" />
                                 </div>
+                                <p className="text-[9px] text-muted-foreground italic px-1 flex items-center gap-1">
+                                    <PawPrint className="h-3 w-3" /> Tip: If you get an error, try using animals as characters.
+                                </p>
                             </div>
 
                             <div className="space-y-3">
@@ -355,6 +361,11 @@ export function SargamStudio() {
                                     <p className="text-sm text-muted-foreground leading-relaxed italic">
                                         This generation is restricted. This platform is purely for educational research.
                                     </p>
+                                    <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
+                                        <p className="text-xs text-primary font-bold flex items-center justify-center gap-2">
+                                            <PawPrint className="h-4 w-4" /> Try with animals instead!
+                                        </p>
+                                    </div>
                                     <p className="text-[10px] text-primary font-black uppercase tracking-widest pt-2">
                                         The website and its owner are not responsible for user inputs.
                                     </p>
@@ -373,6 +384,11 @@ export function SargamStudio() {
                                     <p className="text-sm text-muted-foreground leading-relaxed italic">
                                         {lastErrorMessage || "The synthesis engine encountered a temporary synchronization error."}
                                     </p>
+                                    <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
+                                        <p className="text-xs text-primary font-bold flex items-center justify-center gap-2">
+                                            <PawPrint className="h-4 w-4" /> Try with animals for better success.
+                                        </p>
+                                    </div>
                                 </div>
                                 <Button variant="outline" onClick={() => setErrorState('none')} className="rounded-xl mt-4 gap-2">
                                     <RefreshCw className="h-4 w-4" /> Try Again
