@@ -83,15 +83,31 @@ async def use_credits(request: Request):
 
 @app.post("/api/redeem")
 async def redeem_coupon(request: Request):
-    """Processes secret codes."""
+    """Processes secret codes and upgrades user tiers."""
     try:
         data = await request.json()
         user_id = data.get("userId")
         code = data.get("code", "").upper().strip()
         
-        coupons = { "SKV-PRO-1": 1000, "WELCOME-SARGAM": 50, "RESEARCH-TEST": 500 }
+        # Fresh Administrative Coupons
+        coupons = { 
+            # Creator Coupons (1000 Credits)
+            "SARGAM-CREATOR-ALPHA": 1000,
+            "SARGAM-CREATOR-BETA": 1000,
+            "SARGAM-CREATOR-GAMMA": 1000,
+            "SARGAM-CREATOR-DELTA": 1000,
+            "SARGAM-CREATOR-EPSILON": 1000,
+            # Pro Coupons (5000 Credits)
+            "SARGAM-PRO-ZETA": 5000,
+            "SARGAM-PRO-ETA": 5000,
+            "SARGAM-PRO-THETA": 5000,
+            "SARGAM-PRO-IOTA": 5000,
+            "SARGAM-PRO-KAPPA": 5000
+        }
         
-        if code not in coupons: return JSONResponse(status_code=404, content={"error": "Invalid code."})
+        if code not in coupons: 
+            return JSONResponse(status_code=404, content={"error": "Invalid or expired code."})
+            
         credits_to_add = coupons[code]
         user_ref = db.collection('users').document(user_id)
         
@@ -100,11 +116,24 @@ async def redeem_coupon(request: Request):
             snap = user_ref.get(transaction=transaction)
             u_data = snap.to_dict() or {}
             redeemed = u_data.get('redeemedCoupons', [])
-            if code in redeemed: raise Exception("Already redeemed.")
+            if code in redeemed: 
+                raise Exception("This coupon has already been redeemed by this account.")
+            
+            # Determine new plan based on coupon value
+            current_plan = u_data.get('plan', 'free')
+            new_plan = current_plan
+            
+            if credits_to_add >= 5000:
+                new_plan = 'pro'
+            elif credits_to_add >= 1000:
+                # Only upgrade if they aren't already Pro
+                if current_plan != 'pro':
+                    new_plan = 'creator'
+            
             transaction.update(user_ref, {
                 'credits': u_data.get('credits', 0) + credits_to_add,
                 'redeemedCoupons': firestore.ArrayUnion([code]),
-                'plan': 'creator' if credits_to_add >= 500 else u_data.get('plan', 'free')
+                'plan': new_plan
             })
             return True
             
