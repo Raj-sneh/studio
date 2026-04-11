@@ -101,51 +101,67 @@ def mix():
 
 @app.route('/stitch', methods=['POST'])
 def stitch():
-    """Stitches multiple base64 videos into one master MP4."""
+    """Stitches multiple base64 videos into one master MP4 using robust re-encoding."""
+    task_id = str(uuid.uuid4())
+    video_paths = []
+    
     try:
         data = request.json
         videos_b64 = data.get("videos", [])
         if not videos_b64:
             return jsonify({"error": "No video clips provided for stitching."}), 400
 
-        task_id = str(uuid.uuid4())
-        video_paths = []
-
-        # Save clips
+        # Save clips locally for processing
         for i, v_b64 in enumerate(videos_b64):
             path = os.path.join(UPLOAD_FOLDER, f"{task_id}_{i}.mp4")
             with open(path, "wb") as f:
-                # Remove data uri prefix if present
                 content = v_b64.split(",")[1] if "," in v_b64 else v_b64
                 f.write(base64.b64decode(content))
             video_paths.append(path)
 
-        # Create concat file
-        list_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_list.txt")
-        with open(list_path, "w") as f:
-            for p in video_paths:
-                f.write(f"file '{os.path.abspath(p)}'\n")
-
         out_path = os.path.join(UPLOAD_FOLDER, f"{task_id}_master.mp4")
         
-        # Concatenate without re-encoding for speed (assumes same resolution/codec)
-        subprocess.run([
-            "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_path,
-            "-c", "copy", out_path
-        ], check=True)
+        # Robust re-encoding concatenation (handles metadata/param mismatches)
+        # We scale all inputs to 720p to ensure compatibility during the concat filter
+        filter_str = "".join([f"[{i}:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1[v{i}];" for i in range(len(video_paths))])
+        # Note: We use 'anullsrc' if audio is missing, but here we assume silent/consistent audio if any
+        # For simplicity in this neural context, we concat the video streams
+        filter_str += "".join([f"[v{i}]" for i in range(len(video_paths))])
+        filter_str += f"concat=n={len(video_paths)}:v=1:a=0[outv]"
+        
+        cmd = ["ffmpeg", "-y"]
+        for p in video_paths:
+            cmd.extend(["-i", p])
+        
+        cmd.extend([
+            "-filter_complex", filter_str,
+            "-map", "[outv]",
+            "-c:v", "libx264", 
+            "-preset", "ultrafast", 
+            "-crf", "23",
+            "-pix_fmt", "yuv420p",
+            out_path
+        ])
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise Exception(f"FFmpeg Error: {result.stderr}")
 
         with open(out_path, "rb") as f:
             res_b64 = base64.b64encode(f.read()).decode('utf-8')
 
-        # Cleanup
-        for p in video_paths: os.remove(p)
-        os.remove(list_path)
-        os.remove(out_path)
+        # Immediate Cleanup
+        for p in video_paths: 
+            if os.path.exists(p): os.remove(p)
+        if os.path.exists(out_path): os.remove(out_path)
 
         return jsonify({"video": f"data:video/mp4;base64,{res_b64}"})
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Cleanup on failure
+        for p in video_paths: 
+            if os.path.exists(p): os.remove(p)
+        return jsonify({"error": f"Neural Stitching Failed: {str(e)}"}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

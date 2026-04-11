@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 
 /**
- * Proxy route for checking credit status via the Python backend.
- * Refactored to use the specific production backend as the primary fallback.
+ * Proxy route for checking credit status via the Primary Sargam Backend.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,15 +11,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Missing userId" }, { status: 400 });
   }
 
-  // Priority: NEURAL_ENGINE_URL -> Production Link -> Localhost
-  const baseUrl = process.env.NEURAL_ENGINE_URL || 
-                  process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || 
-                  "https://neural-engine-398550479414.us-central1.run.app";
+  // Use Sargam Backend for Database/Credit operations
+  const baseUrl = "https://sargam-backend-398550479414.us-central1.run.app";
 
   try {
     const response = await fetch(`${baseUrl}/api/credits/status/${userId}`, {
       cache: 'no-store',
-      signal: AbortSignal.timeout(5000) // 5s timeout to prevent hanging
+      signal: AbortSignal.timeout(5000) 
     });
     
     const contentType = response.headers.get("content-type");
@@ -29,19 +26,14 @@ export async function GET(request: Request) {
           status: "Offline",
           credits: 0,
           offline: true,
-          message: "Neural Engine currently offline."
+          message: "Database engine currently unreachable."
         }, { status: 200 });
     }
 
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error: any) {
-    console.warn(`Neural Engine connectivity: ${error.message || 'Connection refused'}`);
-    
-    return NextResponse.json({ 
-      error: "Neural Engine Offline", 
-      credits: 0, 
-      offline: true 
-    }, { status: 200 });
+    console.warn(`Sargam Backend connectivity: ${error.message || 'Connection refused'}`);
+    return NextResponse.json({ error: "Credit System Offline", credits: 0, offline: true }, { status: 200 });
   }
 }

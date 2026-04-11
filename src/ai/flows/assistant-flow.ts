@@ -56,7 +56,7 @@ const applyEmergencyCoupon = ai.defineTool(
   },
   async ({ userId, code }) => {
     try {
-      const baseUrl = "https://neural-engine-398550479414.us-central1.run.app";
+      const baseUrl = "https://sargam-backend-398550479414.us-central1.run.app";
       const response = await fetch(`${baseUrl}/api/redeem`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -81,7 +81,7 @@ export function SargamStudio() {
             : instructions;
 
         setIsGenerating(true);
-        setFinalVideoUrl(null); // Clear finished video while editing
+        setFinalVideoUrl(null); 
         setProgress(2);
         setErrorState('none');
         setLastErrorMessage(null);
@@ -168,8 +168,9 @@ export function SargamStudio() {
                 body: JSON.stringify({ videos: sceneVideos })
             });
 
-            if (!response.ok) throw new Error("Neural stitching failed.");
             const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Neural stitching failed.");
+            
             setFinalVideoUrl(data.video);
             toast({ title: "Neural Synthesis Complete", description: "All scenes have been merged into one masterpiece." });
         } catch (e: any) {
