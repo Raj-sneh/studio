@@ -6,7 +6,7 @@ import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/fireb
 import { signOut } from "firebase/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap, LifeBuoy, MonitorPlay, PlayCircle } from "lucide-react";
+import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap, LifeBuoy, MonitorPlay, PlayCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { doc } from "firebase/firestore";
@@ -56,6 +56,15 @@ export default function Header() {
   return (
     <div className="w-full flex flex-col">
       <header className="sticky top-0 z-50 w-full border-b border-border/10 bg-background/80 backdrop-blur-md">
+        {/* Announcement Banner */}
+        <div className="bg-primary py-1.5 px-4 text-center border-b border-primary/20 shadow-[0_0_20px_rgba(0,255,255,0.2)]">
+           <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-primary-foreground flex items-center justify-center gap-2">
+             <Sparkles className="h-3 w-3 fill-current" />
+             Payment error solved! Now you can get credits.
+             <Sparkles className="h-3 w-3 fill-current" />
+           </p>
+        </div>
+
         <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2">
