@@ -22,7 +22,7 @@ Sargam is an interactive, AI-powered web application designed to make piano lear
 Your app is pre-configured to connect to your live neural engine.
 
 ### 🎙️ Neural Engine (Cloud Run Backend)
-**Your Production URL:** `https://sargam-backend-398550479414.us-central1.run.app`
+**Your Production URL:** `https://neural-engine-398550479414.us-central1.run.app`
 
 **Where to set in Google Cloud Run Console (Frontend Service):**
 1. Select your **frontend** service -> **Edit & Deploy New Revision**.

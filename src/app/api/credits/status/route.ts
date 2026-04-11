@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   // Priority: NEURAL_ENGINE_URL -> Production Link -> Localhost
   const baseUrl = process.env.NEURAL_ENGINE_URL || 
                   process.env.NEXT_PUBLIC_NEURAL_ENGINE_URL || 
-                  "https://sargam-backend-398550479414.us-central1.run.app";
+                  "https://neural-engine-398550479414.us-central1.run.app";
 
   try {
     const response = await fetch(`${baseUrl}/api/credits/status/${userId}`, {
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     
     return NextResponse.json({ 
       error: "Neural Engine Offline", 
-      credits: 0,
+      credits: 0, 
       offline: true 
     }, { status: 200 });
   }
