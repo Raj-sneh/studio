@@ -74,7 +74,8 @@ export const studioFlow = ai.defineFlow(
 
     const fullPrompt = `${masterPrompt}. High-quality visual production.`;
 
-    // Using Veo 2.0 for API stability with additional safety configuration
+    // Using Veo 2.0 for API stability. 
+    // safetySettings removed as they are not supported by the predictLongRunning endpoint for this model.
     let { operation } = await ai.generate({
       model: 'googleai/veo-2.0-generate-001',
       prompt: fullPrompt,
@@ -82,12 +83,6 @@ export const studioFlow = ai.defineFlow(
         durationSeconds: 5,
         aspectRatio: '16:9',
         personGeneration: 'allow_adult',
-        safetySettings: [
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-        ],
       },
     });
 
