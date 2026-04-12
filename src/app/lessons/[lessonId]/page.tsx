@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -259,10 +260,6 @@ export default function LessonPage() {
   
   return (
     <div className="flex flex-col h-full gap-6">
-      <Button variant="ghost" onClick={() => router.push('/lessons')} className="self-start">
-        <ChevronLeft className="mr-2 h-4 w-4" /> Back to Lessons
-      </Button>
-
       <div className="space-y-6">
           <Card>
             <CardHeader>

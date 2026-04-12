@@ -7,7 +7,7 @@ import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/fireb
 import { signOut } from "firebase/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap, LifeBuoy, MonitorPlay, PlayCircle, Sparkles, Settings } from "lucide-react";
+import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap, LifeBuoy, MonitorPlay, PlayCircle, Sparkles, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { doc } from "firebase/firestore";
@@ -73,7 +73,18 @@ export default function Header() {
         </div>
 
         <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            {pathname !== "/" && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => router.back()} 
+                className="h-9 px-2 gap-1 text-xs font-bold text-muted-foreground hover:text-primary transition-all rounded-full group mr-1"
+              >
+                <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" /> 
+                <span className="hidden xs:inline">Back</span>
+              </Button>
+            )}
             <Link href="/" className="flex items-center gap-2">
               <span className="font-headline text-xl font-bold text-foreground tracking-tighter">
                   <span className="text-primary">Sargam</span> AI

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,9 +53,6 @@ export default function HistoryPage() {
         <div className="space-y-8 max-w-4xl mx-auto">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => router.push('/profile')}>
-                        <ChevronLeft className="h-6 w-6" />
-                    </Button>
                     <h1 className="font-headline text-3xl font-bold tracking-tighter flex items-center gap-3">
                         <History className="text-primary" />
                         Generation History

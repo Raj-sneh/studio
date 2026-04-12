@@ -12,9 +12,6 @@ export default function SupportPage() {
     return (
         <div className="space-y-8 max-w-2xl mx-auto">
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => router.push('/profile')}>
-                    <ChevronLeft className="h-6 w-6" />
-                </Button>
                 <h1 className="font-headline text-3xl font-bold tracking-tighter">Support & Help</h1>
             </div>
             <Card className="border-primary/10 bg-card/50 backdrop-blur-sm">

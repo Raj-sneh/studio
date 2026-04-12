@@ -94,9 +94,6 @@ export default function ProfilePage() {
     return (
         <div className="space-y-8 max-w-2xl mx-auto pb-20">
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
-                    <ChevronLeft className="h-6 w-6" />
-                </Button>
                 <h1 className="font-headline text-3xl font-bold tracking-tighter">Your Profile</h1>
             </div>
 
