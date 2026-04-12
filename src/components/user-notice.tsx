@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
  * Optimized for resilience against initial session race conditions.
  */
 export default function UserNotice() {
-  const { isFirebaseReady, isUserLoading } = useUser();
+  const { user, isFirebaseReady, isUserLoading } = useUser();
   const firestore = useFirestore();
   
   const [isVisible, setIsVisible] = useState(true);
@@ -28,9 +28,8 @@ export default function UserNotice() {
   }, []);
 
   const noticeQuery = useMemoFirebase(() => {
-    // 🛡️ STABILITY PROTOCOL: Wait for Firebase and Auth state to be ready.
-    // This prevents "Missing Permissions" errors during the initial boot handshake.
-    if (!firestore || !isFirebaseReady || isUserLoading) {
+    // 🛡️ STABILITY PROTOCOL: Only fetch if user is logged in to prevent permission errors on boot.
+    if (!firestore || !user || !isFirebaseReady || isUserLoading) {
       return null;
     }
     
@@ -45,7 +44,7 @@ export default function UserNotice() {
       console.warn("Notice query construction paused.");
       return null;
     }
-  }, [firestore, isFirebaseReady, isUserLoading]);
+  }, [firestore, user, isFirebaseReady, isUserLoading]);
 
   const { data: notices, error } = useCollection(noticeQuery);
   const activeNotice = notices?.[0];
