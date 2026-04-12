@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
  * Monitors the 'admin_notices' collection for active broadcasts.
  */
 export default function UserNotice() {
-  const { user } = useUser();
+  const { user, isFirebaseReady } = useUser();
   const firestore = useFirestore();
   
   const [isVisible, setIsVisible] = useState(true);
@@ -27,8 +27,8 @@ export default function UserNotice() {
   }, []);
 
   const noticeQuery = useMemoFirebase(() => {
-    // Verified users only to avoid permission conflicts
-    if (!firestore || !user || user.isAnonymous) return null;
+    // 🛡️ STABILITY PROTOCOL: Wait for Firebase and Auth state before querying
+    if (!isFirebaseReady || !firestore || !user || user.isAnonymous) return null;
     
     return query(
       collection(firestore, 'admin_notices'),
@@ -36,7 +36,7 @@ export default function UserNotice() {
       orderBy('createdAt', 'desc'),
       limit(1)
     );
-  }, [firestore, user]);
+  }, [firestore, user, isFirebaseReady]);
 
   const { data: notices } = useCollection(noticeQuery);
   const activeNotice = notices?.[0];
