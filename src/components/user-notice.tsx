@@ -1,40 +1,35 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, where } from 'firebase/firestore';
-import { useToast } from '@/hooks/use-toast';
+import { X, AlertTriangle, Megaphone } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview A background listener component that monitors the 'admin_notices' collection.
- * Restricted to authenticated users only to align with the app's strict access policy.
+ * @fileOverview A high-visibility administrative banner that appears at the top of the app.
+ * Monitors the 'admin_notices' collection for active broadcasts.
  */
 export default function UserNotice() {
-  const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
   
-  // Track seen notices in local storage to prevent duplicate alerts on refresh
-  const [seenNoticeIds, setSeenNoticeIds] = useState<Set<string>>(new Set());
+  const [isVisible, setIsVisible] = useState(true);
+  const [dismissedId, setDismissedId] = useState<string | null>(null);
 
+  // Load the ID of the last dismissed notice to prevent it from reappearing
   useEffect(() => {
-    const saved = localStorage.getItem('sargam-seen-notices');
+    const saved = localStorage.getItem('sargam-dismissed-notice-id');
     if (saved) {
-      try {
-        setSeenNoticeIds(new Set(JSON.parse(saved)));
-      } catch (e) {
-        console.warn("Could not parse seen notices history.");
-      }
+      setDismissedId(saved);
     }
   }, []);
 
   const noticeQuery = useMemoFirebase(() => {
-    // Only query if firestore is ready and a verified user is logged in
-    // This prevents "auth: null" permission errors for guests
+    // Verified users only to avoid permission conflicts
     if (!firestore || !user || user.isAnonymous) return null;
     
-    // Listen for the most recent active administrative broadcast
     return query(
       collection(firestore, 'admin_notices'),
       where('active', '==', true),
@@ -44,30 +39,52 @@ export default function UserNotice() {
   }, [firestore, user]);
 
   const { data: notices } = useCollection(noticeQuery);
+  const activeNotice = notices?.[0];
 
-  useEffect(() => {
-    if (notices && notices.length > 0) {
-      const notice = notices[0];
-      
-      // If we haven't seen this notice ID yet in this session or history
-      if (!seenNoticeIds.has(notice.id)) {
-        // Update local memory
-        const nextSeen = new Set(seenNoticeIds).add(notice.id);
-        setSeenNoticeIds(nextSeen);
-        
-        // Persist to local storage
-        localStorage.setItem('sargam-seen-notices', JSON.stringify(Array.from(nextSeen)));
-
-        // Trigger the visual notification
-        toast({
-          title: notice.title || "Admin Broadcast",
-          description: notice.message,
-          variant: notice.type === 'alert' ? 'destructive' : 'default',
-        });
-      }
+  const handleDismiss = () => {
+    if (activeNotice) {
+      localStorage.setItem('sargam-dismissed-notice-id', activeNotice.id);
+      setDismissedId(activeNotice.id);
     }
-  }, [notices, seenNoticeIds, toast]);
+    setIsVisible(false);
+  };
 
-  // This component handles logic only and renders nothing to the DOM directly.
-  return null;
+  // Reset visibility when a NEW notice arrives (different ID)
+  useEffect(() => {
+    if (activeNotice && activeNotice.id !== dismissedId) {
+      setIsVisible(true);
+    }
+  }, [activeNotice, dismissedId]);
+
+  if (!activeNotice || dismissedId === activeNotice.id || !isVisible) return null;
+
+  return (
+    <div 
+      className={cn(
+        "w-full px-6 py-2.5 flex items-center justify-center gap-4 relative z-[100] transition-all border-b border-white/10 animate-in slide-in-from-top duration-700",
+        activeNotice.type === 'alert' 
+          ? "bg-destructive text-white shadow-[0_5px_20px_rgba(255,0,0,0.2)]" 
+          : "bg-primary text-primary-foreground shadow-[0_5px_20px_rgba(0,255,255,0.15)]"
+      )}
+    >
+      <div className="flex items-center gap-3 max-w-5xl mx-auto pr-10">
+        {activeNotice.type === 'alert' ? (
+          <AlertTriangle className="h-4 w-4 shrink-0 animate-pulse" />
+        ) : (
+          <Megaphone className="h-4 w-4 shrink-0" />
+        )}
+        <p className="text-[11px] sm:text-xs font-black uppercase tracking-[0.05em] leading-tight text-center">
+          {activeNotice.message}
+        </p>
+      </div>
+      
+      <button 
+        onClick={handleDismiss}
+        className="absolute right-4 p-1 hover:bg-black/10 rounded-full transition-colors"
+        aria-label="Dismiss message"
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  );
 }
