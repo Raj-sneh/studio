@@ -110,21 +110,25 @@ export default function Header() {
             {isUserLoading ? (
               <div className="h-8 w-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
             ) : isAuthenticated ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
+                {/* Visual Credit Badge */}
                 <Link 
                   href="/pricing" 
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 shadow-sm transition-all hover:bg-primary/20 hover:scale-105 active:scale-95"
-                  title="Top-up Credits"
+                  className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/30 shadow-[0_0_15px_rgba(0,255,255,0.1)] transition-all hover:bg-primary/20 hover:scale-105 active:scale-95"
+                  title="Your Neural Credits"
                 >
-                  <Zap className="h-3.5 w-3.5 text-primary fill-primary" />
-                  <span className="text-xs font-bold text-primary">
-                    {isProfileLoading ? "..." : (profile?.credits ?? 0)}
-                  </span>
+                  <Zap className="h-4 w-4 text-primary fill-primary animate-pulse" />
+                  <div className="flex flex-col items-start leading-none">
+                    <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Credits</span>
+                    <span className="text-xs font-black text-foreground">
+                      {isProfileLoading ? "..." : (profile?.credits ?? 0)}
+                    </span>
+                  </div>
                 </Link>
 
                 <div className="relative" ref={menuRef}>
-                  <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center gap-2">
-                    <Avatar className="h-9 w-9 border-2 border-primary/20 hover:border-primary/50 transition-colors">
+                  <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center gap-2 group">
+                    <Avatar className="h-9 w-9 border-2 border-primary/20 group-hover:border-primary/50 transition-all duration-300">
                       <AvatarImage src={user?.photoURL || profile?.avatarUrl || undefined} className="object-cover" />
                       <AvatarFallback className="bg-muted text-muted-foreground"><UserIcon className="h-5 w-5" /></AvatarFallback>
                     </Avatar>
@@ -132,24 +136,27 @@ export default function Header() {
                   </button>
 
                   {isMenuOpen && (
-                    <div className="absolute right-0 mt-3 w-56 rounded-xl border bg-card/95 backdrop-blur-md p-1.5 shadow-2xl z-50">
-                      <div className="px-3 py-2 text-sm font-semibold border-b mb-1 flex flex-col">
+                    <div className="absolute right-0 mt-3 w-56 rounded-xl border bg-card/95 backdrop-blur-md p-1.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="px-3 py-3 text-sm font-semibold border-b mb-1 flex flex-col gap-1">
                         <span className="truncate flex items-center gap-2">
                           {profile?.displayName || "Artist"}
                           {profile?.plan && profile.plan !== 'free' && <ShieldCheck className="h-3 w-3 text-primary" />}
                         </span>
-                        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{profile?.plan || 'Free'} Plan</span>
+                        <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest bg-primary/5 w-fit px-2 py-0.5 rounded border border-primary/10">
+                          {profile?.plan || 'Free'} Member
+                        </span>
                       </div>
-                      <Link href="/profile" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg" onClick={() => setIsMenuOpen(false)}>
+                      <Link href="/profile" className="flex w-full items-center px-3 py-2.5 text-sm hover:bg-accent rounded-lg transition-colors" onClick={() => setIsMenuOpen(false)}>
                         <UserIcon className="mr-3 h-4 w-4 text-primary" /> Profile
                       </Link>
-                      <Link href="/pricing" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg" onClick={() => setIsMenuOpen(false)}>
+                      <Link href="/pricing" className="flex w-full items-center px-3 py-2.5 text-sm hover:bg-accent rounded-lg transition-colors" onClick={() => setIsMenuOpen(false)}>
                         <Zap className="mr-3 h-4 w-4 text-primary" /> Upgrade Plan
                       </Link>
-                      <Link href="/profile/support" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg" onClick={() => setIsMenuOpen(false)}>
+                      <Link href="/profile/support" className="flex w-full items-center px-3 py-2.5 text-sm hover:bg-accent rounded-lg transition-colors" onClick={() => setIsMenuOpen(false)}>
                         <LifeBuoy className="mr-3 h-4 w-4 text-primary" /> Support
                       </Link>
-                      <button onClick={handleLogout} className="flex w-full items-center px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg mt-1">
+                      <div className="h-px bg-border/50 my-1" />
+                      <button onClick={handleLogout} className="flex w-full items-center px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors">
                         <LogOut className="mr-3 h-4 w-4" /> Logout
                       </button>
                     </div>
@@ -157,7 +164,7 @@ export default function Header() {
                 </div>
               </div>
             ) : (
-              <Button asChild variant="default" size="sm" className="font-bold rounded-full px-6 shadow-lg shadow-primary/20">
+              <Button asChild variant="default" size="sm" className="font-bold rounded-full px-8 h-10 shadow-lg shadow-primary/20">
                 <Link href="/login"><LogIn className="mr-2 h-5 w-5" /> Sign In</Link>
               </Button>
             )}
