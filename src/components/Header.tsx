@@ -31,8 +31,8 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Strict User Check: Exclude anonymous guest accounts
-  const isAuthenticated = user && !user.isAnonymous;
+  // Strict User Check: Exclude anonymous guest accounts from authenticated view
+  const isAuthenticated = !!(user && !user.isAnonymous);
 
   const userDocRef = useMemoFirebase(() => (firestore && isAuthenticated ? doc(firestore, 'users', user.uid) : null), [firestore, isAuthenticated, user?.uid]);
   const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
@@ -62,7 +62,7 @@ export default function Header() {
           <div className="bg-primary py-1.5 px-4 text-center border-b border-primary/20 shadow-[0_0_20px_rgba(0,255,255,0.2)]">
              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-primary-foreground flex items-center justify-center gap-2">
                <Sparkles className="h-3 w-3 fill-current" />
-               Access AI Tools: Please sign in to unlock the Neural Engine.
+               Limited Access: Sign in to unlock the Sargam Neural Engine.
                <Sparkles className="h-3 w-3 fill-current" />
              </p>
           </div>
@@ -139,13 +139,13 @@ export default function Header() {
                         </span>
                         <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{profile?.plan || 'Free'} Plan</span>
                       </div>
-                      <Link href="/profile" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg">
+                      <Link href="/profile" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg" onClick={() => setIsMenuOpen(false)}>
                         <UserIcon className="mr-3 h-4 w-4 text-primary" /> Profile
                       </Link>
-                      <Link href="/pricing" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg">
+                      <Link href="/pricing" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg" onClick={() => setIsMenuOpen(false)}>
                         <Zap className="mr-3 h-4 w-4 text-primary" /> Upgrade Plan
                       </Link>
-                      <Link href="/profile/support" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg">
+                      <Link href="/profile/support" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg" onClick={() => setIsMenuOpen(false)}>
                         <LifeBuoy className="mr-3 h-4 w-4 text-primary" /> Support
                       </Link>
                       <button onClick={handleLogout} className="flex w-full items-center px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg mt-1">
@@ -157,7 +157,7 @@ export default function Header() {
               </div>
             ) : (
               <Button asChild variant="default" size="sm" className="font-bold rounded-full px-6 shadow-lg shadow-primary/20">
-                <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Sign In</Link>
+                <Link href="/login"><LogIn className="mr-2 h-5 w-5" /> Sign In</Link>
               </Button>
             )}
           </div>

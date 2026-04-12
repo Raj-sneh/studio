@@ -31,8 +31,8 @@ export function SargamSuite() {
     const initialPrompt = searchParams.get('prompt');
     const autogen = searchParams.get('autogen') === 'true';
 
-    // Check if real authentication is present
-    const isAuthenticated = user && !user.isAnonymous;
+    // Check if real authentication is present (No Anonymous Access)
+    const isAuthenticated = !!(user && !user.isAnonymous);
 
     const [activeTab, setActiveTab] = useState(requestedTab && TABS.some(t => t.value === requestedTab) ? requestedTab : TABS[0].value);
 
@@ -67,7 +67,7 @@ export function SargamSuite() {
                 <div className="space-y-3">
                     <h2 className="text-3xl font-bold font-headline tracking-tight">Login Required</h2>
                     <p className="text-muted-foreground leading-relaxed italic">
-                        The AI Music Suite contains advanced neural research tools. Please sign in to your permanent account to continue and manage your research credits.
+                        The AI Music Suite contains advanced neural research tools. Please sign in to your account to continue and manage your research credits.
                     </p>
                 </div>
 

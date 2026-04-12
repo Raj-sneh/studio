@@ -8,10 +8,11 @@ import {
   setDocumentNonBlocking,
 } from '@/firebase';
 import { doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 import { WelcomeModal } from '@/components/WelcomeModal';
 import { useToast } from '@/hooks/use-toast';
 
-const GUEST_AVATAR_URL = "https://firebasestorage.googleapis.com/v0/b/studio-4164192500-df01a.firebasestorage.app/o/1000018646%5B1%5D.png?alt=media&token=2b2f8cea-03cd-477c-bc0d-88988246fdeb";
+const DEFAULT_AVATAR_URL = "https://firebasestorage.googleapis.com/v0/b/studio-4164192500-df01a.firebasestorage.app/o/1000018646%5B1%5D.png?alt=media&token=2b2f8cea-03cd-477c-bc0d-88988246fdeb";
 const INITIAL_CREDITS = 10; 
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
@@ -58,7 +59,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     if (!isFirebaseReady || !auth || !firestore) return;
 
     const handleUserSession = async () => {
-      // Only handle real authenticated users. Guest Mode is fully disabled.
+      // 1. PURGE GUEST MODE: If anonymous session exists, sign out immediately.
+      if (user && user.isAnonymous) {
+        await signOut(auth);
+        return;
+      }
+
+      // 2. Verified Session Logic
       if (user && !user.isAnonymous) {
         syncCreditsWithBackend(user.uid);
 
@@ -77,7 +84,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
               updateDoc(userDocRef, { credits: INITIAL_CREDITS });
             }
             
-            // SPECIAL PROVISION: Khushi's Neural Gift (3000 Credits + Pro Plan)
+            // SPECIAL PROVISION: Khushi's Neural Gift
             if (user.email === 'khushiswayamshreesahoo@gmail.com' && !userProfile.gift3000Claimed) {
               updateDoc(userDocRef, { 
                 credits: 3000, 
@@ -87,7 +94,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
               toast({ title: "Provision Applied", description: "3,000 credits added to Khushi's account." });
             }
 
-            // Ensure tracking array exists
             if (userProfile.redeemedCoupons === undefined) {
               updateDoc(userDocRef, { redeemedCoupons: [] });
             }
@@ -105,7 +111,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
               id: user.uid,
               displayName: user.displayName || 'New Artist',
               email: user.email || '',
-              avatarUrl: user.photoURL || GUEST_AVATAR_URL,
+              avatarUrl: user.photoURL || DEFAULT_AVATAR_URL,
               credits: isKhushi ? 3000 : INITIAL_CREDITS,
               plan: isKhushi ? 'pro' : 'free',
               gift3000Claimed: isKhushi,
