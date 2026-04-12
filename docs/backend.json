@@ -82,6 +82,16 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "type", "status", "createdAt"]
+    },
+    "GlobalSetting": {
+      "title": "GlobalSetting",
+      "description": "System-wide configuration parameters or kill-switches.",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "anyOf": [{ "type": "boolean" }, { "type": "string" }, { "type": "number" }] }
+      },
+      "required": ["key", "value"]
     }
   },
   "auth": {
@@ -115,6 +125,10 @@
     "/reports/{reportId}": {
       "schema": { "$ref": "#/backend/entities/UserReport" },
       "description": "User feedback and issue reports."
+    },
+    "/global_settings/{docId}": {
+      "schema": { "$ref": "#/backend/entities/GlobalSetting" },
+      "description": "System-wide configuration parameters."
     }
   }
 }

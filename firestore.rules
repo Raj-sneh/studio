@@ -4,77 +4,69 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * PRODUCTION SECURITY RULES - ACTIVE
-     * This ruleset implements a strict user-ownership model with administrative overrides.
+     * MASTER ARCHITECT SECURITY PROTOCOL
+     * Implements absolute authority for the primary developer and strict ownership for users.
      */
 
-    // --- Helper Functions ---
-
-    /** @description Checks if the request is from an authenticated user. */
+    // --- GLOBAL HELPER FUNCTIONS ---
     function isSignedIn() {
-      return request.auth != null && request.auth.uid != null;
+      return request.auth != null;
     }
 
-    /** @description Checks if the authenticated user matches the provided userId. */
+    function isMasterAdmin() {
+      // Grants absolute authority to the primary developer email address
+      return isSignedIn() && request.auth.token.email == 'snehkumarverma2011@gmail.com';
+    }
+
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks if the user has an administrative record or is the developer. */
-    function isAdmin() {
-      return isSignedIn() && (
-        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        request.auth.token.email == 'snehkumarverma2011@gmail.com'
-      );
+    // --- MASTER ARCHITECT OVERRIDE ---
+    // This allows the primary developer to manage any document in any collection without restriction.
+    // It is positioned at the top to act as an override.
+    match /{allPaths=**} {
+      allow read, write: if isMasterAdmin();
     }
 
-    // --- Collection Rules ---
-
+    // --- USER PROFILE RULES ---
     match /users/{userId} {
-      allow get, create: if isOwner(userId) || isAdmin();
-      allow update: if isOwner(userId) || isAdmin();
-      allow list, delete: if isAdmin();
-      
-      // Allow admin to see subcollections
+      // Users can only read/edit their own profiles (credits, etc.)
+      allow get, update: if isOwner(userId);
+      // New users can create their initial profile
+      allow create: if isSignedIn();
+
+      // Access to sub-collections like 'history', 'clonedVoices', etc.
       match /{allSubcollections=**} {
-        allow read, list: if isOwner(userId) || isAdmin();
-        allow write: if isOwner(userId) || isAdmin();
+        allow read, write: if isOwner(userId);
       }
     }
 
-    /**
-     * @description Collection Group access for Admin Activity Monitoring.
-     */
-    match /{path=**}/generatedMelodies/{melodyId} {
-      allow read, list: if isAdmin();
-    }
-
+    // --- PUBLIC & SHARED COLLECTIONS ---
     match /lessons/{lessonId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if true; // Public access for interactive tutorials
     }
 
     match /admin_notices/{noticeId} {
-      // Allow any signed-in user to read notices
+      // Essential for the message system: Authenticated users can list/read broadcasts
       allow read: if isSignedIn();
-      // Only admins can manage notices
-      allow write: if isAdmin();
     }
 
-    match /roles_admin/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow list: if isAdmin();
-      allow create, update, delete: if false;
+    match /global_settings/{docId} {
+      // Allows the app to check system-wide configuration
+      allow read: if isSignedIn();
+    }
+
+    // --- PROTECTED ADMIN COLLECTIONS ---
+    match /audit_logs/{logId} {
+      // Only the Master Admin can see the log of credit injections and activity
+      allow read, write: if isMasterAdmin();
     }
 
     match /reports/{reportId} {
+      // Any authenticated user can submit a report, but only the Master Admin can review them
       allow create: if isSignedIn();
-      allow get, list, update, delete: if isAdmin();
-    }
-
-    match /audit_logs/{logId} {
-      allow get, list: if isAdmin();
-      allow write: if false; 
+      allow read, delete: if isMasterAdmin();
     }
   }
 }
