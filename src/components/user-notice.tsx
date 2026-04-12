@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 /**
  * @fileOverview A high-visibility administrative banner that appears at the top of the app.
  * Monitors the 'admin_notices' collection for active broadcasts.
+ * Strictly gated to authenticated users only to avoid permission conflicts.
  */
 export default function UserNotice() {
   const { user, isFirebaseReady, isUserLoading } = useUser();
@@ -30,8 +31,7 @@ export default function UserNotice() {
 
   const noticeQuery = useMemoFirebase(() => {
     // 🛡️ STABILITY PROTOCOL: Wait for Auth state to be fully verified before querying.
-    // Querying during the "isUserLoading" phase can lead to permission errors because
-    // the auth token isn't yet attached to the request.
+    // Gated to real users only (No Anonymous/Guest mode for admin broadcasts).
     if (!isFirebaseReady || isUserLoading || !firestore || !user || user.isAnonymous) {
       return null;
     }
@@ -44,12 +44,14 @@ export default function UserNotice() {
         limit(1)
       );
     } catch (e) {
-      console.warn("Notice Query Construction Failed:", e);
+      // Catch potential query errors (like missing indexes) without crashing the UI
+      console.warn("Notice Query Construction Paused:", e);
       return null;
     }
   }, [firestore, user, isFirebaseReady, isUserLoading]);
 
-  const { data: notices } = useCollection(noticeQuery);
+  // useCollection handles the real-time listener and potential permission errors
+  const { data: notices, error } = useCollection(noticeQuery);
   const activeNotice = notices?.[0];
 
   const handleDismiss = () => {
@@ -67,8 +69,8 @@ export default function UserNotice() {
     }
   }, [activeNotice, dismissedId]);
 
-  // If user is not logged in or query isn't ready, don't render anything
-  if (!user || user.isAnonymous || !activeNotice || dismissedId === activeNotice.id || !isVisible) {
+  // 🛡️ Guard: Only render if authenticated, has notice, and not dismissed
+  if (!user || user.isAnonymous || error || !activeNotice || dismissedId === activeNotice.id || !isVisible) {
     return null;
   }
 
