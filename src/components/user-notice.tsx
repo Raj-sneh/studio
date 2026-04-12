@@ -27,9 +27,9 @@ export default function UserNotice() {
   }, []);
 
   const noticeQuery = useMemoFirebase(() => {
-    // 🛡️ STABILITY PROTOCOL: Wait for Firebase and Auth state to settle.
-    // We delay the query until the initial handshake is complete to avoid permission flux.
-    if (!isFirebaseReady || isUserLoading || !firestore) {
+    // 🛡️ STABILITY PROTOCOL: Wait for Firebase instance to be fully initialized.
+    // We keep the query active even during loading to ensure immediate delivery.
+    if (!firestore) {
       return null;
     }
     
@@ -44,7 +44,7 @@ export default function UserNotice() {
       console.warn("Notice query construction paused.");
       return null;
     }
-  }, [firestore, isFirebaseReady, isUserLoading]);
+  }, [firestore]);
 
   const { data: notices, error } = useCollection(noticeQuery);
   const activeNotice = notices?.[0];
@@ -63,7 +63,7 @@ export default function UserNotice() {
     }
   }, [activeNotice, dismissedId]);
 
-  // If there's an error (like permission denied during transition), we hide the banner silently
+  // Silently fail if there's an error to keep the user experience clean
   if (error || !activeNotice || dismissedId === activeNotice.id || !isVisible) {
     return null;
   }
