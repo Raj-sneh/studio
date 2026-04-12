@@ -25,7 +25,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 
 const emailFormSchema = z.object({
-  email: z.string().email('Enter a valid email'),
+  email: z.string().email('Enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
@@ -107,18 +107,36 @@ export default function LoginPage() {
 
   const handleForgotPassword = async () => {
     const email = emailForm.getValues('email');
-    if (!email) {
-      toast({ title: "Email Required", description: "Please enter your email address first.", variant: "destructive" });
+    
+    // Explicit validation check for reset
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast({ 
+        title: "Email Required", 
+        description: "Please enter your registered email address in the field above to receive a reset link.", 
+        variant: "destructive" 
+      });
+      emailForm.setFocus('email');
       return;
     }
-    if (!auth) return;
+
+    if (!auth) {
+      toast({ title: "Authentication Error", description: "Firebase engine not ready.", variant: "destructive" });
+      return;
+    }
     
     try {
       setIsLoading(true);
       await sendPasswordResetEmail(auth, email);
-      toast({ title: "Reset Email Sent", description: "Check your inbox for instructions." });
+      toast({ 
+        title: "Reset Email Sent", 
+        description: `A secure password reset link has been sent to ${email}. Please check your inbox and spam folder.` 
+      });
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      let errorMessage = error.message;
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = "No account found with this email address.";
+      }
+      toast({ title: "Reset Failed", description: errorMessage, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -240,7 +258,8 @@ export default function LoginPage() {
                           type="button" 
                           variant="link" 
                           onClick={handleForgotPassword}
-                          className="p-0 h-auto text-xs text-primary"
+                          disabled={isLoading}
+                          className="p-0 h-auto text-xs text-primary font-bold hover:text-primary/80"
                         >
                           Forgot password?
                         </Button>
@@ -257,8 +276,8 @@ export default function LoginPage() {
                   )}
                 />
 
-                <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg">
-                  {isLoading ? 'Signing in...' : 'Sign In'}
+                <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-bold">
+                  {isLoading ? 'Processing...' : 'Sign In'}
                 </Button>
               </form>
             </Form>
@@ -287,7 +306,7 @@ export default function LoginPage() {
 
                 <div id="recaptcha-container" className="flex justify-center overflow-hidden" />
 
-                <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg">
+                <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-bold">
                   {isLoading ? 'Sending OTP...' : 'Send Verification Code'}
                 </Button>
               </form>
@@ -337,7 +356,7 @@ export default function LoginPage() {
                     Back
                   </Button>
 
-                  <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg">
+                  <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg font-bold">
                     {isLoading ? 'Verifying...' : 'Verify OTP & Sign In'}
                   </Button>
                 </div>
@@ -357,7 +376,7 @@ export default function LoginPage() {
           <Button
             type="button"
             variant="outline"
-            className="w-full h-12 bg-transparent border-[#2c1a57] text-white"
+            className="w-full h-12 bg-transparent border-[#2c1a57] text-white font-bold"
             onClick={handleGoogleLogin}
             disabled={isLoading}
           >
@@ -367,7 +386,7 @@ export default function LoginPage() {
 
         <CardFooter className="justify-center text-sm text-gray-300">
           Don&apos;t have an account?
-          <Link href="/signup" className="ml-2 text-cyan-400 hover:underline">
+          <Link href="/signup" className="ml-2 text-cyan-400 font-bold hover:underline">
             Sign up
           </Link>
         </CardFooter>
