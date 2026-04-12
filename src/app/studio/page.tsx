@@ -1,10 +1,14 @@
-
 'use client';
 
 import { SargamStudio } from '@/components/suite/SargamStudio';
-import { Sparkles, MonitorPlay, Info } from 'lucide-react';
+import { Sparkles, MonitorPlay, Info, Lock, LogIn } from 'lucide-react';
+import { useUser } from '@/firebase';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function StudioPage() {
+  const { user, isUserLoading } = useUser();
+
   return (
     <div className="space-y-12 pb-24">
       {/* Page Header */}
@@ -21,14 +25,38 @@ export default function StudioPage() {
         </p>
       </div>
 
-      {/* Main Studio Interface */}
+      {/* Access Gate: Mandatory Login for Studio */}
       <div className="max-w-7xl mx-auto">
-        <div className="p-1 rounded-[3rem] bg-gradient-to-br from-primary/20 via-transparent to-primary/5 border border-primary/10 shadow-2xl relative overflow-hidden">
-          <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none" />
-          <div className="bg-card/40 backdrop-blur-xl rounded-[2.9rem] overflow-hidden relative z-10">
-            <SargamStudio />
+        {isUserLoading ? (
+          <div className="h-[600px] flex flex-col items-center justify-center bg-card/20 rounded-[3rem] border border-dashed border-primary/20">
+            <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin mb-4" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Authenticating Studio Session...</p>
           </div>
-        </div>
+        ) : !user || user.isAnonymous ? (
+          <div className="h-[600px] flex flex-col items-center justify-center bg-card/20 backdrop-blur-xl rounded-[3rem] border border-primary/10 p-12 text-center space-y-8 animate-in fade-in duration-700">
+            <div className="h-24 w-24 rounded-[2rem] bg-primary/10 flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
+              <Lock className="h-10 w-10 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-3xl font-bold font-headline">Neural Studio Locked</h2>
+              <p className="text-muted-foreground max-w-md mx-auto italic">
+                Cinematic video synthesis requires high computational intensity. Please log in to manage your rendering projects and history.
+              </p>
+            </div>
+            <Button asChild size="lg" className="h-14 px-10 rounded-2xl font-black text-lg">
+              <Link href="/login">
+                <LogIn className="mr-2 h-5 w-5" /> Sign In to Render
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="p-1 rounded-[3rem] bg-gradient-to-br from-primary/20 via-transparent to-primary/5 border border-primary/10 shadow-2xl relative overflow-hidden">
+            <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none" />
+            <div className="bg-card/40 backdrop-blur-xl rounded-[2.9rem] overflow-hidden relative z-10">
+              <SargamStudio />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Info Section */}

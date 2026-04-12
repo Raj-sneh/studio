@@ -6,14 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AIComposer } from '@/components/suite/AIComposer';
 import { VocalStudio } from '@/components/suite/VocalStudio';
 import { VoiceCloner } from '@/components/suite/VoiceCloner';
-import { Music, Mic, UserRoundPlus, AlertCircle, LogIn } from 'lucide-react';
+import { Music, Mic, UserRoundPlus, AlertCircle, LogIn, Lock, Sparkles } from 'lucide-react';
 import { useUser } from '@/firebase';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 /**
  * Defines the available tabs for music-specific tools.
- * Removed BGM Composer as requested.
  */
 const TABS = [
     { value: 'composer', label: 'Melody Maker', icon: Music },
@@ -23,26 +22,65 @@ const TABS = [
 
 /**
  * The unified UI for the AI Music Creative Studio.
- * Allows users to compose melodies, transform vocals, or clone voices.
+ * Enforces mandatory login for all neural features.
  */
 export function SargamSuite() {
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     const searchParams = useSearchParams();
     const requestedTab = searchParams.get('tab');
     const initialPrompt = searchParams.get('prompt');
     const autogen = searchParams.get('autogen') === 'true';
 
-    // Initialize the active tab from URL or default to the first tab.
     const [activeTab, setActiveTab] = useState(requestedTab && TABS.some(t => t.value === requestedTab) ? requestedTab : TABS[0].value);
 
-    // Sync tab state with URL changes.
     useEffect(() => {
         if (requestedTab && TABS.some(t => t.value === requestedTab)) {
             setActiveTab(requestedTab);
         }
     }, [requestedTab]);
 
-    const isGuest = user?.isAnonymous;
+    if (isUserLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
+                <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Synchronizing Neural State...</p>
+            </div>
+        );
+    }
+
+    // Access Gate: Guest Mode (Anonymous) has NO ACCESS to tools.
+    if (!user || user.isAnonymous) {
+        return (
+            <div className="max-w-xl mx-auto py-20 px-6 text-center space-y-8 animate-in fade-in zoom-in-95 duration-500">
+                <div className="relative inline-block">
+                    <div className="h-24 w-24 rounded-[2rem] bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto shadow-2xl shadow-primary/10">
+                        <Lock className="h-10 w-10 text-primary" />
+                    </div>
+                    <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-background border border-primary/30 flex items-center justify-center animate-pulse">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                    </div>
+                </div>
+                
+                <div className="space-y-3">
+                    <h2 className="text-3xl font-bold font-headline tracking-tight">Access Restricted</h2>
+                    <p className="text-muted-foreground leading-relaxed italic">
+                        The AI Music Suite contains advanced neural research tools. To prevent misuse and secure your credits, you must create a permanent account to continue.
+                    </p>
+                </div>
+
+                <div className="pt-4 flex flex-col gap-3">
+                    <Button asChild size="lg" className="h-14 rounded-2xl font-black text-lg shadow-xl shadow-primary/30">
+                        <Link href="/login">
+                            <LogIn className="mr-2 h-5 w-5" /> Sign In to Unlock
+                        </Link>
+                    </Button>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                        Email • Phone • Google Authentication
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-16 pb-20">
@@ -53,26 +91,6 @@ export function SargamSuite() {
                         Create unique piano melodies with reinforcement learning or transform vocals using neural research tools.
                     </p>
                 </div>
-
-                {/* Guest Mode Banner */}
-                {isGuest && (
-                    <div className="max-w-4xl mx-auto p-4 rounded-2xl bg-primary/5 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top duration-500">
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                <AlertCircle className="h-5 w-5 text-primary" />
-                            </div>
-                            <div className="text-left">
-                                <p className="text-sm font-bold text-foreground">You are in Guest Mode</p>
-                                <p className="text-xs text-muted-foreground">Sign in to save your melodies and research history permanently.</p>
-                            </div>
-                        </div>
-                        <Button asChild variant="outline" size="sm" className="rounded-full px-6">
-                            <Link href="/login">
-                                <LogIn className="mr-2 h-4 w-4" /> Login Now
-                            </Link>
-                        </Button>
-                    </div>
-                )}
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-6xl mx-auto">
                     <div className="flex justify-center mb-12">
@@ -102,7 +120,6 @@ export function SargamSuite() {
                         {activeTab === 'singer' && (
                             <VocalStudio 
                                 initialPrompt={initialPrompt}
-                                autogen={autogen}
                                 onGenerate={() => {}}
                             />
                         )}

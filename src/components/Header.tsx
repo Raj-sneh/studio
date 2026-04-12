@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -23,7 +22,6 @@ const navLinks = [
 ];
 
 const GUEST_AVATAR_URL = "https://firebasestorage.googleapis.com/v0/b/studio-4164192500-df01a.firebasestorage.app/o/1000018646%5B1%5D.png?alt=media&token=2b2f8cea-03cd-477c-bc0d-88988246fdeb";
-const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com'];
 
 export default function Header() {
   const pathname = usePathname();
@@ -38,13 +36,8 @@ export default function Header() {
   const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
   const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
-  const adminRoleRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'roles_admin', user.uid) : null), [firestore, user?.uid]);
-  const { data: adminDoc } = useDoc(adminRoleRef);
-
-  const isAdmin = user?.email && (ADMIN_EMAILS.includes(user.email) || adminDoc);
-
-  // A robust check to see if the user is a "Guest" (Anonymous or no real email)
-  const isGuest = user && (user.isAnonymous || !user.email || user.email.includes('guest_'));
+  // Guest detection: Anonymous sessions are treated as "No Login"
+  const isGuest = user && user.isAnonymous;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -70,7 +63,7 @@ export default function Header() {
         <div className="bg-primary py-1.5 px-4 text-center border-b border-primary/20 shadow-[0_0_20px_rgba(0,255,255,0.2)]">
            <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-primary-foreground flex items-center justify-center gap-2">
              <Sparkles className="h-3 w-3 fill-current" />
-             Payment error solved! Now you can get credits.
+             Access AI Tools: Please log in to unlock the Neural Engine.
              <Sparkles className="h-3 w-3 fill-current" />
            </p>
         </div>
@@ -117,9 +110,9 @@ export default function Header() {
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
-                {/* Sign In Button for Guest Users - Positioned to the left of credits and avatar */}
+                {/* SIGN IN BUTTON AT LEFT OF GUEST: Forced visibility for anonymous artists */}
                 {isGuest && (
-                  <Button asChild variant="default" size="sm" className="font-bold rounded-full px-4 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                  <Button asChild variant="default" size="sm" className="font-bold rounded-full px-4 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 border border-primary/30">
                     <Link href="/login">
                       <LogIn className="mr-2 h-4 w-4" /> 
                       Sign In
@@ -151,7 +144,7 @@ export default function Header() {
                     <div className="absolute right-0 mt-3 w-56 rounded-xl border bg-card/95 backdrop-blur-md p-1.5 shadow-2xl z-50">
                       <div className="px-3 py-2 text-sm font-semibold border-b mb-1 flex flex-col">
                         <span className="truncate flex items-center gap-2">
-                          {profile?.displayName || "User"}
+                          {isGuest ? "Guest Artist" : (profile?.displayName || "User")}
                           {profile?.plan && profile.plan !== 'free' && <ShieldCheck className="h-3 w-3 text-primary" />}
                         </span>
                         <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{profile?.plan || 'Free'} Plan</span>
