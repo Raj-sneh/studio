@@ -4,9 +4,9 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * MASTER ARCHITECT SECURITY PROTOCOL
-     * Absolute authority for 'snehkumarverma2011@gmail.com'.
-     * Updated: Protocol v2.3 (Explicit List Authorization)
+     * MASTER ARCHITECT SECURITY PROTOCOL v3.0
+     * Authority: 'snehkumarverma2011@gmail.com'
+     * Last Sync: 2024-05-20
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
@@ -44,9 +44,8 @@ service cloud.firestore {
     }
 
     match /admin_notices/{noticeId} {
-      // Explicitly allow both individual reads and collection listing for verified users.
-      // This supports the query: where('active', '==', true).orderBy('createdAt', 'desc')
-      allow get, list: if isSignedIn();
+      // Explicitly allow reading notices for all verified accounts to support the broadcast system.
+      allow read: if isSignedIn();
     }
 
     match /global_settings/{docId} {

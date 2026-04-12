@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils';
 /**
  * @fileOverview A high-visibility administrative banner that appears at the top of the app.
  * Monitors the 'admin_notices' collection for active broadcasts.
- * Strictly gated to authenticated users only to avoid permission conflicts.
  */
 export default function UserNotice() {
   const { user, isFirebaseReady, isUserLoading } = useUser();
@@ -19,7 +18,6 @@ export default function UserNotice() {
   const [isVisible, setIsVisible] = useState(true);
   const [dismissedId, setDismissedId] = useState<string | null>(null);
 
-  // Load the ID of the last dismissed notice to prevent it from reappearing
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('sargam-dismissed-notice-id');
@@ -30,14 +28,13 @@ export default function UserNotice() {
   }, []);
 
   const noticeQuery = useMemoFirebase(() => {
-    // 🛡️ STABILITY PROTOCOL: Wait for Auth state to be fully verified before querying.
-    // Gated to real users only (No Anonymous/Guest mode for admin broadcasts).
+    // 🛡️ STABILITY PROTOCOL: Wait for Auth state to be fully verified.
+    // Gated to authenticated users only to prevent permission errors during logout/login transitions.
     if (!isFirebaseReady || isUserLoading || !firestore || !user || user.isAnonymous) {
       return null;
     }
     
     try {
-      // Explicitly querying for active notices
       return query(
         collection(firestore, 'admin_notices'),
         where('active', '==', true),
@@ -45,13 +42,10 @@ export default function UserNotice() {
         limit(1)
       );
     } catch (e) {
-      // Catch potential query errors (like missing indexes) without crashing the UI
-      console.warn("Notice Query Construction Paused:", e);
       return null;
     }
   }, [firestore, user, isFirebaseReady, isUserLoading]);
 
-  // useCollection handles the real-time listener and potential permission errors
   const { data: notices, error } = useCollection(noticeQuery);
   const activeNotice = notices?.[0];
 
@@ -63,15 +57,12 @@ export default function UserNotice() {
     setIsVisible(false);
   };
 
-  // Reset visibility when a NEW notice arrives (different ID)
   useEffect(() => {
     if (activeNotice && activeNotice.id !== dismissedId) {
       setIsVisible(true);
     }
   }, [activeNotice, dismissedId]);
 
-  // 🛡️ Guard: Only render if authenticated, has notice, and not dismissed
-  // We check user.uid to ensure we don't query for unauthenticated users
   if (!user || user.isAnonymous || error || !activeNotice || dismissedId === activeNotice.id || !isVisible) {
     return null;
   }
