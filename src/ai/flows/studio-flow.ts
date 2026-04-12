@@ -1,7 +1,7 @@
 'use server';
 /**
- * @fileOverview Sargam Studio AI Animation Flow - High-Fidelity Veo 3 Edition.
- * Optimized for professional aesthetics, integrated sound, and watermark mitigation.
+ * @fileOverview Sargam Studio AI Animation Flow - Stable Veo 2.0 Edition.
+ * Optimized for reliability, professional aesthetics, and watermark mitigation.
  */
 
 import { ai } from '@/ai/genkit';
@@ -49,7 +49,6 @@ export const studioFlow = ai.defineFlow(
     - ABSOLUTELY NO watermarks, logos, text overlays, or trademarked characters.
     - NO real-world celebrities or public figures.
     - PEOPLE PROTOCOL: The engine utilizes 'allow_adult'. DO NOT use words like 'child', 'boy', 'girl', 'kid', 'young'. Instead, use 'protagonist', 'individual', or 'explorer'.
-    - SOUND PROTOCOL: Describe the auditory atmosphere (e.g., 'gentle wind rustling leaves', 'soft orchestral score') to guide the neural sound engine.
     - STYLE: ${specificStyleGuide}.
     
     Return ONLY the synthesized paragraph.`;
@@ -59,15 +58,16 @@ export const studioFlow = ai.defineFlow(
       prompt: directorPrompt,
     });
 
-    const fullPrompt = `${masterPrompt}. High-quality visual production, no watermarks, professional sound integration.`;
+    const fullPrompt = `${masterPrompt}. High-quality visual production, no watermarks.`;
 
-    // Using Veo 3.0 for High-Fidelity Rendering with Sound
+    // Using Veo 2.0 for Stable Rendering
     let { operation } = await ai.generate({
-      model: 'googleai/veo-3.0-generate-preview',
+      model: 'googleai/veo-2.0-generate-001',
       prompt: fullPrompt,
       config: {
+        durationSeconds: 5,
         aspectRatio: '16:9',
-        personGeneration: 'allow_all', // Veo 3 supports allow_all
+        personGeneration: 'allow_adult', // Veo 2 requirement
       },
     });
 
@@ -105,7 +105,7 @@ export const studioFlow = ai.defineFlow(
 
     return {
       videoUrl: `data:video/mp4;base64,${base64Video}`,
-      description: `Narrative synthesized with Veo 3.0 High-Fidelity Protocol.`,
+      description: `Narrative synthesized with Veo 2.0 Stable Protocol.`,
       finalSynthesizedPrompt: masterPrompt,
     };
   }
