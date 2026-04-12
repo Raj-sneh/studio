@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
  * Monitors the 'admin_notices' collection for active broadcasts.
  */
 export default function UserNotice() {
-  const { user, isFirebaseReady, isUserLoading } = useUser();
+  const { isFirebaseReady, isUserLoading } = useUser();
   const firestore = useFirestore();
   
   const [isVisible, setIsVisible] = useState(true);
@@ -27,8 +27,8 @@ export default function UserNotice() {
   }, []);
 
   const noticeQuery = useMemoFirebase(() => {
-    // 🛡️ STABILITY PROTOCOL: Wait for Auth state to be fully verified.
-    // We delay the query until Firebase is ready to avoid permission errors during the initial handshake.
+    // 🛡️ STABILITY PROTOCOL: Wait for Firebase and Auth state to settle.
+    // We delay the query until the initial handshake is complete to avoid permission flux.
     if (!isFirebaseReady || isUserLoading || !firestore) {
       return null;
     }
@@ -41,7 +41,7 @@ export default function UserNotice() {
         limit(1)
       );
     } catch (e) {
-      console.warn("Notice query construction delayed.");
+      console.warn("Notice query construction paused.");
       return null;
     }
   }, [firestore, isFirebaseReady, isUserLoading]);
