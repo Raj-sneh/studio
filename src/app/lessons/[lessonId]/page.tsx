@@ -8,13 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, AlertCircle, ChevronLeft, RefreshCw, Play, BookOpen, StopCircle } from 'lucide-react';
+import { Loader2, AlertCircle, RefreshCw, Play, BookOpen, StopCircle } from 'lucide-react';
 import { LESSONS } from '@/lib/lessons';
 import type { Instrument, LessonNote } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import NoteDisplay from '@/components/note-display';
 import { getSampler, type CachedSampler } from '@/lib/samplers';
 import Piano from '@/components/Piano';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection, serverTimestamp } from 'firebase/firestore';
 
 function InstrumentLoader({ instrument }: { instrument?: Instrument }) {
   return (
@@ -34,6 +36,8 @@ export default function LessonPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   const [lesson, setLesson] = useState(LESSONS[0]);
   const [isClient, setIsClient] = useState(false);
@@ -255,6 +259,25 @@ export default function LessonPage() {
       setStatusText('Stopped.');
   };
 
+  const handleReport = (type: string) => {
+    if (!user || !firestore) {
+      toast({ title: "Login required", description: "Please sign in to report issues.", variant: "destructive" });
+      return;
+    }
+    
+    const reportsRef = collection(firestore, 'reports');
+    addDocumentNonBlocking(reportsRef, {
+      userId: user.uid,
+      lessonId: params.lessonId,
+      type,
+      status: 'pending',
+      createdAt: serverTimestamp()
+    });
+
+    toast({ title: "Report Sent", description: "Thank you for helping us improve Sargam AI!" });
+    setIsReportMenuOpen(false);
+  };
+
   const lessonNoteStringsForDisplay = useMemo(() => sortedNotes.map(n => Array.isArray(n.key) ? n.key.join(' + ') : n.key), [sortedNotes]);
   const highlightedKeysForLearn = currentNote?.key ? (Array.isArray(currentNote.key) ? currentNote.key : [currentNote.key]) : [];
   
@@ -339,9 +362,10 @@ export default function LessonPage() {
             <DialogTitle>Something wrong?</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Button variant="outline" className="w-full justify-start" onClick={() => setIsReportMenuOpen(false)}>Incorrect Notes</Button>
-            <Button variant="outline" className="w-full justify-start" onClick={() => setIsReportMenuOpen(false)}>Audio Glitches</Button>
-            <Button variant="outline" className="w-full justify-start" onClick={() => setIsReportMenuOpen(false)}>Other</Button>
+            <Button variant="outline" className="w-full justify-start" onClick={() => handleReport('Incorrect Notes')}>Incorrect Notes</Button>
+            <Button variant="outline" className="w-full justify-start" onClick={() => handleReport('Audio Glitches')}>Audio Glitches</Button>
+            <Button variant="outline" className="w-full justify-start" onClick={() => handleReport('UI Bug')}>Interface Bug</Button>
+            <Button variant="outline" className="w-full justify-start" onClick={() => handleReport('Other')}>Other Feedback</Button>
           </div>
         </DialogContent>
       </Dialog>

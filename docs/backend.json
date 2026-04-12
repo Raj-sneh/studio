@@ -57,6 +57,31 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["message", "active", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Records of system or user actions for security and tracking.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["action", "timestamp"]
+    },
+    "UserReport": {
+      "title": "UserReport",
+      "description": "A report submitted by a user regarding an issue or feedback.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "type": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "reviewed", "resolved"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "status", "createdAt"]
     }
   },
   "auth": {
@@ -82,6 +107,14 @@
     "/admin_notices/{noticeId}": {
       "schema": { "$ref": "#/backend/entities/AdminNotice" },
       "description": "Global administrative broadcast messages."
+    },
+    "/audit_logs/{logId}": {
+      "schema": { "$ref": "#/backend/entities/AuditLog" },
+      "description": "System-wide activity and security logs."
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/backend/entities/UserReport" },
+      "description": "User feedback and issue reports."
     }
   }
 }
