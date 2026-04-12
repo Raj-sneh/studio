@@ -3,9 +3,9 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * MASTER ARCHITECT SECURITY PROTOCOL v6.0
+     * MASTER ARCHITECT SECURITY PROTOCOL v7.0
      * Authority: 'snehkumarverma2011@gmail.com'
-     * Status: Deployment Synchronized
+     * Last Sync: 2024-05-20 (Force Redeploy - Protocol Active)
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
@@ -32,6 +32,13 @@ service cloud.firestore {
       allow read, write: if isMasterAdmin();
     }
 
+    // --- SYSTEM BROADCASTS (Public Visibility) ---
+    match /admin_notices/{noticeId} {
+      // Essential for the message system: System broadcasts must be publicly readable
+      // to prevent "Early Query" permission errors during session initialization.
+      allow read, list: if true;
+    }
+
     // --- USER PROFILE RULES ---
     match /users/{userId} {
       allow get, update: if isOwner(userId);
@@ -45,12 +52,6 @@ service cloud.firestore {
     // --- PUBLIC & SHARED COLLECTIONS ---
     match /lessons/{lessonId} {
       allow read: if true; // Public access for tutorials
-    }
-
-    match /admin_notices/{noticeId} {
-      // Essential for the message system: System broadcasts must be publicly readable
-      // to prevent "Early Query" permission errors during session initialization.
-      allow read, list: if true;
     }
 
     match /global_settings/{docId} {
