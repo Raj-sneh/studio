@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 const emailFormSchema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -54,9 +55,14 @@ export default function LoginPage() {
   const auth = useAuth();
   const { toast } = useToast();
 
+  const [mounted, setMounted] = useState(false);
   const [tab, setTab] = useState<'email' | 'phone'>('email');
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const emailForm = useForm<z.infer<typeof emailFormSchema>>({
     resolver: zodResolver(emailFormSchema),
@@ -108,7 +114,6 @@ export default function LoginPage() {
   const handleForgotPassword = async () => {
     const email = emailForm.getValues('email');
     
-    // Explicit validation check for reset
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toast({ 
         title: "Email Required", 
@@ -201,6 +206,14 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-[#070019] flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#070019] text-white flex items-center justify-center px-4 py-10">
