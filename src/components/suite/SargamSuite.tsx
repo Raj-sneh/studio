@@ -48,8 +48,8 @@ export function SargamSuite() {
         );
     }
 
-    // Access Gate: Guest Mode (Anonymous) has NO ACCESS to tools.
-    if (!user || user.isAnonymous) {
+    // Access Gate: Mandatory Login Required.
+    if (!user) {
         return (
             <div className="max-w-xl mx-auto py-20 px-6 text-center space-y-8 animate-in fade-in zoom-in-95 duration-500">
                 <div className="relative inline-block">
@@ -62,9 +62,9 @@ export function SargamSuite() {
                 </div>
                 
                 <div className="space-y-3">
-                    <h2 className="text-3xl font-bold font-headline tracking-tight">Access Restricted</h2>
+                    <h2 className="text-3xl font-bold font-headline tracking-tight">Login Required</h2>
                     <p className="text-muted-foreground leading-relaxed italic">
-                        The AI Music Suite contains advanced neural research tools. To prevent misuse and secure your credits, you must create a permanent account to continue.
+                        The AI Music Suite contains advanced neural research tools. Please sign in to your permanent account to continue and manage your research credits.
                     </p>
                 </div>
 

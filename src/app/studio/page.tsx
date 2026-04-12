@@ -32,7 +32,7 @@ export default function StudioPage() {
             <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin mb-4" />
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Authenticating Studio Session...</p>
           </div>
-        ) : !user || user.isAnonymous ? (
+        ) : !user ? (
           <div className="h-[600px] flex flex-col items-center justify-center bg-card/20 backdrop-blur-xl rounded-[3rem] border border-primary/10 p-12 text-center space-y-8 animate-in fade-in duration-700">
             <div className="h-24 w-24 rounded-[2rem] bg-primary/10 flex items-center justify-center mx-auto border border-primary/20 shadow-2xl">
               <Lock className="h-10 w-10 text-primary" />
@@ -40,7 +40,7 @@ export default function StudioPage() {
             <div className="space-y-2">
               <h2 className="text-3xl font-bold font-headline">Neural Studio Locked</h2>
               <p className="text-muted-foreground max-w-md mx-auto italic">
-                Cinematic video synthesis requires high computational intensity. Please log in to manage your rendering projects and history.
+                Cinematic video synthesis requires high computational intensity and verified identity. Please log in to your permanent account to manage your rendering projects and history.
               </p>
             </div>
             <Button asChild size="lg" className="h-14 px-10 rounded-2xl font-black text-lg">

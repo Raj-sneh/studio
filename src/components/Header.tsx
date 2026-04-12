@@ -36,9 +36,6 @@ export default function Header() {
   const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
   const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
-  // Guest detection: Anonymous sessions are treated as "No Login"
-  const isGuest = user && user.isAnonymous;
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -60,13 +57,15 @@ export default function Header() {
     <div className="w-full flex flex-col">
       <header className="sticky top-0 z-50 w-full border-b border-border/10 bg-background/80 backdrop-blur-md">
         {/* Announcement Banner */}
-        <div className="bg-primary py-1.5 px-4 text-center border-b border-primary/20 shadow-[0_0_20px_rgba(0,255,255,0.2)]">
-           <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-primary-foreground flex items-center justify-center gap-2">
-             <Sparkles className="h-3 w-3 fill-current" />
-             Access AI Tools: Please log in to unlock the Neural Engine.
-             <Sparkles className="h-3 w-3 fill-current" />
-           </p>
-        </div>
+        {!user && (
+          <div className="bg-primary py-1.5 px-4 text-center border-b border-primary/20 shadow-[0_0_20px_rgba(0,255,255,0.2)]">
+             <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-primary-foreground flex items-center justify-center gap-2">
+               <Sparkles className="h-3 w-3 fill-current" />
+               Access AI Tools: Please log in to unlock the Neural Engine.
+               <Sparkles className="h-3 w-3 fill-current" />
+             </p>
+          </div>
+        )}
 
         <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
           <div className="flex items-center gap-2">
@@ -110,16 +109,6 @@ export default function Header() {
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
-                {/* SIGN IN BUTTON AT LEFT OF GUEST: Forced visibility for anonymous artists */}
-                {isGuest && (
-                  <Button asChild variant="default" size="sm" className="font-bold rounded-full px-4 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 border border-primary/30">
-                    <Link href="/login">
-                      <LogIn className="mr-2 h-4 w-4" /> 
-                      Sign In
-                    </Link>
-                  </Button>
-                )}
-
                 <Link 
                   href="/pricing" 
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 shadow-sm transition-all hover:bg-primary/20 hover:scale-105 active:scale-95"
@@ -144,7 +133,7 @@ export default function Header() {
                     <div className="absolute right-0 mt-3 w-56 rounded-xl border bg-card/95 backdrop-blur-md p-1.5 shadow-2xl z-50">
                       <div className="px-3 py-2 text-sm font-semibold border-b mb-1 flex flex-col">
                         <span className="truncate flex items-center gap-2">
-                          {isGuest ? "Guest Artist" : (profile?.displayName || "User")}
+                          {profile?.displayName || "Artist"}
                           {profile?.plan && profile.plan !== 'free' && <ShieldCheck className="h-3 w-3 text-primary" />}
                         </span>
                         <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{profile?.plan || 'Free'} Plan</span>

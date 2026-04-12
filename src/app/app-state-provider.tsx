@@ -1,11 +1,9 @@
-
 'use client';
 
 import { useEffect, type ReactNode, useState, useRef } from 'react';
 import {
   useAuth,
   useUser,
-  initiateAnonymousSignIn,
   useFirestore,
   setDocumentNonBlocking,
 } from '@/firebase';
@@ -24,7 +22,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const [isWelcomeModalOpen, setWelcomeModalOpen] = useState(false);
   const [isSavingName, setIsSavingName] = useState(false);
-  const isInitialSignInRef = useRef(false);
 
   const handleSaveName = async (newName: string) => {
     if (!user || !firestore) return;
@@ -105,8 +102,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
              const isKhushi = user.email === 'khushiswayamshreesahoo@gmail.com';
              const userData = {
               id: user.uid,
-              displayName: user.displayName || 'Guest User',
-              email: user.email || `guest_${user.uid}@example.com`,
+              displayName: user.displayName || 'New Artist',
+              email: user.email || '',
               avatarUrl: user.photoURL || GUEST_AVATAR_URL,
               credits: isKhushi ? 3000 : INITIAL_CREDITS,
               plan: isKhushi ? 'pro' : 'free',
@@ -125,12 +122,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         } catch (e) {
           console.warn("Session retrieval failed:", e);
         }
-      } else if (!isInitialSignInRef.current) {
-        isInitialSignInRef.current = true;
-        initiateAnonymousSignIn(auth).catch((err) => {
-          console.error("Anonymous sign-in failed:", err);
-          setTimeout(() => { isInitialSignInRef.current = false; }, 2000);
-        });
       }
     };
 
