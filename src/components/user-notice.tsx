@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -29,8 +28,8 @@ export default function UserNotice() {
 
   const noticeQuery = useMemoFirebase(() => {
     // 🛡️ STABILITY PROTOCOL: Wait for Auth state to be fully verified.
-    // Gated to authenticated users only to prevent permission errors during logout/login transitions.
-    if (!isFirebaseReady || isUserLoading || !firestore || !user || user.isAnonymous) {
+    // We delay the query until Firebase is ready to avoid permission errors during the initial handshake.
+    if (!isFirebaseReady || isUserLoading || !firestore) {
       return null;
     }
     
@@ -42,9 +41,10 @@ export default function UserNotice() {
         limit(1)
       );
     } catch (e) {
+      console.warn("Notice query construction delayed.");
       return null;
     }
-  }, [firestore, user, isFirebaseReady, isUserLoading]);
+  }, [firestore, isFirebaseReady, isUserLoading]);
 
   const { data: notices, error } = useCollection(noticeQuery);
   const activeNotice = notices?.[0];
@@ -63,7 +63,8 @@ export default function UserNotice() {
     }
   }, [activeNotice, dismissedId]);
 
-  if (!user || user.isAnonymous || error || !activeNotice || dismissedId === activeNotice.id || !isVisible) {
+  // If there's an error (like permission denied during transition), we hide the banner silently
+  if (error || !activeNotice || dismissedId === activeNotice.id || !isVisible) {
     return null;
   }
 
