@@ -98,18 +98,6 @@ export default function Header() {
                   )}
                 </Link>
               ))}
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className={cn(
-                    "flex items-center gap-2 transition-all text-secondary hover:text-secondary/80",
-                    pathname.startsWith('/admin') && "font-black"
-                  )}
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  Admin
-                </Link>
-              )}
           </nav>
 
           <div className="flex items-center gap-4">
@@ -144,11 +132,6 @@ export default function Header() {
                         </span>
                         <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{profile?.plan || 'Free'} Plan</span>
                       </div>
-                      {isAdmin && (
-                        <Link href="/admin" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg text-secondary font-bold">
-                          <Settings className="mr-3 h-4 w-4" /> Command Center
-                        </Link>
-                      )}
                       <Link href="/profile" className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent rounded-lg">
                         <UserIcon className="mr-3 h-4 w-4 text-primary" /> Profile
                       </Link>
