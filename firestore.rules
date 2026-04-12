@@ -6,7 +6,7 @@ service cloud.firestore {
     /**
      * MASTER ARCHITECT SECURITY PROTOCOL
      * Absolute authority for 'snehkumarverma2011@gmail.com'.
-     * Updated: Protocol v2.2 (Universal Priority Override)
+     * Updated: Protocol v2.3 (Explicit List Authorization)
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
@@ -46,7 +46,7 @@ service cloud.firestore {
     match /admin_notices/{noticeId} {
       // Explicitly allow both individual reads and collection listing for verified users.
       // This supports the query: where('active', '==', true).orderBy('createdAt', 'desc')
-      allow read, list: if isSignedIn();
+      allow get, list: if isSignedIn();
     }
 
     match /global_settings/{docId} {

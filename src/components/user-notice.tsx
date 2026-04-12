@@ -37,6 +37,7 @@ export default function UserNotice() {
     }
     
     try {
+      // Explicitly querying for active notices
       return query(
         collection(firestore, 'admin_notices'),
         where('active', '==', true),
@@ -70,6 +71,7 @@ export default function UserNotice() {
   }, [activeNotice, dismissedId]);
 
   // 🛡️ Guard: Only render if authenticated, has notice, and not dismissed
+  // We check user.uid to ensure we don't query for unauthenticated users
   if (!user || user.isAnonymous || error || !activeNotice || dismissedId === activeNotice.id || !isVisible) {
     return null;
   }
