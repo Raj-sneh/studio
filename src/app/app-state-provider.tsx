@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, type ReactNode, useState, useRef } from 'react';
+import { useEffect, type ReactNode, useState } from 'react';
 import {
   useAuth,
   useUser,
@@ -58,7 +58,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     if (!isFirebaseReady || !auth || !firestore) return;
 
     const handleUserSession = async () => {
-      if (user) {
+      // Only handle real authenticated users. Guest Mode is fully disabled.
+      if (user && !user.isAnonymous) {
         syncCreditsWithBackend(user.uid);
 
         const userDocRef = doc(firestore, 'users', user.uid);
@@ -92,7 +93,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
             }
 
             if (
-              (userProfile.displayName === 'Guest User' || userProfile.displayName === 'New User') &&
+              (userProfile.displayName === 'New User' || !userProfile.displayName) &&
               !sessionStorage.getItem('welcomeModalShown')
             ) {
               setWelcomeModalOpen(true);

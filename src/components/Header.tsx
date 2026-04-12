@@ -21,8 +21,6 @@ const navLinks = [
   { href: "/blog", label: "Learn", icon: GraduationCap },
 ];
 
-const GUEST_AVATAR_URL = "https://firebasestorage.googleapis.com/v0/b/studio-4164192500-df01a.firebasestorage.app/o/1000018646%5B1%5D.png?alt=media&token=2b2f8cea-03cd-477c-bc0d-88988246fdeb";
-
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
@@ -33,7 +31,10 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
+  // Strict User Check: Exclude anonymous guest accounts
+  const isAuthenticated = user && !user.isAnonymous;
+
+  const userDocRef = useMemoFirebase(() => (firestore && isAuthenticated ? doc(firestore, 'users', user.uid) : null), [firestore, isAuthenticated, user?.uid]);
   const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
@@ -56,12 +57,12 @@ export default function Header() {
   return (
     <div className="w-full flex flex-col">
       <header className="sticky top-0 z-50 w-full border-b border-border/10 bg-background/80 backdrop-blur-md">
-        {/* Announcement Banner */}
-        {!user && (
+        {/* Announcement Banner for Unauthenticated Users */}
+        {!isAuthenticated && (
           <div className="bg-primary py-1.5 px-4 text-center border-b border-primary/20 shadow-[0_0_20px_rgba(0,255,255,0.2)]">
              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-primary-foreground flex items-center justify-center gap-2">
                <Sparkles className="h-3 w-3 fill-current" />
-               Access AI Tools: Please log in to unlock the Neural Engine.
+               Access AI Tools: Please sign in to unlock the Neural Engine.
                <Sparkles className="h-3 w-3 fill-current" />
              </p>
           </div>
@@ -107,7 +108,7 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-4">
-            {user ? (
+            {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <Link 
                   href="/pricing" 
@@ -123,7 +124,7 @@ export default function Header() {
                 <div className="relative" ref={menuRef}>
                   <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center gap-2">
                     <Avatar className="h-9 w-9 border-2 border-primary/20 hover:border-primary/50 transition-colors">
-                      <AvatarImage src={user.photoURL || profile?.avatarUrl || GUEST_AVATAR_URL} className="object-cover" />
+                      <AvatarImage src={user.photoURL || profile?.avatarUrl} className="object-cover" />
                       <AvatarFallback><UserIcon className="h-5 w-5" /></AvatarFallback>
                     </Avatar>
                     <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform hidden sm:block", isMenuOpen && "rotate-180")} />

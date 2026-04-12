@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AIComposer } from '@/components/suite/AIComposer';
 import { VocalStudio } from '@/components/suite/VocalStudio';
 import { VoiceCloner } from '@/components/suite/VoiceCloner';
-import { Music, Mic, UserRoundPlus, AlertCircle, LogIn, Lock, Sparkles } from 'lucide-react';
+import { Music, Mic, UserRoundPlus, LogIn, Lock, Sparkles } from 'lucide-react';
 import { useUser } from '@/firebase';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,9 @@ export function SargamSuite() {
     const initialPrompt = searchParams.get('prompt');
     const autogen = searchParams.get('autogen') === 'true';
 
+    // Check if real authentication is present
+    const isAuthenticated = user && !user.isAnonymous;
+
     const [activeTab, setActiveTab] = useState(requestedTab && TABS.some(t => t.value === requestedTab) ? requestedTab : TABS[0].value);
 
     useEffect(() => {
@@ -49,7 +52,7 @@ export function SargamSuite() {
     }
 
     // Access Gate: Mandatory Login Required.
-    if (!user) {
+    if (!isAuthenticated) {
         return (
             <div className="max-w-xl mx-auto py-20 px-6 text-center space-y-8 animate-in fade-in zoom-in-95 duration-500">
                 <div className="relative inline-block">
