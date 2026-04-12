@@ -28,6 +28,7 @@ export default function UserNotice() {
 
   const noticeQuery = useMemoFirebase(() => {
     // 🛡️ STABILITY PROTOCOL: Wait for Firebase and Auth state before querying
+    // This prevents permission errors during initial load
     if (!isFirebaseReady || !firestore || !user || user.isAnonymous) return null;
     
     return query(
