@@ -2,16 +2,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 /**
  * @fileOverview A background listener component that monitors the 'admin_notices' collection.
- * When a new active notice is detected, it surfaces it to the user via a toast notification.
+ * Restricted to authenticated users only to align with the app's strict access policy.
  */
 export default function UserNotice() {
   const { toast } = useToast();
+  const { user } = useUser();
   const firestore = useFirestore();
   
   // Track seen notices in local storage to prevent duplicate alerts on refresh
@@ -29,7 +30,10 @@ export default function UserNotice() {
   }, []);
 
   const noticeQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    // Only query if firestore is ready and a verified user is logged in
+    // This prevents "auth: null" permission errors for guests
+    if (!firestore || !user || user.isAnonymous) return null;
+    
     // Listen for the most recent active administrative broadcast
     return query(
       collection(firestore, 'admin_notices'),
@@ -37,7 +41,7 @@ export default function UserNotice() {
       orderBy('createdAt', 'desc'),
       limit(1)
     );
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: notices } = useCollection(noticeQuery);
 

@@ -55,7 +55,7 @@ service cloud.firestore {
     }
 
     match /admin_notices/{noticeId} {
-      allow get, list: if true;
+      allow get, list: if isSignedIn();
       allow create, update, delete: if isAdmin();
     }
 
