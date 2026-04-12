@@ -5,7 +5,8 @@ service cloud.firestore {
 
     /**
      * MASTER ARCHITECT SECURITY PROTOCOL
-     * Implements absolute authority for the primary developer and strict ownership for users.
+     * Absolute authority for 'snehkumarverma2011@gmail.com'.
+     * Updated: Protocol v2.1 (Explicit List Authorization)
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
@@ -14,7 +15,6 @@ service cloud.firestore {
     }
 
     function isMasterAdmin() {
-      // Grants absolute authority to the primary developer email address
       return isSignedIn() && request.auth.token.email == 'snehkumarverma2011@gmail.com';
     }
 
@@ -23,20 +23,16 @@ service cloud.firestore {
     }
 
     // --- MASTER ARCHITECT OVERRIDE ---
-    // This allows the primary developer to manage any document in any collection without restriction.
-    // It is positioned at the top to act as an override.
+    // Grants absolute authority to the primary developer across all collections.
     match /{allPaths=**} {
       allow read, write: if isMasterAdmin();
     }
 
     // --- USER PROFILE RULES ---
     match /users/{userId} {
-      // Users can only read/edit their own profiles (credits, etc.)
       allow get, update: if isOwner(userId);
-      // New users can create their initial profile
       allow create: if isSignedIn();
 
-      // Access to sub-collections like 'history', 'clonedVoices', etc.
       match /{allSubcollections=**} {
         allow read, write: if isOwner(userId);
       }
@@ -44,27 +40,24 @@ service cloud.firestore {
 
     // --- PUBLIC & SHARED COLLECTIONS ---
     match /lessons/{lessonId} {
-      allow read: if true; // Public access for interactive tutorials
+      allow read: if true;
     }
 
     match /admin_notices/{noticeId} {
-      // Essential for the message system: Authenticated users can list/read broadcasts
-      allow read: if isSignedIn();
+      // Explicitly allow both individual reads and collection listing for verified users.
+      allow read, list: if isSignedIn();
     }
 
     match /global_settings/{docId} {
-      // Allows the app to check system-wide configuration
       allow read: if isSignedIn();
     }
 
     // --- PROTECTED ADMIN COLLECTIONS ---
     match /audit_logs/{logId} {
-      // Only the Master Admin can see the log of credit injections and activity
       allow read, write: if isMasterAdmin();
     }
 
     match /reports/{reportId} {
-      // Any authenticated user can submit a report, but only the Master Admin can review them
       allow create: if isSignedIn();
       allow read, delete: if isMasterAdmin();
     }

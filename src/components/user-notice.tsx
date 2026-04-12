@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
  * Monitors the 'admin_notices' collection for active broadcasts.
  */
 export default function UserNotice() {
-  const { user, isFirebaseReady } = useUser();
+  const { user, isFirebaseReady, isUserLoading } = useUser();
   const firestore = useFirestore();
   
   const [isVisible, setIsVisible] = useState(true);
@@ -20,24 +20,34 @@ export default function UserNotice() {
 
   // Load the ID of the last dismissed notice to prevent it from reappearing
   useEffect(() => {
-    const saved = localStorage.getItem('sargam-dismissed-notice-id');
-    if (saved) {
-      setDismissedId(saved);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sargam-dismissed-notice-id');
+      if (saved) {
+        setDismissedId(saved);
+      }
     }
   }, []);
 
   const noticeQuery = useMemoFirebase(() => {
-    // 🛡️ STABILITY PROTOCOL: Wait for Firebase and Auth state before querying
-    // This prevents permission errors during initial load
-    if (!isFirebaseReady || !firestore || !user || user.isAnonymous) return null;
+    // 🛡️ STABILITY PROTOCOL: Wait for Auth state to be fully verified before querying.
+    // Querying during the "isUserLoading" phase can lead to permission errors because
+    // the auth token isn't yet attached to the request.
+    if (!isFirebaseReady || isUserLoading || !firestore || !user || user.isAnonymous) {
+      return null;
+    }
     
-    return query(
-      collection(firestore, 'admin_notices'),
-      where('active', '==', true),
-      orderBy('createdAt', 'desc'),
-      limit(1)
-    );
-  }, [firestore, user, isFirebaseReady]);
+    try {
+      return query(
+        collection(firestore, 'admin_notices'),
+        where('active', '==', true),
+        orderBy('createdAt', 'desc'),
+        limit(1)
+      );
+    } catch (e) {
+      console.warn("Notice Query Construction Failed:", e);
+      return null;
+    }
+  }, [firestore, user, isFirebaseReady, isUserLoading]);
 
   const { data: notices } = useCollection(noticeQuery);
   const activeNotice = notices?.[0];
@@ -57,7 +67,10 @@ export default function UserNotice() {
     }
   }, [activeNotice, dismissedId]);
 
-  if (!activeNotice || dismissedId === activeNotice.id || !isVisible) return null;
+  // If user is not logged in or query isn't ready, don't render anything
+  if (!user || user.isAnonymous || !activeNotice || dismissedId === activeNotice.id || !isVisible) {
+    return null;
+  }
 
   return (
     <div 
