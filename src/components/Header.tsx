@@ -103,6 +103,13 @@ export default function Header() {
           <div className="flex items-center gap-4">
             {user && (
               <div className="flex items-center gap-3">
+                {/* Sign In Button for Guest Users */}
+                {user.isAnonymous && (
+                  <Button asChild variant="outline" size="sm" className="hidden sm:flex font-bold rounded-full px-4 border-primary/20 hover:bg-primary/10 transition-all">
+                    <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Sign In</Link>
+                  </Button>
+                )}
+
                 <Link 
                   href="/pricing" 
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 shadow-sm transition-all hover:bg-primary/20 hover:scale-105 active:scale-95"
