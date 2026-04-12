@@ -114,9 +114,9 @@ export default function Header() {
           <div className="flex items-center gap-4">
             {user && (
               <div className="flex items-center gap-3">
-                {/* Sign In Button for Guest Users */}
+                {/* Sign In Button for Guest Users - Always visible and at the left of profile */}
                 {user.isAnonymous && (
-                  <Button asChild variant="outline" size="sm" className="hidden sm:flex font-bold rounded-full px-4 border-primary/20 hover:bg-primary/10 transition-all">
+                  <Button asChild variant="outline" size="sm" className="font-bold rounded-full px-4 border-primary/20 hover:bg-primary/10 transition-all">
                     <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Sign In</Link>
                   </Button>
                 )}
