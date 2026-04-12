@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils';
 /**
  * @fileOverview A high-visibility administrative banner that appears at the top of the app.
  * Monitors the 'admin_notices' collection for active broadcasts.
- * Optimized for resilience against initial session race conditions.
  */
 export default function UserNotice() {
   const { user, isFirebaseReady, isUserLoading } = useUser();
@@ -29,7 +28,7 @@ export default function UserNotice() {
 
   const noticeQuery = useMemoFirebase(() => {
     // 🛡️ STABILITY PROTOCOL: Only fetch if user is logged in to prevent permission errors on boot.
-    if (!firestore || !user || !isFirebaseReady || isUserLoading) {
+    if (!firestore || !user || !user.uid || isFirebaseReady !== true) {
       return null;
     }
     
@@ -41,12 +40,18 @@ export default function UserNotice() {
         limit(1)
       );
     } catch (e) {
-      console.warn("Notice query construction paused.");
       return null;
     }
-  }, [firestore, user, isFirebaseReady, isUserLoading]);
+  }, [firestore, user, isFirebaseReady]);
 
   const { data: notices, error } = useCollection(noticeQuery);
+
+  // AUTH GUARD: Prevent rendering or log spam before session is established
+  if (!user || !user.uid || isFirebaseReady !== true) {
+    console.log("Waiting for Auth...");
+    return null;
+  }
+
   const activeNotice = notices?.[0];
 
   const handleDismiss = () => {
@@ -63,7 +68,6 @@ export default function UserNotice() {
     }
   }, [activeNotice, dismissedId]);
 
-  // Silently fail if there's an error to keep the user experience clean
   if (error || !activeNotice || dismissedId === activeNotice.id || !isVisible) {
     return null;
   }
