@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -34,6 +34,12 @@ export default function ProfilePage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const router = useRouter();
+
+    // Hydration fix: Prevent rendering until mounted
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
     const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
@@ -77,7 +83,7 @@ export default function ProfilePage() {
         }
     };
 
-    if (isProfileLoading) {
+    if (!mounted || isProfileLoading) {
         return (
             <div className="flex h-64 items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
