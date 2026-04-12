@@ -33,6 +33,9 @@ export const FirebaseProvider: React.FC<{
   auth, 
   firestore 
 }) => {
+  // DEBUG PROTOCOL: Log active project ID for connectivity audit
+  console.log("DEBUG: Connecting to Project ->", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+
   const [userAuthState, setUserAuthState] = useState<{ user: User | null; isUserLoading: boolean; userError: Error | null; }>({ 
     user: null, 
     isUserLoading: true, 
