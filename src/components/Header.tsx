@@ -43,6 +43,9 @@ export default function Header() {
 
   const isAdmin = user?.email && (ADMIN_EMAILS.includes(user.email) || adminDoc);
 
+  // A robust check to see if the user is a "Guest" (Anonymous or no real email)
+  const isGuest = user && (user.isAnonymous || !user.email || user.email.includes('guest_'));
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -112,12 +115,15 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-4">
-            {user && (
+            {user ? (
               <div className="flex items-center gap-3">
-                {/* Sign In Button for Guest Users - Always visible and at the left of profile */}
-                {user.isAnonymous && (
-                  <Button asChild variant="outline" size="sm" className="font-bold rounded-full px-4 border-primary/20 hover:bg-primary/10 transition-all">
-                    <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Sign In</Link>
+                {/* Sign In Button for Guest Users - Positioned to the left of credits and avatar */}
+                {isGuest && (
+                  <Button asChild variant="default" size="sm" className="font-bold rounded-full px-4 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                    <Link href="/login">
+                      <LogIn className="mr-2 h-4 w-4" /> 
+                      Sign In
+                    </Link>
                   </Button>
                 )}
 
@@ -166,9 +172,7 @@ export default function Header() {
                   )}
                 </div>
               </div>
-            )}
-            
-            {!user && (
+            ) : (
               <Button asChild variant="default" size="sm" className="font-bold rounded-full px-6 shadow-lg shadow-primary/20">
                 <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Sign In</Link>
               </Button>
