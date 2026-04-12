@@ -25,7 +25,7 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -57,12 +57,12 @@ export default function Header() {
   return (
     <div className="w-full flex flex-col">
       <header className="sticky top-0 z-50 w-full border-b border-border/10 bg-background/80 backdrop-blur-md">
-        {/* Announcement Banner for Unauthenticated Users */}
-        {!isAuthenticated && (
+        {/* Simple CTA banner for non-logged in users */}
+        {!isAuthenticated && !isUserLoading && (
           <div className="bg-primary py-1.5 px-4 text-center border-b border-primary/20 shadow-[0_0_20px_rgba(0,255,255,0.2)]">
              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-primary-foreground flex items-center justify-center gap-2">
                <Sparkles className="h-3 w-3 fill-current" />
-               Limited Access: Sign in to unlock the Sargam Neural Engine.
+               Sign in to unlock the full power of Sargam AI.
                <Sparkles className="h-3 w-3 fill-current" />
              </p>
           </div>
@@ -108,7 +108,9 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-4">
-            {isAuthenticated ? (
+            {isUserLoading ? (
+              <div className="h-8 w-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+            ) : isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <Link 
                   href="/pricing" 
@@ -124,8 +126,8 @@ export default function Header() {
                 <div className="relative" ref={menuRef}>
                   <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center gap-2">
                     <Avatar className="h-9 w-9 border-2 border-primary/20 hover:border-primary/50 transition-colors">
-                      <AvatarImage src={user.photoURL || profile?.avatarUrl} className="object-cover" />
-                      <AvatarFallback><UserIcon className="h-5 w-5" /></AvatarFallback>
+                      <AvatarImage src={user?.photoURL || profile?.avatarUrl || ''} className="object-cover" />
+                      <AvatarFallback className="bg-muted text-muted-foreground"><UserIcon className="h-5 w-5" /></AvatarFallback>
                     </Avatar>
                     <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform hidden sm:block", isMenuOpen && "rotate-180")} />
                   </button>

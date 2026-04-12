@@ -9,24 +9,26 @@ import type { UserProfile } from '@/types';
 import Link from 'next/link';
 
 /**
- * @fileOverview A persistent bottom bar showing user status and offering a quick upgrade path.
- * Reinforced with high z-index and heartbeat indicator to ensure interaction reliability.
+ * @fileOverview A persistent bottom bar showing user status.
+ * Strictly gated to authenticated users only.
  */
 export function GlobalCreditBar() {
   const [isMounted, setIsMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
+  const isAuthenticated = !!(user && !user.isAnonymous);
+
+  const userDocRef = useMemoFirebase(() => (firestore && isAuthenticated ? doc(firestore, 'users', user.uid) : null), [firestore, isAuthenticated, user?.uid]);
   const { data: profile, isLoading } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  if (!isMounted || !isVisible) return null;
+  if (!isMounted || !isVisible || isUserLoading || !isAuthenticated) return null;
 
   return (
     <div className="fixed bottom-0 left-0 w-full z-[110] bg-background/95 backdrop-blur-xl border-t border-primary/30 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom duration-500">
