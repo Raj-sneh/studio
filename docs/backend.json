@@ -44,6 +44,19 @@
         "language": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "AdminNotice": {
+      "title": "AdminNotice",
+      "description": "A system-wide broadcast message from administrators.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "alert", "update"] },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["message", "active", "createdAt"]
     }
   },
   "auth": {
@@ -65,6 +78,10 @@
     "/lessons/{lessonId}": {
       "schema": "object",
       "description": "Publicly readable music lessons."
+    },
+    "/admin_notices/{noticeId}": {
+      "schema": { "$ref": "#/backend/entities/AdminNotice" },
+      "description": "Global administrative broadcast messages."
     }
   }
 }

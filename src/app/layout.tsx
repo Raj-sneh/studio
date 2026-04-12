@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Poppins, Roboto } from 'next/font/google';
@@ -8,6 +9,7 @@ import Header from "@/components/Header";
 import { Providers } from './providers';
 import { FloatingAssistantButton } from '@/components/FloatingAssistantButton';
 import { GlobalCreditBar } from '@/components/GlobalCreditBar';
+import UserNotice from '@/components/user-notice';
 import { Heart, LifeBuoy } from 'lucide-react';
 import Script from 'next/script';
 import Link from 'next/link';
@@ -63,6 +65,7 @@ export default function RootLayout({
       <body className={cn("font-body antialiased min-h-screen bg-background", fontHeadline.variable, fontBody.variable)}>
         <Providers>
           <div className="flex flex-col min-h-screen">
+            <UserNotice />
             <Header />
             <main className="flex-1 container mx-auto px-6 py-16 md:py-24">{children}</main>
             
