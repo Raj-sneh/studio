@@ -33,9 +33,9 @@ const formSchema = z.object({
 
 const DEFAULT_VOICES = [
   { id: 'clive', label: 'SKV Master (Default)' },
-  { id: 'clara', label: 'Clara (Pro)' },
-  { id: 'james', label: 'James' },
-  { id: 'alex', label: 'Alex' },
+  { id: 'clara', label: 'Clara (Pro Female)' },
+  { id: 'james', label: 'James (Narrator)' },
+  { id: 'alex', label: 'Alex (Energetic)' },
 ];
 
 const ADMIN_EMAIL = 'snehkumarverma2011@gmail.com';
@@ -90,6 +90,9 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
 
   const handleRun = async (values: z.infer<typeof formSchema>) => {
     if (!user) return router.push('/login');
+    
+    const isDefaultVoice = DEFAULT_VOICES.some(v => v.id === values.voice);
+    
     setIsLoading(true);
     setResult(null);
     setLoadingStatus("Verifying credits...");
@@ -117,8 +120,9 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
 
       if (activeSubTab === 'replacement') {
         if (!values.replacementAudio) throw new Error("Please upload audio.");
-        setLoadingStatus("Waking up Neural Engine...");
+        if (isDefaultVoice) throw new Error("Voice Swap currently only supports Cloned Voices. Switch to a custom clone to use this feature.");
         
+        setLoadingStatus("Waking up Neural Engine...");
         const res = await replaceVocals({
           audioDataUri: values.replacementAudio,
           voiceId: values.voice,
@@ -129,15 +133,32 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
         setResult({ audioUri: res.data.audioUri, title: "Neural Swap Complete" });
       } else {
         if (!values.text) throw new Error("Please enter text.");
-        setLoadingStatus("Synthesizing voice...");
         
-        const res = await speakWithClone({
-            text: values.text,
-            voiceId: values.voice,
-            settings: { stability: 0.5, similarity_boost: 0.75 }
-        });
-        if (!res.success) throw new Error(res.error);
-        setResult({ audioUri: res.data.audioUri, title: "Synthesis Complete" });
+        if (isDefaultVoice) {
+            setLoadingStatus("Connecting to Google Neural Engine...");
+            const res = await fetch('/api/text-to-speech', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: values.text,
+                    voice: values.voice,
+                    sing: false,
+                    language: values.language
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Google TTS failed.");
+            setResult({ audioUri: data.media, title: "Neural Synthesis Complete" });
+        } else {
+            setLoadingStatus("Synthesizing custom voice...");
+            const res = await speakWithClone({
+                text: values.text,
+                voiceId: values.voice,
+                settings: { stability: 0.5, similarity_boost: 0.75 }
+            });
+            if (!res.success) throw new Error(res.error);
+            setResult({ audioUri: res.data.audioUri, title: "Custom Synthesis Complete" });
+        }
       }
       toast({ title: "Success!", description: "AI track generated successfully." });
       onGenerate();
@@ -225,7 +246,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                           <div className="mt-6 p-4 rounded-2xl bg-primary/5 border border-primary/10 flex gap-3">
                               <ShieldAlert className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                               <p className="text-[10px] text-muted-foreground italic leading-relaxed">
-                                  Neural Voice Swap is for research and creative use. By using this tool, you confirm you have permission to use the source audio. Sargam AI assumes no liability for misuse.
+                                  Neural Voice Swap is for research and creative use. By using this tool, you confirm you have permission to use the source audio.
                               </p>
                           </div>
                         </div>
@@ -257,7 +278,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                 </div>
             </div>
 
-            <Button type="submit" disabled={isLoading || (activeSubTab === 'replacement' && !isPremium && !isProfileLoading)} className="w-full h-16 text-xl rounded-2xl font-bold shadow-xl shadow-primary/20">
+            <Button type="submit" disabled={isLoading || (activeSubTab === 'replacement' && !isPremium && !isProfileLoading)} className="w-full h-16 text-xl rounded-2xl font-black shadow-xl shadow-primary/20">
                 {isLoading ? (
                   <div className="flex flex-col items-center">
                     <div className="flex items-center"><Loader2 className="animate-spin mr-2 h-6 w-6" /> Running Neural Engine...</div>

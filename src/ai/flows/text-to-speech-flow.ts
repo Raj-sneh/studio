@@ -55,6 +55,21 @@ const geminiTTSFlow = ai.defineFlow(
     async (input) => {
         const { text, voice } = input;
 
+        // Map UI names to Gemini TTS Voice Names
+        // Options: 'Algenib', 'Puck', 'Charon', 'Fenrir', 'Achernar', 'Alnilam'
+        const voiceMap: Record<string, string> = {
+            'clara': 'Puck',
+            'female': 'Puck',
+            'clive': 'Algenib',
+            'male': 'Algenib',
+            'james': 'Charon',
+            'alex': 'Fenrir',
+            'marcus': 'Achernar',
+            'silas': 'Alnilam'
+        };
+
+        const targetVoice = voiceMap[voice] || 'Algenib';
+
         // Use Google's Latest Neural TTS Model
         const { media } = await ai.generate({
             model: 'googleai/gemini-2.5-flash-preview-tts',
@@ -63,7 +78,7 @@ const geminiTTSFlow = ai.defineFlow(
                 speechConfig: {
                     voiceConfig: {
                         prebuiltVoiceConfig: { 
-                            voiceName: voice === 'female' || voice === 'clara' ? 'Puck' : 'Algenib' 
+                            voiceName: targetVoice 
                         },
                     },
                 },
