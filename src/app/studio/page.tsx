@@ -69,7 +69,7 @@ export default function StudioPage() {
             <Info className="h-4 w-4 text-primary" /> Cinematic Intelligence
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Sargam Studio utilizes state-of-the-art Google Veo models to build entire worlds from scratch. Simply describe your scene, and the AI handles the lighting, physics, and character motion.
+            Sargam Studio utilizes state-of-the-art neural motion models to build entire worlds from scratch. Simply describe your scene, and the AI handles the lighting, physics, and character motion.
           </p>
         </div>
         <div className="p-6 rounded-3xl bg-muted/20 border border-border/50 space-y-3">

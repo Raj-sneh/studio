@@ -135,7 +135,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
         if (!values.text) throw new Error("Please enter text.");
         
         if (isDefaultVoice) {
-            setLoadingStatus("Connecting to Google Neural Engine...");
+            setLoadingStatus("Connecting to Primary Neural Engine...");
             const res = await fetch('/api/text-to-speech', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -147,7 +147,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                 })
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Google TTS failed.");
+            if (!res.ok) throw new Error(data.message || "Synthesis failed.");
             setResult({ audioUri: data.media, title: "Neural Synthesis Complete" });
         } else {
             setLoadingStatus("Synthesizing custom voice...");

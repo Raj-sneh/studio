@@ -1,7 +1,7 @@
 'use server';
 /**
- * @fileOverview Sargam Studio AI Animation Flow - Stable Veo 2.0 Edition.
- * Optimized for reliability, professional aesthetics, and watermark mitigation.
+ * @fileOverview Sargam Studio AI Animation Flow - Neural Motion Protocol.
+ * Optimized for reliability, professional aesthetics, and branded identity.
  */
 
 import { ai } from '@/ai/genkit';
@@ -60,14 +60,14 @@ export const studioFlow = ai.defineFlow(
 
     const fullPrompt = `${masterPrompt}. High-quality visual production, no watermarks.`;
 
-    // Using Veo 2.0 for Stable Rendering
+    // Using Stable Neural Rendering Model
     let { operation } = await ai.generate({
       model: 'googleai/veo-2.0-generate-001',
       prompt: fullPrompt,
       config: {
         durationSeconds: 5,
         aspectRatio: '16:9',
-        personGeneration: 'allow_adult', // Veo 2 requirement
+        personGeneration: 'allow_adult',
       },
     });
 
@@ -105,7 +105,7 @@ export const studioFlow = ai.defineFlow(
 
     return {
       videoUrl: `data:video/mp4;base64,${base64Video}`,
-      description: `Narrative synthesized with Veo 2.0 Stable Protocol.`,
+      description: `Narrative synthesized with Neural Motion Protocol.`,
       finalSynthesizedPrompt: masterPrompt,
     };
   }

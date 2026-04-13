@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A friendly AI helper for the app using Gemini 2.5 Flash.
+ * @fileOverview A friendly AI helper for the app using Neural Prototyper AI.
  * Optimized for polymath intelligence (Maths, Science) and concise step-by-step guidance.
  */
 

@@ -281,9 +281,9 @@ export function SargamStudio() {
                             <Button 
                                 onClick={() => handleGenerate()} 
                                 disabled={isGenerating || !prompt.trim()} 
-                                className="w-full h-16 rounded-2xl font-black text-lg shadow-2xl shadow-primary/20"
+                                className="w-full h-16 rounded-2xl font-black text-lg shadow-2xl shadow-primary/30"
                             >
-                                <Sparkles className="mr-2 h-6 w-6 fill-primary-foreground" /> 
+                                <point-events-none className="mr-2 h-6 w-6" /> 
                                 Initialize Master Render
                             </Button>
                         </div>
