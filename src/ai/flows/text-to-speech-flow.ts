@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A flow for generating high-quality speech using Google's Gemini TTS.
+ * @fileOverview A flow for generating high-quality speech using Primary Neural Engines.
  * Provides high-fidelity vocal interaction for Sargam AI.
  */
 import { ai } from '@/ai/genkit';
@@ -41,7 +41,7 @@ export async function textToSpeechFlow(input: TextToSpeechInput): Promise<TextTo
     try {
         return await geminiTTSFlow(input);
     } catch (error: any) {
-        console.error("Gemini TTS Flow Error:", error);
+        console.error("Neural TTS Flow Error:", error);
         throw new Error(`Voice generation failed: ${error.message || 'Unknown error'}`);
     }
 }
@@ -55,7 +55,7 @@ const geminiTTSFlow = ai.defineFlow(
     async (input) => {
         const { text, voice } = input;
 
-        // Map UI names to Gemini TTS Voice Names
+        // Map UI names to Neural TTS Voice Names
         // Options: 'Algenib', 'Puck', 'Charon', 'Fenrir', 'Achernar', 'Alnilam'
         const voiceMap: Record<string, string> = {
             'clara': 'Puck',
@@ -70,7 +70,7 @@ const geminiTTSFlow = ai.defineFlow(
 
         const targetVoice = voiceMap[voice] || 'Algenib';
 
-        // Use Google's Latest Neural TTS Model
+        // Use Latest Neural TTS Model
         const { media } = await ai.generate({
             model: 'googleai/gemini-2.5-flash-preview-tts',
             config: {

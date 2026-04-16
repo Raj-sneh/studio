@@ -29,7 +29,7 @@ export const studioFlow = ai.defineFlow(
   async (input) => {
     // Style-specific guidance for the director - Refined for "Masterpiece Quality"
     const styleGuides: Record<string, string> = {
-      '2d-animation': 'Professional high-fidelity hand-drawn digital animation, vibrant but balanced palette, fluid cinematic motion, Studio Ghibli inspired.',
+      '2d-animation': 'Professional high-fidelity hand-drawn digital animation, vibrant but balanced palette, fluid cinematic motion, Ghibli-inspired aesthetic.',
       '3d-render': 'Hyper-realistic 3D CGI masterpiece, path-traced lighting, soft global illumination, intricate high-end textures.',
       'cinematic': '8K professional live-action film aesthetic, anamorphic lens flares, shallow depth of field, high-end cinematography.',
       'anime': 'Modern high-fidelity anime, breathtaking dynamic lighting, Makoto Shinkai inspired backgrounds, professional frame rates.',

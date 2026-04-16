@@ -46,7 +46,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
           strategy="afterInteractive"
         />
-        {/* Analytics Integration */}
+        {/* Neural Analytics Integration */}
         <Script
           async
           src="https://www.googletagmanager.com/gtag/js?id=G-ZKVHFQNVN0"
