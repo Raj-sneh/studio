@@ -1,7 +1,7 @@
 {
   "name": "Sargam by SKV",
   "short_name": "Sargam",
-  "description": "Sargam by SKV is an interactive AI music tutor that turns text into melodies, offers guided lessons on piano and drums, and helps you compose full band arrangements. Learn, practice, and create music with the power of AI.",
+  "description": "Sargam by SKV is an interactive AI music tutor that turns text into melodies, offers guided lessons on piano and drums, and helps you compose full band arrangements. Learn, practice, and create music with the power of AI, And it also helps in critical thinking and solving maths problems.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0d001a",
