@@ -283,7 +283,7 @@ export function SargamStudio() {
                                 disabled={isGenerating || !prompt.trim()} 
                                 className="w-full h-16 rounded-2xl font-black text-lg shadow-2xl shadow-primary/30"
                             >
-                                <point-events-none className="mr-2 h-6 w-6" /> 
+                                <span className="pointer-events-none mr-2 h-6 w-6" /> 
                                 Initialize Master Render
                             </Button>
                         </div>
