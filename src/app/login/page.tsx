@@ -193,7 +193,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleUniversalLogin = async () => {
     if (!auth) return;
     try {
       setIsLoading(true);
@@ -201,7 +201,7 @@ export default function LoginPage() {
       await signInWithPopup(auth, provider);
       router.push('/suite');
     } catch (error: any) {
-      toast({ title: "Google Sign-In Failed", description: error?.message, variant: "destructive" });
+      toast({ title: "Sign-In Failed", description: error?.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -390,10 +390,10 @@ export default function LoginPage() {
             type="button"
             variant="outline"
             className="w-full h-12 bg-transparent border-[#2c1a57] text-white font-bold"
-            onClick={handleGoogleLogin}
+            onClick={handleUniversalLogin}
             disabled={isLoading}
           >
-            Sign in with Google
+            Sign in with Social ID
           </Button>
         </CardContent>
 

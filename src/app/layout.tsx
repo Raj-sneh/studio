@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Poppins, Roboto } from 'next/font/google';
@@ -37,23 +36,23 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <head>
         <title>Sargam AI | Voice Cloning AI, Neural Voice Swap & Virtual Piano</title>
-        <meta name="description" content="Sargam AI is the definitive Neural Voice Cloning AI and AI Music Studio. Use ElevenLabs Voice Swap, practice on a Virtual Grand Piano, or learn with AI tutors." />
-        <meta name="keywords" content="Voice Cloning AI, AI Music Generator, Virtual Piano, AI Piano Tutor, Neural Voice Swap, ElevenLabs Voice Swap, Sargam AI, AI Vocal Studio, Music Learning AI, AI Music Studio, Neural Artist" />
+        <meta name="description" content="Sargam AI is the definitive Neural Voice Cloning AI and AI Music Studio. Use high-fidelity Voice Swap, practice on a Virtual Grand Piano, or learn with AI tutors." />
+        <meta name="keywords" content="Voice Cloning AI, AI Music Generator, Virtual Piano, AI Piano Tutor, Neural Voice Swap, Sargam AI, AI Vocal Studio, Music Learning AI, AI Music Studio, Neural Artist" />
         
-        {/* Google AdSense Integration */}
+        {/* Monetization Integration */}
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8391391679719370"
           crossOrigin="anonymous"
           strategy="afterInteractive"
         />
-        {/* Google Analytics Integration */}
+        {/* Analytics Integration */}
         <Script
           async
           src="https://www.googletagmanager.com/gtag/js?id=G-ZKVHFQNVN0"
           strategy="afterInteractive"
         />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script id="neural-analytics" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}

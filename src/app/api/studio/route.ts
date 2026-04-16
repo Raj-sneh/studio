@@ -3,7 +3,7 @@ import { generateStudioAnimation } from '@/ai/flows/studio-flow';
 
 /**
  * Main Studio API route.
- * Upgraded maxDuration to 600s (10 minutes) for Veo 3 production renders.
+ * Upgraded maxDuration to 600s (10 minutes) for high-fidelity production renders.
  */
 export const maxDuration = 600; 
 

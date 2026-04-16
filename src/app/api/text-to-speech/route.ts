@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { textToSpeechFlow } from '@/ai/flows/text-to-speech-flow';
 import { TextToSpeechInputSchema } from '@/ai/flows/text-to-speech-types';
@@ -24,7 +23,7 @@ export async function POST(req: Request) {
     return NextResponse.json(result);
   } catch (err: any) {
     console.error('API /api/text-to-speech ERROR:', err);
-    const message = err.message || 'An error occurred during text-to-speech conversion.';
+    const message = err.message || 'An error occurred during neural vocal synthesis.';
     return NextResponse.json(
       { error: 'Internal Server Error', message },
       { status: 500 }
