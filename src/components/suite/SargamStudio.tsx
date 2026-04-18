@@ -137,7 +137,8 @@ export function SargamStudio() {
                     msg.toLowerCase().includes('practices') || 
                     msg.toLowerCase().includes('responsible ai') ||
                     msg.toLowerCase().includes('pornography') ||
-                    msg.toLowerCase().includes('illegal')) {
+                    msg.toLowerCase().includes('illegal') ||
+                    msg.toLowerCase().includes('safety')) {
                     setErrorState('content-block');
                 } else {
                     setErrorState('error');
@@ -252,7 +253,7 @@ export function SargamStudio() {
                                     <div className="absolute inset-0 bg-primary/5 blur-xl pointer-events-none -z-10" />
                                 </div>
                                 <p className="text-[9px] text-muted-foreground italic px-1 flex items-center gap-1">
-                                    <PawPrint className="h-3 w-3" /> Tip: If you get an error, try using animals as characters.
+                                    <PawPrint className="h-3 w-3" /> Tip: If you get a safety error, try using animals as characters.
                                 </p>
                             </div>
 
@@ -359,15 +360,15 @@ export function SargamStudio() {
                                 <div className="space-y-3">
                                     <h3 className="text-xl font-bold text-foreground">Restricted Generation</h3>
                                     <p className="text-sm text-muted-foreground leading-relaxed italic">
-                                        This generation is restricted. This platform is purely for educational research.
+                                        This generation is restricted. This platform is purely for educational research and creative expression.
                                     </p>
                                     <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
                                         <p className="text-xs text-primary font-bold flex items-center justify-center gap-2">
-                                            <PawPrint className="h-4 w-4" /> Try with animals instead!
+                                            <PawPrint className="h-4 w-4" /> Try with animals as characters!
                                         </p>
                                     </div>
                                     <p className="text-[10px] text-primary font-black uppercase tracking-widest pt-2">
-                                        The website and its owner are not responsible for user inputs.
+                                        The platform and its owner are not responsible for user inputs.
                                     </p>
                                 </div>
                                 <Button variant="outline" onClick={() => setErrorState('none')} className="rounded-xl mt-4">Dismiss & Retry</Button>
@@ -386,7 +387,7 @@ export function SargamStudio() {
                                     </p>
                                     <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
                                         <p className="text-xs text-primary font-bold flex items-center justify-center gap-2">
-                                            <PawPrint className="h-4 w-4" /> Try with animals for better success.
+                                            <PawPrint className="h-4 w-4" /> Try using animals for better success.
                                         </p>
                                     </div>
                                 </div>
@@ -498,7 +499,7 @@ export function SargamStudio() {
             </div>
             
             <div className="text-center text-[10px] text-muted-foreground/50 italic pt-8 pb-4">
-                The website and its owner are not responsible for user inputs. Educational research protocol.
+                The platform and its owner are not responsible for user inputs. Educational research protocol.
             </div>
         </div>
     );

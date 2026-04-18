@@ -86,10 +86,10 @@ export const studioFlow = ai.defineFlow(
     
     if (operation.error) {
       const errMsg = operation.error.message?.toLowerCase() || '';
-      if (errMsg.includes('third-party') || errMsg.includes('restricted') || errMsg.includes('safety')) {
+      if (errMsg.includes('third-party') || errMsg.includes('restricted') || errMsg.includes('safety') || errMsg.includes('sensitive')) {
          throw new Error("Neural Safety Protocol: Restricted content. Try using animals as characters for research success.");
       }
-      throw new Error(`Rendering failed: ${operation.error.message}`);
+      throw new Error(`The synthesis engine encountered a temporary synchronization error. Error Code: NS-${operation.error.code || 'UNK'}`);
     }
 
     const videoPart = operation.output?.message?.content.find((p) => !!p.media);
