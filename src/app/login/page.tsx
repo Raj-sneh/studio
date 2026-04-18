@@ -24,6 +24,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import GoogleIcon from '@/components/icons/GoogleIcon';
 
 const emailFormSchema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -393,7 +394,7 @@ export default function LoginPage() {
             onClick={handleUniversalLogin}
             disabled={isLoading}
           >
-            Sign in with Social ID
+            <GoogleIcon className="mr-2 h-4 w-4" /> Sign in with Google
           </Button>
         </CardContent>
 
