@@ -1,6 +1,7 @@
 { pkgs, ... }: {
   channel = "stable-23.11";
   packages = [
+    pkgs.gh
     pkgs.nodejs_20
     pkgs.python311
     pkgs.python311Packages.pip
