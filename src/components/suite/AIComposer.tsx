@@ -166,13 +166,16 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
         
         stopPlayback();
         setMode('demo');
-        setStatusText('Playing demo...');
+        setStatusText('Synchronizing Neural Engine...');
 
         try {
             await Tone.start();
             const sampler = await getSampler('piano');
             samplerRef.current = sampler;
             
+            // Wait for all high-fidelity buffers to load
+            await Tone.loaded();
+
             Tone.Transport.bpm.value = generatedMelody.tempo;
 
             const part = new Tone.Part((time, note) => {
@@ -191,6 +194,7 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
                 stopPlayback();
             }, duration + 0.5);
 
+            setStatusText('Playing demo...');
             Tone.Transport.start();
         } catch (err) {
             console.error(err);

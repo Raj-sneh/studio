@@ -75,6 +75,9 @@ function PracticeModeContent() {
     
     await Tone.start();
     const sampler = await getSampler('piano');
+    
+    // Ensure all high-fidelity piano samples are loaded before playback
+    await Tone.loaded();
 
     const now = Tone.now();
     recordedNotes.forEach((noteEvent) => {

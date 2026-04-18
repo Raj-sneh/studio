@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -122,11 +121,14 @@ export default function LessonPage() {
     try {
         await Tone.start();
         setLessonMode('playing_demo');
-        setStatusText('Loading real sounds...');
+        setStatusText('Synchronizing Neural Engine...');
 
         const sampler = await getSampler(lesson.instrument);
         samplersRef.current[lesson.instrument] = sampler;
         
+        // Wait for buffer loading to complete
+        await Tone.loaded();
+
         Tone.Transport.bpm.value = lesson.tempo;
 
         const part = new Tone.Part((time, note) => {
