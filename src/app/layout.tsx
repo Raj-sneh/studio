@@ -36,14 +36,12 @@ function AdScriptManager() {
   const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
   const { data: profile } = useDoc<UserProfile>(userDocRef);
 
-  // Only enable ads for 'free' plan or unauthenticated users
   const showAds = !profile || profile.plan === 'free';
 
   if (!showAds) return null;
 
   return (
     <>
-      {/* Neural Monetization Protocol */}
       <Script
         async
         src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8391391679719370"
@@ -51,23 +49,10 @@ function AdScriptManager() {
         strategy="afterInteractive"
       />
 
-      {/* Network Ad Protocol (Interstitial Only) */}
       <Script 
         id="aclib" 
         src="//acscdn.com/script/aclib.js" 
         strategy="lazyOnload"
-        onLoad={() => {
-          if (typeof (window as any).aclib !== 'undefined') {
-              const lib = (window as any).aclib;
-              
-              // Initialize Interstitial protocol
-              if (typeof lib.runInterstitial === 'function') {
-                  lib.runInterstitial({
-                      zoneId: '11225786',
-                  });
-              }
-          }
-        }}
       />
     </>
   );
@@ -85,7 +70,6 @@ export default function RootLayout({
         <meta name="description" content="Sargam AI is the definitive Neural Studio for creators. Render cinematic animations, clone voices, or practice on our professional virtual grand piano." />
         <meta name="keywords" content="Neural Studio, AI Music Generator, Virtual Piano, AI Piano Tutor, Voice Cloning, Sargam AI, AI Vocal Studio, Music Learning AI, Neural Artist" />
         
-        {/* Performance Metrics */}
         <Script
           async
           src="https://www.googletagmanager.com/gtag/js?id=G-ZKVHFQNVN0"

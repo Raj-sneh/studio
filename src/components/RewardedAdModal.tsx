@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sparkles, Zap, ShieldCheck, Eye, PlayCircle } from 'lucide-react';
+import { Loader2, Sparkles, Zap, ShieldCheck, PlayCircle } from 'lucide-react';
 import { useUser, useFirestore, updateDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
@@ -20,6 +20,14 @@ interface RewardedAdModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   currentCredits: number;
+}
+
+declare global {
+  interface Window {
+    aclib?: {
+      runAutoTag: (config: { zoneId: string }) => void;
+    };
+  }
 }
 
 export function RewardedAdModal({ isOpen, onOpenChange, currentCredits }: RewardedAdModalProps) {
@@ -31,7 +39,6 @@ export function RewardedAdModal({ isOpen, onOpenChange, currentCredits }: Reward
   const [progress, setProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
 
-  // side effect: Handle credit granting when progress reaches 100%
   const handleGrantCredits = useCallback(() => {
     if (!user || !firestore) return;
     
@@ -48,20 +55,18 @@ export function RewardedAdModal({ isOpen, onOpenChange, currentCredits }: Reward
     });
   }, [user, firestore, currentCredits, toast]);
 
-  // Effect 1: Handle the visual progress timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isWatching && progress < 100) {
       interval = setInterval(() => {
         setProgress((prev) => Math.min(prev + 1, 100));
-      }, 150); // ~15 second "ad"
+      }, 150); // ~15 second verification sequence
     }
     return () => {
       if (interval) clearInterval(interval);
     };
   }, [isWatching, progress]);
 
-  // Effect 2: Watch for completion and trigger side effects
   useEffect(() => {
     if (progress >= 100 && isWatching) {
       setIsWatching(false);
@@ -71,14 +76,35 @@ export function RewardedAdModal({ isOpen, onOpenChange, currentCredits }: Reward
   }, [progress, isWatching, handleGrantCredits]);
 
   const handleStart = () => {
-    setIsWatching(true);
-    setIsComplete(false);
-    setProgress(0);
+    // 1. Call the Adcash Manual Script
+    if (typeof window !== 'undefined' && window.aclib) {
+      try {
+        window.aclib.runAutoTag({
+          zoneId: '11225786', 
+        });
+        
+        // 2. Start the 'Grant Credits' verification only after the ad starts
+        setIsWatching(true);
+        setIsComplete(false);
+        setProgress(0);
+      } catch (e) {
+        toast({ 
+          title: "Engine Error", 
+          description: "Neural ad provider encountered a initialization error.", 
+          variant: "destructive" 
+        });
+      }
+    } else {
+      toast({ 
+        title: "Ad Provider Offline", 
+        description: "Please disable AdBlock to initialize the reward protocol.", 
+        variant: "destructive" 
+      });
+    }
   };
 
   const handleClose = () => {
     onOpenChange(false);
-    // Reset state after a short delay to prevent visual jumping during close animation
     setTimeout(() => {
       setIsWatching(false);
       setIsComplete(false);
@@ -126,7 +152,7 @@ export function RewardedAdModal({ isOpen, onOpenChange, currentCredits }: Reward
               <div className="space-y-2">
                 <Progress value={progress} className="h-1.5" />
                 <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                  <span>Reviewing DNA</span>
+                  <span>Verifying Neural DNA</span>
                   <span>{Math.round(progress)}%</span>
                 </div>
               </div>
