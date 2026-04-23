@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
+import { useEffect } from 'react';
 
 const fontHeadline = Poppins({
   subsets: ['latin'],
@@ -37,6 +38,18 @@ function AdScriptManager() {
   const { data: profile } = useDoc<UserProfile>(userDocRef);
 
   const showAds = !profile || profile.plan === 'free';
+
+  useEffect(() => {
+    if (showAds && typeof window !== 'undefined' && (window as any).aclib) {
+      try {
+        (window as any).aclib.runAutoTag({
+          zoneId: 'uaihuhfqjp',
+        });
+      } catch (e) {
+        console.warn("Autotag sync delayed.");
+      }
+    }
+  }, [showAds]);
 
   if (!showAds) return null;
 
