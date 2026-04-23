@@ -48,12 +48,6 @@ function AdScriptManager() {
         crossOrigin="anonymous"
         strategy="afterInteractive"
       />
-
-      <Script 
-        id="aclib" 
-        src="//acscdn.com/script/aclib.js" 
-        strategy="lazyOnload"
-      />
     </>
   );
 }
@@ -70,6 +64,9 @@ export default function RootLayout({
         <meta name="description" content="Sargam AI is the definitive Neural Studio for creators. Render cinematic animations, clone voices, or practice on our professional virtual grand piano." />
         <meta name="keywords" content="Neural Studio, AI Music Generator, Virtual Piano, AI Piano Tutor, Voice Cloning, Sargam AI, AI Vocal Studio, Music Learning AI, Neural Artist" />
         
+        {/* Network Ad Protocol - Step 1: Head Integration */}
+        <script id="aclib" type="text/javascript" src="//acscdn.com/script/aclib.js"></script>
+
         <Script
           async
           src="https://www.googletagmanager.com/gtag/js?id=G-ZKVHFQNVN0"

@@ -77,30 +77,19 @@ export function RewardedAdModal({ isOpen, onOpenChange, currentCredits }: Reward
   }, [progress, isWatching, handleGrantCredits]);
 
   const handleStart = () => {
-    // 1. Call the Adcash Manual Script per latest instruction
+    // 1. Call the Adcash Manual Script (Logic aligned with handleShowAd snippet)
     if (typeof window !== 'undefined' && window.aclib) {
-      try {
-        window.aclib.runAutoTag({
-          zoneId: '11225786', 
-        });
-        
-        // 2. Start the 'Grant Credits' verification only after the ad starts
-        setIsWatching(true);
-        setIsComplete(false);
-        setProgress(0);
-      } catch (e) {
-        toast({ 
-          title: "Engine Error", 
-          description: "Neural ad provider encountered a initialization error.", 
-          variant: "destructive" 
-        });
-      }
-    } else {
-      toast({ 
-        title: "Ad Provider Offline", 
-        description: "Please disable AdBlock to earn credits.", 
-        variant: "destructive" 
+      window.aclib.runAutoTag({
+        zoneId: '11225786',
       });
+      
+      // 2. Start your 'Grant Credits' timer only after the ad starts
+      setIsWatching(true); // Equivalent to setIsCounting(true)
+      setIsComplete(false);
+      setProgress(0);
+    } else {
+      // If this hits, the script in Step 1 is missing or AdBlock is on
+      alert("Ad provider not ready!");
     }
   };
 
