@@ -1,239 +1,80 @@
 'use client';
 
-import { useState } from "react";
-import { Check, Zap, Sparkles, Rocket, Loader2, CreditCard, Ticket, Send } from "lucide-react";
+import { Check, Zap, Sparkles, Rocket, Gift, Heart, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { useUser } from '@/firebase';
-import { useRouter } from 'next/navigation';
-import { useToast } from "@/hooks/use-toast";
-import Script from 'next/script';
+import Link from 'next/link';
 
 const PLANS = [
   {
     id: 'free',
-    name: 'Free',
+    name: 'Free Starter',
     price: '0',
-    description: 'Perfect for starters exploring sound.',
+    description: 'Perfect for beginners exploring sound.',
     icon: Zap,
-    credits: '10 Credits (Welcome)',
+    credits: 'Unlimited Neural Access',
     features: [
       'Standard Quality Audio',
       'Virtual Piano Access',
       'Community Support'
     ],
-    buttonText: 'Current Plan',
+    buttonText: 'Active for Everyone',
     color: 'text-muted-foreground'
   },
   {
     id: 'creator',
-    name: 'Creator',
-    price: '99',
-    description: 'Unleash your creative potential.',
+    name: 'Open Creator',
+    price: '0',
+    description: 'Unleash your full potential without limits.',
     icon: Sparkles,
-    credits: '1000 Credits / month',
+    credits: 'Unlimited Neural Access',
     popular: true,
     features: [
       'Pro Quality Synthesis',
       'Save Unlimited Melodies',
-      'Priority Support',
-      'Custom Voice Cloning'
+      'Custom Voice Cloning',
+      'AI Animation Rendering'
     ],
-    buttonText: 'Upgrade to Creator',
+    buttonText: 'Now Free for All',
     color: 'text-primary'
   },
   {
     id: 'pro',
-    name: 'Pro',
-    price: '299',
-    description: 'The definitive music research tools.',
+    name: 'Open Pro',
+    price: '0',
+    description: 'The definitive music research suite.',
     icon: Rocket,
-    credits: '5000 Credits / month',
+    credits: 'Unlimited Neural Access',
     features: [
       'Ultra HD Audio Quality',
       'Advanced Voice Replacement',
       'Early access to Neural Models',
-      'Personal Account Manager',
       'API Access Preview'
     ],
-    buttonText: 'Get Pro Access',
+    buttonText: 'Unlocked for All',
     color: 'text-secondary'
   }
 ];
 
-const PACKS = [
-    { id: 'pack_20', credits: 20, price: 10 },
-    { id: 'pack_120', credits: 120, price: 50 },
-    { id: 'pack_300', credits: 300, price: 100 },
-];
-
 export default function PricingPage() {
-  const { user } = useUser();
-  const router = useRouter();
-  const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState<string | null>(null);
-  
-  // Coupon State
-  const [couponCode, setCouponCode] = useState("");
-  const [isRedeeming, setIsRedeeming] = useState(false);
-
-  const handleRedeem = async () => {
-    if (!user) return router.push('/login');
-    if (!couponCode.trim()) return;
-
-    setIsRedeeming(true);
-    try {
-      const response = await fetch('/api/redeem', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid, code: couponCode.trim() })
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Invalid or used code.");
-
-      toast({ title: "Neural Sync Complete!", description: `Successfully added ${data.credits} credits to your account.` });
-      setCouponCode("");
-      router.refresh();
-      setTimeout(() => window.location.reload(), 1500);
-    } catch (e: any) {
-      toast({ title: "Redemption Failed", description: e.message, variant: "destructive" });
-    } finally {
-      setIsRedeeming(false);
-    }
-  };
-
-  const handlePayment = async (itemId: string, type: 'plan' | 'pack') => {
-    if (!user || user.isAnonymous) {
-      toast({ title: "Account Required", description: "Please login to upgrade.", variant: "destructive" });
-      router.push('/login');
-      return;
-    }
-
-    if (itemId === 'free') return;
-
-    setIsProcessing(itemId);
-    
-    try {
-      const orderRes = await fetch('/api/payments/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.uid, item_id: itemId, type: type })
-      });
-
-      const orderData = await orderRes.json();
-      if (!orderRes.ok) throw new Error(orderData.error || `Payment initiation failed.`);
-
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder",
-        amount: Math.floor(Number(orderData.amount) * 100),
-        currency: orderData.currency || "INR",
-        name: "Sargam AI",
-        description: type === 'plan' ? `Upgrade to ${itemId}` : `${itemId} Credits Pack`,
-        order_id: orderData.id,
-        handler: async function (response: any) {
-          setIsProcessing(itemId);
-          try {
-            const verifyRes = await fetch('/api/payments/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                user_id: user.uid,
-                item_id: itemId,
-                type: type
-              })
-            });
-
-            if (verifyRes.ok) {
-              toast({ title: "Success!", description: "Neural credits provisioned." });
-              router.refresh();
-              setTimeout(() => { window.location.reload(); }, 1000);
-            } else {
-              throw new Error("Verification failed.");
-            }
-          } catch (err: any) {
-            toast({ title: "Verification Failed", description: err.message, variant: "destructive" });
-          } finally {
-            setIsProcessing(null);
-          }
-        },
-        prefill: {
-          name: user.displayName || "Artist",
-          email: user.email || "",
-        },
-        theme: { color: "#00ffff" },
-        modal: { ondismiss: () => setIsProcessing(null) }
-      };
-
-      if (typeof (window as any).Razorpay === 'undefined') throw new Error("Payment gateway is loading.");
-      
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
-
-    } catch (e: any) {
-      toast({ title: "Payment Error", description: e.message, variant: "destructive" });
-      setIsProcessing(null);
-    }
-  };
-
   return (
     <div className="space-y-16 pb-32">
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
-      
-      <div className="text-center max-w-3xl mx-auto space-y-4">
-        <h1 className="font-headline text-5xl font-bold tracking-tight text-foreground leading-tight">Professional Neural Access</h1>
+      <div className="text-center max-w-3xl mx-auto space-y-4 px-4">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest mb-2">
+            <Gift className="h-3 w-3" /> Open Research Initiative
+        </div>
+        <h1 className="font-headline text-5xl font-bold tracking-tight text-foreground leading-tight">Sargam AI is Now <span className="text-primary">Fully Free</span></h1>
         <p className="text-xl text-muted-foreground leading-relaxed">
-          Unlock high-fidelity synthesis and advanced vocal research tools.
+          We have unlocked all neural research tools for the community. Experience high-fidelity synthesis, 3D rendering, and voice cloning without cost.
         </p>
       </div>
-
-      {/* Redemption Portal */}
-      <section className="max-w-md mx-auto">
-        <Card className="border-primary/20 bg-primary/5 rounded-[2rem] overflow-hidden shadow-2xl shadow-primary/5">
-            <CardHeader className="pb-4">
-                <CardTitle className="text-lg flex items-center gap-2">
-                    <Ticket className="h-5 w-5 text-primary" />
-                    Redeem Neural Code
-                </CardTitle>
-                <CardDescription className="text-xs">Enter your administrative or gift code below.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex gap-2">
-                    <Input 
-                        placeholder="e.g., SargamEliteCreator" 
-                        value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value)}
-                        className="rounded-xl bg-background border-primary/10 h-12"
-                        onKeyDown={(e) => e.key === 'Enter' && handleRedeem()}
-                    />
-                    <Button 
-                        size="icon" 
-                        onClick={handleRedeem} 
-                        disabled={isRedeeming || !couponCode.trim()}
-                        className="h-12 w-12 shrink-0 rounded-xl"
-                    >
-                        {isRedeeming ? <Loader2 className="animate-spin h-5 w-5" /> : <Send className="h-5 w-5" />}
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
-      </section>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto px-4">
         {PLANS.map((plan) => (
           <Card 
             key={plan.id} 
-            className={`relative flex flex-col h-full border-primary/10 bg-card/50 backdrop-blur-md transition-all hover:-translate-y-2 hover:shadow-2xl ${plan.popular ? 'border-primary ring-2 ring-primary/20' : ''}`}
+            className={`relative flex flex-col h-full border-primary/10 bg-card/50 backdrop-blur-md transition-all hover:-translate-y-2 ${plan.popular ? 'border-primary shadow-2xl shadow-primary/10' : ''}`}
           >
-            {plan.popular && (
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest">
-                Recommended
-              </div>
-            )}
             <CardHeader className="p-8">
               <div className="flex items-center gap-2 mb-2">
                 <plan.icon className={`h-6 w-6 ${plan.color}`} />
@@ -242,10 +83,10 @@ export default function PricingPage() {
               <CardDescription className="min-h-[40px]">{plan.description}</CardDescription>
               <div className="mt-6 flex items-baseline gap-1">
                 <span className="text-4xl font-black">₹{plan.price}</span>
-                <span className="text-muted-foreground text-sm">/ mo</span>
+                <span className="text-muted-foreground text-sm">/ forever</span>
               </div>
               <div className="mt-4 text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 w-fit px-3 py-1 rounded-full border border-primary/20">
-                {plan.credits} Neural Allocation
+                {plan.credits}
               </div>
             </CardHeader>
             <CardContent className="flex-grow p-8 pt-0">
@@ -258,50 +99,43 @@ export default function PricingPage() {
                 ))}
               </ul>
             </CardContent>
-            <CardFooter className="p-8 pt-0 flex flex-col gap-3">
+            <CardFooter className="p-8 pt-0">
               <Button 
-                onClick={() => handlePayment(plan.id, 'plan')}
-                disabled={isProcessing === plan.id || plan.id === 'free'}
-                className="w-full h-12 rounded-xl font-bold shadow-lg shadow-primary/10"
+                asChild
+                className="w-full h-12 rounded-xl font-bold shadow-lg"
                 variant={plan.popular ? 'default' : 'outline'}
               >
-                {isProcessing === plan.id ? <Loader2 className="animate-spin h-5 w-5" /> : <><CreditCard className="mr-2 h-4 w-4"/> {plan.buttonText}</>}
+                <Link href="/suite">{plan.buttonText}</Link>
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
 
-      <section className="max-w-4xl mx-auto px-4 pt-10">
-        <div className="text-center space-y-4 mb-10">
-            <h2 className="text-3xl font-bold font-headline">Credit Top-ups</h2>
-            <p className="text-muted-foreground">Instant neural allocation for urgent research projects.</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {PACKS.map(pack => (
-            <div key={pack.id} className="flex flex-col gap-2">
-                <Button 
-                    variant="outline" 
-                    onClick={() => handlePayment(pack.id, 'pack')}
-                    disabled={isProcessing === pack.id}
-                    className="h-28 flex flex-col gap-1 rounded-2xl border-primary/10 hover:bg-primary/5 transition-all group relative overflow-hidden"
-                >
-                    {isProcessing === pack.id ? (
-                        <Loader2 className="animate-spin h-6 w-6" />
-                    ) : (
-                        <>
-                        <span className="text-3xl font-black text-primary group-hover:scale-110 transition-transform">₹{pack.price}</span>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{pack.credits} Credits</span>
-                        </>
-                    )}
-                </Button>
-            </div>
-          ))}
-        </div>
+      <section className="max-w-4xl mx-auto px-4">
+          <div className="p-10 rounded-[2.5rem] bg-muted/20 border border-primary/10 flex flex-col items-center text-center space-y-6">
+              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Heart className="h-8 w-8 text-primary fill-primary" />
+              </div>
+              <div className="space-y-2">
+                  <h2 className="text-3xl font-bold font-headline">Support Neural Innovation</h2>
+                  <p className="text-muted-foreground max-w-xl mx-auto italic">
+                      While Sargam AI is free, the high-performance GPUs required for these models are not. If you find these tools valuable, consider sharing your creations on social media and tagging @sargamskv.in to support our research.
+                  </p>
+              </div>
+              <div className="flex gap-4">
+                  <Button asChild variant="outline" className="rounded-xl px-8 border-primary/20">
+                      <Link href="/profile/support">Contact Research Support</Link>
+                  </Button>
+                  <Button asChild className="rounded-xl px-8 shadow-xl shadow-primary/20">
+                      <Link href="/suite">Enter Creative Studio</Link>
+                  </Button>
+              </div>
+          </div>
       </section>
 
       <div className="text-center text-[10px] text-muted-foreground italic uppercase tracking-widest opacity-50 pb-20">
-        * Neural allocations reset monthly. One-time packs do not expire.
+        * All neural research tools are provided as-is under the Open Research Protocol.
       </div>
     </div>
   );

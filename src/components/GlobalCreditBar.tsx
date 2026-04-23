@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Sparkles, Loader2, ArrowUpCircle, Activity } from 'lucide-react';
+import { X, Sparkles, Loader2, ArrowUpCircle, Activity, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -10,7 +10,7 @@ import Link from 'next/link';
 
 /**
  * @fileOverview A persistent bottom bar showing user status.
- * Strictly gated to authenticated users only.
+ * Updated for the Open Neural Protocol: Credits are now unlimited.
  */
 export function GlobalCreditBar() {
   const [isMounted, setIsMounted] = useState(false);
@@ -52,21 +52,17 @@ export function GlobalCreditBar() {
                 </div>
             </div>
             <div className="text-left">
-                <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] text-primary">Neural Status: Active</p>
+                <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] text-primary">Open Research Status: Active</p>
                 <div className="flex items-center gap-2">
-                    {isLoading ? (
-                        <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-muted-foreground" />
-                    ) : (
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                            <p className="text-sm sm:text-md font-bold text-foreground">
-                                {profile?.credits ?? 0} 
-                                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Credits</span>
-                            </p>
-                            <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-black uppercase tracking-widest">
-                                {profile?.plan || 'Free'}
-                            </span>
-                        </div>
-                    )}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <p className="text-sm sm:text-md font-bold text-foreground">
+                            Unlimited 
+                            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Credits</span>
+                        </p>
+                        <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-black uppercase tracking-widest">
+                            {profile?.plan || 'Free'} Open Tier
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -78,9 +74,9 @@ export function GlobalCreditBar() {
             className="h-10 px-6 sm:px-8 shadow-xl shadow-primary/30 text-[10px] sm:text-xs font-black gap-2 rounded-full whitespace-nowrap active:scale-95 transition-transform bg-primary text-primary-foreground hover:bg-primary/90"
         >
             <Link href="/pricing">
-                <ArrowUpCircle className="h-4 w-4" /> 
-                <span className="hidden xs:inline">Get More Credits</span>
-                <span className="xs:hidden">Top-up</span>
+                <Heart className="h-4 w-4 fill-current" /> 
+                <span className="hidden xs:inline">Support the Project</span>
+                <span className="xs:hidden">Support</span>
             </Link>
         </Button>
       </div>

@@ -33,10 +33,6 @@ import {
 import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
 
-const INITIAL_COST = 30;
-const MODIFICATION_COST = 5;
-const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com'];
-
 const STYLES = [
     { id: '3d-render', label: 'Masterpiece 3D', icon: Box, description: 'Hyper-realistic path-traced CGI.' },
     { id: '2d-animation', label: 'Polished 2D', icon: Layers, description: 'Hand-drawn digital fluid motion.' },
@@ -94,27 +90,6 @@ export function SargamStudio() {
         }, 3000);
 
         try {
-            const isAdmin = user.email && ADMIN_EMAILS.includes(user.email);
-            const cost = isInitial ? INITIAL_COST : MODIFICATION_COST;
-
-            if (!isAdmin) {
-                const creditRes = await fetch('/api/credits/use', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: user.uid, amount: cost })
-                });
-
-                if (!creditRes.ok) {
-                    const text = await creditRes.text();
-                    let errMessage = "Insufficient credits.";
-                    try {
-                        const errData = text ? JSON.parse(text) : {};
-                        errMessage = errData.error || errMessage;
-                    } catch (e) {}
-                    throw new Error(errMessage);
-                }
-            }
-
             const response = await fetch('/api/studio', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -223,7 +198,7 @@ export function SargamStudio() {
                                 {isRefinementMode ? 'Project Evolution' : 'Initial Protocol'}
                             </h3>
                             <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">
-                                {isRefinementMode ? `Active Scenes: ${sceneVideos.length}` : 'Configure High-Fidelity Render'}
+                                {isRefinementMode ? `Active Scenes: ${sceneVideos.length}` : 'Free High-Fidelity Render'}
                             </p>
                         </div>
                         {isRefinementMode && (
@@ -240,7 +215,7 @@ export function SargamStudio() {
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                                         Master Concept (Scene 1)
                                     </label>
-                                    <span className="text-primary font-bold text-[10px]">{user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${INITIAL_COST} Credits`}</span>
+                                    <span className="text-primary font-bold text-[10px]">Free Access</span>
                                 </div>
                                 <div className="relative z-10">
                                     <Textarea 
@@ -285,7 +260,7 @@ export function SargamStudio() {
                                 className="w-full h-16 rounded-2xl font-black text-lg shadow-2xl shadow-primary/30"
                             >
                                 <span className="pointer-events-none mr-2 h-6 w-6" /> 
-                                Initialize Master Render
+                                Initialize Open Render
                             </Button>
                         </div>
                     ) : (
@@ -360,16 +335,13 @@ export function SargamStudio() {
                                 <div className="space-y-3">
                                     <h3 className="text-xl font-bold text-foreground">Restricted Generation</h3>
                                     <p className="text-sm text-muted-foreground leading-relaxed italic">
-                                        This generation is restricted. This platform is purely for educational research and creative expression.
+                                        This generation is restricted. Educational research protocol.
                                     </p>
                                     <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
                                         <p className="text-xs text-primary font-bold flex items-center justify-center gap-2">
                                             <PawPrint className="h-4 w-4" /> Try with animals as characters!
                                         </p>
                                     </div>
-                                    <p className="text-[10px] text-primary font-black uppercase tracking-widest pt-2">
-                                        The platform and its owner are not responsible for user inputs.
-                                    </p>
                                 </div>
                                 <Button variant="outline" onClick={() => setErrorState('none')} className="rounded-xl mt-4">Dismiss & Retry</Button>
                             </div>
@@ -383,13 +355,8 @@ export function SargamStudio() {
                                 <div className="space-y-3">
                                     <h3 className="text-xl font-bold text-foreground">Neural Synthesis Interrupted</h3>
                                     <p className="text-sm text-muted-foreground leading-relaxed italic">
-                                        {lastErrorMessage || "The synthesis engine encountered a temporary synchronization error."}
+                                        {lastErrorMessage || "The synthesis engine encountered a temporary error."}
                                     </p>
-                                    <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
-                                        <p className="text-xs text-primary font-bold flex items-center justify-center gap-2">
-                                            <PawPrint className="h-4 w-4" /> Try using animals for better success.
-                                        </p>
-                                    </div>
                                 </div>
                                 <Button variant="outline" onClick={() => setErrorState('none')} className="rounded-xl mt-4 gap-2">
                                     <RefreshCw className="h-4 w-4" /> Try Again
@@ -464,7 +431,7 @@ export function SargamStudio() {
                                                     disabled={isGenerating}
                                                 />
                                                 <div className="flex items-center gap-2 px-2">
-                                                    <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-1 rounded-full">{MODIFICATION_COST}c</span>
+                                                    <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-1 rounded-full">Free</span>
                                                     <Button 
                                                         size="icon" 
                                                         type="button"
@@ -478,7 +445,7 @@ export function SargamStudio() {
                                             </div>
                                         </div>
                                         <p className="text-[9px] text-center mt-3 text-muted-foreground font-black uppercase tracking-[0.2em] italic">
-                                            Build your story step-by-step. Click "Finish" to synthesize all scenes.
+                                            Build your story step-by-step. Now free for all research use.
                                         </p>
                                     </div>
                                 )}
@@ -499,7 +466,7 @@ export function SargamStudio() {
             </div>
             
             <div className="text-center text-[10px] text-muted-foreground/50 italic pt-8 pb-4">
-                The platform and its owner are not responsible for user inputs. Educational research protocol.
+                The platform and its owner are not responsible for user inputs. Open Research Protocol.
             </div>
         </div>
     );

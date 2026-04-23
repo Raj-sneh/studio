@@ -41,9 +41,6 @@ const SUPPORTED_LANGUAGES = [
     { label: "Portuguese", value: "Portuguese" }
 ];
 
-const CLONE_COST = 25;
-const ADMIN_EMAIL = 'snehkumarverma2011@gmail.com';
-
 export function VoiceCloner() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -57,18 +54,12 @@ export function VoiceCloner() {
   const [samples, setSamples] = useState<{ name: string, dataUri: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch Profile for Plan Check
-  const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
-  const { data: profile } = useDoc<UserProfile>(userDocRef);
-
-  const isPremium = profile?.plan === 'creator' || profile?.plan === 'pro' || user?.email === ADMIN_EMAIL;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const voicesQuery = useMemoFirebase(() => {
@@ -183,17 +174,6 @@ export function VoiceCloner() {
 
     setIsLoading(true);
     try {
-      const creditRes = await fetch('/api/credits/use', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.uid, amount: CLONE_COST })
-      });
-
-      if (!creditRes.ok) {
-          const errorData = await creditRes.json().catch(() => ({}));
-          throw new Error(errorData.error || "Insufficient credits for neural training.");
-      }
-
       const res = await cloneVoice({
         name: voiceName,
         samples: samples.map(s => s.dataUri)
@@ -233,28 +213,7 @@ export function VoiceCloner() {
   return (
     <div className="max-w-4xl mx-auto py-8 space-y-12 relative min-h-[700px]">
       
-      {!isPremium && profile !== undefined && profile && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center pointer-events-none pt-40">
-            <div className="pointer-events-auto bg-card/40 border border-primary/40 shadow-[0_0_40px_rgba(0,0,0,0.5)] backdrop-blur-xl p-6 rounded-[2rem] w-full max-w-[280px] text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
-                <div className="space-y-1">
-                    <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-1">Neural Protocol Restricted</p>
-                    <h3 className="text-md font-bold font-headline text-foreground leading-tight">Premium Access Required</h3>
-                </div>
-                <Lock className="h-8 w-8 text-primary mx-auto opacity-80" />
-                <div className="space-y-3">
-                    <p className="text-[11px] text-muted-foreground leading-snug px-2 italic">
-                        Voice Cloning requires a Creator or Pro plan. Upgrade now to unlock neural training.
-                    </p>
-                    <Button onClick={() => router.push('/pricing')} className="w-full h-10 text-xs font-black rounded-xl shadow-xl shadow-primary/20">
-                        Upgrade Plan
-                    </Button>
-                </div>
-            </div>
-        </div>
-      )}
-
-      <div className={cn("space-y-16", (!isPremium && profile && profile !== undefined) && "grayscale opacity-40 blur-sm pointer-events-none select-none")}>
-        
+      <div className="space-y-16">
         <Card className="border-primary/20 bg-card/20 rounded-[2rem] overflow-hidden">
           <CardHeader className="text-center pt-10">
             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
@@ -262,7 +221,7 @@ export function VoiceCloner() {
             </div>
             <CardTitle className="text-2xl font-headline font-bold">Voice Cloning AI</CardTitle>
             <CardDescription className="max-w-md mx-auto mt-1 text-xs">
-              Train your personal neural artist in your native language.
+              Train your personal neural artist. Now free for all creators.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8 p-10">
@@ -297,18 +256,17 @@ export function VoiceCloner() {
                     <div className="flex flex-col justify-end">
                       <Button onClick={handleStartTraining} disabled={isLoading} className="h-12 rounded-xl font-bold">
                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                        Start Neural Training
+                        Start Free Training
                       </Button>
                     </div>
                   </div>
                   
-                  {/* Neural Ethics Disclaimer */}
                   <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex gap-3">
                       <ShieldAlert className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                       <div className="space-y-1">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-primary">Ethics & Privacy Disclaimer</p>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-primary">Open Research Protocol</p>
                           <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                              Voice cloning is provided for research and creative expression only. By using this tool, you confirm you have legal consent. Sargam AI assumes no liability for misuse.
+                              Sargam AI has opened voice cloning for all users. Please use this technology responsibly.
                           </p>
                       </div>
                   </div>
@@ -430,7 +388,7 @@ export function VoiceCloner() {
                       className="h-12 flex-[2] rounded-xl font-bold shadow-xl shadow-primary/20"
                     >
                       {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2 fill-primary-foreground" />}
-                      Finalize Neural Clone ({CLONE_COST} Credits)
+                      Finalize Open Clone (Free)
                     </Button>
                   </div>
                 </div>

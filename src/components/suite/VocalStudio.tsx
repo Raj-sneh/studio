@@ -38,9 +38,6 @@ const DEFAULT_VOICES = [
   { id: 'alex', label: 'Alex (Energetic)' },
 ];
 
-const ADMIN_EMAIL = 'snehkumarverma2011@gmail.com';
-const TTS_COST = 2;
-const SWAP_COST = 15;
 const MAX_FILE_SIZE_MB = 10;
 
 export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: string | null; autogen?: boolean; onGenerate: () => void; }) {
@@ -58,8 +55,6 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
   const { data: profile } = useDoc<UserProfile>(userDocRef);
 
   const isProfileLoading = profile === undefined;
-  const isAdmin = user?.email === ADMIN_EMAIL;
-  const isPremium = profile?.plan === 'creator' || profile?.plan === 'pro' || isAdmin;
 
   const voicesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -95,32 +90,12 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
     
     setIsLoading(true);
     setResult(null);
-    setLoadingStatus("Verifying credits...");
+    setLoadingStatus("Connecting to Open Neural Engine...");
 
     try {
-      if (!isAdmin) {
-        const cost = activeSubTab === 'replacement' ? SWAP_COST : TTS_COST;
-
-        const creditRes = await fetch('/api/credits/use', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: user.uid, amount: cost })
-        });
-
-        if (!creditRes.ok) {
-            const text = await creditRes.text();
-            let errMessage = "Neural Engine connection failed.";
-            try {
-              const errData = text ? JSON.parse(text) : {};
-              errMessage = errData.error || errMessage;
-            } catch (e) {}
-            throw new Error(errMessage);
-        }
-      }
-
       if (activeSubTab === 'replacement') {
         if (!values.replacementAudio) throw new Error("Please upload audio.");
-        if (isDefaultVoice) throw new Error("Voice Swap currently only supports Cloned Voices. Switch to a custom clone to use this feature.");
+        if (isDefaultVoice) throw new Error("Voice Swap requires a Cloned Voice. Switch to a custom clone to use this feature.");
         
         setLoadingStatus("Waking up Neural Engine...");
         const res = await replaceVocals({
@@ -189,7 +164,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                                     Text Input
                                     <div className="flex items-center gap-2">
                                         <div className="flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full text-primary border border-primary/20">
-                                            <Zap className="h-3 w-3 fill-primary" /> {isAdmin ? 'Unlimited' : `${TTS_COST} Credits`}
+                                            <Zap className="h-3 w-3 fill-primary" /> Free Access
                                         </div>
                                         <Globe className="h-3 w-3 text-primary" />
                                         <select value={form.watch('language')} onChange={(e) => form.setValue('language', e.target.value)} className="bg-transparent text-[10px] font-bold outline-none">
@@ -208,25 +183,16 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                     </TabsContent>
                     
                     <TabsContent value="replacement" className="mt-0 relative overflow-hidden rounded-[2rem]">
-                        {!isPremium && !isProfileLoading && profile && (
-                          <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-background/60 backdrop-blur-md text-center p-6">
-                                <Lock className="h-10 w-10 text-primary mb-4" />
-                                <h3 className="text-lg font-bold">Premium Required</h3>
-                                <p className="text-xs text-muted-foreground italic mb-4">Voice Swap requires Creator or Pro plan.</p>
-                                <Button type="button" onClick={() => router.push('/pricing')} className="rounded-xl">Upgrade Now</Button>
-                          </div>
-                        )}
-
-                        <div className={cn((!isPremium && !isProfileLoading && profile) && "grayscale opacity-40 blur-sm")}>
+                        <div className="space-y-6">
                           <FormField control={form.control} name="language" render={({ field }) => (
                               <FormItem>
                                   <FormLabel className="text-[10px] font-black uppercase flex items-center justify-between">
                                       Source Language
                                       <div className="flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full text-primary border border-primary/20">
-                                          <Zap className="h-3 w-3 fill-primary" /> {isAdmin ? 'Unlimited' : `${SWAP_COST} Credits`}
+                                          <Zap className="h-3 w-3 fill-primary" /> Free Access
                                       </div>
                                   </FormLabel>
-                                  <select value={field.value} onChange={(e) => field.onChange(e.target.value)} disabled={!isPremium} className="w-full bg-muted/20 border border-primary/10 rounded-xl px-4 py-2 text-sm h-12">
+                                  <select value={field.value} onChange={(e) => field.onChange(e.target.value)} className="w-full bg-muted/20 border border-primary/10 rounded-xl px-4 py-2 text-sm h-12">
                                       {languageOptions.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                                   </select>
                               </FormItem>
@@ -236,7 +202,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                               <FormItem className="mt-6">
                                   <FormLabel className="text-[10px] font-black uppercase">Upload Audio (Max 10MB)</FormLabel>
                                   <div className="relative border-2 border-dashed border-primary/20 rounded-3xl p-16 text-center bg-muted/10 transition-all hover:bg-primary/5">
-                                      <input type="file" accept="audio/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileUpload} disabled={!isPremium && !isProfileLoading} />
+                                      <input type="file" accept="audio/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileUpload} />
                                       <Upload className="text-primary h-10 w-10 mx-auto mb-2" />
                                       <p className="font-bold text-xs">{form.watch('replacementFileName') || 'Click to upload voice sample'}</p>
                                   </div>
@@ -246,7 +212,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                           <div className="mt-6 p-4 rounded-2xl bg-primary/5 border border-primary/10 flex gap-3">
                               <ShieldAlert className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                               <p className="text-[10px] text-muted-foreground italic leading-relaxed">
-                                  Neural Voice Swap is for research and creative use. By using this tool, you confirm you have permission to use the source audio.
+                                  Neural Voice Swap is open for research and creative use.
                               </p>
                           </div>
                         </div>
@@ -278,14 +244,14 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                 </div>
             </div>
 
-            <Button type="submit" disabled={isLoading || (activeSubTab === 'replacement' && !isPremium && !isProfileLoading)} className="w-full h-16 text-xl rounded-2xl font-black shadow-xl shadow-primary/20">
+            <Button type="submit" disabled={isLoading} className="w-full h-16 text-xl rounded-2xl font-black shadow-xl shadow-primary/20">
                 {isLoading ? (
                   <div className="flex flex-col items-center">
-                    <div className="flex items-center"><Loader2 className="animate-spin mr-2 h-6 w-6" /> Running Neural Engine...</div>
+                    <div className="flex items-center"><Loader2 className="animate-spin mr-2 h-6 w-6" /> Initializing Open Synthesis...</div>
                     <span className="text-[10px] font-normal mt-1 opacity-70">{loadingStatus}</span>
                   </div>
                 ) : (
-                  <><Sparkles className="mr-2 h-6 w-6" /> Start Transformation</>
+                  <><Sparkles className="mr-2 h-6 w-6" /> Start Free Transformation</>
                 )}
             </Button>
           </form>

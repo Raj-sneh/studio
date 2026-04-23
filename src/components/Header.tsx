@@ -6,7 +6,7 @@ import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/fireb
 import { signOut } from "firebase/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap, LifeBuoy, MonitorPlay, PlayCircle, Sparkles, ChevronLeft } from "lucide-react";
+import { Music, LogOut, User as UserIcon, BookOpen, Wand2, LogIn, ChevronDown, Zap, ShieldCheck, GraduationCap, LifeBuoy, MonitorPlay, PlayCircle, Sparkles, ChevronLeft, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { doc } from "firebase/firestore";
@@ -31,7 +31,6 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Strict User Check: Only true for verified, non-anonymous accounts
   const isAuthenticated = !!(user && !user.isAnonymous);
 
   const userDocRef = useMemoFirebase(() => (firestore && isAuthenticated ? doc(firestore, 'users', user.uid) : null), [firestore, isAuthenticated, user?.uid]);
@@ -60,9 +59,9 @@ export default function Header() {
         {!isAuthenticated && !isUserLoading && (
           <div className="bg-primary py-1.5 px-4 text-center border-b border-primary/20 shadow-[0_0_20px_rgba(0,255,255,0.2)]">
              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-primary-foreground flex items-center justify-center gap-2">
-               <Sparkles className="h-3 w-3 fill-current" />
-               Sign in to unlock the full power of Sargam AI.
-               <Sparkles className="h-3 w-3 fill-current" />
+               <Gift className="h-3 w-3 fill-current" />
+               Join Sargam AI for Unlimited Open Neural Access.
+               <Gift className="h-3 w-3 fill-current" />
              </p>
           </div>
         )}
@@ -111,18 +110,15 @@ export default function Header() {
               <div className="h-8 w-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
             ) : isAuthenticated ? (
               <div className="flex items-center gap-4">
-                {/* Visual Credit Badge */}
                 <Link 
                   href="/pricing" 
                   className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/30 shadow-[0_0_15px_rgba(0,255,255,0.1)] transition-all hover:bg-primary/20 hover:scale-105 active:scale-95"
-                  title="Your Neural Credits"
+                  title="Unlimited Access"
                 >
                   <Zap className="h-4 w-4 text-primary fill-primary animate-pulse" />
                   <div className="flex flex-col items-start leading-none">
-                    <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Credits</span>
-                    <span className="text-xs font-black text-foreground">
-                      {isProfileLoading ? "..." : (profile?.credits ?? 0)}
-                    </span>
+                    <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Access</span>
+                    <span className="text-xs font-black text-foreground uppercase">Unlimited</span>
                   </div>
                 </Link>
 
@@ -143,14 +139,14 @@ export default function Header() {
                           {profile?.plan && profile.plan !== 'free' && <ShieldCheck className="h-3 w-3 text-primary" />}
                         </span>
                         <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest bg-primary/5 w-fit px-2 py-0.5 rounded border border-primary/10">
-                          {profile?.plan || 'Free'} Member
+                          Open Research Access
                         </span>
                       </div>
                       <Link href="/profile" className="flex w-full items-center px-3 py-2.5 text-sm hover:bg-accent rounded-lg transition-colors" onClick={() => setIsMenuOpen(false)}>
                         <UserIcon className="mr-3 h-4 w-4 text-primary" /> Profile
                       </Link>
                       <Link href="/pricing" className="flex w-full items-center px-3 py-2.5 text-sm hover:bg-accent rounded-lg transition-colors" onClick={() => setIsMenuOpen(false)}>
-                        <Zap className="mr-3 h-4 w-4 text-primary" /> Upgrade Plan
+                        <Heart className="mr-3 h-4 w-4 text-primary" /> Support Project
                       </Link>
                       <Link href="/profile/support" className="flex w-full items-center px-3 py-2.5 text-sm hover:bg-accent rounded-lg transition-colors" onClick={() => setIsMenuOpen(false)}>
                         <LifeBuoy className="mr-3 h-4 w-4 text-primary" /> Support

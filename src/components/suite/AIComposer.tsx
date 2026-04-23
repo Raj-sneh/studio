@@ -19,9 +19,6 @@ import { cn } from '@/lib/utils';
 
 const Piano = lazy(() => import('@/components/Piano'));
 
-const MELODY_COST = 5;
-const ADMIN_EMAILS = ['snehkumarverma2011@gmail.com'];
-
 function InstrumentLoader() {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center min-h-[200px]">
@@ -96,31 +93,9 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
 
         stopPlayback();
         setGenerationState('loading');
-        setStatusText('Checking credits...');
+        setStatusText('Initializing Open Neural Engine...');
 
         try {
-            const isAdmin = user.email && ADMIN_EMAILS.includes(user.email);
-            
-            if (!isAdmin) {
-                const creditRes = await fetch('/api/credits/use', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: user.uid, amount: MELODY_COST })
-                });
-
-                if (!creditRes.ok) {
-                    const text = await creditRes.text();
-                    let errMessage = "Neural synthesis requires credits.";
-                    try {
-                      const errData = text ? JSON.parse(text) : {};
-                      errMessage = errData.error || errMessage;
-                    } catch (e) {}
-                    toast({ title: "Insufficient Credits", description: errMessage, variant: "destructive" });
-                    setGenerationState('idle');
-                    return;
-                }
-            }
-
             setStatusText(isReinforced ? 'Reinforcing melody...' : 'Thinking of a melody...');
             onGenerate(); 
 
@@ -173,7 +148,6 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
             const sampler = await getSampler('piano');
             samplerRef.current = sampler;
             
-            // Wait for all high-fidelity buffers to load
             await Tone.loaded();
 
             Tone.Transport.bpm.value = generatedMelody.tempo;
@@ -257,7 +231,7 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
                             Melody Concept
                         </label>
                         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-black text-primary uppercase">
-                            <Zap className="h-3 w-3 fill-primary" /> {user?.email && ADMIN_EMAILS.includes(user.email) ? 'Unlimited' : `${MELODY_COST} Credits`}
+                            <Zap className="h-3 w-3 fill-primary" /> Free for All
                         </div>
                     </div>
                     
@@ -279,7 +253,7 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
                             className="flex-1 h-14 rounded-2xl font-black text-md shadow-xl shadow-primary/20"
                         >
                             {generationState === 'loading' ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : <RefreshCw className="mr-2 h-5 w-5" />}
-                            {generationState === 'generated' ? 'Regenerate New' : 'Initialize Composition'}
+                            {generationState === 'generated' ? 'Regenerate New' : 'Initialize Open Composition'}
                         </Button>
                         
                         {generationState === 'generated' && (
