@@ -28,9 +28,12 @@ import {
     Save,
     ShieldAlert,
     AlertTriangle,
-    PawPrint
+    PawPrint,
+    Eye
 } from 'lucide-react';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/types';
 import { cn } from '@/lib/utils';
 
 const STYLES = [
@@ -42,8 +45,12 @@ const STYLES = [
 
 export function SargamStudio() {
     const { user } = useUser();
+    const firestore = useFirestore();
     const { toast } = useToast();
     
+    const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
+    const { data: profile } = useDoc<UserProfile>(userDocRef);
+
     // Core State
     const [prompt, setPrompt] = useState('');
     const [selectedStyle, setSelectedStyle] = useState('3d-render');
@@ -68,6 +75,13 @@ export function SargamStudio() {
             toast({ title: "Account Required", description: "Please sign in to access Sargam Studio.", variant: "destructive" });
             return;
         }
+
+        if (!profile) return;
+
+        if ((profile.credits || 0) < 5) {
+            toast({ title: "Credits Required", description: "Each cinematic render requires 5 credits. Upgrade your plan to continue.", variant: "destructive" });
+            return;
+        }
         
         const isInitial = !isRefinementMode;
         if (isInitial && !prompt.trim()) {
@@ -85,11 +99,29 @@ export function SargamStudio() {
         setErrorState('none');
         setLastErrorMessage(null);
 
+        // FREEMIUM AD LOGIC
+        if (profile.plan === 'free') {
+            toast({ title: "Sponsorship Protocol", description: "Initializing ad sequence for Free tier synthesis." });
+            await new Promise(r => setTimeout(r, 5000));
+        }
+
         const interval = setInterval(() => {
             setProgress(prev => (prev >= 98 ? 99 : prev + 0.5));
         }, 3000);
 
         try {
+            // Deduct credits
+            const creditRes = await fetch('/api/credits/use', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: user.uid, amount: 5 })
+            });
+
+            if (!creditRes.ok) {
+                const errData = await creditRes.json();
+                throw new Error(errData.error || "Credit verification failed.");
+            }
+
             const response = await fetch('/api/studio', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -109,10 +141,7 @@ export function SargamStudio() {
                 
                 if (msg.toLowerCase().includes('third-party') || 
                     msg.toLowerCase().includes('sensitive') || 
-                    msg.toLowerCase().includes('practices') || 
                     msg.toLowerCase().includes('responsible ai') ||
-                    msg.toLowerCase().includes('pornography') ||
-                    msg.toLowerCase().includes('illegal') ||
                     msg.toLowerCase().includes('safety')) {
                     setErrorState('content-block');
                 } else {
@@ -198,7 +227,7 @@ export function SargamStudio() {
                                 {isRefinementMode ? 'Project Evolution' : 'Initial Protocol'}
                             </h3>
                             <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">
-                                {isRefinementMode ? `Active Scenes: ${sceneVideos.length}` : 'Free High-Fidelity Render'}
+                                {profile?.plan === 'free' ? <span className="text-secondary flex items-center gap-1"><Eye className="h-2.5 w-2.5" /> Ad-Supported</span> : 'Professional Unlimited'}
                             </p>
                         </div>
                         {isRefinementMode && (
@@ -215,7 +244,7 @@ export function SargamStudio() {
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                                         Master Concept (Scene 1)
                                     </label>
-                                    <span className="text-primary font-bold text-[10px]">Free Access</span>
+                                    <span className="text-primary font-bold text-[10px]">5 Credits</span>
                                 </div>
                                 <div className="relative z-10">
                                     <Textarea 
@@ -260,7 +289,7 @@ export function SargamStudio() {
                                 className="w-full h-16 rounded-2xl font-black text-lg shadow-2xl shadow-primary/30"
                             >
                                 <span className="pointer-events-none mr-2 h-6 w-6" /> 
-                                Initialize Open Render
+                                {isGenerating ? 'Synthesizing...' : 'Initialize Render (5 Credits)'}
                             </Button>
                         </div>
                     ) : (
@@ -423,7 +452,7 @@ export function SargamStudio() {
                                                     <Bot className="h-5 w-5 text-primary" />
                                                 </div>
                                                 <Input 
-                                                    placeholder={`Scene ${sceneVideos.length + 1}: Describe the next cinematic beat...`}
+                                                    placeholder={`Scene ${sceneVideos.length + 1}: Describe next beat (5 Credits)...`}
                                                     value={currentInstruction}
                                                     onChange={(e) => setCurrentInstruction(e.target.value)}
                                                     onKeyDown={(e) => e.key === 'Enter' && currentInstruction.trim() && handleGenerate(currentInstruction)}
@@ -431,7 +460,7 @@ export function SargamStudio() {
                                                     disabled={isGenerating}
                                                 />
                                                 <div className="flex items-center gap-2 px-2">
-                                                    <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-1 rounded-full">Free</span>
+                                                    <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-1 rounded-full">5C</span>
                                                     <Button 
                                                         size="icon" 
                                                         type="button"
@@ -445,7 +474,7 @@ export function SargamStudio() {
                                             </div>
                                         </div>
                                         <p className="text-[9px] text-center mt-3 text-muted-foreground font-black uppercase tracking-[0.2em] italic">
-                                            Build your story step-by-step. Now free for all research use.
+                                            Build your story step-by-step. Each iteration synchronizes neural coherence.
                                         </p>
                                     </div>
                                 )}
@@ -463,10 +492,6 @@ export function SargamStudio() {
                         )}
                     </div>
                 </div>
-            </div>
-            
-            <div className="text-center text-[10px] text-muted-foreground/50 italic pt-8 pb-4">
-                The platform and its owner are not responsible for user inputs. Open Research Protocol.
             </div>
         </div>
     );

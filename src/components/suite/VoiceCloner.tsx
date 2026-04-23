@@ -19,7 +19,8 @@ import {
     Mic,
     Square,
     Volume2,
-    ShieldAlert
+    ShieldAlert,
+    Eye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -46,6 +47,9 @@ export function VoiceCloner() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
+
+  const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
+  const { data: profile } = useDoc<UserProfile>(userDocRef);
 
   const [step, setStep] = useState<'setup' | 'training' | 'uploading'>('setup');
   const [selectedLanguage, setSelectedLanguage] = useState("English");
@@ -166,14 +170,40 @@ export function VoiceCloner() {
   };
 
   const handleFinalizeClone = async () => {
-    if (!user) return;
+    if (!user || !profile) return;
+
+    const cost = 25;
+    if ((profile.credits || 0) < cost) {
+        toast({ title: "Insufficient Credits", description: "Voice cloning requires 25 neural credits.", variant: "destructive" });
+        return;
+    }
+
     if (samples.length === 0) {
       toast({ title: "Samples Missing", description: "Please upload at least one voice sample.", variant: "destructive" });
       return;
     }
 
     setIsLoading(true);
+
+    // FREEMIUM AD LOGIC
+    if (profile.plan === 'free') {
+        toast({ title: "Sponsorship Protocol", description: "Reviewing ads to initialize neural embedding." });
+        await new Promise(r => setTimeout(r, 6000));
+    }
+
     try {
+      // Deduct credits
+      const creditRes = await fetch('/api/credits/use', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.uid, amount: cost })
+      });
+
+      if (!creditRes.ok) {
+          const errData = await creditRes.json();
+          throw new Error(errData.error || "Credit verification failed.");
+      }
+
       const res = await cloneVoice({
         name: voiceName,
         samples: samples.map(s => s.dataUri)
@@ -221,7 +251,7 @@ export function VoiceCloner() {
             </div>
             <CardTitle className="text-2xl font-headline font-bold">Voice Cloning AI</CardTitle>
             <CardDescription className="max-w-md mx-auto mt-1 text-xs">
-              Train your personal neural artist. Now free for all creators.
+              Train your personal neural artist. {profile?.plan === 'free' ? 'Ad-supported access active.' : 'Professional Ads-Free Access.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8 p-10">
@@ -256,17 +286,17 @@ export function VoiceCloner() {
                     <div className="flex flex-col justify-end">
                       <Button onClick={handleStartTraining} disabled={isLoading} className="h-12 rounded-xl font-bold">
                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                        Start Free Training
+                        Start Training
                       </Button>
                     </div>
                   </div>
                   
                   <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex gap-3">
-                      <ShieldAlert className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      {profile?.plan === 'free' ? <Eye className="h-5 w-5 text-secondary shrink-0 mt-0.5" /> : <ShieldAlert className="h-5 w-5 text-primary shrink-0 mt-0.5" />}
                       <div className="space-y-1">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-primary">Open Research Protocol</p>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-primary">{profile?.plan === 'free' ? 'Ad-Supported Tier' : 'Professional Protocol'}</p>
                           <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                              Sargam AI has opened voice cloning for all users. Please use this technology responsibly.
+                              {profile?.plan === 'free' ? 'Review sponsorship protocol to initialize neural embedding.' : 'Uninterrupted access to neural training enabled.'}
                           </p>
                       </div>
                   </div>
@@ -388,43 +418,13 @@ export function VoiceCloner() {
                       className="h-12 flex-[2] rounded-xl font-bold shadow-xl shadow-primary/20"
                     >
                       {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2 fill-primary-foreground" />}
-                      Finalize Open Clone (Free)
+                      Finalize Neural Embedding (25 Credits)
                     </Button>
                   </div>
                 </div>
              )}
           </CardContent>
         </Card>
-
-        <div className="space-y-6">
-            <h2 className="text-xl font-bold font-headline flex items-center gap-3">
-                <Mic2 className="text-primary h-5 w-5" />
-                Neural Artist Library
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {savedVoices && savedVoices.length > 0 ? (
-                  savedVoices.map((v) => (
-                    <div key={v.id} className="p-5 rounded-3xl bg-muted/10 border border-primary/20 flex items-center gap-4 group hover:bg-primary/5 transition-all">
-                        <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                            <BrainCircuit className="h-6 w-6 text-primary" />
-                        </div>
-                        <div className="truncate">
-                            <p className="text-sm font-bold uppercase tracking-tight truncate">{v.name}</p>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{v.language} • Neural Clone</p>
-                        </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="col-span-full py-20 text-center space-y-4 border-2 border-dashed border-primary/5 rounded-[2rem]">
-                      <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mx-auto opacity-20">
-                        <Mic2 className="h-8 w-8" />
-                      </div>
-                      <p className="text-sm text-muted-foreground italic">No neural artists in your library yet.</p>
-                  </div>
-                )}
-            </div>
-        </div>
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Loader2, Sparkles, Mic2, Upload, FileAudio, BrainCircuit, Globe, Lock, Zap, ShieldAlert
+  Loader2, Sparkles, Mic2, Upload, FileAudio, BrainCircuit, Globe, Lock, Zap, ShieldAlert, Eye
 } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Card } from '@/components/ui/card';
@@ -54,8 +54,6 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
   const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
   const { data: profile } = useDoc<UserProfile>(userDocRef);
 
-  const isProfileLoading = profile === undefined;
-
   const voicesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'users', user.uid, 'clonedVoices'), orderBy('createdAt', 'desc'));
@@ -85,19 +83,45 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
 
   const handleRun = async (values: z.infer<typeof formSchema>) => {
     if (!user) return router.push('/login');
+    if (!profile) return;
+
+    const cost = activeSubTab === 'replacement' ? 5 : 2;
+    if ((profile.credits || 0) < cost) {
+      toast({ title: "Insufficient Credits", description: `This operation requires ${cost} credits.`, variant: "destructive" });
+      return;
+    }
     
     const isDefaultVoice = DEFAULT_VOICES.some(v => v.id === values.voice);
     
     setIsLoading(true);
     setResult(null);
-    setLoadingStatus("Connecting to Open Neural Engine...");
+
+    // FREEMIUM AD LOGIC
+    if (profile.plan === 'free') {
+        setLoadingStatus("Reviewing Sponsorship Protocol...");
+        await new Promise(r => setTimeout(r, 4000));
+    }
+
+    setLoadingStatus("Connecting to Neural Engine...");
 
     try {
+      // Deduct credits
+      const creditRes = await fetch('/api/credits/use', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.uid, amount: cost })
+      });
+
+      if (!creditRes.ok) {
+          const errData = await creditRes.json();
+          throw new Error(errData.error || "Credit deduction failed.");
+      }
+
       if (activeSubTab === 'replacement') {
         if (!values.replacementAudio) throw new Error("Please upload audio.");
-        if (isDefaultVoice) throw new Error("Voice Swap requires a Cloned Voice. Switch to a custom clone to use this feature.");
+        if (isDefaultVoice) throw new Error("Voice Swap requires a Cloned Voice.");
         
-        setLoadingStatus("Waking up Neural Engine...");
+        setLoadingStatus("Performing Neural Transformation...");
         const res = await replaceVocals({
           audioDataUri: values.replacementAudio,
           voiceId: values.voice,
@@ -110,7 +134,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
         if (!values.text) throw new Error("Please enter text.");
         
         if (isDefaultVoice) {
-            setLoadingStatus("Connecting to Primary Neural Engine...");
+            setLoadingStatus("Synthesizing primary profile...");
             const res = await fetch('/api/text-to-speech', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -135,7 +159,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
             setResult({ audioUri: res.data.audioUri, title: "Custom Synthesis Complete" });
         }
       }
-      toast({ title: "Success!", description: "AI track generated successfully." });
+      toast({ title: "Success!", description: `-${cost} Credits Applied.` });
       onGenerate();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -164,7 +188,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                                     Text Input
                                     <div className="flex items-center gap-2">
                                         <div className="flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full text-primary border border-primary/20">
-                                            <Zap className="h-3 w-3 fill-primary" /> Free Access
+                                            {profile?.plan === 'free' ? <><Eye className="h-3 w-3" /> Ad-Supported</> : <><Zap className="h-3 w-3 fill-primary" /> Ads-Free</>}
                                         </div>
                                         <Globe className="h-3 w-3 text-primary" />
                                         <select value={form.watch('language')} onChange={(e) => form.setValue('language', e.target.value)} className="bg-transparent text-[10px] font-bold outline-none">
@@ -189,7 +213,7 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                                   <FormLabel className="text-[10px] font-black uppercase flex items-center justify-between">
                                       Source Language
                                       <div className="flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full text-primary border border-primary/20">
-                                          <Zap className="h-3 w-3 fill-primary" /> Free Access
+                                          {profile?.plan === 'free' ? <><Eye className="h-3 w-3" /> Ad-Supported</> : <><Zap className="h-3 w-3 fill-primary" /> Ads-Free</>}
                                       </div>
                                   </FormLabel>
                                   <select value={field.value} onChange={(e) => field.onChange(e.target.value)} className="w-full bg-muted/20 border border-primary/10 rounded-xl px-4 py-2 text-sm h-12">
@@ -208,13 +232,6 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
                                   </div>
                               </FormItem>
                           )}/>
-                          
-                          <div className="mt-6 p-4 rounded-2xl bg-primary/5 border border-primary/10 flex gap-3">
-                              <ShieldAlert className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                              <p className="text-[10px] text-muted-foreground italic leading-relaxed">
-                                  Neural Voice Swap is open for research and creative use.
-                              </p>
-                          </div>
                         </div>
                     </TabsContent>
                 </div>
@@ -247,11 +264,11 @@ export function VocalStudio({ initialPrompt, onGenerate }: { initialPrompt?: str
             <Button type="submit" disabled={isLoading} className="w-full h-16 text-xl rounded-2xl font-black shadow-xl shadow-primary/20">
                 {isLoading ? (
                   <div className="flex flex-col items-center">
-                    <div className="flex items-center"><Loader2 className="animate-spin mr-2 h-6 w-6" /> Initializing Open Synthesis...</div>
+                    <div className="flex items-center"><Loader2 className="animate-spin mr-2 h-6 w-6" /> Processing...</div>
                     <span className="text-[10px] font-normal mt-1 opacity-70">{loadingStatus}</span>
                   </div>
                 ) : (
-                  <><Sparkles className="mr-2 h-6 w-6" /> Start Free Transformation</>
+                  <><Sparkles className="mr-2 h-6 w-6" /> Initialize Transformation ({activeSubTab === 'replacement' ? '5' : '2'} Credits)</>
                 )}
             </Button>
           </form>

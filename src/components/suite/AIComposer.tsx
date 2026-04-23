@@ -8,13 +8,14 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { generateNotes } from '@/ai/flows/generate-notes-flow';
 import type { GenerateNotesOutput, NoteObject } from '@/ai/flows/generate-notes-types';
-import { Loader2, Music, Play, StopCircle, BookOpen, ThumbsUp, ThumbsDown, Zap, Send, RefreshCw } from 'lucide-react';
+import { Loader2, Music, Play, StopCircle, BookOpen, ThumbsUp, ThumbsDown, Zap, Send, RefreshCw, Eye } from 'lucide-react';
 import { getSampler } from '@/lib/samplers';
 import type { InstrumentSynth } from '@/lib/samplers';
 import NoteDisplay from '@/components/note-display';
 import { Card, CardContent } from '@/components/ui/card';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { collection, serverTimestamp, doc } from 'firebase/firestore';
+import type { UserProfile } from '@/types';
 import { cn } from '@/lib/utils';
 
 const Piano = lazy(() => import('@/components/Piano'));
@@ -33,6 +34,9 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
     const { user } = useUser();
     const firestore = useFirestore();
     
+    const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
+    const { data: profile } = useDoc<UserProfile>(userDocRef);
+
     const [prompt, setPrompt] = useState(initialPrompt || '');
     const [feedbackComment, setFeedbackComment] = useState('');
     const [rating, setRating] = useState<'good' | 'bad' | null>(null);
@@ -86,6 +90,14 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
             toast({ title: 'Sign in required', variant: 'destructive' });
             return;
         }
+        
+        if (!profile) return;
+        
+        if ((profile.credits || 0) < 1) {
+            toast({ title: 'Insufficient Credits', description: 'Upgrade your plan to get more neural liquidity.', variant: 'destructive' });
+            return;
+        }
+
         if (!prompt.trim()) {
             toast({ title: 'Type something first', variant: 'destructive' });
             return;
@@ -93,10 +105,32 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
 
         stopPlayback();
         setGenerationState('loading');
+
+        // FREEMIUM AD LOGIC
+        if (profile.plan === 'free') {
+            setStatusText('Sponsorship Protocol Active...');
+            toast({ title: "Reviewing Sponsorship", description: "Free tier users must review ads to initialize synthesis." });
+            // Simulate ad review delay
+            await new Promise(r => setTimeout(r, 4000));
+        }
+
         setStatusText('Initializing Open Neural Engine...');
 
         try {
             setStatusText(isReinforced ? 'Reinforcing melody...' : 'Thinking of a melody...');
+            
+            // Deduct credits via proxy
+            const creditRes = await fetch('/api/credits/use', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: user.uid, amount: 1 })
+            });
+
+            if (!creditRes.ok) {
+                const errData = await creditRes.json();
+                throw new Error(errData.error || "Credit verification failed.");
+            }
+
             onGenerate(); 
 
             const feedback = isReinforced && rating ? {
@@ -134,7 +168,7 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
             toast({ title: 'Oops!', description: err.message, variant: 'destructive' });
             setGenerationState('idle');
         }
-    }, [prompt, feedbackComment, rating, toast, stopPlayback, onGenerate, user, firestore]);
+    }, [prompt, feedbackComment, rating, toast, stopPlayback, onGenerate, user, firestore, profile]);
 
     const handlePlayDemo = useCallback(async () => {
         if (!generatedMelody) return;
@@ -231,7 +265,7 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
                             Melody Concept
                         </label>
                         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-black text-primary uppercase">
-                            <Zap className="h-3 w-3 fill-primary" /> Free for All
+                            {profile?.plan === 'free' ? <><Eye className="h-3 w-3" /> Ad-Supported</> : <><Zap className="h-3 w-3 fill-primary" /> Ads-Free Pro</>}
                         </div>
                     </div>
                     
@@ -253,7 +287,7 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
                             className="flex-1 h-14 rounded-2xl font-black text-md shadow-xl shadow-primary/20"
                         >
                             {generationState === 'loading' ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : <RefreshCw className="mr-2 h-5 w-5" />}
-                            {generationState === 'generated' ? 'Regenerate New' : 'Initialize Open Composition'}
+                            {generationState === 'generated' ? 'Regenerate (1 Credit)' : 'Initialize Composition (1 Credit)'}
                         </Button>
                         
                         {generationState === 'generated' && (

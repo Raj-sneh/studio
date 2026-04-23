@@ -12,6 +12,9 @@ import UserNotice from '@/components/user-notice';
 import { Heart, LifeBuoy } from 'lucide-react';
 import Script from 'next/script';
 import Link from 'next/link';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/types';
 
 const fontHeadline = Poppins({
   subsets: ['latin'],
@@ -27,6 +30,44 @@ const fontBody = Roboto({
   weight: ['400', '500'],
 });
 
+function AdScriptManager() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
+  const { data: profile } = useDoc<UserProfile>(userDocRef);
+
+  // Only enable ads for 'free' plan or unauthenticated users
+  const showAds = !profile || profile.plan === 'free';
+
+  if (!showAds) return null;
+
+  return (
+    <>
+      {/* Monetization Engine */}
+      <Script
+        async
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8391391679719370"
+        crossOrigin="anonymous"
+        strategy="afterInteractive"
+      />
+
+      {/* Adcash Library Protocol */}
+      <Script 
+        id="aclib" 
+        src="//acscdn.com/script/aclib.js" 
+        strategy="lazyOnload"
+        onLoad={() => {
+          if (typeof (window as any).aclib !== 'undefined' && typeof (window as any).aclib.runAutoTag === 'function') {
+              (window as any).aclib.runAutoTag({
+                  zoneId: 'uaihuhfqjp',
+              });
+          }
+        }}
+      />
+    </>
+  );
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -39,28 +80,6 @@ export default function RootLayout({
         <meta name="description" content="Sargam AI is the definitive Neural Studio for creators. Render cinematic animations, clone voices, or practice on our professional virtual grand piano." />
         <meta name="keywords" content="Neural Studio, AI Music Generator, Virtual Piano, AI Piano Tutor, Voice Cloning, Sargam AI, AI Vocal Studio, Music Learning AI, Neural Artist" />
         
-        {/* Monetization Engine */}
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8391391679719370"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
-
-        {/* Adcash Library Protocol */}
-        <Script 
-          id="aclib" 
-          src="//acscdn.com/script/aclib.js" 
-          strategy="lazyOnload"
-          onLoad={() => {
-            if (typeof (window as any).aclib !== 'undefined' && typeof (window as any).aclib.runAutoTag === 'function') {
-                (window as any).aclib.runAutoTag({
-                    zoneId: 'uaihuhfqjp',
-                });
-            }
-          }}
-        />
-
         {/* Performance Analytics */}
         <Script
           async
@@ -79,6 +98,7 @@ export default function RootLayout({
       <body className={cn("font-body antialiased min-h-screen bg-background", fontHeadline.variable, fontBody.variable)}>
         <Providers>
           <div className="flex flex-col min-h-screen">
+            <AdScriptManager />
             <UserNotice />
             <Header />
             <main className="flex-1 container mx-auto px-6 py-16 md:py-24">{children}</main>
