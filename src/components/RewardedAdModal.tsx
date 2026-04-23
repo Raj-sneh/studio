@@ -26,6 +26,7 @@ declare global {
   interface Window {
     aclib?: {
       runAutoTag: (config: { zoneId: string }) => void;
+      runInterstitial: (config: { zoneId: string }) => void;
     };
   }
 }
@@ -79,7 +80,8 @@ export function RewardedAdModal({ isOpen, onOpenChange, currentCredits }: Reward
     // 1. Call the Adcash Manual Script
     if (typeof window !== 'undefined' && window.aclib) {
       try {
-        window.aclib.runAutoTag({
+        // Trigger high-impact Interstitial sequence per latest protocol
+        window.aclib.runInterstitial({
           zoneId: '11225786', 
         });
         
