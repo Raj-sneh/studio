@@ -77,19 +77,20 @@ export function RewardedAdModal({ isOpen, onOpenChange, currentCredits }: Reward
   }, [progress, isWatching, handleGrantCredits]);
 
   const handleStart = () => {
-    // 1. Call the Adcash Manual Script (Logic aligned with handleShowAd snippet)
-    if (typeof window !== 'undefined' && window.aclib) {
-      window.aclib.runAutoTag({
+    // Check if the script loaded
+    if (typeof window !== 'undefined' && (window as any).aclib) {
+      (window as any).aclib.runAutoTag({
         zoneId: '11225786',
       });
       
-      // 2. Start your 'Grant Credits' timer only after the ad starts
-      setIsWatching(true); // Equivalent to setIsCounting(true)
+      // Start your countdown
+      setIsWatching(true);
       setIsComplete(false);
       setProgress(0);
     } else {
-      // If this hits, the script in Step 1 is missing or AdBlock is on
-      alert("Ad provider not ready!");
+      // If this hits, the script hasn't loaded yet
+      console.error("Adcash Library missing");
+      alert("Ad provider not ready! Check your internet or disable AdBlock.");
     }
   };
 
