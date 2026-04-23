@@ -40,7 +40,7 @@ const STYLES = [
     { id: '3d-render', label: 'Masterpiece 3D', icon: Box, description: 'Hyper-realistic path-traced CGI.' },
     { id: '2d-animation', label: 'Polished 2D', icon: Layers, description: 'Hand-drawn digital fluid motion.' },
     { id: 'cinematic', label: '8K Film', icon: Film, description: 'Professional cinema quality.' },
-    { id: 'anime', label: 'High-Fidelity Anime', icon: Palette, description: 'Studio Ghibli inspired quality.' }
+    { id: 'anime', label: 'High-Fidelity Anime', icon: Palette, description: 'Neural artist inspired quality.' }
 ];
 
 export function SargamStudio() {
@@ -58,7 +58,7 @@ export function SargamStudio() {
     const [currentInstruction, setCurrentInstruction] = useState('');
     
     // Video Cache for Stitching
-    const [sceneVideos, setSceneVideos] = useState<string[]>([]); // Array of data URIs
+    const [sceneVideos, setSceneVideos] = useState<string[]>([]); 
     
     // UI Logic State
     const [isGenerating, setIsGenerating] = useState(false);
@@ -79,7 +79,7 @@ export function SargamStudio() {
         if (!profile) return;
 
         if ((profile.credits || 0) < 5) {
-            toast({ title: "Credits Required", description: "Each cinematic render requires 5 credits. Upgrade your plan to continue.", variant: "destructive" });
+            toast({ title: "Credits Required", description: "Each cinematic render requires 5 credits.", variant: "destructive" });
             return;
         }
         
@@ -99,7 +99,7 @@ export function SargamStudio() {
         setErrorState('none');
         setLastErrorMessage(null);
 
-        // FREEMIUM AD LOGIC
+        // Neural Ad Logic
         if (profile.plan === 'free') {
             toast({ title: "Sponsorship Protocol", description: "Initializing ad sequence for Free tier synthesis." });
             await new Promise(r => setTimeout(r, 5000));
@@ -110,7 +110,6 @@ export function SargamStudio() {
         }, 3000);
 
         try {
-            // Deduct credits
             const creditRes = await fetch('/api/credits/use', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -139,10 +138,7 @@ export function SargamStudio() {
                 const data = isJson ? await response.json().catch(() => ({})) : { message: "Neural Engine Connectivity Issue" };
                 const msg = data.message || "Rendering failed.";
                 
-                if (msg.toLowerCase().includes('third-party') || 
-                    msg.toLowerCase().includes('sensitive') || 
-                    msg.toLowerCase().includes('responsible ai') ||
-                    msg.toLowerCase().includes('safety')) {
+                if (msg.toLowerCase().includes('safety') || msg.toLowerCase().includes('restricted')) {
                     setErrorState('content-block');
                 } else {
                     setErrorState('error');
@@ -176,7 +172,6 @@ export function SargamStudio() {
         if (sceneVideos.length === 0) return;
         if (sceneVideos.length === 1) {
             setFinalVideoUrl(sceneVideos[0]);
-            toast({ title: "Project Finished", description: "Your single-scene render is ready." });
             return;
         }
 
@@ -227,7 +222,7 @@ export function SargamStudio() {
                                 {isRefinementMode ? 'Project Evolution' : 'Initial Protocol'}
                             </h3>
                             <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">
-                                {profile?.plan === 'free' ? <span className="text-secondary flex items-center gap-1"><Eye className="h-2.5 w-2.5" /> Ad-Supported</span> : 'Professional Unlimited'}
+                                {profile?.plan === 'free' ? <span className="text-secondary flex items-center gap-1"><Eye className="h-2.5 w-2.5" /> Ad-Supported</span> : 'Professional Protocol'}
                             </p>
                         </div>
                         {isRefinementMode && (
@@ -242,7 +237,7 @@ export function SargamStudio() {
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center px-1">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                        Master Concept (Scene 1)
+                                        Master Concept
                                     </label>
                                     <span className="text-primary font-bold text-[10px]">5 Credits</span>
                                 </div>
@@ -288,7 +283,6 @@ export function SargamStudio() {
                                 disabled={isGenerating || !prompt.trim()} 
                                 className="w-full h-16 rounded-2xl font-black text-lg shadow-2xl shadow-primary/30"
                             >
-                                <span className="pointer-events-none mr-2 h-6 w-6" /> 
                                 {isGenerating ? 'Synthesizing...' : 'Initialize Render (5 Credits)'}
                             </Button>
                         </div>
@@ -349,7 +343,7 @@ export function SargamStudio() {
                         {(currentVideoUrl || finalVideoUrl) && !isGenerating && !isStitching && (
                             <Button variant="outline" size="sm" className="rounded-full gap-2 border-primary/20 hover:bg-primary/10 h-10 px-6 font-bold" asChild>
                                 <a href={finalVideoUrl || currentVideoUrl || ''} download={`sargam-studio-${Date.now()}.mp4`}>
-                                    <Download className="h-4 w-4 text-primary" /> Download Master
+                                    <Download className="h-4 w-4 text-primary" /> Download
                                 </a>
                             </Button>
                         )}
@@ -362,9 +356,9 @@ export function SargamStudio() {
                                     <ShieldAlert className="h-10 w-10 text-destructive" />
                                 </div>
                                 <div className="space-y-3">
-                                    <h3 className="text-xl font-bold text-foreground">Restricted Generation</h3>
+                                    <h3 className="text-xl font-bold text-foreground">Restricted Protocol</h3>
                                     <p className="text-sm text-muted-foreground leading-relaxed italic">
-                                        This generation is restricted. Educational research protocol.
+                                        This generation is restricted under neural safety guidelines.
                                     </p>
                                     <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
                                         <p className="text-xs text-primary font-bold flex items-center justify-center gap-2">
@@ -376,23 +370,6 @@ export function SargamStudio() {
                             </div>
                         )}
 
-                        {errorState === 'error' && (
-                            <div className="text-center space-y-6 max-w-md animate-in zoom-in-95 duration-500">
-                                <div className="h-20 w-20 rounded-full bg-muted/10 border border-white/10 flex items-center justify-center mx-auto">
-                                    <AlertTriangle className="h-10 w-10 text-primary" />
-                                </div>
-                                <div className="space-y-3">
-                                    <h3 className="text-xl font-bold text-foreground">Neural Synthesis Interrupted</h3>
-                                    <p className="text-sm text-muted-foreground leading-relaxed italic">
-                                        {lastErrorMessage || "The synthesis engine encountered a temporary error."}
-                                    </p>
-                                </div>
-                                <Button variant="outline" onClick={() => setErrorState('none')} className="rounded-xl mt-4 gap-2">
-                                    <RefreshCw className="h-4 w-4" /> Try Again
-                                </Button>
-                            </div>
-                        )}
-
                         {errorState === 'none' && !isGenerating && !isStitching && !currentVideoUrl && !finalVideoUrl && (
                             <div className="text-center space-y-6">
                                 <div className="h-24 w-24 rounded-full bg-muted/10 border border-white/5 flex items-center justify-center mx-auto opacity-30 group-hover:opacity-50 transition-all duration-700">
@@ -400,7 +377,7 @@ export function SargamStudio() {
                                 </div>
                                 <div className="space-y-2">
                                     <p className="text-lg font-headline font-bold text-muted-foreground italic">Studio Canvas Empty.</p>
-                                    <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto font-medium">Describe your vision to initialize the first scene.</p>
+                                    <p className="text-xs text-muted-foreground/60 max-w-xs mx-auto font-medium">Describe your vision to initialize the protocol.</p>
                                 </div>
                             </div>
                         )}
@@ -448,9 +425,7 @@ export function SargamStudio() {
                                     <div className="w-full max-w-2xl mt-8 animate-in slide-in-from-bottom-4 duration-1000">
                                         <div className="relative z-10">
                                             <div className="relative flex items-center gap-3 bg-muted/40 backdrop-blur-xl border border-primary/20 rounded-[1.5rem] p-2 shadow-2xl z-10">
-                                                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                                                    <Bot className="h-5 w-5 text-primary" />
-                                                </div>
+                                                <Bot className="h-5 w-5 text-primary ml-2" />
                                                 <Input 
                                                     placeholder={`Scene ${sceneVideos.length + 1}: Describe next beat (5 Credits)...`}
                                                     value={currentInstruction}
@@ -484,8 +459,8 @@ export function SargamStudio() {
                                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-widest">
                                             <CheckCircle2 className="h-4 w-4" /> Production Master Ready
                                         </div>
-                                        <p className="text-sm text-muted-foreground italic">Masterpiece synthesized from {sceneVideos.length} neural scenes.</p>
-                                        <Button variant="outline" onClick={resetStudio} className="rounded-xl mt-4">Start New Masterpiece</Button>
+                                        <p className="text-sm text-muted-foreground italic">Masterpiece synthesized with {sceneVideos.length} neural scenes.</p>
+                                        <Button variant="outline" onClick={resetStudio} className="rounded-xl mt-4">Start New Protocol</Button>
                                     </div>
                                 )}
                             </div>

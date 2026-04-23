@@ -27,12 +27,11 @@ export const studioFlow = ai.defineFlow(
     }),
   },
   async (input) => {
-    // Style-specific guidance for the director - Refined for "Masterpiece Quality"
     const styleGuides: Record<string, string> = {
-      '2d-animation': 'Professional high-fidelity hand-drawn digital animation, vibrant but balanced palette, fluid cinematic motion, Ghibli-inspired aesthetic.',
+      '2d-animation': 'Professional high-fidelity hand-drawn digital animation, vibrant but balanced palette, fluid cinematic motion.',
       '3d-render': 'Hyper-realistic 3D CGI masterpiece, path-traced lighting, soft global illumination, intricate high-end textures.',
       'cinematic': '8K professional live-action film aesthetic, anamorphic lens flares, shallow depth of field, high-end cinematography.',
-      'anime': 'Modern high-fidelity anime, breathtaking dynamic lighting, Makoto Shinkai inspired backgrounds, professional frame rates.',
+      'anime': 'Modern high-fidelity anime, breathtaking dynamic lighting, professional frame rates.',
       'pixel-art': 'High-end retro pixel art, vibrant atmospheric lighting, smooth nostalgic motion, 32-bit depth aesthetic.'
     };
 
@@ -48,7 +47,6 @@ export const studioFlow = ai.defineFlow(
     CRITICAL RULES:
     - ABSOLUTELY NO watermarks, logos, text overlays, or trademarked characters.
     - NO real-world celebrities or public figures.
-    - PEOPLE PROTOCOL: The engine utilizes 'allow_adult'. DO NOT use words like 'child', 'boy', 'girl', 'kid', 'young'. Instead, use 'protagonist', 'individual', or 'explorer'.
     - STYLE: ${specificStyleGuide}.
     
     Return ONLY the synthesized paragraph.`;
@@ -60,7 +58,7 @@ export const studioFlow = ai.defineFlow(
 
     const fullPrompt = `${masterPrompt}. High-quality visual production, no watermarks.`;
 
-    // Using Stable Neural Rendering Model
+    // Initializing Neural Rendering Model
     let { operation } = await ai.generate({
       model: 'googleai/veo-2.0-generate-001',
       prompt: fullPrompt,

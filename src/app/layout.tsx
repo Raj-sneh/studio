@@ -43,7 +43,7 @@ function AdScriptManager() {
 
   return (
     <>
-      {/* Monetization Engine */}
+      {/* Neural Monetization Protocol */}
       <Script
         async
         src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8391391679719370"
@@ -51,7 +51,7 @@ function AdScriptManager() {
         strategy="afterInteractive"
       />
 
-      {/* Adcash Library Protocol */}
+      {/* Network Ad Protocol */}
       <Script 
         id="aclib" 
         src="//acscdn.com/script/aclib.js" 
@@ -80,7 +80,7 @@ export default function RootLayout({
         <meta name="description" content="Sargam AI is the definitive Neural Studio for creators. Render cinematic animations, clone voices, or practice on our professional virtual grand piano." />
         <meta name="keywords" content="Neural Studio, AI Music Generator, Virtual Piano, AI Piano Tutor, Voice Cloning, Sargam AI, AI Vocal Studio, Music Learning AI, Neural Artist" />
         
-        {/* Performance Analytics */}
+        {/* Performance Metrics */}
         <Script
           async
           src="https://www.googletagmanager.com/gtag/js?id=G-ZKVHFQNVN0"
@@ -127,9 +127,8 @@ export default function RootLayout({
 
                 <div className="max-w-2xl">
                   <p className="text-sm text-muted-foreground leading-relaxed italic">
-                    Sargam AI is a labor of love, crafted to bridge the gap between artificial intelligence and musical soul. 
-                    Every contribution fuels our research into more complex neural models and brings us one step closer 
-                    to the definitive creative studio experience.
+                    Sargam AI is a labor of love, crafted to bridge the gap between human creativity and neural intelligence. 
+                    Every contribution fuels our research into more complex generative models.
                   </p>
                 </div>
 
