@@ -51,16 +51,28 @@ function AdScriptManager() {
         strategy="afterInteractive"
       />
 
-      {/* Network Ad Protocol */}
+      {/* Network Ad Protocol (AutoTag + Interstitial) */}
       <Script 
         id="aclib" 
         src="//acscdn.com/script/aclib.js" 
         strategy="lazyOnload"
         onLoad={() => {
-          if (typeof (window as any).aclib !== 'undefined' && typeof (window as any).aclib.runAutoTag === 'function') {
-              (window as any).aclib.runAutoTag({
-                  zoneId: 'uaihuhfqjp',
-              });
+          if (typeof (window as any).aclib !== 'undefined') {
+              const lib = (window as any).aclib;
+              
+              // Maintain existing AutoTag synchronization
+              if (typeof lib.runAutoTag === 'function') {
+                  lib.runAutoTag({
+                      zoneId: 'uaihuhfqjp',
+                  });
+              }
+
+              // Initialize new Interstitial protocol
+              if (typeof lib.runInterstitial === 'function') {
+                  lib.runInterstitial({
+                      zoneId: '11225786',
+                  });
+              }
           }
         }}
       />
