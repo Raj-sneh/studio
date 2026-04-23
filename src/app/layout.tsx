@@ -47,12 +47,19 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
 
+        {/* Adcash Library Protocol */}
+        <Script 
+          id="aclib" 
+          src="//acscdn.com/script/aclib.js" 
+          strategy="lazyOnload"
+        />
+
         {/* Network Ad Protocol */}
         <Script id="ac-lib-auto-tag" strategy="lazyOnload">
           {`
             if (typeof aclib !== 'undefined') {
                 aclib.runAutoTag({
-                    zoneId: '2ylnux8mxf',
+                    zoneId: 'kcgqfh2cgb',
                 });
             }
           `}
