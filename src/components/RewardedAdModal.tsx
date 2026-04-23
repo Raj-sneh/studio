@@ -77,11 +77,10 @@ export function RewardedAdModal({ isOpen, onOpenChange, currentCredits }: Reward
   }, [progress, isWatching, handleGrantCredits]);
 
   const handleStart = () => {
-    // 1. Call the Adcash Manual Script
+    // 1. Call the Adcash Manual Script per latest instruction
     if (typeof window !== 'undefined' && window.aclib) {
       try {
-        // Trigger high-impact Interstitial sequence per latest protocol
-        window.aclib.runInterstitial({
+        window.aclib.runAutoTag({
           zoneId: '11225786', 
         });
         
@@ -99,7 +98,7 @@ export function RewardedAdModal({ isOpen, onOpenChange, currentCredits }: Reward
     } else {
       toast({ 
         title: "Ad Provider Offline", 
-        description: "Please disable AdBlock to initialize the reward protocol.", 
+        description: "Please disable AdBlock to earn credits.", 
         variant: "destructive" 
       });
     }
