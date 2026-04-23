@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -31,24 +31,44 @@ export function RewardedAdModal({ isOpen, onOpenChange, currentCredits }: Reward
   const [progress, setProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
 
+  // side effect: Handle credit granting when progress reaches 100%
+  const handleGrantCredits = useCallback(() => {
+    if (!user || !firestore) return;
+    
+    const userRef = doc(firestore, 'users', user.uid);
+    const rewardAmount = 5;
+    
+    updateDocumentNonBlocking(userRef, {
+      credits: (currentCredits || 0) + rewardAmount
+    });
+
+    toast({
+      title: "Reward Protocol Success",
+      description: `You've earned ${rewardAmount} Neural Credits!`,
+    });
+  }, [user, firestore, currentCredits, toast]);
+
+  // Effect 1: Handle the visual progress timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isWatching) {
+    if (isWatching && progress < 100) {
       interval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setIsComplete(true);
-            setIsWatching(false);
-            handleGrantCredits();
-            return 100;
-          }
-          return prev + 1;
-        });
+        setProgress((prev) => Math.min(prev + 1, 100));
       }, 150); // ~15 second "ad"
     }
-    return () => clearInterval(interval);
-  }, [isWatching]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isWatching, progress]);
+
+  // Effect 2: Watch for completion and trigger side effects
+  useEffect(() => {
+    if (progress >= 100 && isWatching) {
+      setIsWatching(false);
+      setIsComplete(true);
+      handleGrantCredits();
+    }
+  }, [progress, isWatching, handleGrantCredits]);
 
   const handleStart = () => {
     setIsWatching(true);
@@ -56,31 +76,21 @@ export function RewardedAdModal({ isOpen, onOpenChange, currentCredits }: Reward
     setProgress(0);
   };
 
-  const handleGrantCredits = () => {
-    if (!user || !firestore) return;
-    
-    const userRef = doc(firestore, 'users', user.uid);
-    const rewardAmount = 5;
-    
-    updateDocumentNonBlocking(userRef, {
-      credits: currentCredits + rewardAmount
-    });
-
-    toast({
-      title: "Reward Protocol Success",
-      description: `You've earned ${rewardAmount} Neural Credits!`,
-    });
-  };
-
   const handleClose = () => {
     onOpenChange(false);
-    setIsWatching(false);
-    setIsComplete(false);
-    setProgress(0);
+    // Reset state after a short delay to prevent visual jumping during close animation
+    setTimeout(() => {
+      setIsWatching(false);
+      setIsComplete(false);
+      setProgress(0);
+    }, 200);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) handleClose();
+      else onOpenChange(true);
+    }}>
       <DialogContent className="sm:max-w-[420px] rounded-[2rem] bg-background/95 backdrop-blur-2xl border-primary/20">
         <DialogHeader className="items-center text-center">
           <div className="h-16 w-16 rounded-[1.5rem] bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">
