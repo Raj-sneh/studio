@@ -1,12 +1,14 @@
 'use client';
 
-import { Check, Zap, Sparkles, Rocket, Gift, Heart, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { Check, Zap, Sparkles, Rocket, Gift, Heart, ShieldCheck, Eye, EyeOff, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
+import { useState } from 'react';
+import { RewardedAdModal } from "@/components/RewardedAdModal";
 
 const PLANS = [
   {
@@ -19,6 +21,7 @@ const PLANS = [
     features: [
       'Standard Quality Audio',
       'Virtual Piano Access',
+      'Earn Credits via Sponsorship',
       'Ad-Supported Freemium',
       'Community Support'
     ],
@@ -67,6 +70,7 @@ export default function PricingPage() {
   const firestore = useFirestore();
   const userDocRef = useMemoFirebase(() => (firestore && user?.uid ? doc(firestore, 'users', user.uid) : null), [firestore, user?.uid]);
   const { data: profile } = useDoc<UserProfile>(userDocRef);
+  const [isRewardedOpen, setIsRewardedOpen] = useState(false);
 
   return (
     <div className="space-y-16 pb-32">
@@ -112,7 +116,7 @@ export default function PricingPage() {
                 <ul className="space-y-4">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-3 text-sm">
-                      {feature.includes('Ads-Free') ? <EyeOff className="h-4 w-4 text-primary mt-0.5" /> : feature.includes('Ad-Supported') ? <Eye className="h-4 w-4 text-muted-foreground mt-0.5" /> : <Check className="h-4 w-4 text-primary mt-0.5" />}
+                      {feature.includes('Ads-Free') ? <EyeOff className="h-4 w-4 text-primary mt-0.5" /> : feature.includes('Ad-Supported') ? <Eye className="h-4 w-4 text-muted-foreground mt-0.5" /> : feature.includes('Earn Credits') ? <PlayCircle className="h-4 w-4 text-primary mt-0.5" /> : <Check className="h-4 w-4 text-primary mt-0.5" />}
                       <span className="text-muted-foreground">{feature}</span>
                     </li>
                   ))}
@@ -120,14 +124,21 @@ export default function PricingPage() {
               </CardContent>
               <CardFooter className="p-8 pt-0">
                 <Button 
-                  asChild
+                  asChild={!isCurrentPlan || plan.id !== 'free'}
                   className="w-full h-12 rounded-xl font-bold shadow-lg"
                   variant={isCurrentPlan ? 'outline' : plan.popular ? 'default' : 'secondary'}
-                  disabled={isCurrentPlan}
+                  disabled={isCurrentPlan && plan.id !== 'free'}
+                  onClick={() => {
+                    if (plan.id === 'free' && isCurrentPlan) setIsRewardedOpen(true);
+                  }}
                 >
-                  <Link href={plan.id === 'free' ? '/suite' : '/profile/billing'}>
-                    {isCurrentPlan ? 'Your Active Plan' : plan.buttonText}
-                  </Link>
+                  {isCurrentPlan && plan.id === 'free' ? (
+                    <span>Earn Free Credits</span>
+                  ) : (
+                    <Link href={plan.id === 'free' ? '/suite' : '/profile/billing'}>
+                      {isCurrentPlan ? 'Your Active Plan' : plan.buttonText}
+                    </Link>
+                  )}
                 </Button>
               </CardFooter>
             </Card>
@@ -148,6 +159,12 @@ export default function PricingPage() {
               </div>
           </div>
       </section>
+
+      <RewardedAdModal 
+        isOpen={isRewardedOpen}
+        onOpenChange={setIsRewardedOpen}
+        currentCredits={profile?.credits ?? 0}
+      />
     </div>
   );
 }

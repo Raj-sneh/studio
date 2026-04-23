@@ -17,13 +17,14 @@ import { useUser, useFirestore, useDoc, useMemoFirebase, addDocumentNonBlocking 
 import { collection, serverTimestamp, doc } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
 import { cn } from '@/lib/utils';
+import { RewardedAdModal } from '../RewardedAdModal';
 
 const Piano = lazy(() => import('@/components/Piano'));
 
 function InstrumentLoader() {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center min-h-[200px]">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <Loader2 className="h-10 w-10 animate-spin text-primary" />
       <p className="mt-4 text-muted-foreground font-headline uppercase tracking-widest text-[10px] font-black">Neural Calibration...</p>
     </div>
   );
@@ -41,6 +42,7 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
     const [feedbackComment, setFeedbackComment] = useState('');
     const [rating, setRating] = useState<'good' | 'bad' | null>(null);
     const [showFeedbackInput, setShowFeedbackInput] = useState(false);
+    const [isRewardedModalOpen, setIsRewardedModalOpen] = useState(false);
 
     const [generationState, setGenerationState] = useState<'idle' | 'loading' | 'generated'>('idle');
     const [mode, setMode] = useState<'idle' | 'demo' | 'learn'>('idle');
@@ -94,7 +96,12 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
         if (!profile) return;
         
         if ((profile.credits || 0) < 1) {
-            toast({ title: 'Insufficient Credits', description: 'Upgrade your plan to get more neural liquidity.', variant: 'destructive' });
+            toast({ 
+              title: 'Insufficient Credits', 
+              description: 'You need at least 1 credit to compose.', 
+              variant: 'destructive' 
+            });
+            setIsRewardedModalOpen(true);
             return;
         }
 
@@ -363,6 +370,12 @@ export function AIComposer({ initialPrompt, autogen, onGenerate }: { initialProm
                     </Suspense>
                 </div>
             </CardContent>
+
+            <RewardedAdModal 
+              isOpen={isRewardedModalOpen}
+              onOpenChange={setIsRewardedModalOpen}
+              currentCredits={profile?.credits ?? 0}
+            />
         </Card>
     );
 }
