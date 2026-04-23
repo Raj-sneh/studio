@@ -52,18 +52,14 @@ export default function RootLayout({
           id="aclib" 
           src="//acscdn.com/script/aclib.js" 
           strategy="lazyOnload"
-        />
-
-        {/* Network Ad Protocol */}
-        <Script id="ac-lib-auto-tag" strategy="lazyOnload">
-          {`
-            if (typeof aclib !== 'undefined') {
-                aclib.runAutoTag({
+          onLoad={() => {
+            if (typeof (window as any).aclib !== 'undefined' && typeof (window as any).aclib.runAutoTag === 'function') {
+                (window as any).aclib.runAutoTag({
                     zoneId: 'kcgqfh2cgb',
                 });
             }
-          `}
-        </Script>
+          }}
+        />
 
         {/* Performance Analytics */}
         <Script
